@@ -30,6 +30,11 @@ namespace DV5Direct
         public bool ShiftFlashOn;
         public double Brake;
         public double Throttle;
+        public RacingFlag Flag;
+        public double Delta;
+        public double FuelPct;
+        /// <summary>Milliseconds clock used for blinking; Environment.TickCount at runtime.</summary>
+        public int Clock;
 
         public static LedInputs From(TelemetrySnapshot t, bool shiftFlashOn) => new LedInputs
         {
@@ -38,7 +43,11 @@ namespace DV5Direct
             ShiftPct = t.ShiftIndicatorPct,
             ShiftFlashOn = shiftFlashOn,
             Brake = t.Brake,
-            Throttle = t.Throttle
+            Throttle = t.Throttle,
+            Flag = t.Flag,
+            Delta = t.LapDeltaSeconds,
+            FuelPct = t.FuelLevelPct,
+            Clock = Environment.TickCount
         };
     }
 
@@ -55,7 +64,7 @@ namespace DV5Direct
         {
             var frame = new Color[Count];
             for (int i = 0; i < Count; i++) frame[i] = Color.Black;
-            settings = settings ?? DashboardSettings.CreateDefault();
+            settings = settings ?? DashboardSettings.CreateSummit();
             int rpmPairs = (int)Math.Ceiling(Clamp01(input.ShiftPct) * 4);
             ComposeSide(frame, true, input.Left, rpmPairs, input, settings.LeftLeds);
             ComposeSide(frame, false, input.Right, rpmPairs, input, settings.RightLeds);
@@ -116,6 +125,113 @@ namespace DV5Direct
                     for (int i = 0; i < lit; i++)
                         frame[at(3 - i)] = Scale(colors[Math.Min(2, i * 3 / 4)], brightness);
                     break;
+            }
+        }
+
+        /// <summary>
+        /// Composes the LB-10 brow light bar, a single horizontal row of
+        /// <paramref name="count"/> LEDs numbered left to right.
+        /// </summary>
+        public static Color[] ComposeBrow(BrowLedSettings settings, int count, LedInputs input)
+        {
+            count = Math.Max(1, count);
+            var frame = new Color[count];
+            for (int i = 0; i < count; i++) frame[i] = Color.Black;
+            if (settings == null || settings.Function == BrowFunctions.Off) return frame;
+            int brightness = settings.Brightness;
+            Color[] colors = GetProfile(settings);
+            bool blink = ((input.Clock / 250) & 1) == 0;
+
+            if (settings.FlagOverride && input.Flag != RacingFlag.None || settings.Function == BrowFunctions.Flags)
+            {
+                if (input.Flag != RacingFlag.None) ComposeFlag(frame, input.Flag, blink, brightness);
+                return frame;
+            }
+
+            int half = count / 2;
+            bool odd = count % 2 == 1;
+            switch (settings.Function)
+            {
+                case BrowFunctions.Shift:
+                    if (input.ShiftFlashOn) { for (int i = 0; i < count; i++) frame[i] = Scale(Color.Red, brightness); break; }
+                    int lit = (int)Math.Ceiling(Clamp01(input.ShiftPct) * (half + (odd ? 1 : 0)));
+                    for (int i = 0; i < lit; i++)
+                    {
+                        Color c = Scale(colors[Math.Min(2, i * 3 / Math.Max(1, half))], brightness);
+                        frame[i] = c;
+                        frame[count - 1 - i] = c;
+                    }
+                    break;
+                case BrowFunctions.BlindSpot:
+                    Color alert = Scale(colors[2], brightness);
+                    FillZone(frame, 0, half, input.Left, alert, true);
+                    FillZone(frame, count - half, half, input.Right, alert, false);
+                    break;
+                case BrowFunctions.Pedals:
+                    int brake = (int)Math.Ceiling(Clamp01(input.Brake) * half - 0.05);
+                    int throttle = (int)Math.Ceiling(Clamp01(input.Throttle) * half - 0.05);
+                    for (int i = 0; i < brake; i++) frame[half - 1 - i] = Scale(Color.Red, brightness);
+                    for (int i = 0; i < throttle; i++) frame[count - half + i] = Scale(Color.Lime, brightness);
+                    break;
+                case BrowFunctions.Brake:
+                case BrowFunctions.Throttle:
+                    double value = settings.Function == BrowFunctions.Brake ? input.Brake : input.Throttle;
+                    int outward = (int)Math.Ceiling(Clamp01(value) * (half + (odd ? 1 : 0)) - 0.05);
+                    for (int i = 0; i < outward; i++)
+                    {
+                        Color c = Scale(colors[Math.Min(2, i * 3 / Math.Max(1, half))], brightness);
+                        frame[(count - 1) / 2 - i] = c;
+                        frame[count / 2 + i] = c;
+                    }
+                    break;
+                case BrowFunctions.Delta:
+                    int length = (int)Math.Round(Math.Min(1, Math.Abs(input.Delta)) * half);
+                    Color tone = Scale(input.Delta >= 0 ? Color.Lime : Color.Red, brightness);
+                    for (int i = 0; i < length; i++)
+                        frame[input.Delta >= 0 ? count - half + i : half - 1 - i] = tone;
+                    if (odd) frame[half] = Scale(Color.White, brightness / 3);
+                    break;
+                case BrowFunctions.Fuel:
+                    double pct = Clamp01(input.FuelPct);
+                    int fuel = (int)Math.Ceiling(pct * count);
+                    Color level = pct < 0.1 ? colors[2] : pct < 0.25 ? colors[1] : colors[0];
+                    if (pct < 0.1 && !blink) break;
+                    for (int i = 0; i < fuel; i++) frame[i] = Scale(level, brightness);
+                    break;
+            }
+            return frame;
+        }
+
+        private static void FillZone(Color[] frame, int start, int length, BlindSpotZone zone, Color color, bool leftSide)
+        {
+            if (zone == BlindSpotZone.None || length <= 0) return;
+            // Alongside lights the whole half; ahead lights the inner part, behind the outer part.
+            int part = Math.Max(1, (length + 1) / 2);
+            int from = start, to = start + length;
+            if (zone == BlindSpotZone.Front) { if (leftSide) from = to - part; else to = from + part; }
+            else if (zone == BlindSpotZone.Rear) { if (leftSide) to = from + part; else from = to - part; }
+            for (int i = from; i < to; i++) frame[i] = color;
+        }
+
+        private static void ComposeFlag(Color[] frame, RacingFlag flag, bool blink, int brightness)
+        {
+            for (int i = 0; i < frame.Length; i++)
+            {
+                Color c;
+                switch (flag)
+                {
+                    case RacingFlag.Green: c = Color.Lime; break;
+                    case RacingFlag.Yellow: case RacingFlag.SafetyCar: c = Color.FromArgb(255, 190, 0); break;
+                    case RacingFlag.White: c = Color.White; break;
+                    case RacingFlag.Red: c = Color.Red; break;
+                    case RacingFlag.BlueYellowStripe: c = blink ? Color.FromArgb(0, 90, 255) : Color.FromArgb(255, 190, 0); break;
+                    case RacingFlag.Black: c = blink ? Color.White : Color.Black; break;
+                    case RacingFlag.Meatball: c = blink ? Color.FromArgb(255, 90, 0) : Color.Black; break;
+                    case RacingFlag.Surface: c = (i % 2 == 0) == blink ? Color.FromArgb(255, 190, 0) : Color.Red; break;
+                    case RacingFlag.Checkered: c = (i % 2 == 0) == blink ? Color.White : Color.Black; break;
+                    default: c = Color.Black; break;
+                }
+                frame[i] = Scale(c, brightness);
             }
         }
 

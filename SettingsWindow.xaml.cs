@@ -29,7 +29,7 @@ namespace DV5Direct
             { "#2DD4BF", "#27C7D9", "#0A84FF", "#5E5CE6", "#BF5AF2", "#FF375F", "#FF9F0A", "#30D158" };
 
         private static readonly string[] PreviewStates =
-            { "Racing", "Shift point", "Pit lane", "Green flag", "Yellow flag", "White flag", "Blue flag", "Black flag", "Checkered flag" };
+            { "Racing", "Shift point", "Pit lane", "Cars alongside", "Green flag", "Yellow flag", "White flag", "Blue flag", "Black flag", "Checkered flag" };
 
         private readonly AppSettings _settings;
         private DashboardSettings _dashboard;
@@ -44,7 +44,9 @@ namespace DV5Direct
         private readonly Ellipse[] _ledDots = new Ellipse[LedFrame.Count];
         private readonly DropShadowEffect[] _ledGlows = new DropShadowEffect[LedFrame.Count];
         private readonly List<Border> _galleryCards = new List<Border>();
-        private BankEditor _center, _left, _right;
+        private BankEditor _center, _left, _right, _brow;
+        private readonly List<Ellipse> _browDots = new List<Ellipse>();
+        private readonly List<DropShadowEffect> _browGlows = new List<DropShadowEffect>();
         private Button _armedButton;
 
         public SettingsWindow()
@@ -120,6 +122,12 @@ namespace DV5Direct
                 Bank = () => _dashboard.RightLeds,
                 Replace = bank => _dashboard.RightLeds = SettingsStore.Clone((SideLedSettings)bank)
             };
+            _brow = new BankEditor
+            {
+                Function = BrowFunction, Profile = BrowProfile, Low = BrowLow, Mid = BrowMid, High = BrowHigh,
+                Brightness = BrowBrightness, BrightnessValue = BrowBrightnessValue, FunctionHelp = BrowFunctionHelp,
+                Bank = () => _dashboard.BrowLeds
+            };
         }
 
         private void PopulateChoices()
@@ -129,11 +137,12 @@ namespace DV5Direct
             foreach (BankEditor editor in Editors()) editor.Profile.ItemsSource = LedProfiles.All;
             LeftFunction.ItemsSource = LedFunctions.Side;
             RightFunction.ItemsSource = LedFunctions.Side;
+            BrowFunction.ItemsSource = BrowFunctions.All;
             PreviewState.ItemsSource = PreviewStates;
             PreviewState.SelectedIndex = 0;
         }
 
-        private IEnumerable<BankEditor> Editors() => new[] { _center, _left, _right };
+        private IEnumerable<BankEditor> Editors() => new[] { _center, _left, _right, _brow };
 
         private void HookEvents()
         {
@@ -161,6 +170,14 @@ namespace DV5Direct
             BlinkCountSlider.ValueChanged += (s, e) => OnAlertsEdited();
             BlinkLengthSlider.ValueChanged += (s, e) => OnAlertsEdited();
             HoldSlider.ValueChanged += (s, e) => OnAlertsEdited();
+            BrowCountSlider.ValueChanged += (s, e) =>
+            {
+                BrowCountValue.Text = (int)BrowCountSlider.Value + " LEDs";
+                if (_loading) return;
+                _settings.General.BrowLedCount = (int)BrowCountSlider.Value;
+                BuildBrowPreview();
+                Save();
+            };
             ScreenBrightness.ValueChanged += (s, e) =>
             {
                 ScreenBrightnessValue.Text = (int)ScreenBrightness.Value + "%";
@@ -187,6 +204,29 @@ namespace DV5Direct
             for (int i = 4; i < 12; i++) TopLeds.Children.Add(_ledDots[i]);
             for (int i = 3; i >= 0; i--) LeftLeds.Children.Add(_ledDots[i]);
             for (int i = 12; i < 16; i++) RightLeds.Children.Add(_ledDots[i]);
+        }
+
+        private void BuildBrowPreview()
+        {
+            BrowLedsPreview.Children.Clear();
+            _browDots.Clear();
+            _browGlows.Clear();
+            int count = Math.Max(1, _settings.General.BrowLedCount);
+            BrowLedsPreview.Columns = count;
+            for (int i = 0; i < count; i++)
+            {
+                var glow = new DropShadowEffect { ShadowDepth = 0, BlurRadius = 12, Opacity = 0 };
+                var dot = new Border
+                {
+                    Width = Math.Max(6, Math.Min(22, 300.0 / count)), Height = 8, CornerRadius = new CornerRadius(3),
+                    HorizontalAlignment = HorizontalAlignment.Center, Background = (Brush)FindResource("Brush.LedOff"), Effect = glow
+                };
+                _browGlows.Add(glow);
+                _browDots.Add(null);
+                BrowLedsPreview.Children.Add(dot);
+            }
+            BrowPreview.Visibility = _settings.General.BrowEnabled ? Visibility.Visible : Visibility.Collapsed;
+            UpdateLedPreview();
         }
 
         private void BuildAccentPresets()
@@ -407,6 +447,7 @@ namespace DV5Direct
 
             foreach (BankEditor editor in Editors()) LoadBank(editor);
             MirrorSides.IsChecked = SameJson(_dashboard.LeftLeds, _dashboard.RightLeds);
+            BrowFlagsToggle.IsChecked = _dashboard.BrowLeds.FlagOverride;
             UpdateMirrorState();
 
             BlinkCountSlider.Value = _dashboard.Alerts.BlinkCount;
@@ -430,12 +471,14 @@ namespace DV5Direct
             _loading = true;
             LedBankSettings bank = editor.Bank();
             if (editor == _center) editor.Function.SelectedIndex = bank.Function == LedFunctions.Disabled ? 1 : 0;
+            else if (editor == _brow) editor.Function.SelectedItem = BrowFunctions.All.Contains(bank.Function) ? bank.Function : BrowFunctions.Shift;
             else editor.Function.SelectedItem = LedFunctions.Side.Contains(bank.Function) ? bank.Function : LedFunctions.BlindSpot;
             if (editor.Pattern != null) editor.Pattern.SelectedItem = LedPatterns.Center.Contains(bank.Pattern) ? bank.Pattern : LedPatterns.Center[0];
             editor.Profile.SelectedItem = LedProfiles.All.Contains(bank.ColorProfile) ? bank.ColorProfile : LedProfiles.Custom;
             editor.Brightness.Value = bank.Brightness;
             editor.BrightnessValue.Text = bank.Brightness + "%";
-            if (editor.FunctionHelp != null) editor.FunctionHelp.Text = DescribeSideFunction(bank.Function);
+            if (editor.FunctionHelp != null)
+                editor.FunctionHelp.Text = editor == _brow ? BrowFunctions.Describe(bank.Function) : DescribeSideFunction(bank.Function);
 
             DrawingColor[] colors = LedFrame.GetProfile(bank);
             editor.Low.Background = BrushFor(colors[0]);
@@ -448,7 +491,7 @@ namespace DV5Direct
             editor.Low.ToolTip = "Low " + role + " · " + SettingsStore.ToHex(colors[0]);
             editor.Mid.ToolTip = "Mid " + role + " · " + SettingsStore.ToHex(colors[1]);
             editor.High.ToolTip = (single ? "Color" : "High " + role) + " · " + SettingsStore.ToHex(colors[2]);
-            bool off = bank.Function == LedFunctions.Disabled;
+            bool off = bank.Function == LedFunctions.Disabled || bank.Function == BrowFunctions.Off;
             foreach (UIElement control in new UIElement[] { editor.Profile, editor.Low, editor.Mid, editor.High, editor.Brightness })
                 control.IsEnabled = !off;
             if (editor.Pattern != null) editor.Pattern.IsEnabled = !off;
@@ -733,20 +776,24 @@ namespace DV5Direct
             RacingFlag flag;
             switch (PreviewState.SelectedIndex)
             {
-                case 3: flag = RacingFlag.Green; break;
-                case 4: flag = RacingFlag.Yellow; break;
-                case 5: flag = RacingFlag.White; break;
-                case 6: flag = RacingFlag.BlueYellowStripe; break;
-                case 7: flag = RacingFlag.Black; break;
-                case 8: flag = RacingFlag.Checkered; break;
+                case 4: flag = RacingFlag.Green; break;
+                case 5: flag = RacingFlag.Yellow; break;
+                case 6: flag = RacingFlag.White; break;
+                case 7: flag = RacingFlag.BlueYellowStripe; break;
+                case 8: flag = RacingFlag.Black; break;
+                case 9: flag = RacingFlag.Checkered; break;
                 default: flag = RacingFlag.None; break;
             }
-            TelemetrySnapshot snapshot = PreviewState.SelectedIndex == 2
-                ? IRacingTelemetrySource.CreatePitLanePreviewSnapshot()
-                : IRacingTelemetrySource.CreatePreviewSnapshot(flag);
+            TelemetrySnapshot snapshot =
+                PreviewState.SelectedIndex == 2 ? IRacingTelemetrySource.CreatePitLanePreviewSnapshot() :
+                PreviewState.SelectedIndex == 3 ? IRacingTelemetrySource.CreateSpotterPreviewSnapshot() :
+                IRacingTelemetrySource.CreatePreviewSnapshot(flag);
+            _previewFlag = flag;
             PreviewBrush.ImageSource = RenderPreview(_dashboard, new UnitSystem(_settings.General), snapshot, PreviewState.SelectedIndex == 1);
             UpdateLedPreview();
         }
+
+        private RacingFlag _previewFlag;
 
         private static BitmapSource RenderPreview(DashboardSettings dashboard, UnitSystem units, TelemetrySnapshot snapshot, bool shiftFlash = false)
         {
@@ -782,8 +829,14 @@ namespace DV5Direct
                 Left = animate ? cycle[(int)(t / 0.7) % cycle.Length] : BlindSpotZone.Beside,
                 Right = animate ? cycle[((int)(t / 0.7) + 2) % cycle.Length] : BlindSpotZone.None,
                 Brake = animate ? Math.Max(0, Math.Sin(t * 1.6)) : 0.55,
-                Throttle = animate ? Math.Max(0, -Math.Sin(t * 1.6)) : 0.8
+                Throttle = animate ? Math.Max(0, -Math.Sin(t * 1.6)) : 0.8,
+                Delta = animate ? Math.Sin(t * 0.9) * 0.8 : 0.46,
+                FuelPct = animate ? 1 - (t % 8) / 8 : 0.41,
+                Flag = _previewFlag,
+                Clock = Environment.TickCount
             };
+            if (PreviewState.SelectedIndex == 3) { input.Left = BlindSpotZone.Beside; input.Right = BlindSpotZone.Front; }
+            UpdateBrowPreview(input);
             DrawingColor[] frame = LedFrame.Compose(_dashboard, input);
             for (int i = 0; i < LedFrame.Count; i++)
             {
@@ -801,6 +854,29 @@ namespace DV5Direct
                 _ledDots[i].Fill = new SolidColorBrush(Color.FromArgb((byte)(255 * level), hue.R, hue.G, hue.B));
                 _ledGlows[i].Color = hue;
                 _ledGlows[i].Opacity = 0.9 * level;
+            }
+        }
+
+        private void UpdateBrowPreview(LedInputs input)
+        {
+            if (_browDots.Count == 0 || _dashboard?.BrowLeds == null) return;
+            DrawingColor[] frame = LedFrame.ComposeBrow(_dashboard.BrowLeds, _browDots.Count, input);
+            int brightness = Math.Max(1, _dashboard.BrowLeds.Brightness);
+            for (int i = 0; i < _browDots.Count && i < BrowLedsPreview.Children.Count; i++)
+            {
+                var dot = (Border)BrowLedsPreview.Children[i];
+                DrawingColor c = frame[i];
+                if (c.R == 0 && c.G == 0 && c.B == 0)
+                {
+                    dot.Background = (Brush)FindResource("Brush.LedOff");
+                    _browGlows[i].Opacity = 0;
+                    continue;
+                }
+                Color hue = Color.FromRgb(Boost(c.R, brightness), Boost(c.G, brightness), Boost(c.B, brightness));
+                double level = 0.45 + 0.55 * brightness / 100.0;
+                dot.Background = new SolidColorBrush(Color.FromArgb((byte)(255 * level), hue.R, hue.G, hue.B));
+                _browGlows[i].Color = hue;
+                _browGlows[i].Opacity = 0.9 * level;
             }
         }
 
@@ -822,7 +898,11 @@ namespace DV5Direct
             AutoSwitchToggle.IsChecked = general.AutoSwitchByDiscipline;
             DiagnosticsToggle.IsChecked = general.DiagnosticsEnabled;
             StartupToggle.IsChecked = File.Exists(StartupShortcutPath);
+            BrowEnabledToggle.IsChecked = general.BrowEnabled;
+            BrowCountSlider.Value = Math.Max(2, Math.Min(40, general.BrowLedCount));
+            BrowCountValue.Text = general.BrowLedCount + " LEDs";
             RefreshPorts();
+            BuildBrowPreview();
         }
 
         private void RefreshPorts()
@@ -834,6 +914,9 @@ namespace DV5Direct
             if (!string.IsNullOrWhiteSpace(_settings.General.LedPort)) ports.Add(_settings.General.LedPort);
             PortCombo.ItemsSource = ports.OrderBy(p => p.Length).ThenBy(p => p, StringComparer.OrdinalIgnoreCase).ToList();
             PortCombo.SelectedItem = ports.FirstOrDefault(p => string.Equals(p, _settings.General.LedPort, StringComparison.OrdinalIgnoreCase));
+            if (!string.IsNullOrWhiteSpace(_settings.General.BrowPort)) ports.Add(_settings.General.BrowPort);
+            BrowPortCombo.ItemsSource = ports.OrderBy(p => p.Length).ThenBy(p => p, StringComparer.OrdinalIgnoreCase).ToList();
+            BrowPortCombo.SelectedItem = ports.FirstOrDefault(p => string.Equals(p, _settings.General.BrowPort, StringComparison.OrdinalIgnoreCase));
             _loading = was;
         }
 
@@ -844,6 +927,86 @@ namespace DV5Direct
             if (_loading || !(PortCombo.SelectedItem is string port)) return;
             _settings.General.LedPort = port;
             Save(IsDashboardRunning() ? "Saved · restart the dashboard to use " + port : "Saved");
+        }
+
+        private void BrowFlags_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_loading) return;
+            _dashboard.BrowLeds.FlagOverride = BrowFlagsToggle.IsChecked == true;
+            Changed();
+        }
+
+        private void BrowEnabled_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_loading) return;
+            _settings.General.BrowEnabled = BrowEnabledToggle.IsChecked == true;
+            BuildBrowPreview();
+            Save();
+        }
+
+        private void BrowPortCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_loading || !(BrowPortCombo.SelectedItem is string port)) return;
+            _settings.General.BrowPort = port;
+            Save();
+        }
+
+        private async void TestBrow_Click(object sender, RoutedEventArgs e)
+        {
+            string port = _settings.General.BrowPort;
+            int count = _settings.General.BrowLedCount;
+            BrowTestStatus.Visibility = Visibility.Visible;
+            if (IsDashboardRunning())
+            {
+                BrowTestStatus.Text = "Stop the dashboard first so the light bar is free to test.";
+                BrowTestStatus.Foreground = (Brush)FindResource("Brush.Warning");
+                return;
+            }
+            TestBrowButton.IsEnabled = false;
+            BrowTestStatus.Text = "Testing the light bar on " + port + "…";
+            BrowTestStatus.Foreground = (Brush)FindResource("Brush.TextSecondary");
+            BrowLedSettings brow = SettingsStore.Clone((_dashboard ?? _settings.GetDefaultDashboard()).BrowLeds);
+            try
+            {
+                string device = await Task.Run(() => RunBrowTest(port, count, brow));
+                BrowTestStatus.Text = $"Found {device} on {port}. It lit each LED left to right, then ran a shift sweep. If some LEDs stayed dark or the sweep stopped short, adjust the LED count.";
+                BrowTestStatus.Foreground = (Brush)FindResource("Brush.Success");
+            }
+            catch (Exception ex)
+            {
+                BrowTestStatus.Text = $"Couldn't reach the light bar on {port}. {ex.Message}";
+                BrowTestStatus.Foreground = (Brush)FindResource("Brush.Danger");
+            }
+            finally
+            {
+                TestBrowButton.IsEnabled = true;
+            }
+        }
+
+        private static string RunBrowTest(string port, int count, BrowLedSettings brow)
+        {
+            using (var leds = new Dv5LedController(port, 115200, count, "SSG LB-10"))
+            {
+                leds.Connect();
+                string name = leds.QueryDeviceName();
+                var frame = new DrawingColor[count];
+                for (int i = 0; i < count; i++)
+                {
+                    for (int j = 0; j < count; j++) frame[j] = j == i ? DrawingColor.FromArgb(180, 180, 180) : DrawingColor.Black;
+                    leds.SetFrame(frame);
+                    Thread.Sleep(220);
+                }
+                var shift = SettingsStore.Clone(brow);
+                shift.Function = BrowFunctions.Shift;
+                shift.FlagOverride = false;
+                for (int step = 0; step <= 10; step++)
+                {
+                    leds.SetFrame(LedFrame.ComposeBrow(shift, count, new LedInputs { ShiftPct = step / 10.0 }));
+                    Thread.Sleep(90);
+                }
+                leds.Clear();
+                return name;
+            }
         }
 
         private async void TestLeds_Click(object sender, RoutedEventArgs e)

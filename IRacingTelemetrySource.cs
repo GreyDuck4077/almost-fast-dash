@@ -195,6 +195,15 @@ namespace DV5Direct
         public int TraceVersion { get; set; }
         public RelativeEntry[] Relatives { get; set; } = new RelativeEntry[0];
         public string CarName { get; set; }
+        /// <summary>True for the whole caution period, not just the on-screen alert pulse.</summary>
+        public bool CautionActive { get; set; }
+        public bool WhiteFlagActive { get; set; }
+        /// <summary>Position when the race went green, or 0 when unknown.</summary>
+        public int StartPosition { get; set; }
+        public double TrackLengthMiles { get; set; }
+        /// <summary>Average speed of a lap in MPH from the track length, or 0 when unknown.</summary>
+        public double LapSpeedMph(double lapSeconds) =>
+            TrackLengthMiles > 0 && lapSeconds > 0 ? TrackLengthMiles / (lapSeconds / 3600.0) : 0;
         public int ClassPosition { get; set; }
         public bool OnPitRoad { get; set; }
         public bool PitLimiter { get; set; }
@@ -290,6 +299,10 @@ namespace DV5Direct
         private float[] _throttleTraceCopy = new float[0];
         private float[] _brakeTraceCopy = new float[0];
         private int _speedLap = -1;
+        private int _startPositionSession = -1;
+        private int _startPosition;
+        private int _trackLengthSession = -1;
+        private double _trackLengthMiles;
         private const int DeltaTraceLength = 80;
         private readonly float[] _deltaTrace = new float[DeltaTraceLength];
         private int _deltaHead;
@@ -372,6 +385,18 @@ namespace DV5Direct
                 false, 87.932, 87.521, 88.204, yellowLaps, 0, 6, 6120));
         }
 
+        /// <summary>Preview of a car alongside on the left and one slightly ahead on the right.</summary>
+        public static TelemetrySnapshot CreateSpotterPreviewSnapshot()
+        {
+            TelemetrySnapshot snapshot = WithPreviewExtras(new TelemetrySnapshot(
+                true, 4, 178, RacingFlag.None, BlindSpotZone.Beside, BlindSpotZone.Front, 0.72,
+                SessionProgressMode.LapRace, 0, 0, 8, 18,
+                4, 2, 24.3, 18.4, 0.12,
+                "J. MILLER", -0.21, "M. CARTER", 0.18, 22,
+                false, 87.932, 87.521, 88.204, new bool[18], 0, 6, 7900));
+            return snapshot;
+        }
+
         /// <summary>Preview of driving down pit lane with the limiter on.</summary>
         public static TelemetrySnapshot CreatePitLanePreviewSnapshot()
         {
@@ -415,6 +440,8 @@ namespace DV5Direct
             snapshot.Throttle = 1;
             snapshot.ClassPosition = 4;
             snapshot.CarName = "PORSCHE 911 GT3 R";
+            snapshot.StartPosition = 7;
+            snapshot.TrackLengthMiles = 2.5;
             snapshot.TrackTempC = 31.4;
             snapshot.AirTempC = 22.0;
             snapshot.PitSpeedLimitMph = 45;
@@ -630,6 +657,19 @@ namespace DV5Direct
                 _latest.Relatives = BuildRelatives(sample.Telemetry, details);
                 _latest.ClassPosition = ReadTelemetryInt(sample.Telemetry, "PlayerCarClassPosition");
                 _latest.CarName = GetCarName(details, ReadTelemetryInt(sample.Telemetry, "PlayerCarIdx"));
+                _latest.CautionActive = yellowActive;
+                _latest.WhiteFlagActive = (sessionFlags & SessionFlags.white) != 0;
+                _latest.TrackLengthMiles = GetTrackLengthMiles(sample.Telemetry);
+                if (_startPositionSession != sample.Telemetry.SessionUniqueID)
+                {
+                    _startPositionSession = sample.Telemetry.SessionUniqueID;
+                    _startPosition = 0;
+                }
+                // Capture the grid slot as the field takes the green on lap 1.
+                if (_startPosition == 0 && progressMode != SessionProgressMode.Practice &&
+                    sample.Telemetry.PlayerCarPosition > 0 && sample.Telemetry.LapCompleted <= 0 && greenActive)
+                    _startPosition = sample.Telemetry.PlayerCarPosition;
+                _latest.StartPosition = _startPosition;
                 _latest.OnPitRoad = sample.Telemetry.OnPitRoad;
                 int warnings = ReadTelemetryInt(sample.Telemetry, "EngineWarnings");
                 _latest.PitLimiter = (warnings & (int)EngineWarnings.PitSpeedLimiter) != 0;
@@ -641,6 +681,23 @@ namespace DV5Direct
                 _latest.BrakeTrace = _brakeTraceCopy;
                 _latest.TraceVersion = _traceVersion;
             }
+        }
+
+        private double GetTrackLengthMiles(Telemetry telemetry)
+        {
+            if (_trackLengthSession == telemetry.SessionUniqueID) return _trackLengthMiles;
+            _trackLengthSession = telemetry.SessionUniqueID;
+            _trackLengthMiles = 0;
+            try
+            {
+                // Reported as text such as "2.50 km".
+                string text = telemetry.SessionData?.WeekendInfo?.TrackLength ?? "";
+                string[] parts = text.Trim().Split(' ');
+                if (double.TryParse(parts[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double value))
+                    _trackLengthMiles = text.ToLowerInvariant().Contains("km") ? value / 1.609344 : value;
+            }
+            catch { }
+            return _trackLengthMiles;
         }
 
         private static string GetCarName(CarDetails[] details, int playerIndex)

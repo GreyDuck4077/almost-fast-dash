@@ -8,17 +8,41 @@ and save automatically as you edit.
 The settings app has three areas:
 
 - **Dashboards** shows a live thumbnail of every dashboard, which one is the
-  default, and which track types each one is assigned to. New dashboards can be
-  created from any layout (Velocity, Endurance or Apex) and duplicated, renamed,
-  reset or deleted.
-- **Dashboard editor** shows a live DV-5 preview with animated LEDs and a
-  selectable screen state (racing, shift point, flags). It edits the name,
-  accent color, track-type assignment, shift lights (pattern, color preset or
-  custom colors, brightness), side lights (blind spot, RPM, brake pressure,
-  throttle or off, optionally the same on both sides) and flag alert timing.
-- **Device & app** sets the LED controller port (with a light test), screen
-  brightness, speed and fuel units, automatic switching by track type, start
-  with Windows, and radar diagnostics.
+  default, and which track types each one is assigned to.
+- **Dashboard editor** shows a live preview of the DV-5 and the LB-10 light
+  bar with animated LEDs and a selectable screen state (racing, shift point,
+  pit lane, cars alongside, flags). It edits the name, accent color,
+  track-type assignment, shift lights, side lights, brow light bar and flag
+  alert timing.
+- **Device & app** sets the DV-5 LED port, screen brightness, the LB-10 port
+  and LED count (each with a light test), units, automatic switching by track
+  type, start with Windows, and radar diagnostics.
+
+## Dashboards
+
+All four share one design kit (`DashKit.cs`): Bahnschrift numerals, soft
+panels, color-coded values and a common flag screen.
+
+- **Summit** – flagship for road and GT: RPM arc and pedal arc around the gear,
+  five-car relative with license and iRating, fuel plan with a range bar,
+  last/best/predicted laps, delta with a bar, temperatures. On pit road the
+  center becomes a pit-speed gauge.
+- **Formula** – wheel-style grid: current lap, RPM, incidents, position block,
+  speed, gaps, big gear, fuel, laps of fuel, lap counter, brake bias and a
+  full-width delta bar.
+- **Oval** – for stock cars: spotter with cars drawn alongside (car left, car
+  right, three wide), gaps with car numbers, lap time and average lap speed,
+  positions gained since the start, caution and white-flag banners, and
+  whether the fuel makes it to the end.
+- **Endurance** – fuel time, stops needed and refuel amount, stint length,
+  last five laps with pace bars, and car settings.
+
+## LB-10 brow light bar
+
+The SSG LB-10 (usually COM6) is driven alongside the DV-5. Each dashboard picks
+what it shows: shift lights, blind spot, flags only, brake and throttle, brake,
+throttle, lap delta, fuel level or off. With "Flash flags" on, any flag takes
+over the bar in its own color.
 
 While the dashboard runs it reloads `settings.json` within a second of any
 change, so edits apply without a restart. When automatic switching is on, the

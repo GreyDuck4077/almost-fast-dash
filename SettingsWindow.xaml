@@ -172,6 +172,12 @@
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition/>
                             </Grid.ColumnDefinitions>
+                            <StackPanel>
+                            <!-- LB-10 brow light bar -->
+                            <Border x:Name="BrowPreview" Background="#07090C" BorderBrush="#1D232D" BorderThickness="1" CornerRadius="10"
+                                    Padding="16,8" Margin="70,0,70,10">
+                                <UniformGrid x:Name="BrowLedsPreview" Rows="1"/>
+                            </Border>
                             <!-- DV-5 mock-up: 8 shift lights above the screen, 4 lights down each side -->
                             <Border Background="#07090C" BorderBrush="#1D232D" BorderThickness="1" CornerRadius="18" Padding="14,12,14,16">
                                 <Grid>
@@ -194,10 +200,11 @@
                                     </Border>
                                 </Grid>
                             </Border>
+                            </StackPanel>
                             <StackPanel Grid.Column="1" Margin="28,4,0,0">
                                 <TextBlock Text="LIVE PREVIEW" Style="{StaticResource T.Overline}"/>
                                 <TextBlock Style="{StaticResource T.Secondary}" Margin="0,8,0,20"
-                                           Text="The lights play through an RPM sweep, blind-spot calls and pedal inputs using the settings below. Changes apply to a running dashboard within a second."/>
+                                           Text="The DV-5 lights and the LB-10 light bar play through an RPM sweep, blind-spot calls and pedal inputs using the settings below. Pick a flag to see how it takes over. Changes apply to a running dashboard within a second."/>
                                 <CheckBox x:Name="AnimateLeds" Style="{StaticResource Switch}" Content="Animate lights" IsChecked="True" Margin="0,0,0,18"/>
                                 <TextBlock Text="Screen state" Style="{StaticResource T.Label}" Margin="0,0,0,8"/>
                                 <ComboBox x:Name="PreviewState" MinWidth="0" HorizontalAlignment="Stretch" SelectionChanged="PreviewState_SelectionChanged"/>
@@ -361,6 +368,56 @@
                         </StackPanel>
                     </Border>
 
+                    <!-- Brow light bar -->
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="Brow light bar" Style="{StaticResource T.Title}"/>
+                            <TextBlock Text="The SSG LB-10 above your screen. Set its port and LED count in Device &amp; app." Style="{StaticResource T.Caption}" Margin="0,4,0,18"/>
+                            <Grid Style="{StaticResource Row}">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Text="Shows" Style="{StaticResource T.Label}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <ComboBox x:Name="BrowFunction" HorizontalAlignment="Left" Width="240"/>
+                                    <TextBlock x:Name="BrowFunctionHelp" Style="{StaticResource T.Caption}" Margin="0,6,0,0" MaxWidth="460" HorizontalAlignment="Left"/>
+                                </StackPanel>
+                            </Grid>
+                            <Border Style="{StaticResource Divider}"/>
+                            <Grid Style="{StaticResource Row}">
+                                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Text="Flash flags" Style="{StaticResource T.Label}"/>
+                                    <TextBlock Text="Green, yellow, white, blue, black, meatball and checkered flags take over the bar in their own colors." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                </StackPanel>
+                                <CheckBox x:Name="BrowFlagsToggle" Grid.Column="1" Style="{StaticResource Switch}" VerticalAlignment="Center" Checked="BrowFlags_Changed" Unchecked="BrowFlags_Changed"/>
+                            </Grid>
+                            <Border Style="{StaticResource Divider}"/>
+                            <Grid Style="{StaticResource Row}">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Text="Colors" Style="{StaticResource T.Label}"/>
+                                    <TextBlock Text="Used by shift lights, blind spot and pedal fills." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <ComboBox x:Name="BrowProfile" Width="240" Margin="0,0,16,0"/>
+                                    <Button x:Name="BrowLow" Style="{StaticResource Swatch}"/>
+                                    <Button x:Name="BrowMid" Style="{StaticResource Swatch}"/>
+                                    <Button x:Name="BrowHigh" Style="{StaticResource Swatch}"/>
+                                </StackPanel>
+                            </Grid>
+                            <Border Style="{StaticResource Divider}"/>
+                            <Grid Style="{StaticResource Row}">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                <TextBlock Text="Brightness" Style="{StaticResource T.Label}" VerticalAlignment="Center"/>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Slider x:Name="BrowBrightness" Minimum="5" Maximum="100" IsSnapToTickEnabled="True" TickFrequency="1" Width="380"/>
+                                    <TextBlock x:Name="BrowBrightnessValue" Style="{StaticResource T.Value}" HorizontalAlignment="Left" TextAlignment="Left" Margin="18,0,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
                     <!-- Flag alerts -->
                     <Border Style="{StaticResource Card}">
                         <StackPanel>
@@ -479,6 +536,51 @@
                                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                                     <Slider x:Name="ScreenBrightness" Minimum="10" Maximum="100" IsSnapToTickEnabled="True" TickFrequency="5" Width="380"/>
                                     <TextBlock x:Name="ScreenBrightnessValue" Style="{StaticResource T.Value}" HorizontalAlignment="Left" TextAlignment="Left" Margin="18,0,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="Brow light bar" Style="{StaticResource T.Title}"/>
+                                    <TextBlock Text="SSG LB-10 LED strip. Each dashboard chooses what it shows." Style="{StaticResource T.Caption}" Margin="0,4,0,18"/>
+                                </StackPanel>
+                                <CheckBox x:Name="BrowEnabledToggle" Grid.Column="1" Style="{StaticResource Switch}" Content="Enabled" VerticalAlignment="Top"
+                                          Checked="BrowEnabled_Changed" Unchecked="BrowEnabled_Changed"/>
+                            </Grid>
+                            <Grid Style="{StaticResource Row}">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Text="Port" Style="{StaticResource T.Label}"/>
+                                    <TextBlock Text="The light bar's USB serial port." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal">
+                                        <ComboBox x:Name="BrowPortCombo" Width="160" MinWidth="0" SelectionChanged="BrowPortCombo_SelectionChanged"/>
+                                        <Button x:Name="TestBrowButton" Margin="10,0,0,0" Click="TestBrow_Click">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Style="{StaticResource T.Icon}" Text="&#xE82F;" FontSize="12" Margin="0,0,8,0"/>
+                                                <TextBlock Text="Test light bar" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                    <TextBlock x:Name="BrowTestStatus" Style="{StaticResource T.Caption}" Margin="0,8,0,0" Visibility="Collapsed"/>
+                                </StackPanel>
+                            </Grid>
+                            <Border Style="{StaticResource Divider}"/>
+                            <Grid Style="{StaticResource Row}">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Text="Number of LEDs" Style="{StaticResource T.Label}"/>
+                                    <TextBlock Text="The test lights them one at a time, left to right, so you can count them." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Slider x:Name="BrowCountSlider" Minimum="2" Maximum="40" IsSnapToTickEnabled="True" TickFrequency="1" Width="380"/>
+                                    <TextBlock x:Name="BrowCountValue" Style="{StaticResource T.Value}" HorizontalAlignment="Left" TextAlignment="Left" Margin="18,0,0,0"/>
                                 </StackPanel>
                             </Grid>
                         </StackPanel>

@@ -184,6 +184,9 @@ namespace DV5Direct
             {
                 using (var frame = DashboardRendererFactory.RenderPreview(dashboard, units))
                     frame.Save(Path.Combine(directory, dashboard.Name + ".png"), System.Drawing.Imaging.ImageFormat.Png);
+                if (dashboard.Layout == Layouts.Oval)
+                    using (var spotter = DashboardRendererFactory.RenderPreview(dashboard, units, IRacingTelemetrySource.CreateSpotterPreviewSnapshot()))
+                        spotter.Save(Path.Combine(directory, dashboard.Name + " - Cars alongside.png"), System.Drawing.Imaging.ImageFormat.Png);
                 if (dashboard.Layout == Layouts.Summit)
                     using (var pit = DashboardRendererFactory.RenderPreview(dashboard, units, IRacingTelemetrySource.CreatePitLanePreviewSnapshot()))
                         pit.Save(Path.Combine(directory, dashboard.Name + " - Pit lane.png"), System.Drawing.Imaging.ImageFormat.Png);
@@ -209,13 +212,13 @@ namespace DV5Direct
                         var connection = screen.Connect(runtime.Settings.General.ScreenBrightness);
                         Console.WriteLine("Screen connected: " + connection.ModelName);
                         Console.WriteLine("Display ID: " + connection.DisplayId);
-                        Dv5LedController leds = null;
-                        DateTime nextLedReconnectUtc = DateTime.MinValue;
+                        var leds = new LedLink(ledPort, LedFrame.Count, "SSG DV 5");
+                        GeneralSettings general = runtime.Settings.General;
+                        var brow = new LedLink(general.BrowPort, general.BrowLedCount, "SSG LB-10") { Enabled = general.BrowEnabled };
                         DateTime nextSettingsCheckUtc = DateTime.MinValue;
 
                         DisplayState lastDrawn = null;
                         bool? lastTelemetryConnection = null;
-                        System.Drawing.Color[] lastLedFrame = null;
                         int lastObservedGear = int.MinValue;
                         int transitionFromGear = 0;
                         DateTime gearTransitionStartedUtc = DateTime.MinValue;
@@ -224,12 +227,6 @@ namespace DV5Direct
                         {
                             while (!ShouldStop(finishAt))
                             {
-                                if (leds == null && DateTime.UtcNow >= nextLedReconnectUtc)
-                                {
-                                    leds = TryConnectLeds(ledPort);
-                                    nextLedReconnectUtc = DateTime.UtcNow.AddSeconds(5);
-                                    lastLedFrame = null;
-                                }
 
                                 TelemetrySnapshot snapshot = telemetry.GetSnapshot();
 
@@ -243,7 +240,9 @@ namespace DV5Direct
                                         telemetry.ApplyAlertSettings(runtime.Dashboard.Alerts);
                                         screen.SetBrightness(runtime.Settings.General.ScreenBrightness);
                                         lastDrawn = null;
-                                        lastLedFrame = null;
+                                        leds.Invalidate();
+                                        general = runtime.Settings.General;
+                                        brow.Reconfigure(general.BrowPort, general.BrowLedCount, general.BrowEnabled);
                                         Console.WriteLine("Dashboard: " + runtime.Dashboard.Name);
                                     }
                                 }
@@ -293,30 +292,18 @@ namespace DV5Direct
                                     lastDrawn = current;
                                 }
 
-                                System.Drawing.Color[] ledFrame = LedFrame.Compose(
-                                    runtime.Dashboard, LedInputs.From(snapshot, shiftFlashOn));
-                                if (leds != null && !LedFrame.SameFrame(ledFrame, lastLedFrame))
-                                {
-                                    try
-                                    {
-                                        leds.SetFrame(ledFrame);
-                                        lastLedFrame = ledFrame;
-                                    }
-                                    catch (Exception ledException)
-                                    {
-                                        Console.Error.WriteLine("LED controller lost: " + ledException.Message);
-                                        leds.Dispose();
-                                        leds = null;
-                                        nextLedReconnectUtc = DateTime.UtcNow.AddSeconds(5);
-                                    }
-                                }
+                                LedInputs ledInputs = LedInputs.From(snapshot, shiftFlashOn);
+                                leds.Send(LedFrame.Compose(runtime.Dashboard, ledInputs));
+                                if (brow.Enabled)
+                                    brow.Send(LedFrame.ComposeBrow(runtime.Dashboard.BrowLeds, brow.Count, ledInputs));
 
                                 StopRequested.Wait(gearProgress < 1 ? 25 : RefreshIntervalMilliseconds);
                             }
                         }
                         finally
                         {
-                            leds?.Dispose();
+                            leds.Dispose();
+                            brow.Dispose();
                         }
                     }
                 }
@@ -399,21 +386,87 @@ namespace DV5Direct
             public void Dispose() => Renderer?.Dispose();
         }
 
-        private static Dv5LedController TryConnectLeds(string ledPort)
+        /// <summary>
+        /// One SimHub-protocol LED device: connects lazily, retries every five
+        /// seconds while unplugged, and only sends frames that changed.
+        /// </summary>
+        private sealed class LedLink : IDisposable
         {
-            var leds = new Dv5LedController(ledPort, 115200, 16);
-            try
+            private readonly string _expectedName;
+            private Dv5LedController _controller;
+            private DateTime _nextAttemptUtc = DateTime.MinValue;
+            private System.Drawing.Color[] _lastFrame;
+
+            public LedLink(string port, int count, string expectedName)
             {
-                leds.Connect();
-                Console.WriteLine("LED controller: " + leds.QueryDeviceName());
-                return leds;
+                Port = port;
+                Count = Math.Max(1, Math.Min(64, count));
+                _expectedName = expectedName;
             }
-            catch (Exception exception)
+
+            public string Port { get; private set; }
+            public int Count { get; private set; }
+            public bool Enabled { get; set; } = true;
+
+            public void Invalidate() => _lastFrame = null;
+
+            public void Reconfigure(string port, int count, bool enabled)
             {
-                Console.Error.WriteLine("LED controller unavailable: " + exception.Message);
-                leds.Dispose();
-                return null;
+                count = Math.Max(1, Math.Min(64, count));
+                if (port != Port || count != Count || enabled != Enabled)
+                {
+                    Close();
+                    Port = port;
+                    Count = count;
+                    Enabled = enabled;
+                    _nextAttemptUtc = DateTime.MinValue;
+                }
+                _lastFrame = null;
             }
+
+            public void Send(System.Drawing.Color[] frame)
+            {
+                if (!Enabled || string.IsNullOrWhiteSpace(Port)) return;
+                if (_controller == null)
+                {
+                    if (DateTime.UtcNow < _nextAttemptUtc) return;
+                    _nextAttemptUtc = DateTime.UtcNow.AddSeconds(5);
+                    var controller = new Dv5LedController(Port, 115200, Count, _expectedName);
+                    try
+                    {
+                        controller.Connect();
+                        Console.WriteLine("LED device on " + Port + ": " + controller.QueryDeviceName());
+                        _controller = controller;
+                        _lastFrame = null;
+                    }
+                    catch (Exception exception)
+                    {
+                        Console.Error.WriteLine(_expectedName + " unavailable on " + Port + ": " + exception.Message);
+                        controller.Dispose();
+                        return;
+                    }
+                }
+                if (LedFrame.SameFrame(frame, _lastFrame)) return;
+                try
+                {
+                    _controller.SetFrame(frame);
+                    _lastFrame = frame;
+                }
+                catch (Exception exception)
+                {
+                    Console.Error.WriteLine(_expectedName + " lost: " + exception.Message);
+                    Close();
+                }
+            }
+
+            private void Close()
+            {
+                _controller?.Dispose();
+                _controller = null;
+                _lastFrame = null;
+            }
+
+            public void Dispose() => Close();
         }
 
         private static bool ShouldStop(DateTime? finishAt)

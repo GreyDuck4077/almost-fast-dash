@@ -11,10 +11,12 @@ namespace DV5Direct
         private const byte MessageHeader = 0x03;
         private readonly SerialPort _port;
         private readonly int _ledCount;
+        private readonly string _expectedName;
 
-        public Dv5LedController(string portName, int baudRate, int ledCount)
+        public Dv5LedController(string portName, int baudRate, int ledCount, string expectedName = "SSG DV 5")
         {
             _ledCount = ledCount;
+            _expectedName = expectedName;
             _port = new SerialPort(portName, baudRate)
             {
                 DtrEnable = true,
@@ -37,9 +39,9 @@ namespace DV5Direct
             Thread.Sleep(150);
             byte[] response = ReadAvailable();
             string text = ExtractProtocolText(response);
-            if (!text.Contains("SSG DV 5"))
+            if (!text.Contains(_expectedName))
             {
-                throw new InvalidOperationException(_port.PortName + " did not identify itself as SSG DV 5. Response: " + text);
+                throw new InvalidOperationException(_port.PortName + " did not identify itself as " + _expectedName + ". Response: " + text);
             }
 
             return text.Trim();

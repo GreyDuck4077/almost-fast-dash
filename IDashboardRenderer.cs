@@ -8,18 +8,19 @@ namespace DV5Direct
         Bitmap Render(TelemetrySnapshot telemetry, bool shiftFlashOn, int previousGear, float gearTransitionProgress);
     }
 
+    /// <summary>Renderers that draw live pedal inputs need a redraw on every trace sample.</summary>
+    internal interface ILiveTraceRenderer { }
+
     internal static class DashboardRendererFactory
     {
         public static IDashboardRenderer Create(int width, int height, DashboardSettings settings, UnitSystem units = null)
         {
             switch (settings?.Layout)
             {
-                case Layouts.Apex: return new ApexRenderer(width, height, settings, units);
-                case Layouts.Endurance: return new EnduranceRenderer(width, height, settings, units);
-                case Layouts.Telemetry: return new TelemetryRenderer(width, height, settings, units);
-                case Layouts.Summit: return new SummitRenderer(width, height, settings, units);
                 case Layouts.Formula: return new FormulaRenderer(width, height, settings, units);
-                default: return new GearSpeedRenderer(width, height, settings, units);
+                case Layouts.Oval: return new OvalRenderer(width, height, settings, units);
+                case Layouts.Endurance: return new EnduranceRenderer(width, height, settings, units);
+                default: return new SummitRenderer(width, height, settings, units);
             }
         }
 
