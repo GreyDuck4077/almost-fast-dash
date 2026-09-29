@@ -35,6 +35,16 @@ namespace DV5Direct
         Practice
     }
 
+    /// <summary>Details shown for the nearest car ahead or behind.</summary>
+    internal sealed class RelativeDriver
+    {
+        public string Name { get; set; }
+        public string CarNumber { get; set; }
+        public string License { get; set; }
+        public System.Drawing.Color LicenseColor { get; set; } = System.Drawing.Color.Gray;
+        public int IRating { get; set; }
+    }
+
     internal sealed class TelemetrySnapshot
     {
         public static readonly TelemetrySnapshot Disconnected = new TelemetrySnapshot(
@@ -152,6 +162,20 @@ namespace DV5Direct
         public double FuelPerLapAverage { get; set; } = -1;
         public int StintLaps { get; set; }
         public double[] RecentLapSeconds { get; set; } = new double[0];
+        public RelativeDriver AheadDetail { get; set; }
+        public RelativeDriver BehindDetail { get; set; }
+        public int PlayerIRating { get; set; }
+        /// <summary>In-car traction control and ABS settings; negative when the car has none.</summary>
+        public double TractionControl { get; set; } = -1;
+        public double Abs { get; set; } = -1;
+        public double LapMinSpeedMph { get; set; }
+        public double LapMaxSpeedMph { get; set; }
+        /// <summary>Predicted time of the current lap from the live delta, or 0 when unknown.</summary>
+        public double PredictedLapSeconds { get; set; }
+        /// <summary>Throttle and brake history (0-1), oldest first, sampled every 50 ms.</summary>
+        public float[] ThrottleTrace { get; set; } = new float[0];
+        public float[] BrakeTrace { get; set; } = new float[0];
+        public int TraceVersion { get; set; }
 
         public double ReferenceLapSeconds =>
             AverageLapSeconds > 0 ? AverageLapSeconds : BestLapSeconds > 0 ? BestLapSeconds : LastLapSeconds;
@@ -228,6 +252,18 @@ namespace DV5Direct
         private bool _checkeredWasActive;
         private DateTime _checkeredAlertUntilUtc;
         private int _maximumObservedGear;
+        private const int TraceLength = 120;
+        private const int TraceIntervalMilliseconds = 50;
+        private readonly float[] _throttleTrace = new float[TraceLength];
+        private readonly float[] _brakeTrace = new float[TraceLength];
+        private int _traceHead;
+        private int _traceVersion;
+        private DateTime _nextTraceUtc;
+        private float[] _throttleTraceCopy = new float[0];
+        private float[] _brakeTraceCopy = new float[0];
+        private int _speedLap = -1;
+        private double _lapMinSpeed;
+        private double _lapMaxSpeed;
 
         private const double AlongsideDistancePct = 0.0008;
         private const int RearHoldMilliseconds = 750;
@@ -310,6 +346,26 @@ namespace DV5Direct
             snapshot.FuelPerLapAverage = 2.46;
             snapshot.StintLaps = 8;
             snapshot.RecentLapSeconds = new[] { 88.412, 87.932, 88.105, 87.521, 87.932 };
+            snapshot.AheadDetail = new RelativeDriver { Name = snapshot.DriverAhead, CarNumber = "05", License = "B", LicenseColor = System.Drawing.Color.FromArgb(0, 164, 90), IRating = 2340 };
+            snapshot.BehindDetail = new RelativeDriver { Name = snapshot.DriverBehind, CarNumber = "31", License = "A", LicenseColor = System.Drawing.Color.FromArgb(0, 120, 220), IRating = 3120 };
+            snapshot.PlayerIRating = 2815;
+            snapshot.TractionControl = 4;
+            snapshot.Abs = 3;
+            snapshot.LapMinSpeedMph = 71;
+            snapshot.LapMaxSpeedMph = 152;
+            snapshot.PredictedLapSeconds = 87.061;
+            var throttle = new float[120];
+            var brake = new float[120];
+            for (int i = 0; i < 120; i++)
+            {
+                // A representative braking zone and corner exit.
+                double x = i / 119.0;
+                brake[i] = (float)(x > 0.18 && x < 0.40 ? Math.Min(1, Math.Sin((x - 0.18) / 0.22 * Math.PI) * 1.15) * 0.92 : 0);
+                throttle[i] = (float)(x < 0.17 ? 1 : x < 0.46 ? 0.02 : x < 0.62 ? (x - 0.46) / 0.16 * 0.7 : x < 0.7 ? 0.7 : Math.Min(1, 0.7 + (x - 0.7) * 3));
+            }
+            snapshot.Throttle = 1;
+            snapshot.ThrottleTrace = throttle;
+            snapshot.BrakeTrace = brake;
             return snapshot;
         }
 
@@ -407,7 +463,9 @@ namespace DV5Direct
                     out driverAhead,
                     out relativeAhead,
                     out driverBehind,
-                    out relativeBehind);
+                    out relativeBehind,
+                    out int aheadCar,
+                    out int behindCar);
 
                 UpdateLapSummary(sample.Telemetry, yellowActive);
                 int reportedMaxGear = ReadTelemetryInt(sample.Telemetry, "DriverCarGearNumForward");
@@ -462,6 +520,104 @@ namespace DV5Direct
                 _latest.FuelPerLapAverage = _fuelPerLap.Count > 0 ? Average(_fuelPerLap) : -1;
                 _latest.StintLaps = _stintLaps;
                 _latest.RecentLapSeconds = _recentLaps.ToArray();
+
+                CarDetails[] details = sample.Telemetry.CarDetails;
+                _latest.AheadDetail = BuildRelative(details, aheadCar, driverAhead);
+                _latest.BehindDetail = BuildRelative(details, behindCar, driverBehind);
+                _latest.PlayerIRating = BuildRelative(details, ReadTelemetryInt(sample.Telemetry, "PlayerCarIdx"), null)?.IRating ?? 0;
+                _latest.TractionControl = ReadOptionalDouble(sample.Telemetry, "dcTractionControl");
+                _latest.Abs = ReadOptionalDouble(sample.Telemetry, "dcABS");
+                double best = sample.Telemetry.LapBestLapTime;
+                _latest.PredictedLapSeconds = best > 0 && sample.Telemetry.LapDeltaToBestLap_OK
+                    ? best + sample.Telemetry.LapDeltaToBestLap
+                    : 0;
+
+                double speed = _latest.SpeedMph;
+                if (sample.Telemetry.Lap != _speedLap)
+                {
+                    _speedLap = sample.Telemetry.Lap;
+                    _lapMinSpeed = speed;
+                    _lapMaxSpeed = speed;
+                }
+                _lapMinSpeed = Math.Min(_lapMinSpeed, speed);
+                _lapMaxSpeed = Math.Max(_lapMaxSpeed, speed);
+                _latest.LapMinSpeedMph = _lapMinSpeed;
+                _latest.LapMaxSpeedMph = _lapMaxSpeed;
+
+                if (DateTime.UtcNow >= _nextTraceUtc)
+                {
+                    _nextTraceUtc = DateTime.UtcNow.AddMilliseconds(TraceIntervalMilliseconds);
+                    _throttleTrace[_traceHead] = (float)Math.Max(0, Math.Min(1, _latest.Throttle));
+                    _brakeTrace[_traceHead] = (float)Math.Max(0, Math.Min(1, _latest.Brake));
+                    _traceHead = (_traceHead + 1) % TraceLength;
+                    _throttleTraceCopy = Unroll(_throttleTrace, _traceHead);
+                    _brakeTraceCopy = Unroll(_brakeTrace, _traceHead);
+                    _traceVersion++;
+                }
+                _latest.ThrottleTrace = _throttleTraceCopy;
+                _latest.BrakeTrace = _brakeTraceCopy;
+                _latest.TraceVersion = _traceVersion;
+            }
+        }
+
+        private static float[] Unroll(float[] ring, int head)
+        {
+            var result = new float[ring.Length];
+            Array.Copy(ring, head, result, 0, ring.Length - head);
+            Array.Copy(ring, 0, result, ring.Length - head, head);
+            return result;
+        }
+
+        private static RelativeDriver BuildRelative(CarDetails[] details, int carIndex, string displayName)
+        {
+            if (details == null || carIndex < 0) return null;
+            foreach (CarDetails detail in details)
+            {
+                if (detail == null || detail.CarIdx != carIndex) continue;
+                var result = new RelativeDriver { Name = displayName, CarNumber = detail.CarNumberDisplay };
+                try
+                {
+                    var driver = detail.Driver;
+                    if (driver != null)
+                    {
+                        result.IRating = (int)driver.IRating;
+                        string lic = driver.LicString ?? "";
+                        result.License = lic.Length > 0 ? lic.Substring(0, 1) : null;
+                        result.LicenseColor = ParseLicenseColor(driver.LicColor);
+                        if (string.IsNullOrEmpty(result.CarNumber)) result.CarNumber = driver.CarNumber;
+                    }
+                }
+                catch { }
+                return result;
+            }
+            return null;
+        }
+
+        private static System.Drawing.Color ParseLicenseColor(string value)
+        {
+            try
+            {
+                string hex = (value ?? "").Trim();
+                if (hex.StartsWith("0x", StringComparison.OrdinalIgnoreCase)) hex = hex.Substring(2);
+                int rgb = Convert.ToInt32(hex, 16);
+                return System.Drawing.Color.FromArgb(255, (rgb >> 16) & 0xff, (rgb >> 8) & 0xff, rgb & 0xff);
+            }
+            catch
+            {
+                return System.Drawing.Color.Gray;
+            }
+        }
+
+        private static double ReadOptionalDouble(Telemetry telemetry, string name)
+        {
+            try
+            {
+                object value = telemetry[name];
+                return value == null ? -1 : Convert.ToDouble(value);
+            }
+            catch
+            {
+                return -1;
             }
         }
 
@@ -719,8 +875,12 @@ namespace DV5Direct
             out string driverAhead,
             out double relativeAhead,
             out string driverBehind,
-            out double relativeBehind)
+            out double relativeBehind,
+            out int aheadIndex,
+            out int behindIndex)
         {
+            aheadIndex = -1;
+            behindIndex = -1;
             driverAhead = "---";
             driverBehind = "---";
             relativeAhead = 0;
@@ -748,8 +908,6 @@ namespace DV5Direct
 
             double closestAhead = double.MaxValue;
             double closestBehind = double.MinValue;
-            int aheadIndex = -1;
-            int behindIndex = -1;
             for (int index = 0; index < distances.Length; index++)
             {
                 if (index == playerIndex || distances[index] < 0) continue;

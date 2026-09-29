@@ -277,7 +277,8 @@ namespace DV5Direct
                                     lastTelemetryConnection = snapshot.Connected;
                                 }
 
-                                DisplayState current = DisplayState.From(snapshot, shiftFlashOn, gearAnimationFrame);
+                                DisplayState current = DisplayState.From(
+                                    snapshot, shiftFlashOn, gearAnimationFrame, runtime.Renderer is ILiveTraceRenderer);
                                 if (!current.Equals(lastDrawn))
                                 {
                                     int previousGear = gearProgress < 1 ? transitionFromGear : snapshot.Gear;
@@ -516,7 +517,7 @@ namespace DV5Direct
             private int StrategyHash { get; }
 
             public static DisplayState From(
-                TelemetrySnapshot snapshot, bool shiftFlashOn, int gearAnimationFrame) => new DisplayState(
+                TelemetrySnapshot snapshot, bool shiftFlashOn, int gearAnimationFrame, bool liveTrace = false) => new DisplayState(
                 snapshot.Connected,
                 snapshot.Gear,
                 (int)Math.Round(snapshot.SpeedMph, MidpointRounding.AwayFromZero),
@@ -543,7 +544,7 @@ namespace DV5Direct
                 snapshot.LapColorVersion,
                 snapshot.MaxForwardGear,
                 gearAnimationFrame,
-                StrategyHashOf(snapshot));
+                StrategyHashOf(snapshot) ^ (liveTrace ? snapshot.TraceVersion * 7919 : 0));
 
             // Values only some layouts show (fuel strategy, brake bias, stint).
             private static int StrategyHashOf(TelemetrySnapshot s)
