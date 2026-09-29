@@ -57,7 +57,7 @@ namespace DV5Direct
     {
         private static readonly string[] BuiltInIds = { "dashboard-summit", "dashboard-formula", "dashboard-oval", "dashboard-2" };
         private static readonly string[] RetiredIds = { "dashboard-1", "dashboard-3", "dashboard-telemetry" };
-        private const int CurrentSchema = 3;
+        private const int CurrentSchema = 4;
 
         public int SchemaVersion { get; set; }
         public string DefaultDashboardId { get; set; } = "dashboard-summit";
@@ -119,6 +119,8 @@ namespace DV5Direct
                 // Summit replaces the old road dashboards, so it inherits their road assignments.
                 foreach (string type in carriedTypes.Where(type => type == Disciplines.Road || type == Disciplines.DirtRoad))
                     if (!summit.RaceTypes.Contains(type)) summit.RaceTypes.Add(type);
+                // Version 4: two LB-10 bars daisy-chain on one controller, 10 LEDs each.
+                if (SchemaVersion < 4 && General.BrowLedCount == 10) General.BrowLedCount = 20;
                 SchemaVersion = CurrentSchema;
             }
 
@@ -202,7 +204,8 @@ namespace DV5Direct
         /// <summary>SSG LB-10 brow light bar.</summary>
         public bool BrowEnabled { get; set; } = true;
         public string BrowPort { get; set; } = "COM6";
-        public int BrowLedCount { get; set; } = 10;
+        /// <summary>Total LEDs across all chained bars; two LB-10s make 20 (left bar first).</summary>
+        public int BrowLedCount { get; set; } = 20;
     }
 
     internal sealed class DashboardSettings
