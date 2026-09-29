@@ -7,8 +7,8 @@ using System.Linq;
 namespace DV5Direct
 {
     /// <summary>
-    /// Formula-style steering wheel display: a strict grid of labeled cells with
-    /// an on-screen shift-light row, big gear, and a full-width delta bar.
+    /// Formula-style steering wheel display: a strict grid of labeled cells,
+    /// big gear, and a full-width delta bar. Shift lights are left to the DV-5 LEDs.
     /// </summary>
     internal sealed class FormulaRenderer : IDashboardRenderer
     {
@@ -19,10 +19,9 @@ namespace DV5Direct
         private static readonly Color Slower = Color.FromArgb(235, 50, 60);
         private static readonly Color Amber = Color.FromArgb(255, 196, 45);
         private static readonly Color PositionBlock = Color.FromArgb(226, 182, 16);
-        private static readonly Color LedOff = Color.FromArgb(40, 44, 50);
 
         // Row and column edges.
-        private const float LedBottom = 46, TopBottom = 138, MidSplit = 262, MidBottom = 386;
+        private const float LedBottom = 0, TopBottom = 104, MidSplit = 246, MidBottom = 392;
         private static readonly float[] Columns = { 0, 196, 336, 518, 658, 854 };
 
         private readonly int _width, _height;
@@ -65,35 +64,12 @@ namespace DV5Direct
                 if (t.Flag != RacingFlag.None) { _flags.Draw(g, t); return bitmap; }
 
                 g.Clear(Background);
-                DrawShiftLights(g, t, shiftFlashOn);
                 DrawTopRow(g, t);
                 DrawMiddle(g, t, shiftFlashOn);
                 DrawDeltaBar(g, t);
                 DrawGrid(g);
             }
             return bitmap;
-        }
-
-        private void DrawShiftLights(Graphics g, TelemetrySnapshot t, bool shiftFlashOn)
-        {
-            const int count = 14;
-            float size = 20, gap = 16, total = count * size + (count - 1) * gap;
-            float x = (_width - total) / 2, y = (LedBottom - size) / 2;
-            int lit = (int)Math.Ceiling(Math.Max(0, Math.Min(1, t.ShiftIndicatorPct)) * count);
-            for (int i = 0; i < count; i++)
-            {
-                Color color = shiftFlashOn ? Slower : i < 7 ? _accent : i < 10 ? Amber : Slower;
-                var box = new RectangleF(x + i * (size + gap), y, size, size - 6);
-                if (i < lit || shiftFlashOn)
-                {
-                    using (var glow = new SolidBrush(Color.FromArgb(70, color))) g.FillRoundedRectangle(glow, Inflate(box, 4), 6);
-                    using (var brush = new SolidBrush(color)) g.FillRoundedRectangle(brush, box, 3);
-                }
-                else
-                {
-                    using (var brush = new SolidBrush(LedOff)) g.FillRoundedRectangle(brush, box, 3);
-                }
-            }
         }
 
         private void DrawTopRow(Graphics g, TelemetrySnapshot t)
@@ -142,14 +118,12 @@ namespace DV5Direct
             double fuelLaps = t.FuelLapsLeft;
             Color lapsColor = fuelLaps < 0 ? Color.White : fuelLaps < 2 ? Slower : fuelLaps < 5 ? Amber : Color.White;
             Metric(g, Cell(3, true), "FUEL " + _units.FuelSuffix, _units.FormatFuel(t.FuelLiters, false), Color.White, true);
-            Metric(g, Cell(3, false), "LAPS LEFT", fuelLaps < 0 ? "--.-" : fuelLaps.ToString("0.0"), lapsColor, true);
+            Metric(g, Cell(3, false), "LAPS LEFT FUEL", fuelLaps < 0 ? "--.-" : fuelLaps.ToString("0.0"), lapsColor, true);
 
-            // Column E: car name over brake bias.
-            var car = Cell(4, true);
-            Text(g, "CAR", _small, Label, new RectangleF(car.X + 16, car.Y + 10, 100, 18), _near);
-            using (var brush = new SolidBrush(Color.White))
-            using (var wrap = new StringFormat { Alignment = StringAlignment.Near, LineAlignment = StringAlignment.Center, Trimming = StringTrimming.EllipsisWord })
-                g.DrawString(t.CarName ?? "—", _name, brush, new RectangleF(car.X + 16, car.Y + 30, car.Width - 28, car.Height - 38), wrap);
+            // Column E: lap counter over brake bias.
+            var lap = Cell(4, true);
+            Text(g, "LAP", _label, Label, new RectangleF(lap.X + 16, lap.Y + 10, 100, 22), _near);
+            Text(g, Fmt.Lap(t), _lap, Color.White, new RectangleF(lap.X + 16, lap.Y + 34, lap.Width - 36, 70), _far);
             var bias = Cell(4, false);
             Text(g, "BIAS", _label, Label, new RectangleF(bias.X + 16, bias.Y + 10, 100, 22), _near);
             Text(g, t.BrakeBias > 0 ? t.BrakeBias.ToString("0.0") : "--", _lap, Color.White, new RectangleF(bias.X + 16, bias.Y + 34, bias.Width - 36, 70), _far);
@@ -163,38 +137,17 @@ namespace DV5Direct
 
         private void DrawDeltaBar(Graphics g, TelemetrySnapshot t)
         {
-            double delta = t.LapDeltaSeconds;
-            bool faster = delta >= 0;
-            var label = new RectangleF(0, MidBottom, Columns[1], _height - MidBottom);
-            using (var block = new SolidBrush(faster ? Color.FromArgb(22, 150, 76) : Color.FromArgb(170, 26, 36))) g.FillRectangle(block, label);
-            Text(g, "DELTA", _name, Color.White, new RectangleF(label.X + 18, label.Y, label.Width - 36, label.Height), _near);
-
-            var bar = new RectangleF(Columns[1], MidBottom, _width - Columns[1], _height - MidBottom);
+            // One bar across the whole bottom, starting in the middle: faster grows
+            // right in green, slower grows left in red. Full scale is one second.
+            var bar = new RectangleF(0, MidBottom, _width, _height - MidBottom);
             using (var track = new SolidBrush(Color.FromArgb(18, 22, 27))) g.FillRectangle(track, bar);
-            float center = bar.X + bar.Width / 2;
-            float half = bar.Width / 2;
-            // Full scale is one second either way.
-            float length = (float)(Math.Min(1, Math.Abs(delta)) * half);
-            if (length > 1)
-            {
-                RectangleF fill = faster
-                    ? new RectangleF(center, bar.Y, length, bar.Height)
-                    : new RectangleF(center - length, bar.Y, length, bar.Height);
-                Color inner = faster ? Color.FromArgb(200, 190, 40) : Color.FromArgb(230, 140, 40);
-                Color outer = faster ? Faster : Slower;
-                using (var gradient = new LinearGradientBrush(
-                    new RectangleF(fill.X - 1, fill.Y, fill.Width + 2, fill.Height),
-                    faster ? inner : outer, faster ? outer : inner, 0f))
-                    g.FillRectangle(gradient, fill);
-            }
-            using (var tick = new Pen(Color.White, 2)) g.DrawLine(tick, center, bar.Y + 6, center, bar.Bottom - 6);
-
-            // Value sits on the opposite side of the fill so the bar stays readable.
-            var text = faster
-                ? new RectangleF(bar.X + 20, bar.Y + 6, center - bar.X - 40, 52)
-                : new RectangleF(center + 20, bar.Y + 6, bar.Right - center - 40, 52);
-            Text(g, Fmt.Signed(delta), _delta, Color.White, text, _center);
-            Text(g, "VS BEST", _small, Label, new RectangleF(text.X, bar.Y + 58, text.Width, 20), _center);
+            double delta = t.LapDeltaSeconds;
+            float center = bar.Width / 2;
+            float length = (float)(Math.Min(1, Math.Abs(delta)) * center);
+            if (length > 0.5f)
+                using (var fill = new SolidBrush(delta >= 0 ? Faster : Slower))
+                    g.FillRectangle(fill, delta >= 0 ? center : center - length, bar.Y, length, bar.Height);
+            using (var tick = new Pen(Color.White, 3)) g.DrawLine(tick, center, bar.Y, center, bar.Bottom);
         }
 
         private void DrawGrid(Graphics g)
@@ -209,7 +162,6 @@ namespace DV5Direct
                 foreach (float x in Columns.Skip(1).Take(4)) g.DrawLine(pen, x, TopBottom, x, MidBottom);
                 g.DrawLine(pen, Columns[0], MidSplit, Columns[2], MidSplit);
                 g.DrawLine(pen, Columns[3], MidSplit, Columns[5], MidSplit);
-                g.DrawLine(pen, Columns[1], MidBottom, Columns[1], _height);
                 g.DrawRectangle(pen, 1, LedBottom, _width - 2, _height - LedBottom - 1);
             }
         }
@@ -217,8 +169,6 @@ namespace DV5Direct
         private static RectangleF Cell(int column, bool top) => new RectangleF(
             Columns[column], top ? TopBottom : MidSplit,
             Columns[column + 1] - Columns[column], top ? MidSplit - TopBottom : MidBottom - MidSplit);
-
-        private static RectangleF Inflate(RectangleF r, float by) => new RectangleF(r.X - by, r.Y - by, r.Width + by * 2, r.Height + by * 2);
 
         private static string TenthsLapTime(double seconds)
         {
