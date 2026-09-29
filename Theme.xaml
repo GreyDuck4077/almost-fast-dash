@@ -646,6 +646,10 @@
     <Style TargetType="ContextMenu">
         <Setter Property="OverridesDefaultStyle" Value="True"/>
         <Setter Property="HasDropShadow" Value="False"/>
+        <!-- Menus inherit fonts from the button that opens them; the "…" button uses the icon font. -->
+        <Setter Property="FontFamily" Value="{StaticResource Font.Ui}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="Normal"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ContextMenu">
