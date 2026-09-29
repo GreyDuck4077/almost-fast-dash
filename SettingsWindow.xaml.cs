@@ -29,7 +29,7 @@ namespace DV5Direct
             { "#2DD4BF", "#27C7D9", "#0A84FF", "#5E5CE6", "#BF5AF2", "#FF375F", "#FF9F0A", "#30D158" };
 
         private static readonly string[] PreviewStates =
-            { "Racing", "Shift point", "Green flag", "Yellow flag", "White flag", "Blue flag", "Black flag", "Checkered flag" };
+            { "Racing", "Shift point", "Pit lane", "Green flag", "Yellow flag", "White flag", "Blue flag", "Black flag", "Checkered flag" };
 
         private readonly AppSettings _settings;
         private DashboardSettings _dashboard;
@@ -733,16 +733,18 @@ namespace DV5Direct
             RacingFlag flag;
             switch (PreviewState.SelectedIndex)
             {
-                case 2: flag = RacingFlag.Green; break;
-                case 3: flag = RacingFlag.Yellow; break;
-                case 4: flag = RacingFlag.White; break;
-                case 5: flag = RacingFlag.BlueYellowStripe; break;
-                case 6: flag = RacingFlag.Black; break;
-                case 7: flag = RacingFlag.Checkered; break;
+                case 3: flag = RacingFlag.Green; break;
+                case 4: flag = RacingFlag.Yellow; break;
+                case 5: flag = RacingFlag.White; break;
+                case 6: flag = RacingFlag.BlueYellowStripe; break;
+                case 7: flag = RacingFlag.Black; break;
+                case 8: flag = RacingFlag.Checkered; break;
                 default: flag = RacingFlag.None; break;
             }
-            PreviewBrush.ImageSource = RenderPreview(_dashboard, new UnitSystem(_settings.General),
-                IRacingTelemetrySource.CreatePreviewSnapshot(flag), PreviewState.SelectedIndex == 1);
+            TelemetrySnapshot snapshot = PreviewState.SelectedIndex == 2
+                ? IRacingTelemetrySource.CreatePitLanePreviewSnapshot()
+                : IRacingTelemetrySource.CreatePreviewSnapshot(flag);
+            PreviewBrush.ImageSource = RenderPreview(_dashboard, new UnitSystem(_settings.General), snapshot, PreviewState.SelectedIndex == 1);
             UpdateLedPreview();
         }
 

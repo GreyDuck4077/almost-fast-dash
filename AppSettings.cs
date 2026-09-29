@@ -36,7 +36,8 @@ namespace DV5Direct
         public const string Endurance = "Endurance";
         public const string Apex = "Apex";
         public const string Telemetry = "Telemetry";
-        public static readonly string[] All = { Velocity, Endurance, Apex, Telemetry };
+        public const string Summit = "Summit";
+        public static readonly string[] All = { Summit, Velocity, Endurance, Apex, Telemetry };
 
         public static string Describe(string layout)
         {
@@ -45,6 +46,7 @@ namespace DV5Direct
                 case Endurance: return "Fuel strategy, stint and pace for long races";
                 case Apex: return "Focused gear, speed and RPM with gaps and delta";
                 case Telemetry: return "Rivals, lap times, fuel, pedal trace and car settings";
+                case Summit: return "Flagship: shift arc, live relative, delta trend, fuel to finish and pit mode";
                 default: return "Gear, speed, gaps and live delta for sprint races";
             }
         }
@@ -52,7 +54,7 @@ namespace DV5Direct
 
     internal sealed class AppSettings
     {
-        private static readonly string[] BuiltInIds = { "dashboard-1", "dashboard-2", "dashboard-3", "dashboard-telemetry" };
+        private static readonly string[] BuiltInIds = { "dashboard-1", "dashboard-2", "dashboard-3", "dashboard-telemetry", "dashboard-summit" };
 
         public string DefaultDashboardId { get; set; } = "dashboard-1";
         public GeneralSettings General { get; set; } = new GeneralSettings();
@@ -93,6 +95,7 @@ namespace DV5Direct
             if (!Dashboards.Any(d => d.Id == "dashboard-2")) Dashboards.Insert(Math.Min(1, Dashboards.Count), DashboardSettings.CreateEndurance());
             if (!Dashboards.Any(d => d.Id == "dashboard-3")) Dashboards.Insert(Math.Min(2, Dashboards.Count), DashboardSettings.CreateApex());
             if (!Dashboards.Any(d => d.Id == "dashboard-telemetry")) Dashboards.Insert(Math.Min(3, Dashboards.Count), DashboardSettings.CreateTelemetry());
+            if (!Dashboards.Any(d => d.Id == "dashboard-summit")) Dashboards.Insert(0, DashboardSettings.CreateSummit());
             foreach (DashboardSettings dashboard in Dashboards) dashboard.Normalize();
             if (!Dashboards.Any(d => d.Id == DefaultDashboardId)) DefaultDashboardId = Dashboards[0].Id;
         }
@@ -134,6 +137,7 @@ namespace DV5Direct
                 case "dashboard-2": return DashboardSettings.CreateEndurance();
                 case "dashboard-3": return DashboardSettings.CreateApex();
                 case "dashboard-telemetry": return DashboardSettings.CreateTelemetry();
+                case "dashboard-summit": return DashboardSettings.CreateSummit();
                 default: return null;
             }
         }
@@ -183,6 +187,7 @@ namespace DV5Direct
                 case Layouts.Endurance: return CreateEndurance();
                 case Layouts.Apex: return CreateApex();
                 case Layouts.Telemetry: return CreateTelemetry();
+                case Layouts.Summit: return CreateSummit();
                 default: return CreateDefault();
             }
         }
@@ -215,6 +220,18 @@ namespace DV5Direct
             AccentColor = "#35D0C5",
             RaceTypes = new List<string>(),
             CenterLeds = LedBankSettings.CreateShiftLights("Center outward"),
+            LeftLeds = SideLedSettings.CreateDefault(),
+            RightLeds = SideLedSettings.CreateDefault()
+        };
+
+        public static DashboardSettings CreateSummit() => new DashboardSettings
+        {
+            Id = "dashboard-summit",
+            Name = "Summit",
+            Layout = Layouts.Summit,
+            AccentColor = "#2DD4BF",
+            RaceTypes = new List<string>(),
+            CenterLeds = LedBankSettings.CreateShiftLights("Edges to center"),
             LeftLeds = SideLedSettings.CreateDefault(),
             RightLeds = SideLedSettings.CreateDefault()
         };

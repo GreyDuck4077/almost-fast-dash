@@ -45,6 +45,23 @@ namespace DV5Direct
         public int IRating { get; set; }
     }
 
+    /// <summary>One row of the on-track relative: nearby cars sorted by track position.</summary>
+    internal sealed class RelativeEntry
+    {
+        public int Position { get; set; }
+        public string CarNumber { get; set; }
+        public string Name { get; set; }
+        /// <summary>Seconds on track to this car; negative ahead, positive behind, 0 for the player.</summary>
+        public double Gap { get; set; }
+        /// <summary>+1 when the car is a lap or more ahead in the race, -1 when a lap or more down.</summary>
+        public int LapRelation { get; set; }
+        public bool IsPlayer { get; set; }
+        public bool InPits { get; set; }
+        public string License { get; set; }
+        public System.Drawing.Color LicenseColor { get; set; } = System.Drawing.Color.Gray;
+        public int IRating { get; set; }
+    }
+
     internal sealed class TelemetrySnapshot
     {
         public static readonly TelemetrySnapshot Disconnected = new TelemetrySnapshot(
@@ -176,6 +193,16 @@ namespace DV5Direct
         public float[] ThrottleTrace { get; set; } = new float[0];
         public float[] BrakeTrace { get; set; } = new float[0];
         public int TraceVersion { get; set; }
+        public RelativeEntry[] Relatives { get; set; } = new RelativeEntry[0];
+        public int ClassPosition { get; set; }
+        public bool OnPitRoad { get; set; }
+        public bool PitLimiter { get; set; }
+        public double PitSpeedLimitMph { get; set; }
+        public double TrackTempC { get; set; } = double.NaN;
+        public double AirTempC { get; set; } = double.NaN;
+        public bool EngineWarning { get; set; }
+        /// <summary>Lap delta history (seconds, positive = faster), oldest first, sampled every 250 ms.</summary>
+        public float[] DeltaTrace { get; set; } = new float[0];
 
         public double ReferenceLapSeconds =>
             AverageLapSeconds > 0 ? AverageLapSeconds : BestLapSeconds > 0 ? BestLapSeconds : LastLapSeconds;
@@ -262,6 +289,13 @@ namespace DV5Direct
         private float[] _throttleTraceCopy = new float[0];
         private float[] _brakeTraceCopy = new float[0];
         private int _speedLap = -1;
+        private const int DeltaTraceLength = 80;
+        private readonly float[] _deltaTrace = new float[DeltaTraceLength];
+        private int _deltaHead;
+        private DateTime _nextDeltaUtc;
+        private float[] _deltaTraceCopy = new float[0];
+        private int _pitLimitSession = -1;
+        private double _pitLimitMph;
         private double _lapMinSpeed;
         private double _lapMaxSpeed;
 
@@ -337,6 +371,20 @@ namespace DV5Direct
                 false, 87.932, 87.521, 88.204, yellowLaps, 0, 6, 6120));
         }
 
+        /// <summary>Preview of driving down pit lane with the limiter on.</summary>
+        public static TelemetrySnapshot CreatePitLanePreviewSnapshot()
+        {
+            TelemetrySnapshot snapshot = WithPreviewExtras(new TelemetrySnapshot(
+                true, 2, 44.2, RacingFlag.None, BlindSpotZone.None, BlindSpotZone.None, 0.3,
+                SessionProgressMode.LapRace, 0, 0, 8, 18,
+                4, 2, 3.1, 31.2, 0,
+                "J. MILLER", -4.1, "M. CARTER", 2.2, 22,
+                false, 87.932, 87.521, 88.204, new bool[18], 0, 6, 3900));
+            snapshot.OnPitRoad = true;
+            snapshot.PitLimiter = true;
+            return snapshot;
+        }
+
         private static TelemetrySnapshot WithPreviewExtras(TelemetrySnapshot snapshot)
         {
             snapshot.Discipline = Disciplines.Road;
@@ -364,6 +412,21 @@ namespace DV5Direct
                 throttle[i] = (float)(x < 0.17 ? 1 : x < 0.46 ? 0.02 : x < 0.62 ? (x - 0.46) / 0.16 * 0.7 : x < 0.7 ? 0.7 : Math.Min(1, 0.7 + (x - 0.7) * 3));
             }
             snapshot.Throttle = 1;
+            snapshot.ClassPosition = 4;
+            snapshot.TrackTempC = 31.4;
+            snapshot.AirTempC = 22.0;
+            snapshot.PitSpeedLimitMph = 45;
+            var delta = new float[80];
+            for (int i = 0; i < 80; i++) delta[i] = (float)(0.46 * i / 79.0 + 0.18 * Math.Sin(i / 9.0) - 0.12);
+            snapshot.DeltaTrace = delta;
+            snapshot.Relatives = new[]
+            {
+                new RelativeEntry { Position = 2, CarNumber = "12", Name = "S. OKAFOR", Gap = -3.12, License = "A", LicenseColor = System.Drawing.Color.FromArgb(0, 120, 220), IRating = 3890 },
+                new RelativeEntry { Position = 3, CarNumber = "05", Name = "J. MILLER", Gap = -0.46, License = "B", LicenseColor = System.Drawing.Color.FromArgb(0, 164, 90), IRating = 2340 },
+                new RelativeEntry { Position = 4, CarNumber = "22", Name = "YOU", Gap = 0, IsPlayer = true, License = "A", LicenseColor = System.Drawing.Color.FromArgb(0, 120, 220), IRating = 2815 },
+                new RelativeEntry { Position = 5, CarNumber = "31", Name = "M. CARTER", Gap = 0.82, License = "A", LicenseColor = System.Drawing.Color.FromArgb(0, 120, 220), IRating = 3120 },
+                new RelativeEntry { Position = 17, CarNumber = "88", Name = "R. ALVES", Gap = 2.40, LapRelation = -1, License = "D", LicenseColor = System.Drawing.Color.FromArgb(230, 120, 20), IRating = 1180 }
+            };
             snapshot.ThrottleTrace = throttle;
             snapshot.BrakeTrace = brake;
             return snapshot;
@@ -554,9 +617,113 @@ namespace DV5Direct
                     _brakeTraceCopy = Unroll(_brakeTrace, _traceHead);
                     _traceVersion++;
                 }
+                if (DateTime.UtcNow >= _nextDeltaUtc)
+                {
+                    _nextDeltaUtc = DateTime.UtcNow.AddMilliseconds(250);
+                    _deltaTrace[_deltaHead] = (float)Math.Max(-2, Math.Min(2, lapDelta));
+                    _deltaHead = (_deltaHead + 1) % DeltaTraceLength;
+                    _deltaTraceCopy = Unroll(_deltaTrace, _deltaHead);
+                }
+                _latest.DeltaTrace = _deltaTraceCopy;
+                _latest.Relatives = BuildRelatives(sample.Telemetry, details);
+                _latest.ClassPosition = ReadTelemetryInt(sample.Telemetry, "PlayerCarClassPosition");
+                _latest.OnPitRoad = sample.Telemetry.OnPitRoad;
+                int warnings = ReadTelemetryInt(sample.Telemetry, "EngineWarnings");
+                _latest.PitLimiter = (warnings & (int)EngineWarnings.PitSpeedLimiter) != 0;
+                _latest.EngineWarning = (warnings & ((int)EngineWarnings.WaterTempWarning | (int)EngineWarnings.OilPressureWarning | (int)EngineWarnings.FuelPressureWarning)) != 0;
+                _latest.PitSpeedLimitMph = GetPitSpeedLimitMph(sample.Telemetry);
+                _latest.TrackTempC = ReadOptionalDouble(sample.Telemetry, "TrackTempCrew") is double track && track > -50 ? track : double.NaN;
+                _latest.AirTempC = ReadOptionalDouble(sample.Telemetry, "AirTemp") is double air && air > -50 ? air : double.NaN;
                 _latest.ThrottleTrace = _throttleTraceCopy;
                 _latest.BrakeTrace = _brakeTraceCopy;
                 _latest.TraceVersion = _traceVersion;
+            }
+        }
+
+        private double GetPitSpeedLimitMph(Telemetry telemetry)
+        {
+            if (_pitLimitSession == telemetry.SessionUniqueID) return _pitLimitMph;
+            _pitLimitSession = telemetry.SessionUniqueID;
+            _pitLimitMph = 0;
+            try
+            {
+                // Reported as text such as "72.42 kph".
+                string text = telemetry.SessionData?.WeekendInfo?.TrackPitSpeedLimit ?? "";
+                string[] parts = text.Trim().Split(' ');
+                if (double.TryParse(parts[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double value))
+                    _pitLimitMph = text.ToLowerInvariant().Contains("kph") ? value / 1.609344 : value;
+            }
+            catch { }
+            return _pitLimitMph;
+        }
+
+        /// <summary>Two cars ahead and two behind on track around the player.</summary>
+        private static RelativeEntry[] BuildRelatives(Telemetry telemetry, CarDetails[] details)
+        {
+            try
+            {
+                float[] distances = telemetry.CarIdxLapDistPct;
+                int[] laps = telemetry.CarIdxLap;
+                int[] positions = telemetry.CarIdxPosition;
+                bool[] pits = telemetry.CarIdxOnPitRoad;
+                int player = ReadTelemetryInt(telemetry, "PlayerCarIdx");
+                if (distances == null || player < 0 || player >= distances.Length || distances[player] < 0) return new RelativeEntry[0];
+
+                double lapSeconds = 90;
+                var byIndex = new System.Collections.Generic.Dictionary<int, CarDetails>();
+                if (details != null)
+                    foreach (CarDetails d in details)
+                        if (d != null)
+                        {
+                            byIndex[d.CarIdx] = d;
+                            if (d.CarIdx == player && d.Driver != null && d.Driver.CarClassEstLapTime > 10) lapSeconds = d.Driver.CarClassEstLapTime;
+                        }
+
+                double playerTotal = (laps != null && player < laps.Length ? laps[player] : 0) + distances[player];
+                var ahead = new System.Collections.Generic.List<Tuple<double, int>>();
+                var behind = new System.Collections.Generic.List<Tuple<double, int>>();
+                for (int i = 0; i < distances.Length; i++)
+                {
+                    if (i == player || distances[i] < 0) continue;
+                    if (byIndex.TryGetValue(i, out CarDetails car) && car.IsPaceCar) continue;
+                    double delta = distances[i] - distances[player];
+                    if (delta > 0.5) delta -= 1;
+                    if (delta < -0.5) delta += 1;
+                    if (delta >= 0) ahead.Add(Tuple.Create(delta, i)); else behind.Add(Tuple.Create(delta, i));
+                }
+                ahead.Sort((a, b) => a.Item1.CompareTo(b.Item1));
+                behind.Sort((a, b) => b.Item1.CompareTo(a.Item1));
+
+                var rows = new System.Collections.Generic.List<RelativeEntry>();
+                for (int k = Math.Min(2, ahead.Count) - 1; k >= 0; k--) rows.Add(Entry(ahead[k].Item2, ahead[k].Item1));
+                rows.Add(Entry(player, 0));
+                for (int k = 0; k < Math.Min(2, behind.Count); k++) rows.Add(Entry(behind[k].Item2, behind[k].Item1));
+                return rows.ToArray();
+
+                RelativeEntry Entry(int index, double delta)
+                {
+                    byIndex.TryGetValue(index, out CarDetails car);
+                    RelativeDriver info = BuildRelative(details, index, GetDriverName(details, index));
+                    double total = (laps != null && index < laps.Length ? laps[index] : 0) + distances[index];
+                    double lapGap = total - playerTotal - delta;
+                    return new RelativeEntry
+                    {
+                        Position = positions != null && index < positions.Length ? positions[index] : 0,
+                        CarNumber = info?.CarNumber ?? car?.CarNumberDisplay,
+                        Name = info?.Name ?? ("CAR " + index),
+                        Gap = -delta * lapSeconds,
+                        LapRelation = index == player ? 0 : lapGap > 0.5 ? 1 : lapGap < -0.5 ? -1 : 0,
+                        IsPlayer = index == player,
+                        InPits = pits != null && index < pits.Length && pits[index],
+                        License = info?.License,
+                        LicenseColor = info?.LicenseColor ?? System.Drawing.Color.Gray,
+                        IRating = info?.IRating ?? 0
+                    };
+                }
+            }
+            catch
+            {
+                return new RelativeEntry[0];
             }
         }
 

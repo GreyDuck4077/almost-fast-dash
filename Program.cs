@@ -181,8 +181,13 @@ namespace DV5Direct
             AppSettings settings = SettingsStore.Load();
             var units = new UnitSystem(settings.General);
             foreach (DashboardSettings dashboard in settings.Dashboards)
+            {
                 using (var frame = DashboardRendererFactory.RenderPreview(dashboard, units))
                     frame.Save(Path.Combine(directory, dashboard.Name + ".png"), System.Drawing.Imaging.ImageFormat.Png);
+                if (dashboard.Layout == Layouts.Summit)
+                    using (var pit = DashboardRendererFactory.RenderPreview(dashboard, units, IRacingTelemetrySource.CreatePitLanePreviewSnapshot()))
+                        pit.Save(Path.Combine(directory, dashboard.Name + " - Pit lane.png"), System.Drawing.Imaging.ImageFormat.Png);
+            }
             using (var flag = DashboardRendererFactory.RenderPreview(
                 settings.GetDefaultDashboard(), units, IRacingTelemetrySource.CreatePreviewSnapshot(RacingFlag.Checkered)))
                 flag.Save(Path.Combine(directory, "Flag - Checkered.png"), System.Drawing.Imaging.ImageFormat.Png);
