@@ -23,6 +23,9 @@ namespace DV5Direct
             AppDomain.CurrentDomain.BaseDirectory, "dashboard.running");
         private static Mutex _instanceMutex;
 
+        internal static readonly string ActiveDashboardPath = Path.Combine(
+            AppDomain.CurrentDomain.BaseDirectory, "dashboard.active");
+
         [STAThread]
         private static int Main(string[] args)
         {
@@ -34,6 +37,9 @@ namespace DV5Direct
                 return 0;
             }
 
+            string previewDirectory = ParseOption(args, "--render-previews");
+            if (previewDirectory != null) return RenderPreviews(previewDirectory);
+
             bool explicitDashboardMode = args.Contains("--run") || args.Contains("--demo") ||
                 args.Contains("--preview") || args.Contains("--preview-timed") || args.Contains("--seconds") ||
                 args.Contains("--capture-preview") || args.Contains("--capture-dashboard");
@@ -43,6 +49,18 @@ namespace DV5Direct
                 {
                     ShutdownMode = ShutdownMode.OnMainWindowClose
                 };
+                application.DispatcherUnhandledException += (sender, e) =>
+                {
+                    // Keep the settings window alive and leave a trace instead of vanishing.
+                    try { File.AppendAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings-error.txt"), DateTime.Now + Environment.NewLine + e.Exception + Environment.NewLine); }
+                    catch { }
+                    MessageBox.Show(e.Exception.Message, "DV5 Direct", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    e.Handled = true;
+                };
+                application.Resources.MergedDictionaries.Add(new ResourceDictionary
+                {
+                    Source = new Uri("pack://application:,,,/DV5Direct;component/Theme.xaml")
+                });
                 application.Run(new SettingsWindow());
                 return 0;
             }
@@ -67,20 +85,18 @@ namespace DV5Direct
             bool demoMode = args.Contains("--demo");
             bool previewMode = args.Contains("--preview");
             bool timedPreviewMode = args.Contains("--preview-timed");
-            string ledPort = ParseOption(args, "--led-port") ?? DefaultLedPort;
             Console.WriteLine("DV-5 Direct");
             Console.WriteLine("Close SimHub before running so it does not compete for the device.");
 
             Console.CancelKeyPress += OnCancelKeyPress;
 
-            AppSettings allSettings = SettingsStore.Load();
             string captureDashboardId = ParseOption(args, "--capture-dashboard");
-            DashboardSettings dashboardSettings = string.IsNullOrWhiteSpace(captureDashboardId)
-                ? allSettings.GetDefaultDashboard()
-                : allSettings.Dashboards.FirstOrDefault(d => d.Id == captureDashboardId) ?? allSettings.GetDefaultDashboard();
-            using (var renderer = DashboardRendererFactory.Create(Dv5Screen.Width, Dv5Screen.Height, dashboardSettings))
-            using (var diagnostics = new DiagnosticLogger(!args.Contains("--no-logging")))
-            using (var telemetry = new IRacingTelemetrySource(diagnostics, dashboardSettings))
+            var runtime = new DashboardRuntime(captureDashboardId);
+            string ledPort = ParseOption(args, "--led-port") ?? runtime.Settings.General.LedPort ?? DefaultLedPort;
+            bool logging = runtime.Settings.General.DiagnosticsEnabled && !args.Contains("--no-logging");
+            using (runtime)
+            using (var diagnostics = new DiagnosticLogger(logging))
+            using (var telemetry = new IRacingTelemetrySource(diagnostics, runtime.Dashboard))
             {
                 try
                 {
@@ -114,7 +130,7 @@ namespace DV5Direct
                             capturePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, capturePath);
                         Directory.CreateDirectory(Path.GetDirectoryName(capturePath));
                         TelemetrySnapshot captureSnapshot = telemetry.GetSnapshot();
-                        using (var capture = renderer.Render(
+                        using (var capture = runtime.Renderer.Render(
                             captureSnapshot, false, captureSnapshot.Gear, 1f))
                             capture.Save(capturePath, System.Drawing.Imaging.ImageFormat.Png);
                     }
@@ -123,7 +139,7 @@ namespace DV5Direct
                         ? DateTime.UtcNow.AddSeconds(runSeconds.Value)
                         : (DateTime?)null;
 
-                    RunDashboard(telemetry, renderer, finishAt, ledPort, dashboardSettings);
+                    RunDashboard(telemetry, runtime, finishAt, ledPort);
 
                     Console.WriteLine("Dashboard stopped cleanly.");
                     return 0;
@@ -141,7 +157,10 @@ namespace DV5Direct
                     {
                         if (File.Exists(DashboardStatusPath) &&
                             File.ReadAllText(DashboardStatusPath).Trim() == Process.GetCurrentProcess().Id.ToString())
+                        {
                             File.Delete(DashboardStatusPath);
+                            if (File.Exists(ActiveDashboardPath)) File.Delete(ActiveDashboardPath);
+                        }
                     }
                     catch { }
                     _instanceMutex.ReleaseMutex();
@@ -150,12 +169,31 @@ namespace DV5Direct
             }
         }
 
+        /// <summary>
+        /// Writes a PNG of every configured dashboard plus a flag sample without
+        /// opening the screen or LEDs, so layouts can be reviewed while the hardware is in use.
+        /// </summary>
+        private static int RenderPreviews(string directory)
+        {
+            if (!Path.IsPathRooted(directory))
+                directory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, directory);
+            Directory.CreateDirectory(directory);
+            AppSettings settings = SettingsStore.Load();
+            var units = new UnitSystem(settings.General);
+            foreach (DashboardSettings dashboard in settings.Dashboards)
+                using (var frame = DashboardRendererFactory.RenderPreview(dashboard, units))
+                    frame.Save(Path.Combine(directory, dashboard.Name + ".png"), System.Drawing.Imaging.ImageFormat.Png);
+            using (var flag = DashboardRendererFactory.RenderPreview(
+                settings.GetDefaultDashboard(), units, IRacingTelemetrySource.CreatePreviewSnapshot(RacingFlag.Checkered)))
+                flag.Save(Path.Combine(directory, "Flag - Checkered.png"), System.Drawing.Imaging.ImageFormat.Png);
+            return 0;
+        }
+
         private static void RunDashboard(
             IRacingTelemetrySource telemetry,
-            IDashboardRenderer renderer,
+            DashboardRuntime runtime,
             DateTime? finishAt,
-            string ledPort,
-            DashboardSettings dashboardSettings)
+            string ledPort)
         {
             while (!ShouldStop(finishAt))
             {
@@ -163,18 +201,16 @@ namespace DV5Direct
                 {
                     using (var screen = new Dv5Screen())
                     {
-                        var connection = screen.Connect();
+                        var connection = screen.Connect(runtime.Settings.General.ScreenBrightness);
                         Console.WriteLine("Screen connected: " + connection.ModelName);
                         Console.WriteLine("Display ID: " + connection.DisplayId);
                         Dv5LedController leds = null;
                         DateTime nextLedReconnectUtc = DateTime.MinValue;
+                        DateTime nextSettingsCheckUtc = DateTime.MinValue;
 
                         DisplayState lastDrawn = null;
                         bool? lastTelemetryConnection = null;
-                        BlindSpotZone lastLeft = (BlindSpotZone)(-1);
-                        BlindSpotZone lastRight = (BlindSpotZone)(-1);
-                        int lastRpmPairs = -1;
-                        bool lastShiftFlash = false;
+                        System.Drawing.Color[] lastLedFrame = null;
                         int lastObservedGear = int.MinValue;
                         int transitionFromGear = 0;
                         DateTime gearTransitionStartedUtc = DateTime.MinValue;
@@ -187,74 +223,78 @@ namespace DV5Direct
                                 {
                                     leds = TryConnectLeds(ledPort);
                                     nextLedReconnectUtc = DateTime.UtcNow.AddSeconds(5);
-                                    if (leds != null)
-                                    {
-                                        lastLeft = (BlindSpotZone)(-1);
-                                        lastRight = (BlindSpotZone)(-1);
-                                        lastRpmPairs = -1;
-                                        lastShiftFlash = false;
-                                    }
+                                    lastLedFrame = null;
                                 }
 
                                 TelemetrySnapshot snapshot = telemetry.GetSnapshot();
-                            bool shiftFlashOn = snapshot.ShiftAlert &&
-                                ((Environment.TickCount / 140) & 1) == 0;
-                            if (snapshot.Connected)
-                            {
-                                if (lastObservedGear == int.MinValue)
-                                    lastObservedGear = snapshot.Gear;
-                                else if (snapshot.Gear != lastObservedGear)
+
+                                // Pick up saved settings and switch dashboards when the
+                                // track type changes, without restarting the process.
+                                if (DateTime.UtcNow >= nextSettingsCheckUtc)
                                 {
-                                    transitionFromGear = lastObservedGear;
-                                    lastObservedGear = snapshot.Gear;
-                                    gearTransitionStartedUtc = DateTime.UtcNow;
+                                    nextSettingsCheckUtc = DateTime.UtcNow.AddSeconds(1);
+                                    if (runtime.Refresh(snapshot.Discipline))
+                                    {
+                                        telemetry.ApplyAlertSettings(runtime.Dashboard.Alerts);
+                                        screen.SetBrightness(runtime.Settings.General.ScreenBrightness);
+                                        lastDrawn = null;
+                                        lastLedFrame = null;
+                                        Console.WriteLine("Dashboard: " + runtime.Dashboard.Name);
+                                    }
                                 }
-                            }
-                            else
-                            {
-                                lastObservedGear = int.MinValue;
-                                gearTransitionStartedUtc = DateTime.MinValue;
-                            }
 
-                            double transitionElapsed = gearTransitionStartedUtc == DateTime.MinValue
-                                ? GearTransitionMilliseconds
-                                : (DateTime.UtcNow - gearTransitionStartedUtc).TotalMilliseconds;
-                            float gearProgress = (float)Math.Min(1, transitionElapsed / GearTransitionMilliseconds);
-                            int gearAnimationFrame = gearProgress < 1
-                                ? (int)(gearProgress * GearTransitionFrames)
-                                : -1;
-                            if (lastTelemetryConnection != snapshot.Connected)
-                            {
-                                Console.WriteLine(snapshot.Connected
-                                    ? "iRacing telemetry connected."
-                                    : "Waiting for iRacing telemetry...");
-                                lastTelemetryConnection = snapshot.Connected;
-                            }
+                                bool shiftFlashOn = snapshot.ShiftAlert &&
+                                    ((Environment.TickCount / 140) & 1) == 0;
+                                if (snapshot.Connected)
+                                {
+                                    if (lastObservedGear == int.MinValue)
+                                        lastObservedGear = snapshot.Gear;
+                                    else if (snapshot.Gear != lastObservedGear)
+                                    {
+                                        transitionFromGear = lastObservedGear;
+                                        lastObservedGear = snapshot.Gear;
+                                        gearTransitionStartedUtc = DateTime.UtcNow;
+                                    }
+                                }
+                                else
+                                {
+                                    lastObservedGear = int.MinValue;
+                                    gearTransitionStartedUtc = DateTime.MinValue;
+                                }
 
-                            DisplayState current = DisplayState.From(snapshot, shiftFlashOn, gearAnimationFrame);
-                            if (!current.Equals(lastDrawn))
-                            {
-                                int previousGear = gearProgress < 1 ? transitionFromGear : snapshot.Gear;
-                                using (var bitmap = renderer.Render(
-                                    snapshot, shiftFlashOn, previousGear, gearProgress))
-                                    screen.Draw(bitmap);
-                                lastDrawn = current;
-                            }
+                                double transitionElapsed = gearTransitionStartedUtc == DateTime.MinValue
+                                    ? GearTransitionMilliseconds
+                                    : (DateTime.UtcNow - gearTransitionStartedUtc).TotalMilliseconds;
+                                float gearProgress = (float)Math.Min(1, transitionElapsed / GearTransitionMilliseconds);
+                                int gearAnimationFrame = gearProgress < 1
+                                    ? (int)(gearProgress * GearTransitionFrames)
+                                    : -1;
+                                if (lastTelemetryConnection != snapshot.Connected)
+                                {
+                                    Console.WriteLine(snapshot.Connected
+                                        ? "iRacing telemetry connected."
+                                        : "Waiting for iRacing telemetry...");
+                                    lastTelemetryConnection = snapshot.Connected;
+                                }
 
-                                int rpmPairs = (int)Math.Ceiling(snapshot.ShiftIndicatorPct * 4);
-                                if (leds != null &&
-                                    (snapshot.LeftBlindSpot != lastLeft || snapshot.RightBlindSpot != lastRight ||
-                                     rpmPairs != lastRpmPairs || shiftFlashOn != lastShiftFlash))
+                                DisplayState current = DisplayState.From(snapshot, shiftFlashOn, gearAnimationFrame);
+                                if (!current.Equals(lastDrawn))
+                                {
+                                    int previousGear = gearProgress < 1 ? transitionFromGear : snapshot.Gear;
+                                    using (var bitmap = runtime.Renderer.Render(
+                                        snapshot, shiftFlashOn, previousGear, gearProgress))
+                                        screen.Draw(bitmap);
+                                    lastDrawn = current;
+                                }
+
+                                System.Drawing.Color[] ledFrame = LedFrame.Compose(
+                                    runtime.Dashboard, LedInputs.From(snapshot, shiftFlashOn));
+                                if (leds != null && !LedFrame.SameFrame(ledFrame, lastLedFrame))
                                 {
                                     try
                                     {
-                                        leds.SetIndicators(
-                                            snapshot.LeftBlindSpot, snapshot.RightBlindSpot, rpmPairs, shiftFlashOn,
-                                            dashboardSettings);
-                                        lastLeft = snapshot.LeftBlindSpot;
-                                        lastRight = snapshot.RightBlindSpot;
-                                        lastRpmPairs = rpmPairs;
-                                        lastShiftFlash = shiftFlashOn;
+                                        leds.SetFrame(ledFrame);
+                                        lastLedFrame = ledFrame;
                                     }
                                     catch (Exception ledException)
                                     {
@@ -282,6 +322,75 @@ namespace DV5Direct
                     StopRequested.Wait(ReconnectDelayMilliseconds);
                 }
             }
+        }
+
+        /// <summary>
+        /// Owns the active dashboard and its renderer, reloading settings.json when
+        /// it changes and following the session's track type when auto-switch is on.
+        /// </summary>
+        private sealed class DashboardRuntime : IDisposable
+        {
+            private readonly string _pinnedDashboardId;
+            private DateTime _settingsWriteUtc;
+            private string _discipline;
+
+            public DashboardRuntime(string pinnedDashboardId)
+            {
+                _pinnedDashboardId = pinnedDashboardId;
+                _settingsWriteUtc = SettingsStore.LastWriteUtc();
+                Settings = SettingsStore.Load();
+                Dashboard = Select();
+                Renderer = CreateRenderer();
+                WriteActive();
+            }
+
+            public AppSettings Settings { get; private set; }
+            public DashboardSettings Dashboard { get; private set; }
+            public IDashboardRenderer Renderer { get; private set; }
+
+            /// <summary>Returns true when the renderer or LED settings were replaced.</summary>
+            public bool Refresh(string discipline)
+            {
+                DateTime writeUtc = SettingsStore.LastWriteUtc();
+                bool settingsChanged = writeUtc != _settingsWriteUtc;
+                bool disciplineChanged = discipline != null && discipline != _discipline;
+                if (!settingsChanged && !disciplineChanged) return false;
+
+                if (discipline != null) _discipline = discipline;
+                if (settingsChanged)
+                {
+                    _settingsWriteUtc = writeUtc;
+                    Settings = SettingsStore.Load();
+                }
+
+                DashboardSettings next = Select();
+                if (!settingsChanged && next.Id == Dashboard.Id)
+                {
+                    WriteActive();
+                    return false;
+                }
+                Dashboard = next;
+                Renderer.Dispose();
+                Renderer = CreateRenderer();
+                WriteActive();
+                return true;
+            }
+
+            private DashboardSettings Select() =>
+                !string.IsNullOrWhiteSpace(_pinnedDashboardId)
+                    ? Settings.Dashboards.FirstOrDefault(d => d.Id == _pinnedDashboardId) ?? Settings.GetDefaultDashboard()
+                    : Settings.ResolveDashboard(_discipline);
+
+            private IDashboardRenderer CreateRenderer() =>
+                DashboardRendererFactory.Create(Dv5Screen.Width, Dv5Screen.Height, Dashboard, new UnitSystem(Settings.General));
+
+            private void WriteActive()
+            {
+                try { File.WriteAllText(ActiveDashboardPath, Dashboard.Id + "\n" + (_discipline ?? "")); }
+                catch { }
+            }
+
+            public void Dispose() => Renderer?.Dispose();
         }
 
         private static Dv5LedController TryConnectLeds(string ledPort)
@@ -347,8 +456,9 @@ namespace DV5Direct
                 string driverAhead, int aheadHundredths, string driverBehind, int behindHundredths,
                 int totalStarters, bool showLapSummary, int lastLapHundredths,
                 int bestLapHundredths, int averageLapHundredths, int lapColorVersion,
-                int maxForwardGear, int gearAnimationFrame)
+                int maxForwardGear, int gearAnimationFrame, int strategyHash)
             {
+                StrategyHash = strategyHash;
                 Connected = connected;
                 Gear = gear;
                 SpeedMph = speedMph;
@@ -403,6 +513,7 @@ namespace DV5Direct
             private int LapColorVersion { get; }
             private int MaxForwardGear { get; }
             private int GearAnimationFrame { get; }
+            private int StrategyHash { get; }
 
             public static DisplayState From(
                 TelemetrySnapshot snapshot, bool shiftFlashOn, int gearAnimationFrame) => new DisplayState(
@@ -431,7 +542,23 @@ namespace DV5Direct
                 (int)Math.Round(snapshot.AverageLapSeconds * 100),
                 snapshot.LapColorVersion,
                 snapshot.MaxForwardGear,
-                gearAnimationFrame);
+                gearAnimationFrame,
+                StrategyHashOf(snapshot));
+
+            // Values only some layouts show (fuel strategy, brake bias, stint).
+            private static int StrategyHashOf(TelemetrySnapshot s)
+            {
+                unchecked
+                {
+                    int hash = (int)Math.Round(s.BrakeBias * 10);
+                    hash = (hash * 397) ^ (int)Math.Round(s.FuelLastLap * 100);
+                    hash = (hash * 397) ^ (int)Math.Round(s.FuelPerLapAverage * 100);
+                    hash = (hash * 397) ^ (int)Math.Round(s.FuelLevelPct * 100);
+                    hash = (hash * 397) ^ s.StintLaps;
+                    hash = (hash * 397) ^ (s.RecentLapSeconds?.Length ?? 0);
+                    return hash;
+                }
+            }
 
             public override bool Equals(object obj)
             {
@@ -462,7 +589,8 @@ namespace DV5Direct
                     AverageLapHundredths == other.AverageLapHundredths &&
                     LapColorVersion == other.LapColorVersion &&
                     MaxForwardGear == other.MaxForwardGear &&
-                    GearAnimationFrame == other.GearAnimationFrame;
+                    GearAnimationFrame == other.GearAnimationFrame &&
+                    StrategyHash == other.StrategyHash;
             }
 
             public override int GetHashCode()
@@ -494,6 +622,7 @@ namespace DV5Direct
                     hash = (hash * 397) ^ AverageLapHundredths;
                     hash = (hash * 397) ^ LapColorVersion;
                     hash = (hash * 397) ^ MaxForwardGear;
+                    hash = (hash * 397) ^ StrategyHash;
                     return (hash * 397) ^ GearAnimationFrame;
                 }
             }

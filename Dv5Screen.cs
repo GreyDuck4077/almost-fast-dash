@@ -27,7 +27,7 @@ namespace DV5Direct
             _view = _map.CreateViewAccessor(0, _rgb565.Length, MemoryMappedFileAccess.ReadWrite);
         }
 
-        public ConnectionResult Connect()
+        public ConnectionResult Connect(int brightnessPercent = 100)
         {
             var request = new ConnectRequest
             {
@@ -50,8 +50,15 @@ namespace DV5Direct
             }
 
             _connected = true;
-            _service.SetBrightness(255);
+            SetBrightness(brightnessPercent);
             return result;
+        }
+
+        public void SetBrightness(int percent)
+        {
+            if (!_connected) return;
+            int clamped = Math.Max(10, Math.Min(100, percent));
+            _service.SetBrightness((byte)(clamped * 255 / 100));
         }
 
         public void Draw(Bitmap bitmap)

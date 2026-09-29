@@ -1,14 +1,33 @@
 # DV5Direct
 
-Double-click `App\DV5Direct.exe` to open the native settings window. The same
+Double-click `App\DV5Direct.exe` to open the settings app. The same
 executable runs the dashboard with `--run`; the Windows Startup shortcut uses
-that quiet mode automatically. Dashboard preferences are stored in
-`App\settings.json`.
+that quiet mode automatically. Preferences are stored in `App\settings.json`
+and save automatically as you edit.
 
-The settings window currently provides a dashboard gallery/default selector and
-per-dashboard race-type assignments, display accent color, center/side LED
-functions, patterns, brightness and color profiles, plus flag timing. The data
-format supports additional dashboards and future car-specific assignments.
+The settings app has three areas:
+
+- **Dashboards** shows a live thumbnail of every dashboard, which one is the
+  default, and which track types each one is assigned to. New dashboards can be
+  created from any layout (Velocity, Endurance or Apex) and duplicated, renamed,
+  reset or deleted.
+- **Dashboard editor** shows a live DV-5 preview with animated LEDs and a
+  selectable screen state (racing, shift point, flags). It edits the name,
+  accent color, track-type assignment, shift lights (pattern, color preset or
+  custom colors, brightness), side lights (blind spot, RPM, brake pressure,
+  throttle or off, optionally the same on both sides) and flag alert timing.
+- **Device & app** sets the LED controller port (with a light test), screen
+  brightness, speed and fuel units, automatic switching by track type, start
+  with Windows, and radar diagnostics.
+
+While the dashboard runs it reloads `settings.json` within a second of any
+change, so edits apply without a restart. When automatic switching is on, the
+dashboard follows iRacing's track type: the default dashboard is used when it is
+assigned to that type, otherwise the first dashboard assigned to it, otherwise
+the default.
+
+Use `--render-previews <folder>` to write a PNG of every dashboard without
+touching the DV-5, which is safe while the dashboard is running.
 
 This is a minimal direct-control dashboard proof for the SSG DV-5 and iRacing.
 
@@ -49,13 +68,17 @@ Gear changes use a 14-step, 420 ms arc transition: the old gear rotates outward 
 
 The screen is updated only when the displayed gear, whole-number MPH, connection state, or flag changes. This avoids unnecessary bitmap rendering and USB transfers while the display is unchanged.
 
-The side LEDs show red at the top when the nearest overlapping car is ahead, the two middle LEDs while it is alongside, and the bottom two LEDs as it falls behind. iRacing's native `CarLeftRight` spotter state selects the occupied side; signed opponent lap distance supplies the longitudinal position. The default DV-5 LED port is COM7 and can be overridden with `--led-port COM8`.
+The side LEDs show red at the top when the nearest overlapping car is ahead, the two middle LEDs while it is alongside, and the bottom two LEDs as it falls behind. iRacing's native `CarLeftRight` spotter state selects the occupied side; signed opponent lap distance supplies the longitudinal position. The LED port is set in Device & app (COM7 by default) and can be overridden with `--led-port COM8`.
 
 The upper RPM LEDs fill from both outside edges toward the center. At iRacing's shift point, all eight upper LEDs and the gear/speed text flash red together.
 
 The screen's upper strip shrinks as time expires in timed races, fills equal lap blocks from left to right in lap-count races, and displays remaining time as text during practice and other non-race sessions.
 
-The premium dashboard uses a graphite/carbon background with cyan structure, white primary values, amber lap emphasis, and a centered delta bar. It shows the nearest drivers ahead and behind, position, lap, incidents, fuel, current lap time, and live comparison to the session-best lap. By design, positive/green/right means faster and negative/red/left means slower.
+The Endurance dashboard tracks fuel used on each clean lap (laps that touch pit road or include a refuel are skipped) and averages the last five. From that it shows laps of fuel left, laps to go (estimated from average lap time in timed races), fuel to add to reach the finish, brake bias, stint length since the last pit stop, and a bar chart of the last five lap times.
+
+Speed can be shown in MPH or km/h and fuel in liters or gallons on every dashboard.
+
+The Velocity dashboard uses a graphite/carbon background with cyan structure, white primary values, amber lap emphasis, and a centered delta bar. It shows the nearest drivers ahead and behind, position, lap, incidents, fuel, current lap time, and live comparison to the session-best lap. By design, positive/green/right means faster and negative/red/left means slower.
 
 After each completed lap, a white summary band appears for four seconds with position on the left, completed lap on the right, and best, last, and session-average lap times in the center.
 
@@ -69,7 +92,7 @@ iRacing caution and waving-caution states display as yellow flags. The safety-ca
 
 The live yellow alert flashes six times when a yellow or caution state first activates, then restores the dashboard during extended pace laps. It rearms after iRacing clears the caution state.
 
-Compact radar diagnostics are stored under `%LOCALAPPDATA%\DV5Direct\Logs`. Files rotate at 2 MB and only the newest eight are retained. They contain timestamps, raw left/right spotter state, nearest relative lap distance, and the resulting LED zones—no driver names or account information. Pass `--no-logging` to disable them.
+Compact radar diagnostics are stored in the `Logs` folder next to the executable. Files rotate at 2 MB and only the newest eight are retained. They contain timestamps, raw left/right spotter state, nearest relative lap distance, and the resulting LED zones—no driver names or account information. Turn them off in Device & app, or pass `--no-logging`.
 
 ## Auto-start
 

@@ -1,117 +1,565 @@
 <Window x:Class="DV5Direct.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="DV5Direct" Width="1160" Height="760" MinWidth="1020" MinHeight="680"
-        WindowStartupLocation="CenterScreen" Background="#080E19"
-        FontFamily="Segoe UI" Foreground="#F3F7FC">
+        Title="DV5 Direct" Width="1280" Height="840" MinWidth="1100" MinHeight="700"
+        WindowStartupLocation="CenterScreen" Background="{StaticResource Brush.Bg}"
+        FontFamily="{StaticResource Font.Ui}" FontSize="13" Foreground="{StaticResource Brush.Text}"
+        UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
     <Window.Resources>
-        <SolidColorBrush x:Key="Accent" Color="#42D3DC"/>
-        <SolidColorBrush x:Key="Muted" Color="#8B9EB5"/>
-        <SolidColorBrush x:Key="Card" Color="#101B2B"/>
-        <SolidColorBrush x:Key="CardBorder" Color="#2A3B50"/>
-        <DataTemplate x:Key="ComboTextTemplate"><TextBlock Text="{Binding}" Foreground="#111111" FontWeight="SemiBold"/></DataTemplate>
-        <Style TargetType="Button">
-            <Setter Property="Foreground" Value="White"/><Setter Property="Background" Value="#173344"/>
-            <Setter Property="BorderThickness" Value="0"/><Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Padding" Value="14,8"/><Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="B" Background="{TemplateBinding Background}" CornerRadius="10" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="B" Property="Background" Value="#236A83"/></Trigger><Trigger Property="IsPressed" Value="True"><Setter TargetName="B" Property="Opacity" Value="0.78"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value>
-            </Setter>
+        <!-- Two-column settings row: label and help text on the left, control on the right -->
+        <Style x:Key="Row" TargetType="Grid">
+            <Setter Property="Margin" Value="0,2"/>
+            <Setter Property="MinHeight" Value="40"/>
         </Style>
-        <Style x:Key="NavButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-            <Setter Property="HorizontalContentAlignment" Value="Left"/><Setter Property="Margin" Value="0,2"/><Setter Property="Padding" Value="14,10"/><Setter Property="Background" Value="Transparent"/>
-        </Style>
-        <Style TargetType="ComboBox">
-            <Setter Property="Foreground" Value="#111111"/><Setter Property="Background" Value="#FFFFFF"/><Setter Property="BorderBrush" Value="#B8C1CC"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Padding" Value="8,5"/><Setter Property="Height" Value="34"/><Setter Property="ItemTemplate" Value="{StaticResource ComboTextTemplate}"/>
-        </Style>
-        <Style TargetType="ComboBoxItem">
-            <Setter Property="Foreground" Value="#111111"/><Setter Property="Background" Value="#FFFFFF"/><Setter Property="Padding" Value="10,7"/>
-            <Style.Triggers><Trigger Property="IsHighlighted" Value="True"><Setter Property="Background" Value="#236A83"/><Setter Property="Foreground" Value="White"/></Trigger><Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="#1E96A3"/><Setter Property="Foreground" Value="White"/></Trigger></Style.Triggers>
-        </Style>
-        <Style TargetType="TextBox">
-            <Setter Property="Foreground" Value="#F3F7FC"/><Setter Property="Background" Value="#1D2B3E"/><Setter Property="BorderBrush" Value="#3A526D"/><Setter Property="BorderThickness" Value="1"/><Setter Property="Padding" Value="8,5"/><Setter Property="Height" Value="34"/><Setter Property="CaretBrush" Value="White"/><Setter Property="SelectionBrush" Value="#1E96A3"/>
-        </Style>
-        <Style TargetType="CheckBox">
-            <Setter Property="Foreground" Value="#DAE5F1"/><Setter Property="FontSize" Value="13"/><Setter Property="Margin" Value="0,0,26,8"/>
-        </Style>
-        <Style x:Key="SectionLabel" TargetType="TextBlock"><Setter Property="Foreground" Value="{StaticResource Accent}"/><Setter Property="FontSize" Value="11"/><Setter Property="FontWeight" Value="Bold"/><Setter Property="Margin" Value="0,0,0,4"/></Style>
-        <Style x:Key="FieldLabel" TargetType="TextBlock"><Setter Property="Foreground" Value="{StaticResource Muted}"/><Setter Property="FontSize" Value="10"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Margin" Value="0,0,0,5"/></Style>
-        <Style x:Key="CardStyle" TargetType="Border"><Setter Property="Background" Value="{StaticResource Card}"/><Setter Property="BorderBrush" Value="{StaticResource CardBorder}"/><Setter Property="BorderThickness" Value="1"/><Setter Property="CornerRadius" Value="13"/><Setter Property="Padding" Value="14"/><Setter Property="Margin" Value="0,0,0,18"/><Setter Property="Effect"><Setter.Value><DropShadowEffect BlurRadius="16" ShadowDepth="3" Opacity="0.18" Color="#000000"/></Setter.Value></Setter></Style>
     </Window.Resources>
 
     <Grid>
-        <Grid.RowDefinitions><RowDefinition Height="70"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-        <Border Grid.Row="0" Grid.ColumnSpan="2" BorderBrush="#203246" BorderThickness="0,0,0,1">
-            <Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,0"><GradientStop Color="#0C1828"/><GradientStop Color="#07101C" Offset="1"/></LinearGradientBrush></Border.Background>
-            <Grid Margin="18,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <Border Width="40" Height="40" CornerRadius="12" Margin="0,0,11,0"><Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#2AC6CF"/><GradientStop Color="#376BDD" Offset="1"/></LinearGradientBrush></Border.Background><TextBlock Text="D5" FontWeight="Bold" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
-                    <StackPanel VerticalAlignment="Center"><TextBlock Text="DV5 DIRECT" FontSize="20" FontWeight="SemiBold"/><TextBlock Text="iRacing display control" Foreground="{StaticResource Muted}" FontSize="11"/></StackPanel>
-                    <Border x:Name="StatusBadge" Background="#102E29" CornerRadius="10" Padding="10,5" Margin="24,0,0,0" VerticalAlignment="Center"><TextBlock x:Name="StatusText" Text="●  SETTINGS READY" Foreground="#5CDC9B" FontSize="10" FontWeight="Bold"/></Border>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="248"/>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
+
+        <!-- ================= Sidebar ================= -->
+        <Border Background="{StaticResource Brush.Sidebar}" BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,0,1,0">
+            <DockPanel Margin="14,20,14,16">
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="8,0,0,26">
+                    <Border Width="36" Height="36" CornerRadius="10">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="#2DD4BF"/>
+                                <GradientStop Color="#3B82F6" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <TextBlock Text="DV5" FontFamily="{StaticResource Font.Display}" FontWeight="Bold" FontSize="12"
+                                   Foreground="#04221E" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="DV5 Direct" FontFamily="{StaticResource Font.Display}" FontSize="15" FontWeight="SemiBold"/>
+                        <TextBlock Text="iRacing dashboard studio" Style="{StaticResource T.Caption}" Margin="0,1,0,0"/>
+                    </StackPanel>
                 </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button x:Name="StartDashboardButton" Content="▶  START DASHBOARD" Background="#1E96A3" Margin="0,0,10,0" Click="StartDashboard_Click"/>
-                    <Button Content="■  STOP" Click="StopDashboard_Click"/>
+
+                <StackPanel DockPanel.Dock="Bottom">
+                    <Border Style="{StaticResource Divider}" Margin="4,0,4,12"/>
+                    <TextBlock x:Name="VersionText" Style="{StaticResource T.Caption}" Foreground="{StaticResource Brush.TextTertiary}" Margin="12,0"/>
                 </StackPanel>
-            </Grid>
+
+                <StackPanel DockPanel.Dock="Top">
+                    <RadioButton x:Name="NavGallery" Style="{StaticResource Nav.Item}" GroupName="Nav" Checked="NavGallery_Checked">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource T.Icon}" Text="&#xE8A9;" Margin="0,0,12,0"/>
+                            <TextBlock Text="Dashboards" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </RadioButton>
+                    <RadioButton x:Name="NavSettings" Style="{StaticResource Nav.Item}" GroupName="Nav" Checked="NavSettings_Checked">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource T.Icon}" Text="&#xE713;" Margin="0,0,12,0"/>
+                            <TextBlock Text="Device &amp; app" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </RadioButton>
+                    <TextBlock Text="YOUR DASHBOARDS" Style="{StaticResource T.Overline}" Margin="12,24,0,8"/>
+                </StackPanel>
+
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel x:Name="DashboardNavList"/>
+                </ScrollViewer>
+            </DockPanel>
         </Border>
 
-        <Grid Grid.Row="1"><Grid.ColumnDefinitions><ColumnDefinition Width="220"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-            <Border Grid.Column="0" BorderBrush="#17283B" BorderThickness="0,0,1,0">
-                <Border.Background><LinearGradientBrush StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#0B1523"/><GradientStop Color="#080F1B" Offset="1"/></LinearGradientBrush></Border.Background>
-                <StackPanel Margin="14,18">
-                    <TextBlock Text="WORKSPACE" Foreground="#5B738D" FontSize="10" FontWeight="Bold" Margin="7,0,0,9"/>
-                    <Button Style="{StaticResource NavButton}" Content="▦   DASHBOARDS" Click="ShowGallery_Click"/>
-                    <TextBlock Text="MY DASHBOARDS" Foreground="#5B738D" FontSize="10" FontWeight="Bold" Margin="7,17,0,7"/>
-                    <Button x:Name="DashboardNav" Style="{StaticResource NavButton}" Content="◈   VELOCITY" Click="ShowDashboard_Click"/>
-                    <TextBlock Text="More layouts can be added without replacing this app." TextWrapping="Wrap" Foreground="#647B94" Margin="8,14,12,0" LineHeight="18"/>
-                </StackPanel>
+        <!-- ================= Main ================= -->
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="64"/>
+                <RowDefinition/>
+            </Grid.RowDefinitions>
+
+            <!-- Header: runtime status and controls -->
+            <Border BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,0,0,1">
+                <Grid Margin="32,0,24,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border x:Name="StatusPill" Style="{StaticResource Pill}" Padding="10,5">
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="{StaticResource Brush.TextTertiary}" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="StatusText" Text="Checking…" FontSize="12" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                        <TextBlock x:Name="ActiveText" Style="{StaticResource T.Caption}" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <StackPanel x:Name="SavedIndicator" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,0" Opacity="0">
+                            <TextBlock Style="{StaticResource T.Icon}" Text="&#xE73E;" FontSize="12" Foreground="{StaticResource Brush.Success}" Margin="0,0,6,0"/>
+                            <TextBlock x:Name="SavedText" Text="Saved" Style="{StaticResource T.Caption}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <Button x:Name="StopButton" Click="StopDashboard_Click" Margin="0,0,8,0" ToolTip="Stop the dashboard and blank the DV-5 screen">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource T.Icon}" Text="&#xE71A;" FontSize="12" Margin="0,0,8,0"/>
+                                <TextBlock Text="Stop" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="StartButton" Style="{StaticResource Btn.Primary}" Click="StartDashboard_Click" MinWidth="150">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock x:Name="StartIcon" Style="{StaticResource T.Icon}" Text="&#xE768;" FontSize="12" Margin="0,0,8,0"/>
+                                <TextBlock x:Name="StartLabel" Text="Start dashboard" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
             </Border>
 
-            <Grid Grid.Column="1" Background="#080E19">
-                <ScrollViewer x:Name="GalleryPage" VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="26,20,26,30">
-                        <TextBlock Text="DASHBOARDS" FontSize="30" FontWeight="SemiBold"/>
-                        <TextBlock Text="Choose the default dashboard used when no automatic assignment matches." Foreground="{StaticResource Muted}" Margin="2,4,0,18"/>
-                        <WrapPanel x:Name="DashboardCards"/>
-                    </StackPanel>
-                </ScrollViewer>
+            <!-- ============ Gallery page ============ -->
+            <ScrollViewer x:Name="GalleryPage" Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="32,28,32,32">
+                    <Grid Margin="0,0,0,24">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Dashboards" Style="{StaticResource T.PageTitle}"/>
+                            <TextBlock Style="{StaticResource T.Secondary}" Margin="0,6,0,0" MaxWidth="640" HorizontalAlignment="Left"
+                                       Text="Choose what your DV-5 shows. The default dashboard is used unless another one is assigned to the session's track type."/>
+                        </StackPanel>
+                        <Button x:Name="NewDashboardButton" Grid.Column="1" VerticalAlignment="Top" Click="NewDashboard_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource T.Icon}" Text="&#xE710;" FontSize="12" Margin="0,0,8,0"/>
+                                <TextBlock Text="New dashboard" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                    <WrapPanel x:Name="DashboardCards" SizeChanged="DashboardCards_SizeChanged"/>
+                </StackPanel>
+            </ScrollViewer>
 
-                <ScrollViewer x:Name="EditorPage" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
-                    <StackPanel Margin="26,20,26,30">
-                        <TextBlock x:Name="EditorTitle" Text="VELOCITY" FontSize="30" FontWeight="SemiBold"/>
-                        <TextBlock Text="Settings saved here apply only to this dashboard." Foreground="{StaticResource Muted}" Margin="2,4,0,12"/>
-                        <Separator Background="#253A51" Margin="0,0,0,16"/>
+            <!-- ============ Editor page ============ -->
+            <ScrollViewer x:Name="EditorPage" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                <StackPanel Margin="32,20,32,32" MaxWidth="1040">
+                    <Button Style="{StaticResource Btn.Ghost}" HorizontalAlignment="Left" Height="28" Padding="6,0" Margin="-6,0,0,10" Click="BackToGallery_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource T.Icon}" Text="&#xE72B;" FontSize="11" Margin="0,0,8,0"/>
+                            <TextBlock Text="All dashboards" FontWeight="Normal" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Grid Margin="0,0,0,20">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock x:Name="EditorTitle" Style="{StaticResource T.PageTitle}" Text="Velocity"/>
+                                <Border x:Name="EditorDefaultBadge" Style="{StaticResource Pill}" Background="{StaticResource Brush.SuccessSubtle}" Margin="12,4,0,0">
+                                    <TextBlock Text="Default" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Brush.Success}"/>
+                                </Border>
+                            </StackPanel>
+                            <TextBlock x:Name="EditorSubtitle" Style="{StaticResource T.Secondary}" Margin="0,6,0,0"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+                            <Button x:Name="SetDefaultButton" Content="Set as default" Margin="0,0,8,0" Click="SetDefault_Click"/>
+                            <Button x:Name="MoreButton" Style="{StaticResource Btn.Icon}" Content="&#xE712;" BorderBrush="{StaticResource Brush.BorderStrong}"
+                                    Background="{StaticResource Brush.SurfaceRaised}" ToolTip="More actions" Click="More_Click"/>
+                        </StackPanel>
+                    </Grid>
 
-                        <TextBlock Style="{StaticResource SectionLabel}" Text="AUTOMATIC ASSIGNMENT"/><TextBlock Foreground="{StaticResource Muted}" Text="Use this dashboard for any selected iRacing discipline." Margin="0,0,0,12"/>
-                        <Border Style="{StaticResource CardStyle}"><WrapPanel><CheckBox x:Name="OvalCheck" Content="Oval"/><CheckBox x:Name="RoadCheck" Content="Road"/><CheckBox x:Name="DirtOvalCheck" Content="Dirt Oval"/><CheckBox x:Name="DirtRoadCheck" Content="Dirt Road"/></WrapPanel></Border>
+                    <!-- Live preview -->
+                    <Border Style="{StaticResource Card}" Padding="24">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition/>
+                            </Grid.ColumnDefinitions>
+                            <!-- DV-5 mock-up: 8 shift lights above the screen, 4 lights down each side -->
+                            <Border Background="#07090C" BorderBrush="#1D232D" BorderThickness="1" CornerRadius="18" Padding="14,12,14,16">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="26"/>
+                                        <ColumnDefinition Width="480"/>
+                                        <ColumnDefinition Width="26"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="26"/>
+                                        <RowDefinition Height="270"/>
+                                    </Grid.RowDefinitions>
+                                    <UniformGrid x:Name="TopLeds" Grid.Column="1" Columns="8" Margin="60,0,60,8"/>
+                                    <UniformGrid x:Name="LeftLeds" Grid.Row="1" Rows="4" Margin="0,24,8,24"/>
+                                    <UniformGrid x:Name="RightLeds" Grid.Row="1" Grid.Column="2" Rows="4" Margin="8,24,0,24"/>
+                                    <Border Grid.Row="1" Grid.Column="1" CornerRadius="6" BorderBrush="#232A35" BorderThickness="1">
+                                        <Border.Background>
+                                            <ImageBrush x:Name="PreviewBrush" Stretch="Uniform"/>
+                                        </Border.Background>
+                                    </Border>
+                                </Grid>
+                            </Border>
+                            <StackPanel Grid.Column="1" Margin="28,4,0,0">
+                                <TextBlock Text="LIVE PREVIEW" Style="{StaticResource T.Overline}"/>
+                                <TextBlock Style="{StaticResource T.Secondary}" Margin="0,8,0,20"
+                                           Text="The lights play through an RPM sweep, blind-spot calls and pedal inputs using the settings below. Changes apply to a running dashboard within a second."/>
+                                <CheckBox x:Name="AnimateLeds" Style="{StaticResource Switch}" Content="Animate lights" IsChecked="True" Margin="0,0,0,18"/>
+                                <TextBlock Text="Screen state" Style="{StaticResource T.Label}" Margin="0,0,0,8"/>
+                                <ComboBox x:Name="PreviewState" MinWidth="0" HorizontalAlignment="Stretch" SelectionChanged="PreviewState_SelectionChanged"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
 
-                        <TextBlock Style="{StaticResource SectionLabel}" Text="DASHBOARD APPEARANCE"/><TextBlock Foreground="{StaticResource Muted}" Text="Replace the dashboard accent color while preserving contrast." Margin="0,0,0,12"/>
-                        <Border Style="{StaticResource CardStyle}"><StackPanel Orientation="Horizontal"><Border x:Name="AccentSwatch" Width="42" Height="42" CornerRadius="10" Margin="0,0,13,0"/><Button x:Name="AccentButton" Content="#009BD2" Click="AccentButton_Click"/></StackPanel></Border>
+                    <!-- General -->
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="General" Style="{StaticResource T.Title}"/>
+                            <TextBlock Text="Name, color and when this dashboard is used." Style="{StaticResource T.Caption}" Margin="0,4,0,18"/>
 
-                        <TextBlock Style="{StaticResource SectionLabel}" Text="CENTER 8 LEDS"/><TextBlock Foreground="{StaticResource Muted}" Text="Configure the upper RPM and shift-light bank." Margin="0,0,0,12"/>
-                        <Border Style="{StaticResource CardStyle}"><Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                            <StackPanel Margin="0,0,22,0"><TextBlock Style="{StaticResource FieldLabel}" Text="PATTERN"/><ComboBox x:Name="CenterPattern"/></StackPanel>
-                            <StackPanel Grid.Column="1" Margin="0,0,22,0"><TextBlock Style="{StaticResource FieldLabel}" Text="COLOR PROFILE"/><ComboBox x:Name="CenterProfile"/></StackPanel>
-                            <StackPanel Grid.Column="2" Margin="0,0,22,0"><TextBlock Style="{StaticResource FieldLabel}" Text="BRIGHTNESS"/><Grid><Slider x:Name="CenterBrightness" Minimum="0" Maximum="100" VerticalAlignment="Center"/><TextBlock x:Name="CenterBrightnessValue" HorizontalAlignment="Right" VerticalAlignment="Center" Background="#1D2B3E" Padding="7,3"/></Grid></StackPanel>
-                            <Button Grid.Column="3" Content="CUSTOM COLORS" VerticalAlignment="Bottom" Click="CenterColors_Click"/>
-                        </Grid></Border>
+                            <Grid Style="{StaticResource Row}">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Text="Name" Style="{StaticResource T.Label}"/>
+                                </StackPanel>
+                                <TextBox x:Name="NameBox" Grid.Column="1" MaxWidth="320" HorizontalAlignment="Left" Width="320" MaxLength="32"
+                                         LostKeyboardFocus="NameBox_LostKeyboardFocus" KeyDown="NameBox_KeyDown"/>
+                            </Grid>
+                            <Border Style="{StaticResource Divider}"/>
 
-                        <TextBlock Style="{StaticResource SectionLabel}" Text="LEFT LEDS"/><TextBlock Foreground="{StaticResource Muted}" Text="Choose how this bank is used and how it looks." Margin="0,0,0,12"/>
-                        <Border Style="{StaticResource CardStyle}"><Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                            <StackPanel Margin="0,0,22,0"><TextBlock Style="{StaticResource FieldLabel}" Text="FUNCTION"/><ComboBox x:Name="LeftFunction"/></StackPanel><StackPanel Grid.Column="1" Margin="0,0,22,0"><TextBlock Style="{StaticResource FieldLabel}" Text="COLOR PROFILE"/><ComboBox x:Name="LeftProfile"/></StackPanel><StackPanel Grid.Column="2" Margin="0,0,22,0"><TextBlock Style="{StaticResource FieldLabel}" Text="BRIGHTNESS"/><Grid><Slider x:Name="LeftBrightness" Minimum="0" Maximum="100"/><TextBlock x:Name="LeftBrightnessValue" HorizontalAlignment="Right" Background="#1D2B3E" Padding="7,3"/></Grid></StackPanel><Button Grid.Column="3" Content="CUSTOM COLORS" VerticalAlignment="Bottom" Click="LeftColors_Click"/>
-                        </Grid></Border>
+                            <Grid Style="{StaticResource Row}">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Text="Accent color" Style="{StaticResource T.Label}"/>
+                                    <TextBlock Text="Panel outlines, progress and highlights." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <StackPanel x:Name="AccentPresets" Orientation="Horizontal"/>
+                                    <Border Width="1" Background="{StaticResource Brush.Border}" Margin="4,4,12,4"/>
+                                    <Button x:Name="AccentCustom" Style="{StaticResource Swatch}" ToolTip="Pick any color" Click="AccentCustom_Click"/>
+                                    <TextBlock x:Name="AccentHex" FontFamily="{StaticResource Font.Mono}" FontSize="12"
+                                               Foreground="{StaticResource Brush.TextSecondary}" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                            <Border Style="{StaticResource Divider}"/>
 
-                        <TextBlock Style="{StaticResource SectionLabel}" Text="RIGHT LEDS"/><TextBlock Foreground="{StaticResource Muted}" Text="Choose how this bank is used and how it looks." Margin="0,0,0,12"/>
-                        <Border Style="{StaticResource CardStyle}"><Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                            <StackPanel Margin="0,0,22,0"><TextBlock Style="{StaticResource FieldLabel}" Text="FUNCTION"/><ComboBox x:Name="RightFunction"/></StackPanel><StackPanel Grid.Column="1" Margin="0,0,22,0"><TextBlock Style="{StaticResource FieldLabel}" Text="COLOR PROFILE"/><ComboBox x:Name="RightProfile"/></StackPanel><StackPanel Grid.Column="2" Margin="0,0,22,0"><TextBlock Style="{StaticResource FieldLabel}" Text="BRIGHTNESS"/><Grid><Slider x:Name="RightBrightness" Minimum="0" Maximum="100"/><TextBlock x:Name="RightBrightnessValue" HorizontalAlignment="Right" Background="#1D2B3E" Padding="7,3"/></Grid></StackPanel><Button Grid.Column="3" Content="CUSTOM COLORS" VerticalAlignment="Bottom" Click="RightColors_Click"/>
-                        </Grid></Border>
+                            <Grid Style="{StaticResource Row}">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Top" Margin="0,4,24,0">
+                                    <TextBlock Text="Use automatically for" Style="{StaticResource T.Label}"/>
+                                    <TextBlock x:Name="AssignmentHelp" Style="{StaticResource T.Caption}" Margin="0,3,0,0"
+                                               Text="Switches to this dashboard when a session starts on these track types."/>
+                                </StackPanel>
+                                <WrapPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,0,-8">
+                                    <ToggleButton x:Name="OvalChip" Style="{StaticResource Chip}" Content="Oval" Checked="AssignmentChanged" Unchecked="AssignmentChanged"/>
+                                    <ToggleButton x:Name="RoadChip" Style="{StaticResource Chip}" Content="Road" Checked="AssignmentChanged" Unchecked="AssignmentChanged"/>
+                                    <ToggleButton x:Name="DirtOvalChip" Style="{StaticResource Chip}" Content="Dirt oval" Checked="AssignmentChanged" Unchecked="AssignmentChanged"/>
+                                    <ToggleButton x:Name="DirtRoadChip" Style="{StaticResource Chip}" Content="Dirt road" Checked="AssignmentChanged" Unchecked="AssignmentChanged"/>
+                                </WrapPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
 
-                        <TextBlock Style="{StaticResource SectionLabel}" Text="ALERTS &amp; FLAGS"/><TextBlock Foreground="{StaticResource Muted}" Text="Set the default timing used by dashboard flag alerts." Margin="0,0,0,12"/>
-                        <Border Style="{StaticResource CardStyle}"><Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions><StackPanel Margin="0,0,24,0"><TextBlock Style="{StaticResource FieldLabel}" Text="BLINK COUNT"/><TextBox x:Name="BlinkCountBox"/></StackPanel><StackPanel Grid.Column="1" Margin="0,0,24,0"><TextBlock Style="{StaticResource FieldLabel}" Text="BLINK LENGTH (MS)"/><TextBox x:Name="BlinkLengthBox"/></StackPanel><StackPanel Grid.Column="2"><TextBlock Style="{StaticResource FieldLabel}" Text="HOLD AFTER BLINKING (MS)"/><TextBox x:Name="HoldBox"/></StackPanel></Grid></Border>
-                    </StackPanel>
-                </ScrollViewer>
-            </Grid>
+                    <!-- Shift lights -->
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="Shift lights" Style="{StaticResource T.Title}"/>
+                            <TextBlock Text="The eight LEDs above the screen. All eight flash red at iRacing's shift point." Style="{StaticResource T.Caption}" Margin="0,4,0,18"/>
+
+                            <Grid Style="{StaticResource Row}">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                <TextBlock Text="Shows" Style="{StaticResource T.Label}" VerticalAlignment="Center"/>
+                                <ComboBox x:Name="CenterFunction" Grid.Column="1" HorizontalAlignment="Left" Width="240"/>
+                            </Grid>
+                            <Border Style="{StaticResource Divider}"/>
+                            <Grid Style="{StaticResource Row}">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Text="Fill pattern" Style="{StaticResource T.Label}"/>
+                                    <TextBlock Text="How the row lights up as RPM rises." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                </StackPanel>
+                                <ComboBox x:Name="CenterPattern" Grid.Column="1" HorizontalAlignment="Left" Width="240"/>
+                            </Grid>
+                            <Border Style="{StaticResource Divider}"/>
+                            <Grid Style="{StaticResource Row}">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Text="Colors" Style="{StaticResource T.Label}"/>
+                                    <TextBlock Text="Pick a preset or click a swatch to customize." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <ComboBox x:Name="CenterProfile" Width="240" Margin="0,0,16,0"/>
+                                    <Button x:Name="CenterLow" Style="{StaticResource Swatch}" ToolTip="Low RPM"/>
+                                    <Button x:Name="CenterMid" Style="{StaticResource Swatch}" ToolTip="Mid RPM"/>
+                                    <Button x:Name="CenterHigh" Style="{StaticResource Swatch}" ToolTip="High RPM"/>
+                                </StackPanel>
+                            </Grid>
+                            <Border Style="{StaticResource Divider}"/>
+                            <Grid Style="{StaticResource Row}">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <TextBlock Text="Brightness" Style="{StaticResource T.Label}" VerticalAlignment="Center"/>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Slider x:Name="CenterBrightness" Minimum="5" Maximum="100" SmallChange="1" LargeChange="10" IsSnapToTickEnabled="True" TickFrequency="1" Width="380"/>
+                                    <TextBlock x:Name="CenterBrightnessValue" Style="{StaticResource T.Value}" HorizontalAlignment="Left" TextAlignment="Left" Margin="18,0,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Side lights -->
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="Side lights" Style="{StaticResource T.Title}"/>
+                                    <TextBlock Text="The four LEDs down each side of the screen." Style="{StaticResource T.Caption}" Margin="0,4,0,18"/>
+                                </StackPanel>
+                                <CheckBox x:Name="MirrorSides" Grid.Column="1" Style="{StaticResource Switch}" Content="Same on both sides"
+                                          VerticalAlignment="Top" Margin="0,2,0,0" Checked="MirrorSides_Click" Unchecked="MirrorSides_Click"/>
+                            </Grid>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition Width="33"/>
+                                    <ColumnDefinition/>
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="1" Width="1" Background="{StaticResource Brush.Border}" HorizontalAlignment="Center"/>
+                                <StackPanel>
+                                    <TextBlock Text="LEFT SIDE" Style="{StaticResource T.Overline}" Margin="0,0,0,12"/>
+                                    <TextBlock Text="Shows" Style="{StaticResource T.Label}" Margin="0,0,0,8"/>
+                                    <ComboBox x:Name="LeftFunction" MinWidth="0" HorizontalAlignment="Stretch"/>
+                                    <TextBlock x:Name="LeftFunctionHelp" Style="{StaticResource T.Caption}" Margin="0,6,0,0"/>
+                                    <TextBlock Text="Colors" Style="{StaticResource T.Label}" Margin="0,18,0,8"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <ComboBox x:Name="LeftProfile" MinWidth="0" Width="190" Margin="0,0,14,0"/>
+                                        <Button x:Name="LeftLow" Style="{StaticResource Swatch}"/>
+                                        <Button x:Name="LeftMid" Style="{StaticResource Swatch}"/>
+                                        <Button x:Name="LeftHigh" Style="{StaticResource Swatch}"/>
+                                    </StackPanel>
+                                    <Grid Margin="0,18,0,0">
+                                        <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                        <TextBlock Text="Brightness" Style="{StaticResource T.Label}"/>
+                                        <TextBlock x:Name="LeftBrightnessValue" Grid.Column="1" Style="{StaticResource T.Value}"/>
+                                    </Grid>
+                                    <Slider x:Name="LeftBrightness" Minimum="5" Maximum="100" IsSnapToTickEnabled="True" TickFrequency="1" Margin="0,6,0,0"/>
+                                </StackPanel>
+                                <StackPanel x:Name="RightPanel" Grid.Column="2">
+                                    <TextBlock Text="RIGHT SIDE" Style="{StaticResource T.Overline}" Margin="0,0,0,12"/>
+                                    <TextBlock Text="Shows" Style="{StaticResource T.Label}" Margin="0,0,0,8"/>
+                                    <ComboBox x:Name="RightFunction" MinWidth="0" HorizontalAlignment="Stretch"/>
+                                    <TextBlock x:Name="RightFunctionHelp" Style="{StaticResource T.Caption}" Margin="0,6,0,0"/>
+                                    <TextBlock Text="Colors" Style="{StaticResource T.Label}" Margin="0,18,0,8"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <ComboBox x:Name="RightProfile" MinWidth="0" Width="190" Margin="0,0,14,0"/>
+                                        <Button x:Name="RightLow" Style="{StaticResource Swatch}"/>
+                                        <Button x:Name="RightMid" Style="{StaticResource Swatch}"/>
+                                        <Button x:Name="RightHigh" Style="{StaticResource Swatch}"/>
+                                    </StackPanel>
+                                    <Grid Margin="0,18,0,0">
+                                        <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                        <TextBlock Text="Brightness" Style="{StaticResource T.Label}"/>
+                                        <TextBlock x:Name="RightBrightnessValue" Grid.Column="1" Style="{StaticResource T.Value}"/>
+                                    </Grid>
+                                    <Slider x:Name="RightBrightness" Minimum="5" Maximum="100" IsSnapToTickEnabled="True" TickFrequency="1" Margin="0,6,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Flag alerts -->
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="Flag alerts" Style="{StaticResource T.Title}"/>
+                            <TextBlock Text="How green and yellow flags flash across the screen before the dashboard returns." Style="{StaticResource T.Caption}" Margin="0,4,0,18"/>
+
+                            <Grid Style="{StaticResource Row}">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <TextBlock Text="Flashes" Style="{StaticResource T.Label}" VerticalAlignment="Center"/>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Slider x:Name="BlinkCountSlider" Minimum="1" Maximum="20" IsSnapToTickEnabled="True" TickFrequency="1" Width="380"/>
+                                    <TextBlock x:Name="BlinkCountValue" Style="{StaticResource T.Value}" HorizontalAlignment="Left" TextAlignment="Left" Margin="18,0,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                            <Border Style="{StaticResource Divider}"/>
+                            <Grid Style="{StaticResource Row}">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Text="Flash length" Style="{StaticResource T.Label}"/>
+                                    <TextBlock Text="Time each flash stays on." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Slider x:Name="BlinkLengthSlider" Minimum="50" Maximum="1000" IsSnapToTickEnabled="True" TickFrequency="10" Width="380"/>
+                                    <TextBlock x:Name="BlinkLengthValue" Style="{StaticResource T.Value}" HorizontalAlignment="Left" TextAlignment="Left" Margin="18,0,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                            <Border Style="{StaticResource Divider}"/>
+                            <Grid Style="{StaticResource Row}">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Text="Hold afterwards" Style="{StaticResource T.Label}"/>
+                                    <TextBlock Text="Keep the flag on screen after flashing." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Slider x:Name="HoldSlider" Minimum="0" Maximum="10000" IsSnapToTickEnabled="True" TickFrequency="250" Width="380"/>
+                                    <TextBlock x:Name="HoldValue" Style="{StaticResource T.Value}" HorizontalAlignment="Left" TextAlignment="Left" Margin="18,0,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                            <Border Background="{StaticResource Brush.SurfaceRaised}" CornerRadius="8" Padding="12,9" Margin="0,14,0,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Style="{StaticResource T.Icon}" Text="&#xE7C1;" FontSize="12" Foreground="{StaticResource Brush.TextSecondary}" Margin="0,0,10,0"/>
+                                    <TextBlock x:Name="AlertSummary" Style="{StaticResource T.Caption}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Manage -->
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="Manage" Style="{StaticResource T.Title}"/>
+                            <TextBlock x:Name="ManageHelp" Style="{StaticResource T.Caption}" Margin="0,4,0,18"/>
+                            <StackPanel Orientation="Horizontal">
+                                <Button x:Name="DuplicateButton" Margin="0,0,8,0" Click="Duplicate_Click">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource T.Icon}" Text="&#xE8C8;" FontSize="12" Margin="0,0,8,0"/>
+                                        <TextBlock Text="Duplicate" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button x:Name="ResetButton" Margin="0,0,8,0" Click="Reset_Click">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource T.Icon}" Text="&#xE777;" FontSize="12" Margin="0,0,8,0"/>
+                                        <TextBlock x:Name="ResetLabel" Text="Reset to defaults" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button x:Name="DeleteButton" Style="{StaticResource Btn.Danger}" Click="Delete_Click">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource T.Icon}" Text="&#xE74D;" FontSize="12" Margin="0,0,8,0"/>
+                                        <TextBlock x:Name="DeleteLabel" Text="Delete dashboard" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- ============ Device & app page ============ -->
+            <ScrollViewer x:Name="SettingsPage" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                <StackPanel Margin="32,28,32,32" MaxWidth="1040">
+                    <TextBlock Text="Device &amp; app" Style="{StaticResource T.PageTitle}"/>
+                    <TextBlock Style="{StaticResource T.Secondary}" Margin="0,6,0,24"
+                               Text="Hardware connection, units and how DV5 Direct runs. These apply to every dashboard."/>
+
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="Hardware" Style="{StaticResource T.Title}"/>
+                            <TextBlock Text="SimHub must be closed while the dashboard runs; both need exclusive access to the DV-5." Style="{StaticResource T.Caption}" Margin="0,4,0,18"/>
+                            <Grid Style="{StaticResource Row}">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Text="LED controller port" Style="{StaticResource T.Label}"/>
+                                    <TextBlock Text="The DV-5's USB serial port." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal">
+                                        <ComboBox x:Name="PortCombo" Width="160" SelectionChanged="PortCombo_SelectionChanged" MinWidth="0"/>
+                                        <Button Style="{StaticResource Btn.Icon}" Content="&#xE72C;" ToolTip="Rescan ports" Margin="6,0,0,0" Click="RefreshPorts_Click"/>
+                                        <Button x:Name="TestLedsButton" Margin="10,0,0,0" Click="TestLeds_Click">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Style="{StaticResource T.Icon}" Text="&#xE82F;" FontSize="12" Margin="0,0,8,0"/>
+                                                <TextBlock Text="Test lights" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                    <TextBlock x:Name="LedTestStatus" Style="{StaticResource T.Caption}" Margin="0,8,0,0" Visibility="Collapsed"/>
+                                </StackPanel>
+                            </Grid>
+                            <Border Style="{StaticResource Divider}"/>
+                            <Grid Style="{StaticResource Row}">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Text="Screen brightness" Style="{StaticResource T.Label}"/>
+                                    <TextBlock Text="Backlight level of the DV-5 display." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Slider x:Name="ScreenBrightness" Minimum="10" Maximum="100" IsSnapToTickEnabled="True" TickFrequency="5" Width="380"/>
+                                    <TextBlock x:Name="ScreenBrightnessValue" Style="{StaticResource T.Value}" HorizontalAlignment="Left" TextAlignment="Left" Margin="18,0,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="Units" Style="{StaticResource T.Title}"/>
+                            <TextBlock Text="Used by every dashboard." Style="{StaticResource T.Caption}" Margin="0,4,0,18"/>
+                            <Grid Style="{StaticResource Row}">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                <TextBlock Text="Speed" Style="{StaticResource T.Label}" VerticalAlignment="Center"/>
+                                <Border Grid.Column="1" Style="{StaticResource Segmented}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton x:Name="SpeedMph" Style="{StaticResource Segment}" GroupName="Speed" Content="MPH" Checked="Units_Changed"/>
+                                        <RadioButton x:Name="SpeedKph" Style="{StaticResource Segment}" GroupName="Speed" Content="km/h" Checked="Units_Changed"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                            <Border Style="{StaticResource Divider}"/>
+                            <Grid Style="{StaticResource Row}">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                <TextBlock Text="Fuel" Style="{StaticResource T.Label}" VerticalAlignment="Center"/>
+                                <Border Grid.Column="1" Style="{StaticResource Segmented}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton x:Name="FuelLiters" Style="{StaticResource Segment}" GroupName="Fuel" Content="Liters" Checked="Units_Changed"/>
+                                        <RadioButton x:Name="FuelGallons" Style="{StaticResource Segment}" GroupName="Fuel" Content="Gallons" Checked="Units_Changed"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="Behavior" Style="{StaticResource T.Title}"/>
+                            <TextBlock Text="How and when the dashboard runs." Style="{StaticResource T.Caption}" Margin="0,4,0,18"/>
+                            <Grid Style="{StaticResource Row}">
+                                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Text="Switch dashboards by track type" Style="{StaticResource T.Label}"/>
+                                    <TextBlock Text="Use each dashboard's track-type assignments. When off, the default dashboard is always shown." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                </StackPanel>
+                                <CheckBox x:Name="AutoSwitchToggle" Grid.Column="1" Style="{StaticResource Switch}" VerticalAlignment="Center" Checked="AutoSwitch_Click" Unchecked="AutoSwitch_Click"/>
+                            </Grid>
+                            <Border Style="{StaticResource Divider}"/>
+                            <Grid Style="{StaticResource Row}">
+                                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Text="Start with Windows" Style="{StaticResource T.Label}"/>
+                                    <TextBlock Text="Run the dashboard quietly in the background when you sign in." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                </StackPanel>
+                                <CheckBox x:Name="StartupToggle" Grid.Column="1" Style="{StaticResource Switch}" VerticalAlignment="Center" Checked="Startup_Click" Unchecked="Startup_Click"/>
+                            </Grid>
+                            <Border Style="{StaticResource Divider}"/>
+                            <Grid Style="{StaticResource Row}">
+                                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Text="Radar diagnostics" Style="{StaticResource T.Label}"/>
+                                    <TextBlock Text="Keep small CSV logs of blind-spot decisions. No names or account details are recorded." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                </StackPanel>
+                                <Button Grid.Column="1" Style="{StaticResource Btn.Ghost}" Content="Open logs" Margin="0,0,12,0" VerticalAlignment="Center" Click="OpenLogs_Click"/>
+                                <CheckBox x:Name="DiagnosticsToggle" Grid.Column="2" Style="{StaticResource Switch}" VerticalAlignment="Center" Checked="Diagnostics_Click" Unchecked="Diagnostics_Click"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="About" Style="{StaticResource T.Title}"/>
+                            <Grid Style="{StaticResource Row}" Margin="0,14,0,0">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <TextBlock Text="Settings file" Style="{StaticResource T.Label}" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="SettingsPathText" Grid.Column="1" FontFamily="{StaticResource Font.Mono}" FontSize="12"
+                                           Foreground="{StaticResource Brush.TextSecondary}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                <Button Grid.Column="2" Content="Show in folder" Margin="12,0,0,0" Click="OpenSettingsFolder_Click"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
         </Grid>
     </Grid>
 </Window>

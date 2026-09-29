@@ -34,8 +34,8 @@ namespace DV5Direct
         private readonly Font _summaryLabelFont = FontOf(15, FontStyle.Bold);
         private readonly Font _summaryValueFont = FontOf(27, FontStyle.Bold);
         private readonly Font _summarySideFont = FontOf(42, FontStyle.Bold);
-        private readonly Font _flagFont = FontOf(68, FontStyle.Bold);
-        private readonly Font _flagSmallFont = FontOf(34, FontStyle.Bold);
+        private readonly UnitSystem _units;
+        private readonly FlagPainter _flags;
         private readonly StringFormat _center = new StringFormat
         {
             Alignment = StringAlignment.Center,
@@ -44,10 +44,12 @@ namespace DV5Direct
             Trimming = StringTrimming.EllipsisCharacter
         };
 
-        public GearSpeedRenderer(int width, int height, DashboardSettings settings)
+        public GearSpeedRenderer(int width, int height, DashboardSettings settings, UnitSystem units)
         {
             _width = width;
             _height = height;
+            _units = units ?? UnitSystem.Default;
+            _flags = new FlagPainter(width, height);
             Cyan = settings?.Accent ?? Color.FromArgb(0, 155, 210);
             CyanDim = Color.FromArgb(Cyan.R * 2 / 5, Cyan.G * 2 / 5, Cyan.B * 2 / 5);
         }
@@ -63,7 +65,7 @@ namespace DV5Direct
             {
                 g.SmoothingMode = SmoothingMode.AntiAlias;
                 g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
-                if (telemetry.Flag != RacingFlag.None) { DrawFlag(g, telemetry); return bitmap; }
+                if (telemetry.Flag != RacingFlag.None) { _flags.Draw(g, telemetry); return bitmap; }
                 DrawBackground(g);
                 DrawSessionHeader(g, telemetry);
                 DrawRelativePanel(g, new RectangleF(5, 48, 285, 158), "BEHIND", telemetry.DriverBehind, telemetry.RelativeBehindSeconds, false);
@@ -133,8 +135,8 @@ namespace DV5Direct
             DrawAngularPanel(g, new RectangleF(564, 211, 285, 130), 14);
             using (var divider = new Pen(CyanDim, 2)) g.DrawLine(divider, 716, 232, 716, 321);
             DrawMetric(g, "INCIDENTS", t.IncidentPoints.ToString(), new RectangleF(572, 223, 136, 104));
-            using (var muted = new SolidBrush(Muted)) DrawText(g, "FUEL", _labelFont, muted, new RectangleF(722, 230, 119, 24));
-            DrawText(g, t.FuelLiters.ToString("0.0") + " L", _fuelFont, Brushes.White, new RectangleF(722, 258, 119, 56));
+            using (var muted = new SolidBrush(Muted)) DrawText(g, _units.Gallons ? "FUEL (GAL)" : "FUEL", _labelFont, muted, new RectangleF(722, 230, 119, 24));
+            DrawText(g, _units.FormatFuel(t.FuelLiters, !_units.Gallons), _fuelFont, Brushes.White, new RectangleF(722, 258, 119, 56));
         }
 
         private void DrawCenter(
@@ -163,8 +165,8 @@ namespace DV5Direct
                 DrawGearTransition(g, previousGear, t.Gear, transitionProgress, shiftFlashOn);
             }
             using (var line = new Pen(CyanDim, 2)) g.DrawLine(line, 350, 241, 504, 241);
-            DrawText(g, t.Connected ? t.SpeedMph.ToString("0") : "---", _speedFont, primary, new RectangleF(300, 242, 254, 68));
-            using (var muted = new SolidBrush(Muted)) DrawText(g, "MPH", _unitFont, muted, new RectangleF(300, 307, 254, 28));
+            DrawText(g, _units.FormatSpeed(t), _speedFont, primary, new RectangleF(300, 242, 254, 68));
+            using (var muted = new SolidBrush(Muted)) DrawText(g, _units.SpeedLabel, _unitFont, muted, new RectangleF(300, 307, 254, 28));
         }
 
         private void DrawGearTransition(
@@ -334,38 +336,10 @@ namespace DV5Direct
         private static Font FontOf(float pixels,FontStyle style)=>new Font("Segoe UI",pixels,style,GraphicsUnit.Pixel);
         private void DrawText(Graphics g,string text,Font font,Brush brush,RectangleF b)=>g.DrawString(text??"---",font,brush,b,_center);
 
-        private void DrawFlag(Graphics g,TelemetrySnapshot telemetry)
-        {
-            RacingFlag flag = telemetry.Flag;
-            switch(flag)
-            {
-                case RacingFlag.Green: DrawSolidFlag(g,Color.FromArgb(30,205,70),Brushes.Black,"GREEN"); break;
-                case RacingFlag.White: DrawSolidFlag(g,Color.White,Brushes.Black,"WHITE"); break;
-                case RacingFlag.Yellow: DrawSolidFlag(g,Color.FromArgb(255,220,0),Brushes.Black,"YELLOW"); break;
-                case RacingFlag.Red: DrawSolidFlag(g,Color.FromArgb(225,20,35),Brushes.White,"RED"); break;
-                case RacingFlag.Black: g.Clear(Color.Black); using(var pen=new Pen(Color.White,8)) g.DrawRectangle(pen,18,18,_width-36,_height-36); DrawText(g,"BLACK",_flagFont,Brushes.White,new RectangleF(0,0,_width,_height)); break;
-                case RacingFlag.Meatball: g.Clear(Color.Black); using(var orange=new SolidBrush(Color.FromArgb(245,95,30))) g.FillEllipse(orange,(_width-245)/2,65,245,245); DrawText(g,"MEATBALL",_flagSmallFont,Brushes.White,new RectangleF(0,340,_width,80)); break;
-                case RacingFlag.BlueYellowStripe: g.Clear(Color.FromArgb(35,115,210)); using(var stripe=new Pen(Color.FromArgb(255,220,0),90)) g.DrawLine(stripe,-40,_height+40,_width+40,-40); DrawFlagBackdrop(g,"BLUE"); break;
-                case RacingFlag.SafetyCar: DrawSolidFlag(g,Color.White,Brushes.Black,"SC"); break;
-                case RacingFlag.Surface: for(int x=0;x<_width;x+=95) using(var brush=new SolidBrush((x/95)%2==0?Color.FromArgb(255,220,0):Color.FromArgb(220,25,35))) g.FillRectangle(brush,x,0,95,_height); DrawFlagBackdrop(g,"SURFACE"); break;
-                case RacingFlag.Checkered:
-                    float cw=_width/10f,ch=_height/6f;
-                    for(int r=0;r<6;r++) for(int c=0;c<10;c++)
-                        g.FillRectangle(((r+c)&1)==0?Brushes.White:Brushes.Black,c*cw,r*ch,cw+1,ch+1);
-                    using(var backdrop=new SolidBrush(Color.FromArgb(225,0,0,0)))
-                        g.FillRectangle(backdrop,235,125,384,230);
-                    DrawText(g,"FINISH",_flagSmallFont,Brushes.White,new RectangleF(235,145,384,70));
-                    DrawText(g,telemetry.Position>0?"P"+telemetry.Position:"P--",_flagFont,Brushes.White,new RectangleF(235,210,384,120));
-                    break;
-            }
-        }
-
-        private void DrawSolidFlag(Graphics g,Color background,Brush foreground,string label) { g.Clear(background); DrawText(g,label,label=="SC"?_gearFont:_flagFont,foreground,new RectangleF(0,0,_width,_height)); }
-        private void DrawFlagBackdrop(Graphics g,string label) { using(var backdrop=new SolidBrush(Color.FromArgb(205,0,0,0))) g.FillRectangle(backdrop,205,182,_width-410,116); DrawText(g,label,_flagSmallFont,Brushes.White,new RectangleF(205,182,_width-410,116)); }
-
         public void Dispose()
         {
-            foreach(Font font in new[]{_topFont,_labelFont,_nameFont,_relativeFont,_gearFont,_adjacentGearFont,_speedFont,_unitFont,_metricFont,_metricCompactFont,_fuelFont,_lapTimeFont,_scaleFont,_deltaFont,_summaryLabelFont,_summaryValueFont,_summarySideFont,_flagFont,_flagSmallFont}) font.Dispose();
+            foreach(Font font in new[]{_topFont,_labelFont,_nameFont,_relativeFont,_gearFont,_adjacentGearFont,_speedFont,_unitFont,_metricFont,_metricCompactFont,_fuelFont,_lapTimeFont,_scaleFont,_deltaFont,_summaryLabelFont,_summaryValueFont,_summarySideFont}) font.Dispose();
+            _flags.Dispose();
             _center.Dispose();
         }
     }

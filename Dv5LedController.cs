@@ -39,7 +39,7 @@ namespace DV5Direct
             string text = ExtractProtocolText(response);
             if (!text.Contains("SSG DV 5"))
             {
-                throw new InvalidOperationException("COM7 did not identify itself as SSG DV 5. Response: " + text);
+                throw new InvalidOperationException(_port.PortName + " did not identify itself as SSG DV 5. Response: " + text);
             }
 
             return text.Trim();
@@ -65,111 +65,23 @@ namespace DV5Direct
 
         public void Clear() => SetAll(0, 0, 0);
 
-        public void SetIndicators(
-            BlindSpotZone left,
-            BlindSpotZone right,
-            int rpmPairs,
-            bool shiftFlashOn,
-            DashboardSettings settings)
+        /// <summary>
+        /// Sends a composed 16-LED frame, grouping neighbouring LEDs that share a
+        /// color into one packet to keep serial traffic low.
+        /// </summary>
+        public void SetFrame(Color[] frame)
         {
-            Clear();
-            settings = settings ?? DashboardSettings.CreateDefault();
-            SetSide(left, true, rpmPairs, settings.LeftLeds);
-            SetSide(right, false, rpmPairs, settings.RightLeds);
-            SetRpm(rpmPairs, shiftFlashOn, settings.CenterLeds);
-        }
-
-        private void SetRpm(int pairs, bool shiftFlashOn, LedBankSettings settings)
-        {
-            int brightness = Clamp(settings.Brightness, 0, 100);
-            if (shiftFlashOn)
+            int index = 0;
+            while (index < _ledCount)
             {
-                SetRange(4, 8, Scale(255, brightness), 0, 0);
-                return;
-            }
-
-            int count = Math.Max(0, Math.Min(4, pairs));
-            Color[] colors = GetProfile(settings);
-            for (int pair = 0; pair < count; pair++)
-            {
-                Color color = colors[Math.Min(2, pair * 3 / 4)];
-                byte red = Scale(color.R, brightness), green = Scale(color.G, brightness), blue = Scale(color.B, brightness);
-                switch (settings.Pattern)
-                {
-                    case "Left to right": SetRange(4 + pair * 2, Math.Min(2, 8 - pair * 2), red, green, blue); break;
-                    case "Right to left": SetRange(10 - pair * 2, 2, red, green, blue); break;
-                    case "Center outward":
-                        SetRange(7 - pair, 1, red, green, blue);
-                        SetRange(8 + pair, 1, red, green, blue);
-                        break;
-                    default:
-                        SetRange(4 + pair, 1, red, green, blue);
-                        SetRange(11 - pair, 1, red, green, blue);
-                        break;
-                }
+                Color color = index < frame.Length ? frame[index] : Color.Black;
+                int run = 1;
+                while (index + run < _ledCount && index + run < frame.Length &&
+                       frame[index + run].ToArgb() == color.ToArgb()) run++;
+                SetRange(index, run, color.R, color.G, color.B);
+                index += run;
             }
         }
-
-        private void SetSide(BlindSpotZone zone, bool left, int rpmPairs, SideLedSettings settings)
-        {
-            // Confirmed physical chain: indices 0-3 run up the left side,
-            // 4-11 span the upper shift-light row, and 12-15 run down the
-            // right side.
-            int top = left ? 3 : 12;
-            int upperMiddle = left ? 2 : 13;
-            int lowerMiddle = left ? 1 : 14;
-            int bottom = left ? 0 : 15;
-            if (settings == null || settings.Function == "Disabled") return;
-            Color color = GetProfile(settings)[2];
-            int brightness = Clamp(settings.Brightness, 0, 100);
-            byte red = Scale(color.R, brightness), green = Scale(color.G, brightness), blue = Scale(color.B, brightness);
-
-            if (settings.Function == "RPM")
-            {
-                int count = Math.Max(0, Math.Min(4, rpmPairs));
-                if (count > 0) SetRange(left ? 4 - count : 12, count, red, green, blue);
-                return;
-            }
-            if (settings.Function != "Blind spot") return;
-
-            switch (zone)
-            {
-                case BlindSpotZone.Front:
-                    SetRange(top, 1, red, green, blue);
-                    break;
-                case BlindSpotZone.Beside:
-                    SetRange(Math.Min(upperMiddle, lowerMiddle), 2, red, green, blue);
-                    break;
-                case BlindSpotZone.Rear:
-                    SetRange(Math.Min(lowerMiddle, bottom), 2, red, green, blue);
-                    break;
-            }
-        }
-
-        private static Color[] GetProfile(LedBankSettings settings)
-        {
-            switch (settings.ColorProfile)
-            {
-                case "Blue / Purple / Red":
-                    return new[] { Color.DeepSkyBlue, Color.MediumPurple, Color.Red };
-                case "Single color":
-                case "Red":
-                    Color single = SettingsStore.ParseColor(settings.HighColor, Color.Red);
-                    return new[] { single, single, single };
-                default:
-                    return new[]
-                    {
-                        SettingsStore.ParseColor(settings.LowColor, Color.LimeGreen),
-                        SettingsStore.ParseColor(settings.MidColor, Color.Gold),
-                        SettingsStore.ParseColor(settings.HighColor, Color.Red)
-                    };
-            }
-        }
-
-        private static byte Scale(int channel, int brightness) =>
-            (byte)Math.Max(0, Math.Min(255, channel * brightness / 100));
-
-        private static int Clamp(int value, int min, int max) => Math.Max(min, Math.Min(max, value));
 
         private void SetAll(byte red, byte green, byte blue) =>
             SetRange(0, _ledCount, red, green, blue);

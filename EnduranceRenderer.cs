@@ -5,21 +5,47 @@ using System.Drawing.Text;
 
 namespace DV5Direct
 {
+    /// <summary>
+    /// Strategy dashboard for long races: live fuel use, laps of fuel, fuel to the
+    /// finish, stint length and recent lap consistency around the core driving data.
+    /// </summary>
     internal sealed class EnduranceRenderer : IDashboardRenderer
     {
+        private static readonly Color Background = Color.FromArgb(4, 9, 14);
+        private static readonly Color PanelFill = Color.FromArgb(235, 11, 19, 27);
+        private static readonly Color PanelBorder = Color.FromArgb(38, 57, 72);
+        private static readonly Color Muted = Color.FromArgb(150, 172, 190);
+        private static readonly Color Track = Color.FromArgb(24, 37, 48);
+        private static readonly Color Good = Color.FromArgb(40, 225, 120);
+        private static readonly Color Caution = Color.FromArgb(255, 196, 45);
+        private static readonly Color Critical = Color.FromArgb(240, 55, 70);
+
+        private const float Margin = 8, Gap = 8;
         private readonly int _width, _height;
         private readonly Color _accent;
-        private readonly Font _label = FontOf(14, FontStyle.Bold);
-        private readonly Font _value = FontOf(35, FontStyle.Bold);
-        private readonly Font _gear = FontOf(58, FontStyle.Bold);
-        private readonly Font _small = FontOf(19, FontStyle.Bold);
-        private readonly Font _unit = FontOf(12, FontStyle.Bold);
-        private readonly StringFormat _center = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
-
-        public EnduranceRenderer(int width, int height, DashboardSettings settings)
+        private readonly UnitSystem _units;
+        private readonly FlagPainter _flags;
+        private readonly Font _label = Fmt.FontOf(14, FontStyle.Bold);
+        private readonly Font _caption = Fmt.FontOf(13, FontStyle.Bold);
+        private readonly Font _value = Fmt.FontOf(34, FontStyle.Bold);
+        private readonly Font _strategy = Fmt.FontOf(40, FontStyle.Bold);
+        private readonly Font _big = Fmt.FontOf(46, FontStyle.Bold);
+        private readonly Font _gear = Fmt.FontOf(62, FontStyle.Bold);
+        private readonly StringFormat _center = new StringFormat
         {
-            _width = width; _height = height;
+            Alignment = StringAlignment.Center,
+            LineAlignment = StringAlignment.Center,
+            FormatFlags = StringFormatFlags.NoWrap,
+            Trimming = StringTrimming.EllipsisCharacter
+        };
+
+        public EnduranceRenderer(int width, int height, DashboardSettings settings, UnitSystem units)
+        {
+            _width = width;
+            _height = height;
             _accent = settings?.Accent ?? Color.FromArgb(39, 199, 217);
+            _units = units ?? UnitSystem.Default;
+            _flags = new FlagPainter(width, height);
         }
 
         public Bitmap Render(TelemetrySnapshot t, bool shiftFlashOn, int previousGear, float gearTransitionProgress)
@@ -29,81 +55,188 @@ namespace DV5Direct
             {
                 g.SmoothingMode = SmoothingMode.AntiAlias;
                 g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
-                g.Clear(Color.FromArgb(4, 9, 14));
-                using (var stripe = new Pen(Color.FromArgb(10, _accent), 1))
-                    for (int x = -480; x < _width; x += 26) g.DrawLine(stripe, x, _height, x + 480, 0);
+                if (t.Flag != RacingFlag.None) { _flags.Draw(g, t); return bitmap; }
 
-                float gap = 9, margin = 9;
-                float tileW = (_width - margin * 2 - gap * 5) / 6f;
-                string lap = t.TotalLaps > 0 ? Math.Max(1, t.LapsCompleted + 1) + "/" + t.TotalLaps : Math.Max(1, t.LapsCompleted + 1).ToString();
-                DrawMetric(g, Box(margin + (tileW + gap) * 0, 8, tileW, 102), "LAP", lap, _accent);
-                DrawMetric(g, Box(margin + (tileW + gap) * 1, 8, tileW, 102), "RPM", t.Connected ? Math.Round(t.EngineRpm).ToString("0") : "---", Color.FromArgb(45, 220, 115));
-                DrawMetric(g, Box(margin + (tileW + gap) * 2, 8, tileW, 102), "GEAR", FormatGear(t.Gear), Color.FromArgb(240, 70, 115), true);
-                DrawMetric(g, Box(margin + (tileW + gap) * 3, 8, tileW, 102), "SPEED", t.Connected ? t.SpeedMph.ToString("0") : "---", Color.FromArgb(210, 225, 60), false, "MPH");
-                DrawMetric(g, Box(margin + (tileW + gap) * 4, 8, tileW, 102), "BRAKE BIAS", "--.-", Color.FromArgb(145, 105, 235));
-                DrawMetric(g, Box(margin + (tileW + gap) * 5, 8, tileW, 102), "POSITION", t.Position > 0 ? "P" + t.Position : "P--", Color.FromArgb(45, 155, 230));
+                g.Clear(Background);
+                using (var stripe = new Pen(Color.FromArgb(9, _accent), 1))
+                    for (int x = -_height; x < _width; x += 26) g.DrawLine(stripe, x, _height, x + _height, 0);
 
-                float strategyY = 120, strategyH = 165;
-                float strategyW = (_width - margin * 2 - gap * 4) / 5f;
-                DrawStrategy(g, Box(margin + (strategyW + gap) * 0, strategyY, strategyW, strategyH), "FUEL\nLAST LAP", "--.- L", "LAST");
-                DrawStrategy(g, Box(margin + (strategyW + gap) * 1, strategyY, strategyW, strategyH), "FUEL\nAVERAGE", "--.- L", "AVG");
-                DrawStrategy(g, Box(margin + (strategyW + gap) * 2, strategyY, strategyW, strategyH), "LAP\nPREDICTION", t.CurrentLapSeconds > 0 ? FormatTime(t.CurrentLapSeconds + t.LapDeltaSeconds) : "--:--.---", "PACE");
-                DrawStrategy(g, Box(margin + (strategyW + gap) * 3, strategyY, strategyW, strategyH), "ESTIMATED\nREFUEL", "--.- L", "FUEL");
-                DrawStrategy(g, Box(margin + (strategyW + gap) * 4, strategyY, strategyW, strategyH), "TOTAL RACE\nPREDICTION", "--.- L", "RACE");
-
-                RectangleF lower = Box(margin, 295, _width - margin * 2, 176);
-                DrawPanel(g, lower, 16);
-                float col = lower.Width / 3f;
-                using (var divider = new Pen(Color.FromArgb(45, 70, 88), 2))
-                { g.DrawLine(divider, lower.X + col, lower.Y + 18, lower.X + col, lower.Bottom - 18); g.DrawLine(divider, lower.X + col * 2, lower.Y + 18, lower.X + col * 2, lower.Bottom - 18); }
-                DrawLabel(g, "FUEL REMAINING", new RectangleF(lower.X, lower.Y + 14, col, 25));
-                DrawText(g, t.FuelLiters.ToString("0.0") + " L", _value, Brushes.White, new RectangleF(lower.X, lower.Y + 39, col, 62));
-                DrawFuelBar(g, new RectangleF(lower.X + 24, lower.Y + 119, col - 48, 18), t.FuelLiters);
-                DrawLabel(g, "AVERAGE CONSUMPTION", new RectangleF(lower.X + col, lower.Y + 14, col, 25));
-                DrawText(g, "--.- L / LAP", _small, Brushes.White, new RectangleF(lower.X + col, lower.Y + 47, col, 38));
-                DrawLabel(g, "LAST 5 LAPS", new RectangleF(lower.X + col, lower.Y + 93, col, 24));
-                using (var dot = new SolidBrush(_accent)) for (int i = 0; i < 5; i++) g.FillEllipse(dot, lower.X + col + col/2 - 34 + i*17, lower.Y + 130, 8, 8);
-                DrawLabel(g, "CURRENT STINT LAPS", new RectangleF(lower.X + col * 2, lower.Y + 14, col, 25));
-                DrawText(g, Math.Max(0, t.LapsCompleted).ToString(), _value, Brushes.White, new RectangleF(lower.X + col * 2, lower.Y + 42, col, 60));
-                using (var badge = new SolidBrush(_accent)) g.FillRoundedRectangle(badge, new RectangleF(lower.X + col*2 + col/2 - 44, lower.Y + 119, 88, 28), 7);
-                DrawText(g, "STINT", _unit, Brushes.Black, new RectangleF(lower.X + col*2 + col/2 - 44, lower.Y + 119, 88, 28));
+                DrawTopRow(g, t, shiftFlashOn);
+                DrawShiftBar(g, t, shiftFlashOn);
+                DrawStrategyRow(g, t);
+                DrawFuelPanel(g, t, new RectangleF(Margin, 272, 282, 200));
+                DrawLapPanel(g, t, new RectangleF(Margin + 282 + Gap, 272, 340, 200));
+                DrawStintPanel(g, t, new RectangleF(Margin + 282 + Gap + 340 + Gap, 272, _width - Margin * 2 - 282 - 340 - Gap * 2, 200));
             }
             return bitmap;
         }
 
-        private void DrawMetric(Graphics g, RectangleF b, string label, string value, Color underline, bool large = false, string unit = null)
+        private void DrawTopRow(Graphics g, TelemetrySnapshot t, bool shiftFlashOn)
         {
-            DrawPanel(g, b, 12); DrawLabel(g, label, new RectangleF(b.X, b.Y + 7, b.Width, 22));
-            DrawText(g, value, large ? _gear : _value, Brushes.White, new RectangleF(b.X, b.Y + 28, b.Width, 57));
-            if (unit != null) DrawText(g, unit, _unit, Brushes.White, new RectangleF(b.Right - 43, b.Y + 61, 39, 20));
-            using (var pen = new Pen(underline, 3)) g.DrawLine(pen, b.X + 14, b.Bottom - 11, b.Right - 14, b.Bottom - 11);
+            float w = (_width - Margin * 2 - Gap * 5) / 6f;
+            string[] labels = { "LAP", "POSITION", "GEAR", _units.SpeedLabel, "BRAKE BIAS", "INCIDENTS" };
+            string[] values =
+            {
+                Fmt.Lap(t),
+                t.Position > 0 ? "P" + t.Position : "P--",
+                t.Connected ? Fmt.Gear(t.Gear) : "–",
+                _units.FormatSpeed(t),
+                t.BrakeBias > 0 ? t.BrakeBias.ToString("0.0") : "--.-",
+                t.IncidentPoints + "x"
+            };
+            for (int i = 0; i < 6; i++)
+            {
+                var box = new RectangleF(Margin + (w + Gap) * i, 8, w, 92);
+                bool gear = i == 2;
+                DrawPanel(g, box, 12, gear ? (shiftFlashOn ? Critical : _accent) : PanelBorder);
+                Label(g, labels[i], new RectangleF(box.X, box.Y + 6, box.Width, 22));
+                using (var brush = new SolidBrush(gear && shiftFlashOn ? Critical : Color.White))
+                    Text(g, values[i], gear ? _gear : _value, brush, new RectangleF(box.X, box.Y + 26, box.Width, box.Height - 30));
+            }
         }
 
-        private void DrawStrategy(Graphics g, RectangleF b, string label, string value, string marker)
+        private void DrawShiftBar(Graphics g, TelemetrySnapshot t, bool shiftFlashOn)
         {
-            DrawPanel(g, b, 12); DrawText(g, label, _label, Brushes.White, new RectangleF(b.X + 4, b.Y + 10, b.Width - 8, 46));
-            using (var accent = new SolidBrush(_accent)) DrawText(g, marker, _small, accent, new RectangleF(b.X, b.Y + 62, b.Width, 40));
-            DrawText(g, value, _small, Brushes.White, new RectangleF(b.X, b.Y + 104, b.Width, 36));
-            using (var pen = new Pen(Color.FromArgb(255, 190, 55), 3)) g.DrawLine(pen, b.X + 15, b.Bottom - 12, b.Right - 15, b.Bottom - 12);
+            const int segments = 24;
+            float x = Margin, total = _width - Margin * 2, gap = 3;
+            float w = (total - gap * (segments - 1)) / segments;
+            int active = (int)Math.Ceiling(t.ShiftIndicatorPct * segments);
+            for (int i = 0; i < segments; i++)
+            {
+                Color color = shiftFlashOn ? Critical : i < segments * 0.6 ? _accent : i < segments * 0.85 ? Caution : Critical;
+                using (var brush = new SolidBrush(i < active ? color : Track))
+                    g.FillRectangle(brush, x + i * (w + gap), 108, w, 9);
+            }
         }
 
-        private void DrawPanel(Graphics g, RectangleF b, float radius)
+        private void DrawStrategyRow(Graphics g, TelemetrySnapshot t)
         {
-            using (GraphicsPath p = Rounded(b, radius)) using (var fill = new SolidBrush(Color.FromArgb(225, 12, 20, 28))) using (var border = new Pen(Color.FromArgb(42, 62, 78), 2)) { g.FillPath(fill, p); g.DrawPath(border, p); }
-        }
-        private void DrawFuelBar(Graphics g, RectangleF b, double fuel) { using (var track = new SolidBrush(Color.FromArgb(25, 37, 48))) g.FillRectangle(track, b); float pct=(float)Math.Max(0,Math.Min(1,fuel/100.0)); using(var fill=new SolidBrush(_accent))g.FillRectangle(fill,b.X,b.Y,b.Width*pct,b.Height); }
-        private void DrawLabel(Graphics g,string text,RectangleF b){using(var brush=new SolidBrush(Color.FromArgb(165,190,210)))DrawText(g,text,_label,brush,b);}
-        private void DrawText(Graphics g,string text,Font font,Brush brush,RectangleF b)=>g.DrawString(text??"--",font,brush,b,_center);
-        private static RectangleF Box(float x,float y,float w,float h)=>new RectangleF(x,y,w,h);
-        private static string FormatGear(int gear)=>gear<0?"R":gear==0?"N":gear.ToString();
-        private static string FormatTime(double s){if(s<=0)return"--:--.---";TimeSpan t=TimeSpan.FromSeconds(s);return((int)t.TotalMinutes).ToString("0")+t.ToString(@"\:ss\.fff");}
-        private static Font FontOf(float px,FontStyle style)=>new Font("Segoe UI",px,style,GraphicsUnit.Pixel);
-        private static GraphicsPath Rounded(RectangleF b,float r){var p=new GraphicsPath();float d=r*2;p.AddArc(b.X,b.Y,d,d,180,90);p.AddArc(b.Right-d,b.Y,d,d,270,90);p.AddArc(b.Right-d,b.Bottom-d,d,d,0,90);p.AddArc(b.X,b.Bottom-d,d,d,90,90);p.CloseFigure();return p;}
-        public void Dispose(){_label.Dispose();_value.Dispose();_gear.Dispose();_small.Dispose();_unit.Dispose();_center.Dispose();}
-    }
+            float w = (_width - Margin * 2 - Gap * 3) / 4f, y = 126, h = 138;
+            double lapsRemaining = t.LapsRemaining;
+            double fuelLaps = t.FuelLapsLeft;
+            double toFinish = t.FuelToFinish;
 
-    internal static class GraphicsExtensions
-    {
-        public static void FillRoundedRectangle(this Graphics g, Brush brush, RectangleF rectangle, float radius) { using (GraphicsPath path = new GraphicsPath()) { float d=radius*2; path.AddArc(rectangle.X,rectangle.Y,d,d,180,90);path.AddArc(rectangle.Right-d,rectangle.Y,d,d,270,90);path.AddArc(rectangle.Right-d,rectangle.Bottom-d,d,d,0,90);path.AddArc(rectangle.X,rectangle.Bottom-d,d,d,90,90);path.CloseFigure();g.FillPath(brush,path); } }
+            string perLapCaption = t.FuelLastLap >= 0 ? "LAST " + _units.FormatFuel(t.FuelLastLap, true, true) : "NEEDS A CLEAN LAP";
+            Strategy(g, Slot(0), "FUEL PER LAP", _units.FormatFuel(t.FuelPerLapAverage, false, true), perLapCaption, _accent);
+
+            Color fuelLapsColor = fuelLaps < 0 ? _accent : fuelLaps < 2 ? Critical : fuelLaps < 5 ? Caution : Good;
+            Strategy(g, Slot(1), "LAPS OF FUEL", fuelLaps < 0 ? "--.-" : fuelLaps.ToString("0.0"),
+                fuelLaps >= 0 && fuelLaps < 2 ? "BOX SOON" : "AT AVERAGE USE", fuelLapsColor);
+
+            string togoCaption = t.ProgressMode == SessionProgressMode.TimedRace
+                ? Fmt.Remaining(t.SessionSecondsRemaining) + " LEFT"
+                : t.TotalLaps > 0 ? "OF " + t.TotalLaps : "OPEN SESSION";
+            string togo = lapsRemaining < 0 ? "--" : (t.ProgressMode == SessionProgressMode.TimedRace ? "~" : "") + lapsRemaining.ToString("0");
+            Strategy(g, Slot(2), "LAPS TO GO", togo, togoCaption, _accent);
+
+            Color finishColor = toFinish < 0 ? _accent : toFinish <= 0.05 ? Good : Caution;
+            string finishCaption = toFinish < 0 ? "WAITING FOR DATA" : toFinish <= 0.05 ? "NO STOP NEEDED" : "TO REACH THE FINISH";
+            Strategy(g, Slot(3), "ADD FUEL", toFinish < 0 ? "--.-" : _units.FormatFuel(toFinish, false), finishCaption, finishColor);
+
+            RectangleF Slot(int i) => new RectangleF(Margin + (w + Gap) * i, y, w, h);
+        }
+
+        private void Strategy(Graphics g, RectangleF b, string label, string value, string caption, Color status)
+        {
+            DrawPanel(g, b, 12, PanelBorder);
+            Label(g, label, new RectangleF(b.X, b.Y + 10, b.Width, 22));
+            using (var brush = new SolidBrush(status == _accent ? Color.White : status))
+                Text(g, value, _strategy, brush, new RectangleF(b.X, b.Y + 36, b.Width, 54));
+            using (var brush = new SolidBrush(Muted)) Text(g, caption, _caption, brush, new RectangleF(b.X + 6, b.Y + 90, b.Width - 12, 20));
+            using (var pen = new Pen(status, 3)) g.DrawLine(pen, b.X + 16, b.Bottom - 12, b.Right - 16, b.Bottom - 12);
+        }
+
+        private void DrawFuelPanel(Graphics g, TelemetrySnapshot t, RectangleF b)
+        {
+            DrawPanel(g, b, 14, PanelBorder);
+            Label(g, "FUEL", new RectangleF(b.X, b.Y + 14, b.Width, 22));
+            Text(g, _units.FormatFuel(t.FuelLiters), _big, Brushes.White, new RectangleF(b.X, b.Y + 40, b.Width, 70));
+
+            var bar = new RectangleF(b.X + 24, b.Y + 128, b.Width - 48, 16);
+            using (var track = new SolidBrush(Track)) g.FillRoundedRectangle(track, bar, 8);
+            double pct = Math.Max(0, Math.Min(1, t.FuelLevelPct));
+            double fuelLaps = t.FuelLapsLeft;
+            Color color = fuelLaps >= 0 && fuelLaps < 2 ? Critical : fuelLaps >= 0 && fuelLaps < 5 ? Caution : _accent;
+            if (pct > 0.01)
+                using (var fill = new SolidBrush(color))
+                    g.FillRoundedRectangle(fill, new RectangleF(bar.X, bar.Y, Math.Max(16, (float)(bar.Width * pct)), bar.Height), 8);
+            using (var brush = new SolidBrush(Muted))
+                Text(g, pct > 0 ? (pct * 100).ToString("0") + "% OF TANK" : "TANK LEVEL", _caption, brush, new RectangleF(b.X, b.Y + 152, b.Width, 26));
+        }
+
+        private void DrawLapPanel(Graphics g, TelemetrySnapshot t, RectangleF b)
+        {
+            DrawPanel(g, b, 14, PanelBorder);
+            Label(g, "CURRENT LAP", new RectangleF(b.X, b.Y + 14, b.Width, 22));
+            using (var amber = new SolidBrush(Caution))
+                Text(g, Fmt.LapTime(t.CurrentLapSeconds), _big, amber, new RectangleF(b.X, b.Y + 40, b.Width, 70));
+
+            double delta = Math.Max(-2, Math.Min(2, t.LapDeltaSeconds));
+            float center = b.X + b.Width / 2, half = b.Width / 2 - 28, y = b.Y + 136;
+            float length = (float)(Math.Abs(delta) / 2 * half);
+            using (var track = new Pen(Track, 14)) g.DrawLine(track, b.X + 28, y, b.Right - 28, y);
+            if (delta > 0) using (var pen = new Pen(Good, 14)) g.DrawLine(pen, center, y, center + length, y);
+            else if (delta < 0) using (var pen = new Pen(Critical, 14)) g.DrawLine(pen, center - length, y, center, y);
+            using (var tick = new Pen(Color.White, 3)) g.DrawLine(tick, center, y - 12, center, y + 12);
+            using (var brush = new SolidBrush(Muted))
+                Text(g, Fmt.Signed(delta) + "  VS SESSION BEST", _caption, brush, new RectangleF(b.X, b.Y + 158, b.Width, 26));
+        }
+
+        private void DrawStintPanel(Graphics g, TelemetrySnapshot t, RectangleF b)
+        {
+            DrawPanel(g, b, 14, PanelBorder);
+            Label(g, "STINT", new RectangleF(b.X, b.Y + 14, b.Width, 22));
+            Text(g, t.StintLaps.ToString(), _big, Brushes.White, new RectangleF(b.X, b.Y + 36, b.Width, 62));
+            using (var brush = new SolidBrush(Muted)) Text(g, "LAPS", _caption, brush, new RectangleF(b.X, b.Y + 92, b.Width, 18));
+
+            // Last five laps: taller is faster; the quickest of them is highlighted.
+            double[] laps = t.RecentLapSeconds ?? new double[0];
+            float chartX = b.X + 22, chartW = b.Width - 44, baseY = b.Bottom - 20, chartH = 58;
+            float barW = (chartW - 4 * 8) / 5f;
+            double best = double.MaxValue, worst = 0;
+            foreach (double lap in laps) { if (lap > 0) { best = Math.Min(best, lap); worst = Math.Max(worst, lap); } }
+            for (int i = 0; i < 5; i++)
+            {
+                float x = chartX + i * (barW + 8);
+                int index = laps.Length - 5 + i;
+                double lap = index >= 0 ? laps[index] : 0;
+                float height = 6;
+                Color color = Track;
+                if (lap > 0)
+                {
+                    double spread = Math.Max(0.5, worst - best);
+                    height = 14 + (float)((1 - (lap - best) / spread) * (chartH - 14));
+                    color = Math.Abs(lap - best) < 0.001 ? _accent : Color.FromArgb(90, 112, 128);
+                }
+                using (var brush = new SolidBrush(color))
+                    g.FillRoundedRectangle(brush, new RectangleF(x, baseY - height, barW, height), 3);
+            }
+        }
+
+        private void DrawPanel(Graphics g, RectangleF b, float radius, Color border)
+        {
+            using (GraphicsPath p = Fmt.Rounded(b, radius))
+            using (var fill = new SolidBrush(PanelFill))
+            using (var pen = new Pen(border, 2))
+            {
+                g.FillPath(fill, p);
+                g.DrawPath(pen, p);
+            }
+        }
+
+        private void Label(Graphics g, string text, RectangleF b)
+        {
+            using (var brush = new SolidBrush(Muted)) Text(g, text, _label, brush, b);
+        }
+
+        private void Text(Graphics g, string text, Font font, Brush brush, RectangleF b) =>
+            g.DrawString(text ?? "--", font, brush, b, _center);
+
+        public void Dispose()
+        {
+            foreach (Font font in new[] { _label, _caption, _value, _strategy, _big, _gear }) font.Dispose();
+            _center.Dispose();
+            _flags.Dispose();
+        }
     }
 }

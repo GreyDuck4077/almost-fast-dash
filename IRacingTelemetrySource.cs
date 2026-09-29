@@ -138,6 +138,50 @@ namespace DV5Direct
         public int LapColorVersion { get; }
         public int MaxForwardGear { get; }
         public double EngineRpm { get; }
+
+        // Extended values are filled in after construction by the telemetry
+        // source; the shared Disconnected instance keeps their defaults.
+        public string Discipline { get; set; }
+        public double Brake { get; set; }
+        public double Throttle { get; set; }
+        public double BrakeBias { get; set; }
+        public double FuelLevelPct { get; set; }
+        /// <summary>Fuel used on the last clean lap in liters, or -1 when unknown.</summary>
+        public double FuelLastLap { get; set; } = -1;
+        /// <summary>Average fuel per clean lap in liters, or -1 when unknown.</summary>
+        public double FuelPerLapAverage { get; set; } = -1;
+        public int StintLaps { get; set; }
+        public double[] RecentLapSeconds { get; set; } = new double[0];
+
+        public double ReferenceLapSeconds =>
+            AverageLapSeconds > 0 ? AverageLapSeconds : BestLapSeconds > 0 ? BestLapSeconds : LastLapSeconds;
+
+        /// <summary>Laps left in the session including the current one, or -1 when unknown.</summary>
+        public double LapsRemaining
+        {
+            get
+            {
+                if (ProgressMode == SessionProgressMode.LapRace && TotalLaps > 0)
+                    return Math.Max(0, TotalLaps - LapsCompleted);
+                if (ProgressMode == SessionProgressMode.TimedRace && ReferenceLapSeconds > 0)
+                    return Math.Ceiling(SessionSecondsRemaining / ReferenceLapSeconds);
+                return -1;
+            }
+        }
+
+        /// <summary>Laps the remaining fuel lasts at the average rate, or -1 when unknown.</summary>
+        public double FuelLapsLeft => FuelPerLapAverage > 0 ? FuelLiters / FuelPerLapAverage : -1;
+
+        /// <summary>Fuel to add to reach the finish in liters, or -1 when unknown.</summary>
+        public double FuelToFinish
+        {
+            get
+            {
+                double laps = LapsRemaining;
+                if (laps < 0 || FuelPerLapAverage <= 0) return -1;
+                return Math.Max(0, laps * FuelPerLapAverage - FuelLiters);
+            }
+        }
     }
 
     internal sealed class IRacingTelemetrySource : IDisposable
@@ -145,9 +189,18 @@ namespace DV5Direct
         private const double MetersPerSecondToMph = 2.2369362920544;
         private readonly object _sync = new object();
         private readonly DiagnosticLogger _diagnostics;
-        private readonly int _alertBlinkMilliseconds;
-        private readonly int _alertBlinkTotalMilliseconds;
-        private readonly int _alertHoldMilliseconds;
+        private int _alertBlinkMilliseconds;
+        private int _alertBlinkTotalMilliseconds;
+        private int _alertHoldMilliseconds;
+        private int _disciplineSessionId = -1;
+        private string _discipline;
+        private double _fuelAtLapStart = -1;
+        private bool _lapTouchedPit;
+        private double _lastLapFuel = -1;
+        private readonly System.Collections.Generic.List<double> _fuelPerLap = new System.Collections.Generic.List<double>();
+        private readonly System.Collections.Generic.List<double> _recentLaps = new System.Collections.Generic.List<double>();
+        private int _stintLaps;
+        private const int FuelAverageLaps = 5;
         private TelemetrySnapshot _latest = TelemetrySnapshot.Disconnected;
         private bool _listening;
         private Thread _demoThread;
@@ -182,10 +235,18 @@ namespace DV5Direct
         public IRacingTelemetrySource(DiagnosticLogger diagnostics, DashboardSettings dashboardSettings)
         {
             _diagnostics = diagnostics;
-            AlertSettings alerts = dashboardSettings?.Alerts ?? new AlertSettings();
-            _alertBlinkMilliseconds = Math.Max(50, alerts.BlinkMilliseconds);
-            _alertBlinkTotalMilliseconds = Math.Max(1, alerts.BlinkCount) * _alertBlinkMilliseconds * 2;
-            _alertHoldMilliseconds = Math.Max(0, alerts.HoldMilliseconds);
+            ApplyAlertSettings(dashboardSettings?.Alerts);
+        }
+
+        public void ApplyAlertSettings(AlertSettings alerts)
+        {
+            alerts = alerts ?? new AlertSettings();
+            lock (_sync)
+            {
+                _alertBlinkMilliseconds = Math.Max(50, alerts.BlinkMilliseconds);
+                _alertBlinkTotalMilliseconds = Math.Max(1, alerts.BlinkCount) * _alertBlinkMilliseconds * 2;
+                _alertHoldMilliseconds = Math.Max(0, alerts.HoldMilliseconds);
+            }
         }
 
         public void Start()
@@ -217,14 +278,39 @@ namespace DV5Direct
         {
             lock (_sync)
             {
-                _latest = new TelemetrySnapshot(
+                _latest = WithPreviewExtras(new TelemetrySnapshot(
                     true, 4, 136, RacingFlag.None,
                     BlindSpotZone.None, BlindSpotZone.None, 0,
                     SessionProgressMode.TimedRace, 1470, 3600, 8, 0,
                     4, 4, 24.3, 88.104, 0.46,
                     "J. MILLER", -0.46, "M. CARTER", 0.82, 22,
-                    false, 87.932, 87.521, 88.204, new bool[0], 0, 6);
+                    false, 87.932, 87.521, 88.204, new bool[0], 0, 6, 6120));
             }
+        }
+
+        /// <summary>A representative snapshot for gallery thumbnails and layout review.</summary>
+        public static TelemetrySnapshot CreatePreviewSnapshot(RacingFlag flag = RacingFlag.None)
+        {
+            var yellowLaps = new bool[18];
+            yellowLaps[3] = true;
+            return WithPreviewExtras(new TelemetrySnapshot(
+                true, 4, 136, flag, BlindSpotZone.None, BlindSpotZone.None, 0.62,
+                SessionProgressMode.LapRace, 0, 0, 8, 18,
+                4, 2, 24.3, 58.104, 0.46,
+                "J. MILLER", -0.46, "M. CARTER", 0.82, 22,
+                false, 87.932, 87.521, 88.204, yellowLaps, 0, 6, 6120));
+        }
+
+        private static TelemetrySnapshot WithPreviewExtras(TelemetrySnapshot snapshot)
+        {
+            snapshot.Discipline = Disciplines.Road;
+            snapshot.BrakeBias = 54.2;
+            snapshot.FuelLevelPct = 0.41;
+            snapshot.FuelLastLap = 2.41;
+            snapshot.FuelPerLapAverage = 2.46;
+            snapshot.StintLaps = 8;
+            snapshot.RecentLapSeconds = new[] { 88.412, 87.932, 88.105, 87.521, 87.932 };
+            return snapshot;
         }
 
         public TelemetrySnapshot GetSnapshot()
@@ -367,7 +453,81 @@ namespace DV5Direct
                     _lapColorVersion,
                     maxForwardGear,
                     sample.Telemetry.RPM);
+                _latest.Discipline = GetDiscipline(sample.Telemetry);
+                _latest.Brake = ReadTelemetryDouble(sample.Telemetry, "Brake");
+                _latest.Throttle = ReadTelemetryDouble(sample.Telemetry, "Throttle");
+                _latest.BrakeBias = ReadTelemetryDouble(sample.Telemetry, "dcBrakeBias");
+                _latest.FuelLevelPct = ReadTelemetryDouble(sample.Telemetry, "FuelLevelPct");
+                _latest.FuelLastLap = _lastLapFuel;
+                _latest.FuelPerLapAverage = _fuelPerLap.Count > 0 ? Average(_fuelPerLap) : -1;
+                _latest.StintLaps = _stintLaps;
+                _latest.RecentLapSeconds = _recentLaps.ToArray();
             }
+        }
+
+        private string GetDiscipline(Telemetry telemetry)
+        {
+            if (_discipline != null && _disciplineSessionId == telemetry.SessionUniqueID) return _discipline;
+            try
+            {
+                var weekend = telemetry.SessionData?.WeekendInfo;
+                _discipline = weekend == null ? null : Disciplines.FromIRacing(weekend.Category, weekend.TrackType);
+                _disciplineSessionId = telemetry.SessionUniqueID;
+            }
+            catch
+            {
+                _discipline = null;
+            }
+            return _discipline;
+        }
+
+        private static double Average(System.Collections.Generic.List<double> values)
+        {
+            double total = 0;
+            foreach (double value in values) total += value;
+            return total / values.Count;
+        }
+
+        private void TrackFuelAndStint(Telemetry telemetry, bool lapCompleted)
+        {
+            double fuel = telemetry.FuelLevel;
+            bool onPitRoad = telemetry.OnPitRoad;
+            // Fuel rising mid-lap means a refuel; either way the lap is not representative.
+            if (onPitRoad || (_fuelAtLapStart >= 0 && fuel > _fuelAtLapStart + 0.05))
+            {
+                _lapTouchedPit = true;
+                _stintLaps = 0;
+            }
+            if (!lapCompleted) return;
+
+            if (!_lapTouchedPit && _fuelAtLapStart > 0)
+            {
+                double used = _fuelAtLapStart - fuel;
+                if (used > 0.01)
+                {
+                    _lastLapFuel = used;
+                    _fuelPerLap.Add(used);
+                    if (_fuelPerLap.Count > FuelAverageLaps) _fuelPerLap.RemoveAt(0);
+                }
+            }
+            if (telemetry.LapLastLapTime > 0)
+            {
+                _recentLaps.Add(telemetry.LapLastLapTime);
+                if (_recentLaps.Count > 5) _recentLaps.RemoveAt(0);
+            }
+            if (!onPitRoad) _stintLaps++;
+            _fuelAtLapStart = fuel;
+            _lapTouchedPit = onPitRoad;
+        }
+
+        private void ResetFuelAndStint(Telemetry telemetry)
+        {
+            _fuelAtLapStart = telemetry.FuelLevel;
+            _lapTouchedPit = telemetry.OnPitRoad;
+            _lastLapFuel = -1;
+            _fuelPerLap.Clear();
+            _recentLaps.Clear();
+            _stintLaps = 0;
         }
 
         private void RunDemoSequence()
@@ -473,6 +633,7 @@ namespace DV5Direct
                     "J. MILLER", -0.46, "M. CARTER", 0.82, 22,
                     false, 87.932, 87.521, 88.204, new bool[18], 0, 6,
                     shiftIndicatorPct * 8000);
+                WithPreviewExtras(_latest);
             }
         }
 
@@ -490,18 +651,21 @@ namespace DV5Direct
                 _currentLapHadYellow = yellowActive;
                 _lapColorVersion++;
                 _maximumObservedGear = 0;
+                ResetFuelAndStint(telemetry);
                 return;
             }
 
             if (_lastCompletedLap < 0)
             {
                 _lastCompletedLap = telemetry.LapCompleted;
+                ResetFuelAndStint(telemetry);
                 return;
             }
 
             if (telemetry.LapCompleted > _lastCompletedLap)
             {
                 _lastCompletedLap = telemetry.LapCompleted;
+                TrackFuelAndStint(telemetry, true);
                 int completedLapIndex = telemetry.LapCompleted - 1;
                 if (_currentLapHadYellow && completedLapIndex >= 0 &&
                     completedLapIndex < _yellowCompletedLaps.Length)
@@ -528,10 +692,12 @@ namespace DV5Direct
                 Array.Clear(_yellowCompletedLaps, 0, _yellowCompletedLaps.Length);
                 _currentLapHadYellow = yellowActive;
                 _lapColorVersion++;
+                ResetFuelAndStint(telemetry);
             }
-            else if (yellowActive)
+            else
             {
-                _currentLapHadYellow = true;
+                if (yellowActive) _currentLapHadYellow = true;
+                TrackFuelAndStint(telemetry, false);
             }
         }
 
@@ -668,6 +834,20 @@ namespace DV5Direct
             {
                 object value = telemetry[name];
                 return value == null ? 0 : Convert.ToInt32(value);
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+
+        private static double ReadTelemetryDouble(Telemetry telemetry, string name)
+        {
+            try
+            {
+                object value = telemetry[name];
+                double result = value == null ? 0 : Convert.ToDouble(value);
+                return double.IsNaN(result) || double.IsInfinity(result) ? 0 : result;
             }
             catch
             {
