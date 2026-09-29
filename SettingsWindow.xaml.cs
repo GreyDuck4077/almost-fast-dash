@@ -907,6 +907,12 @@ namespace DV5Direct
 
         private void RefreshPorts()
         {
+            // Adopt the ports the devices are actually on; Windows can renumber them.
+            string dv5 = DevicePorts.Find(DevicePorts.Dv5), bar = DevicePorts.Find(DevicePorts.LightBar);
+            bool moved = (dv5 != null && dv5 != _settings.General.LedPort) || (bar != null && bar != _settings.General.BrowPort);
+            if (dv5 != null) _settings.General.LedPort = dv5;
+            if (bar != null) _settings.General.BrowPort = bar;
+            if (moved && !_loading) Save("Found your devices on " + (dv5 ?? "?") + " and " + (bar ?? "?"));
             bool was = _loading;
             _loading = true;
             var ports = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -953,7 +959,7 @@ namespace DV5Direct
 
         private async void TestBrow_Click(object sender, RoutedEventArgs e)
         {
-            string port = _settings.General.BrowPort;
+            string port = DevicePorts.Resolve(_settings.General.BrowPort, DevicePorts.LightBar);
             int count = _settings.General.BrowLedCount;
             BrowTestStatus.Visibility = Visibility.Visible;
             if (IsDashboardRunning())
@@ -1011,7 +1017,7 @@ namespace DV5Direct
 
         private async void TestLeds_Click(object sender, RoutedEventArgs e)
         {
-            string port = _settings.General.LedPort;
+            string port = DevicePorts.Resolve(_settings.General.LedPort, DevicePorts.Dv5);
             LedTestStatus.Visibility = Visibility.Visible;
             if (IsDashboardRunning())
             {

@@ -37,6 +37,8 @@ namespace DV5Direct
                 return 0;
             }
 
+            if (args.Contains("--brow-test")) return BrowTest(ParseRunSeconds(args) ?? 60);
+
             string previewDirectory = ParseOption(args, "--render-previews");
             if (previewDirectory != null) return RenderPreviews(previewDirectory);
 
@@ -170,6 +172,43 @@ namespace DV5Direct
         }
 
         /// <summary>
+        /// Holds blocks of ten colors on the brow light bars (red, green, blue,
+        /// white) so the number of chained bars and their order can be read by eye.
+        /// </summary>
+        private static int BrowTest(int seconds)
+        {
+            GeneralSettings general = SettingsStore.Load().General;
+            string port = DevicePorts.Resolve(general.BrowPort, DevicePorts.LightBar);
+            System.Drawing.Color[] blocks = { System.Drawing.Color.Red, System.Drawing.Color.Lime, System.Drawing.Color.Blue, System.Drawing.Color.White };
+            var frame = new System.Drawing.Color[40];
+            for (int i = 0; i < frame.Length; i++)
+                frame[i] = System.Drawing.Color.FromArgb(blocks[i / 10].R * 6 / 10, blocks[i / 10].G * 6 / 10, blocks[i / 10].B * 6 / 10);
+            try
+            {
+                using (var leds = new Dv5LedController(port, 115200, frame.Length, "SSG LB-10"))
+                {
+                    leds.Connect();
+                    Console.WriteLine("Connected: " + leds.QueryDeviceName() + " on " + port);
+                    DateTime until = DateTime.UtcNow.AddSeconds(seconds);
+                    // Resend periodically in case the bar resets or drops a packet.
+                    while (DateTime.UtcNow < until)
+                    {
+                        leds.SetFrame(frame);
+                        Thread.Sleep(2000);
+                    }
+                    leds.Clear();
+                }
+                Console.WriteLine("Done.");
+                return 0;
+            }
+            catch (Exception exception)
+            {
+                Console.Error.WriteLine("Light bar test failed on " + port + ": " + exception.Message);
+                return 1;
+            }
+        }
+
+        /// <summary>
         /// Writes a PNG of every configured dashboard plus a flag sample without
         /// opening the screen or LEDs, so layouts can be reviewed while the hardware is in use.
         /// </summary>
@@ -212,9 +251,9 @@ namespace DV5Direct
                         var connection = screen.Connect(runtime.Settings.General.ScreenBrightness);
                         Console.WriteLine("Screen connected: " + connection.ModelName);
                         Console.WriteLine("Display ID: " + connection.DisplayId);
-                        var leds = new LedLink(ledPort, LedFrame.Count, "SSG DV 5");
+                        var leds = new LedLink(ledPort, LedFrame.Count, "SSG DV 5", DevicePorts.Dv5);
                         GeneralSettings general = runtime.Settings.General;
-                        var brow = new LedLink(general.BrowPort, general.BrowLedCount, "SSG LB-10") { Enabled = general.BrowEnabled };
+                        var brow = new LedLink(general.BrowPort, general.BrowLedCount, "SSG LB-10", DevicePorts.LightBar) { Enabled = general.BrowEnabled };
                         DateTime nextSettingsCheckUtc = DateTime.MinValue;
 
                         DisplayState lastDrawn = null;
@@ -393,15 +432,17 @@ namespace DV5Direct
         private sealed class LedLink : IDisposable
         {
             private readonly string _expectedName;
+            private readonly string _hardwareId;
             private Dv5LedController _controller;
             private DateTime _nextAttemptUtc = DateTime.MinValue;
             private System.Drawing.Color[] _lastFrame;
 
-            public LedLink(string port, int count, string expectedName)
+            public LedLink(string port, int count, string expectedName, string hardwareId)
             {
                 Port = port;
                 Count = Math.Max(1, Math.Min(64, count));
                 _expectedName = expectedName;
+                _hardwareId = hardwareId;
             }
 
             public string Port { get; private set; }
@@ -431,17 +472,19 @@ namespace DV5Direct
                 {
                     if (DateTime.UtcNow < _nextAttemptUtc) return;
                     _nextAttemptUtc = DateTime.UtcNow.AddSeconds(5);
-                    var controller = new Dv5LedController(Port, 115200, Count, _expectedName);
+                    // Follow the device if Windows gave it a new port number.
+                    string port = DevicePorts.Resolve(Port, _hardwareId);
+                    var controller = new Dv5LedController(port, 115200, Count, _expectedName);
                     try
                     {
                         controller.Connect();
-                        Console.WriteLine("LED device on " + Port + ": " + controller.QueryDeviceName());
+                        Console.WriteLine("LED device on " + port + ": " + controller.QueryDeviceName());
                         _controller = controller;
                         _lastFrame = null;
                     }
                     catch (Exception exception)
                     {
-                        Console.Error.WriteLine(_expectedName + " unavailable on " + Port + ": " + exception.Message);
+                        Console.Error.WriteLine(_expectedName + " unavailable on " + port + ": " + exception.Message);
                         controller.Dispose();
                         return;
                     }
