@@ -194,6 +194,7 @@ namespace DV5Direct
         public float[] BrakeTrace { get; set; } = new float[0];
         public int TraceVersion { get; set; }
         public RelativeEntry[] Relatives { get; set; } = new RelativeEntry[0];
+        public string CarName { get; set; }
         public int ClassPosition { get; set; }
         public bool OnPitRoad { get; set; }
         public bool PitLimiter { get; set; }
@@ -413,6 +414,7 @@ namespace DV5Direct
             }
             snapshot.Throttle = 1;
             snapshot.ClassPosition = 4;
+            snapshot.CarName = "PORSCHE 911 GT3 R";
             snapshot.TrackTempC = 31.4;
             snapshot.AirTempC = 22.0;
             snapshot.PitSpeedLimitMph = 45;
@@ -627,6 +629,7 @@ namespace DV5Direct
                 _latest.DeltaTrace = _deltaTraceCopy;
                 _latest.Relatives = BuildRelatives(sample.Telemetry, details);
                 _latest.ClassPosition = ReadTelemetryInt(sample.Telemetry, "PlayerCarClassPosition");
+                _latest.CarName = GetCarName(details, ReadTelemetryInt(sample.Telemetry, "PlayerCarIdx"));
                 _latest.OnPitRoad = sample.Telemetry.OnPitRoad;
                 int warnings = ReadTelemetryInt(sample.Telemetry, "EngineWarnings");
                 _latest.PitLimiter = (warnings & (int)EngineWarnings.PitSpeedLimiter) != 0;
@@ -638,6 +641,19 @@ namespace DV5Direct
                 _latest.BrakeTrace = _brakeTraceCopy;
                 _latest.TraceVersion = _traceVersion;
             }
+        }
+
+        private static string GetCarName(CarDetails[] details, int playerIndex)
+        {
+            try
+            {
+                if (details == null) return null;
+                foreach (CarDetails detail in details)
+                    if (detail != null && detail.CarIdx == playerIndex && detail.Driver != null)
+                        return (string.IsNullOrWhiteSpace(detail.Driver.CarScreenNameShort) ? detail.Driver.CarScreenName : detail.Driver.CarScreenNameShort)?.ToUpperInvariant();
+            }
+            catch { }
+            return null;
         }
 
         private double GetPitSpeedLimitMph(Telemetry telemetry)

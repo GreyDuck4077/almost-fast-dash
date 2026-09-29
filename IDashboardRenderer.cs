@@ -18,6 +18,7 @@ namespace DV5Direct
                 case Layouts.Endurance: return new EnduranceRenderer(width, height, settings, units);
                 case Layouts.Telemetry: return new TelemetryRenderer(width, height, settings, units);
                 case Layouts.Summit: return new SummitRenderer(width, height, settings, units);
+                case Layouts.Formula: return new FormulaRenderer(width, height, settings, units);
                 default: return new GearSpeedRenderer(width, height, settings, units);
             }
         }
