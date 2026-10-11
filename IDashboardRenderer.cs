@@ -1,7 +1,7 @@
 using System;
 using System.Drawing;
 
-namespace DV5Direct
+namespace AlmostFastOverlays
 {
     internal interface IDashboardRenderer : IDisposable
     {
@@ -13,16 +13,8 @@ namespace DV5Direct
 
     internal static class DashboardRendererFactory
     {
-        public static IDashboardRenderer Create(int width, int height, DashboardSettings settings, UnitSystem units = null)
-        {
-            switch (settings?.Layout)
-            {
-                case Layouts.Formula: return new FormulaRenderer(width, height, settings, units);
-                case Layouts.Oval: return new OvalRenderer(width, height, settings, units);
-                case Layouts.Endurance: return new EnduranceRenderer(width, height, settings, units);
-                default: return new SummitRenderer(width, height, settings, units);
-            }
-        }
+        public static IDashboardRenderer Create(int width, int height, DashboardSettings settings, UnitSystem units = null) =>
+            new LayoutRenderer(width, height, settings ?? DashboardSettings.CreateHalo(), units);
 
         /// <summary>Renders one representative frame without touching any hardware.</summary>
         public static Bitmap RenderPreview(DashboardSettings settings, UnitSystem units, TelemetrySnapshot snapshot = null)

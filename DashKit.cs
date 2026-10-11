@@ -5,7 +5,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Text;
 using System.Linq;
 
-namespace DV5Direct
+namespace AlmostFastOverlays
 {
     /// <summary>
     /// Shared visual language for every dashboard: palette, type scale, panels,

@@ -1,0 +1,165 @@
+﻿<Window x:Class="AlmostFastOverlays.LightsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Light designer" Width="1440" Height="880" MinWidth="1180" MinHeight="720"
+        WindowStartupLocation="CenterOwner" Background="{StaticResource Brush.Bg}"
+        FontFamily="{StaticResource Font.Ui}" FontSize="13" Foreground="{StaticResource Brush.Text}"
+        UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
+    <Window.Resources>
+        <Style x:Key="Tool" TargetType="Button" BasedOn="{StaticResource Btn.Ghost}">
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="MinWidth" Value="32"/>
+            <Setter Property="Padding" Value="8,0"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="58"/>
+            <RowDefinition/>
+            <RowDefinition Height="30"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="320"/>
+            <ColumnDefinition/>
+            <ColumnDefinition Width="370"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- ================= Toolbar ================= -->
+        <Border Grid.ColumnSpan="3" BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,0,0,1" Background="{StaticResource Brush.Sidebar}">
+            <DockPanel Margin="14,0,14,0" LastChildFill="False">
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Width="30" Height="30" CornerRadius="8" Margin="0,0,10,0">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="#FFC233"/>
+                                <GradientStop Color="#FF3B4E" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <TextBlock Style="{StaticResource T.Icon}" Text="&#xE781;" FontSize="14" Foreground="#2A0A00" HorizontalAlignment="Center"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center" MinWidth="120">
+                        <TextBlock x:Name="TitleText" Text="Dashboard" FontWeight="SemiBold"/>
+                        <TextBlock Text="Light designer" Style="{StaticResource T.Caption}" FontSize="11"/>
+                    </StackPanel>
+                    <Border Width="1" Height="26" Background="{StaticResource Brush.Border}" Margin="16,0,12,0"/>
+                    <Button x:Name="UndoButton" Style="{StaticResource Tool}" ToolTip="Undo (Ctrl+Z)" Click="Undo_Click"><TextBlock Style="{StaticResource T.Icon}" Text="&#xE7A7;"/></Button>
+                    <Button x:Name="RedoButton" Style="{StaticResource Tool}" ToolTip="Redo (Ctrl+Y)" Click="Redo_Click"><TextBlock Style="{StaticResource T.Icon}" Text="&#xE7A6;"/></Button>
+                    <Border Width="1" Height="26" Background="{StaticResource Brush.Border}" Margin="12,0"/>
+                    <TextBlock Text="Preview" Style="{StaticResource T.Caption}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <ComboBox x:Name="ScenarioCombo" Width="180" VerticalAlignment="Center" MaxDropDownHeight="520"/>
+                    <Button Style="{StaticResource Tool}" Margin="10,0,0,0" ToolTip="Start from a ready-made light profile" Click="Presets_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource T.Icon}" Text="&#xE8FD;" Margin="0,0,6,0"/>
+                            <TextBlock Text="Presets" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,4,0"
+                                ToolTip="Changes save as you go, and a running dashboard's lights pick them up within a second">
+                        <TextBlock x:Name="SaveStateIcon" Style="{StaticResource T.Icon}" Text="&#xE73E;" FontSize="12" Foreground="{StaticResource Brush.Success}" Margin="0,0,6,0"/>
+                        <TextBlock x:Name="SaveState" Style="{StaticResource T.Caption}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- ================= Left: layer stack ================= -->
+        <Border Grid.Row="1" Background="{StaticResource Brush.Sidebar}" BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,0,1,0">
+            <DockPanel>
+                <Grid DockPanel.Dock="Top" Margin="16,16,14,8">
+                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="LAYERS" Style="{StaticResource T.Overline}"/>
+                        <TextBlock Text="Top of the list wins where layers overlap" Style="{StaticResource T.Caption}" FontSize="11"/>
+                    </StackPanel>
+                    <Button Grid.Column="1" Click="AddLayer_Click" ToolTip="Add a layer">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource T.Icon}" Text="&#xE710;" FontSize="12" Margin="0,0,6,0"/>
+                            <TextBlock Text="Add" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </Grid>
+                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="14,8,14,12">
+                    <Button Style="{StaticResource Tool}" ToolTip="Move up (higher priority)" Click="Up_Click"><TextBlock Style="{StaticResource T.Icon}" Text="&#xE70E;"/></Button>
+                    <Button Style="{StaticResource Tool}" ToolTip="Move down (lower priority)" Click="Down_Click"><TextBlock Style="{StaticResource T.Icon}" Text="&#xE70D;"/></Button>
+                    <Button Style="{StaticResource Tool}" ToolTip="Duplicate (Ctrl+D)" Click="Duplicate_Click"><TextBlock Style="{StaticResource T.Icon}" Text="&#xE8C8;"/></Button>
+                    <Button Style="{StaticResource Tool}" ToolTip="Delete (Del)" Click="Delete_Click"><TextBlock Style="{StaticResource T.Icon}" Text="&#xE74D;"/></Button>
+                </StackPanel>
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel x:Name="LayerList" Margin="10,0,10,8"/>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+
+        <!-- ================= Centre: LED stage ================= -->
+        <ScrollViewer Grid.Row="1" Grid.Column="1" VerticalScrollBarVisibility="Auto" Background="#07090C">
+            <StackPanel HorizontalAlignment="Center" Margin="32,36,32,32">
+                <!-- LB-10 brow bar -->
+                <Border Background="#05070A" BorderBrush="#1D232D" BorderThickness="1" CornerRadius="12" Padding="18,12" Margin="60,0,60,18">
+                    <UniformGrid x:Name="BrowStage" Rows="1"/>
+                </Border>
+                <!-- DV-5 -->
+                <Border Background="#05070A" BorderBrush="#1D232D" BorderThickness="1" CornerRadius="22" Padding="18,14,18,20">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="40"/>
+                            <ColumnDefinition Width="560"/>
+                            <ColumnDefinition Width="40"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="40"/>
+                            <RowDefinition Height="315"/>
+                        </Grid.RowDefinitions>
+                        <UniformGrid x:Name="ShiftStage" Grid.Column="1" Columns="8" Margin="70,0,70,10"/>
+                        <UniformGrid x:Name="LeftStage" Grid.Row="1" Rows="4" Margin="0,30,10,30"/>
+                        <UniformGrid x:Name="RightStage" Grid.Row="1" Grid.Column="2" Rows="4" Margin="10,30,0,30"/>
+                        <Border Grid.Row="1" Grid.Column="1" CornerRadius="8" BorderBrush="#232A35" BorderThickness="1" ClipToBounds="True">
+                            <Border.Background>
+                                <ImageBrush x:Name="ScreenImage" Stretch="Uniform" Opacity="0.55"/>
+                            </Border.Background>
+                        </Border>
+                    </Grid>
+                </Border>
+                <TextBlock x:Name="HoverText" Style="{StaticResource T.Caption}" HorizontalAlignment="Center" Margin="0,14,0,0"
+                           Text="Hover an LED to see which layer lit it. The selected layer's LEDs are ringed."/>
+
+                <!-- Profile-wide output settings -->
+                <Border Style="{StaticResource Card}" Margin="0,22,0,0" Width="640">
+                    <StackPanel>
+                        <TextBlock Text="Output" Style="{StaticResource T.Title}"/>
+                        <TextBlock Text="Applies to every layer in this profile." Style="{StaticResource T.Caption}" Margin="0,4,0,14"/>
+                        <Grid Margin="0,4">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="170"/><ColumnDefinition/><ColumnDefinition Width="60"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="Master brightness" VerticalAlignment="Center"/>
+                            <Slider x:Name="MasterSlider" Grid.Column="1" Minimum="0" Maximum="100" IsSnapToTickEnabled="True" TickFrequency="1" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="MasterValue" Grid.Column="2" Style="{StaticResource T.Value}" MinWidth="0"/>
+                        </Grid>
+                        <Grid Margin="0,4">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="170"/><ColumnDefinition/><ColumnDefinition Width="60"/></Grid.ColumnDefinitions>
+                            <TextBlock Text="Fade out" VerticalAlignment="Center" ToolTip="How long LEDs take to fade when they turn off. 0 snaps them off."/>
+                            <Slider x:Name="FadeSlider" Grid.Column="1" Minimum="0" Maximum="600" IsSnapToTickEnabled="True" TickFrequency="10" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="FadeValue" Grid.Column="2" Style="{StaticResource T.Value}" MinWidth="0"/>
+                        </Grid>
+                        <CheckBox x:Name="GammaToggle" Style="{StaticResource Switch}" Margin="0,10,0,0"
+                                  Content="Perceptual brightness (gamma)" ToolTip="Makes low brightness and colour blends look even to the eye, as LEDs are much brighter than they look on a screen"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- ================= Right: inspector ================= -->
+        <Border Grid.Row="1" Grid.Column="2" Background="{StaticResource Brush.Sidebar}" BorderBrush="{StaticResource Brush.Border}" BorderThickness="1,0,0,0">
+            <ScrollViewer x:Name="InspectorScroller" VerticalScrollBarVisibility="Auto">
+                <StackPanel x:Name="Inspector" Margin="18,16,18,24"/>
+            </ScrollViewer>
+        </Border>
+
+        <!-- ================= Status bar ================= -->
+        <Border Grid.Row="2" Grid.ColumnSpan="3" Background="{StaticResource Brush.Sidebar}" BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,1,0,0">
+            <TextBlock x:Name="StatusText" Style="{StaticResource T.Caption}" VerticalAlignment="Center" Margin="14,0"
+                       Text="Add layers, set what they show and when, and drag them to set priority. Changes save as you go."/>
+        </Border>
+    </Grid>
+</Window>

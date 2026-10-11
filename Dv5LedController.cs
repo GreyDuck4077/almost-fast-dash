@@ -4,7 +4,7 @@ using System.Text;
 using System.Threading;
 using System.Drawing;
 
-namespace DV5Direct
+namespace AlmostFastOverlays
 {
     internal sealed class Dv5LedController : IDisposable
     {
@@ -71,8 +71,19 @@ namespace DV5Direct
         /// Sends a composed 16-LED frame, grouping neighbouring LEDs that share a
         /// color into one packet to keep serial traffic low.
         /// </summary>
+        /// <summary>
+        /// Send a whole frame as one packet: several colour runs before the terminating
+        /// mode 0. Far fewer packets and pauses than one packet per run.
+        /// </summary>
+        public bool Batched { get; set; }
+
         public void SetFrame(Color[] frame)
         {
+            if (Batched)
+            {
+                SendBatched(frame);
+                return;
+            }
             int index = 0;
             while (index < _ledCount)
             {
@@ -85,12 +96,47 @@ namespace DV5Direct
             }
         }
 
+        private void SendBatched(Color[] frame)
+        {
+            foreach (byte[] payload in BatchedPayloads(frame, _ledCount)) SendPacket(payload);
+        }
+
+        /// <summary>
+        /// The command payloads for one frame in batched mode: colour runs as repeated
+        /// mode-3 entries ending in mode 0, split only if a packet would exceed its
+        /// one-byte length.
+        /// </summary>
+        internal static System.Collections.Generic.List<byte[]> BatchedPayloads(Color[] frame, int ledCount)
+        {
+            var payloads = new System.Collections.Generic.List<byte[]>();
+            var payload = new System.Collections.Generic.List<byte> { MessageHeader, (byte)'6' };
+            int index = 0;
+            while (index < ledCount)
+            {
+                Color color = index < frame.Length ? frame[index] : Color.Black;
+                int run = 1;
+                while (index + run < ledCount && index + run < frame.Length &&
+                       frame[index + run].ToArgb() == color.ToArgb()) run++;
+                if (payload.Count + 7 > 250)
+                {
+                    payload.Add(0);
+                    payloads.Add(payload.ToArray());
+                    payload = new System.Collections.Generic.List<byte> { MessageHeader, (byte)'6' };
+                }
+                payload.AddRange(new[] { (byte)3, (byte)index, (byte)run, color.R, color.G, color.B });
+                index += run;
+            }
+            payload.Add(0);
+            payloads.Add(payload.ToArray());
+            return payloads;
+        }
+
         private void SetAll(byte red, byte green, byte blue) =>
             SetRange(0, _ledCount, red, green, blue);
 
         private void SetRange(int start, int count, byte red, byte green, byte blue)
         {
-            // SimHub firmware command 6, repeated-color mode 3, terminated by mode 0.
+            // Firmware command 6, repeated-color mode 3, terminated by mode 0.
             SendPacket(new[]
             {
                 MessageHeader, (byte)'6', (byte)3, (byte)start, (byte)count,

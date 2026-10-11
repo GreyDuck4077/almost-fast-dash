@@ -1,6 +1,6 @@
 using System.Drawing;
 
-namespace DV5Direct
+namespace AlmostFastOverlays
 {
     internal static class WindowsColorPicker
     {

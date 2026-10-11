@@ -1,6 +1,6 @@
 using System;
 
-namespace DV5Direct
+namespace AlmostFastOverlays
 {
     /// <summary>Converts telemetry (MPH, liters) into the user's preferred display units.</summary>
     internal sealed class UnitSystem

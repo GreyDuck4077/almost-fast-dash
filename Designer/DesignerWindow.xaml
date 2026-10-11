@@ -1,0 +1,201 @@
+﻿<Window x:Class="AlmostFastOverlays.DesignerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Dashboard designer" Width="1560" Height="940" MinWidth="1240" MinHeight="760"
+        WindowStartupLocation="CenterOwner" Background="{StaticResource Brush.Bg}"
+        FontFamily="{StaticResource Font.Ui}" FontSize="13" Foreground="{StaticResource Brush.Text}"
+        UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
+    <Window.Resources>
+        <Style x:Key="Tool" TargetType="Button" BasedOn="{StaticResource Btn.Ghost}">
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="MinWidth" Value="32"/>
+            <Setter Property="Padding" Value="8,0"/>
+        </Style>
+        <Style x:Key="ToolToggle" TargetType="ToggleButton" BasedOn="{StaticResource Chip}">
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Margin" Value="0,0,6,0"/>
+        </Style>
+        <!-- The ƒx switch beside each property -->
+        <Style x:Key="Fx" TargetType="ToggleButton">
+            <Setter Property="Foreground" Value="{StaticResource Brush.TextTertiary}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="7" BorderBrush="{StaticResource Brush.Border}" BorderThickness="1">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource Brush.SurfaceHover}"/>
+                                <Setter Property="Foreground" Value="{StaticResource Brush.Text}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource Brush.AccentSubtle}"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Brush.AccentBorder}"/>
+                                <Setter Property="Foreground" Value="{StaticResource Brush.Accent}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="Section" TargetType="TextBlock" BasedOn="{StaticResource T.Overline}">
+            <Setter Property="Margin" Value="0,18,0,8"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="58"/>
+            <RowDefinition/>
+            <RowDefinition Height="30"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="272"/>
+            <ColumnDefinition/>
+            <ColumnDefinition Width="360"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- ================= Toolbar ================= -->
+        <Border Grid.ColumnSpan="3" BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,0,0,1" Background="{StaticResource Brush.Sidebar}">
+            <DockPanel Margin="14,0,14,0" LastChildFill="False">
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Width="30" Height="30" CornerRadius="8" Margin="0,0,10,0">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="#2DD4BF"/>
+                                <GradientStop Color="#3B82F6" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <TextBlock Style="{StaticResource T.Icon}" Text="&#xE790;" FontSize="14" Foreground="#04221E" HorizontalAlignment="Center"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center" MinWidth="120">
+                        <TextBlock x:Name="TitleText" Text="Dashboard" FontWeight="SemiBold"/>
+                        <TextBlock Text="Screen designer" Style="{StaticResource T.Caption}" FontSize="11"/>
+                    </StackPanel>
+                    <Border Width="1" Height="26" Background="{StaticResource Brush.Border}" Margin="16,0,12,0"/>
+                    <Button x:Name="UndoButton" Style="{StaticResource Tool}" ToolTip="Undo (Ctrl+Z)" Click="Undo_Click">
+                        <TextBlock Style="{StaticResource T.Icon}" Text="&#xE7A7;"/>
+                    </Button>
+                    <Button x:Name="RedoButton" Style="{StaticResource Tool}" ToolTip="Redo (Ctrl+Y)" Click="Redo_Click">
+                        <TextBlock Style="{StaticResource T.Icon}" Text="&#xE7A6;"/>
+                    </Button>
+                    <Border Width="1" Height="26" Background="{StaticResource Brush.Border}" Margin="12,0"/>
+                    <TextBlock Text="Screen" Style="{StaticResource T.Caption}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <ComboBox x:Name="ScreenCombo" Width="170" VerticalAlignment="Center" SelectionChanged="ScreenCombo_SelectionChanged"/>
+                    <Button Style="{StaticResource Tool}" ToolTip="Screen options: add, rename, show-when condition, delete" Click="ScreenMenu_Click" Margin="4,0,0,0">
+                        <TextBlock Style="{StaticResource T.Icon}" Text="&#xE712;"/>
+                    </Button>
+                    <Border Width="1" Height="26" Background="{StaticResource Brush.Border}" Margin="12,0"/>
+                    <TextBlock Text="Preview" Style="{StaticResource T.Caption}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <ComboBox x:Name="PreviewCombo" Width="170" VerticalAlignment="Center" SelectionChanged="PreviewCombo_SelectionChanged"/>
+                </StackPanel>
+
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,0"
+                                ToolTip="Changes save as you go, and a running dashboard picks them up within a second">
+                        <TextBlock x:Name="SaveStateIcon" Style="{StaticResource T.Icon}" Text="&#xE73E;" FontSize="12" Foreground="{StaticResource Brush.Success}" Margin="0,0,6,0"/>
+                        <TextBlock x:Name="SaveState" Style="{StaticResource T.Caption}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <Button Style="{StaticResource Tool}" ToolTip="Import a design file (.afodash)" Click="Import_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource T.Icon}" Text="&#xE8B5;" Margin="0,0,6,0"/>
+                            <TextBlock Text="Import" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource Tool}" ToolTip="Export this design to share it (.afodash)" Click="Export_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource T.Icon}" Text="&#xEDE1;" Margin="0,0,6,0"/>
+                            <TextBlock Text="Export" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- ================= Left: widgets, layers, theme ================= -->
+        <Border Grid.Row="1" Background="{StaticResource Brush.Sidebar}" BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,0,1,0">
+            <DockPanel>
+                <Border DockPanel.Dock="Top" Style="{StaticResource Segmented}" Margin="14,14,14,6">
+                    <UniformGrid Columns="3">
+                        <RadioButton x:Name="TabWidgets" Style="{StaticResource Segment}" Content="Add" GroupName="LeftTabs" IsChecked="True" Checked="LeftTab_Checked"/>
+                        <RadioButton x:Name="TabLayers" Style="{StaticResource Segment}" Content="Layers" GroupName="LeftTabs" Checked="LeftTab_Checked"/>
+                        <RadioButton x:Name="TabTheme" Style="{StaticResource Segment}" Content="Theme" GroupName="LeftTabs" Checked="LeftTab_Checked"/>
+                    </UniformGrid>
+                </Border>
+                <Grid>
+                    <ScrollViewer x:Name="WidgetsPanel" VerticalScrollBarVisibility="Auto">
+                        <StackPanel x:Name="Toolbox" Margin="14,4,14,16"/>
+                    </ScrollViewer>
+                    <DockPanel x:Name="LayersPanel" Visibility="Collapsed">
+                        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="14,8,14,12">
+                            <Button Style="{StaticResource Tool}" ToolTip="Bring forward (])" Click="Forward_Click"><TextBlock Style="{StaticResource T.Icon}" Text="&#xE70E;"/></Button>
+                            <Button Style="{StaticResource Tool}" ToolTip="Send backward ([)" Click="Backward_Click"><TextBlock Style="{StaticResource T.Icon}" Text="&#xE70D;"/></Button>
+                            <Button Style="{StaticResource Tool}" ToolTip="Duplicate (Ctrl+D)" Click="Duplicate_Click"><TextBlock Style="{StaticResource T.Icon}" Text="&#xE8C8;"/></Button>
+                            <Button Style="{StaticResource Tool}" ToolTip="Delete (Del)" Click="Delete_Click"><TextBlock Style="{StaticResource T.Icon}" Text="&#xE74D;"/></Button>
+                        </StackPanel>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel x:Name="LayersList" Margin="8,4,8,8"/>
+                        </ScrollViewer>
+                    </DockPanel>
+                    <ScrollViewer x:Name="ThemePanel" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                        <StackPanel x:Name="ThemeEditor" Margin="14,4,14,16"/>
+                    </ScrollViewer>
+                </Grid>
+            </DockPanel>
+        </Border>
+
+        <!-- ================= Center: canvas ================= -->
+        <Grid Grid.Row="1" Grid.Column="1" Background="#07090C">
+            <ScrollViewer x:Name="CanvasScroller" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Focusable="False"
+                          PreviewMouseWheel="CanvasScroller_PreviewMouseWheel">
+                <Grid x:Name="CanvasHost" Margin="48" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Grid.LayoutTransform>
+                        <ScaleTransform x:Name="CanvasScale" ScaleX="1" ScaleY="1"/>
+                    </Grid.LayoutTransform>
+                    <Border x:Name="Bezel" Width="854" Height="480" BorderBrush="#2A323E" BorderThickness="0">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="40" ShadowDepth="0" Opacity="0.6" Color="Black"/>
+                        </Border.Effect>
+                        <Image x:Name="Frame" Width="854" Height="480" Stretch="Fill" RenderOptions.BitmapScalingMode="HighQuality"/>
+                    </Border>
+                    <Canvas x:Name="Overlay" Width="854" Height="480" Background="Transparent" ClipToBounds="False" AllowDrop="True" Focusable="True"
+                            MouseLeftButtonDown="Overlay_MouseLeftButtonDown" MouseMove="Overlay_MouseMove" MouseLeftButtonUp="Overlay_MouseLeftButtonUp"
+                            MouseRightButtonUp="Overlay_MouseRightButtonUp" DragOver="Overlay_DragOver" Drop="Overlay_Drop"/>
+                </Grid>
+            </ScrollViewer>
+
+            <!-- Floating canvas controls -->
+            <Border HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,14" Background="{StaticResource Brush.SurfaceRaised}"
+                    BorderBrush="{StaticResource Brush.BorderStrong}" BorderThickness="1" CornerRadius="10" Padding="6,4">
+                <StackPanel Orientation="Horizontal">
+                    <ToggleButton x:Name="GridToggle" Style="{StaticResource ToolToggle}" Content="Grid" IsChecked="True" ToolTip="Show the layout grid" Click="ViewOption_Click"/>
+                    <ToggleButton x:Name="SnapToggle" Style="{StaticResource ToolToggle}" Content="Snap" IsChecked="True" ToolTip="Snap to the grid, the canvas and other widgets (hold Alt to bypass)" Click="ViewOption_Click"/>
+                    <ToggleButton x:Name="OutlineToggle" Style="{StaticResource ToolToggle}" Content="Outlines" ToolTip="Outline every widget" Click="ViewOption_Click"/>
+                    <Border Width="1" Height="22" Background="{StaticResource Brush.Border}" Margin="4,0,8,0"/>
+                    <Button Style="{StaticResource Tool}" ToolTip="Zoom out (Ctrl+wheel)" Click="ZoomOut_Click"><TextBlock Style="{StaticResource T.Icon}" Text="&#xE71F;"/></Button>
+                    <Button x:Name="ZoomLabel" Style="{StaticResource Tool}" MinWidth="58" ToolTip="Fit to window" Click="ZoomFit_Click" Content="100%"/>
+                    <Button Style="{StaticResource Tool}" ToolTip="Zoom in (Ctrl+wheel)" Click="ZoomIn_Click"><TextBlock Style="{StaticResource T.Icon}" Text="&#xE8A3;"/></Button>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- ================= Right: inspector ================= -->
+        <Border Grid.Row="1" Grid.Column="2" Background="{StaticResource Brush.Sidebar}" BorderBrush="{StaticResource Brush.Border}" BorderThickness="1,0,0,0">
+            <ScrollViewer x:Name="InspectorScroller" VerticalScrollBarVisibility="Auto">
+                <StackPanel x:Name="Inspector" Margin="18,16,18,24"/>
+            </ScrollViewer>
+        </Border>
+
+        <!-- ================= Status bar ================= -->
+        <Border Grid.Row="2" Grid.ColumnSpan="3" Background="{StaticResource Brush.Sidebar}" BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,1,0,0">
+            <DockPanel Margin="14,0">
+                <TextBlock x:Name="CursorText" DockPanel.Dock="Right" Style="{StaticResource T.Caption}" VerticalAlignment="Center" FontFamily="{StaticResource Font.Mono}"/>
+                <TextBlock x:Name="StatusText" Style="{StaticResource T.Caption}" VerticalAlignment="Center"
+                           Text="Drag widgets from Add onto the screen. Arrows nudge, Shift+arrows nudge 10, Ctrl+D duplicates, Alt bypasses snapping."/>
+            </DockPanel>
+        </Border>
+    </Grid>
+</Window>

@@ -1,11 +1,11 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
-using Newtonsoft.Json;
+using System.Web.Script.Serialization;
 
-namespace DV5Direct
+namespace AlmostFastOverlays
 {
     internal static class Disciplines
     {
@@ -32,37 +32,22 @@ namespace DV5Direct
 
     internal static class Layouts
     {
-        public const string Summit = "Summit";
-        public const string Formula = "Formula";
-        public const string Oval = "Oval";
-        public const string Endurance = "Endurance";
-        public static readonly string[] All = { Summit, Formula, Oval, Endurance };
+        /// <summary>Every dashboard is a design stored in <see cref="DashboardSettings.Design"/> and drawn by <see cref="LayoutRenderer"/>.</summary>
+        public const string Custom = "Custom";
 
-        // Layouts from earlier versions; dashboards that used them move to Summit.
-        public static readonly string[] Retired = { "Velocity", "Apex", "Telemetry" };
-
-        public static string Describe(string layout)
-        {
-            switch (layout)
-            {
-                case Formula: return "Wheel-style grid with a big gear and full-width delta bar";
-                case Oval: return "Stock-car ovals: spotter, gaps, lap speed, cautions and fuel to the end";
-                case Endurance: return "Fuel time, stops, stint and lap consistency for long races";
-                default: return "Flagship: shift arc, relative, fuel plan, lap times and pit mode";
-            }
-        }
+        /// <summary>Code-drawn layouts from earlier versions; schema 5 replaces them with the Liquid Glass designs.</summary>
+        public static readonly string[] Retired = { "Summit", "Formula", "Oval", "Endurance", "Velocity", "Apex", "Telemetry" };
     }
 
     internal sealed class AppSettings
     {
-        private static readonly string[] BuiltInIds = { "dashboard-summit", "dashboard-formula", "dashboard-oval", "dashboard-2" };
-        private static readonly string[] RetiredIds = { "dashboard-1", "dashboard-3", "dashboard-telemetry" };
-        private const int CurrentSchema = 4;
+        private const int CurrentSchema = 5;
 
         public int SchemaVersion { get; set; }
-        public string DefaultDashboardId { get; set; } = "dashboard-summit";
+        public string DefaultDashboardId { get; set; } = "dashboard-halo";
         public GeneralSettings General { get; set; } = new GeneralSettings();
         public List<DashboardSettings> Dashboards { get; set; } = new List<DashboardSettings>();
+        public OverlaySettings Overlays { get; set; } = new OverlaySettings();
 
         public static AppSettings CreateDefault()
         {
@@ -70,8 +55,6 @@ namespace DV5Direct
             settings.EnsureBuiltInDashboards();
             return settings;
         }
-
-        public static bool IsBuiltIn(DashboardSettings dashboard) => BuiltInIds.Contains(dashboard?.Id);
 
         public DashboardSettings GetDefaultDashboard()
         {
@@ -91,66 +74,99 @@ namespace DV5Direct
             return Dashboards.FirstOrDefault(d => d.RaceTypes != null && d.RaceTypes.Contains(discipline)) ?? fallback;
         }
 
+        /// <summary>Makes sure there is at least one dashboard and upgrades settings from earlier versions.</summary>
         public void EnsureBuiltInDashboards()
         {
             if (Dashboards == null) Dashboards = new List<DashboardSettings>();
             if (General == null) General = new GeneralSettings();
-            bool upgrading = SchemaVersion < CurrentSchema;
+            if (Overlays == null) Overlays = new OverlaySettings();
+            Overlays.Normalize();
+            Dashboards.RemoveAll(d => d == null);
 
-            if (upgrading)
+            if (SchemaVersion < CurrentSchema)
             {
-                // Version 3 trims the lineup to four dashboards. Track-type
-                // assignments from retired built-ins carry over to their successors.
-                var retired = Dashboards.Where(d => RetiredIds.Contains(d.Id)).ToList();
-                var carriedTypes = retired.SelectMany(d => d.RaceTypes ?? new List<string>()).Distinct().ToList();
-                foreach (DashboardSettings d in retired) Dashboards.Remove(d);
-                foreach (DashboardSettings d in Dashboards.Where(d => Layouts.Retired.Contains(d.Layout))) d.Layout = Layouts.Summit;
-                if (RetiredIds.Contains(DefaultDashboardId)) DefaultDashboardId = "dashboard-summit";
-
-                if (!Dashboards.Any(d => d.Id == "dashboard-summit")) Dashboards.Insert(0, DashboardSettings.CreateSummit());
-                if (!Dashboards.Any(d => d.Id == "dashboard-oval"))
-                {
-                    // New oval dashboard takes over oval tracks from every other dashboard.
-                    foreach (DashboardSettings d in Dashboards)
-                        d.RaceTypes?.RemoveAll(type => type == Disciplines.Oval || type == Disciplines.DirtOval);
-                    Dashboards.Add(DashboardSettings.CreateOval());
-                }
-                DashboardSettings summit = Dashboards.First(d => d.Id == "dashboard-summit");
-                // Summit replaces the old road dashboards, so it inherits their road assignments.
-                foreach (string type in carriedTypes.Where(type => type == Disciplines.Road || type == Disciplines.DirtRoad))
-                    if (!summit.RaceTypes.Contains(type)) summit.RaceTypes.Add(type);
-                // Version 4: two LB-10 bars daisy-chain on one controller, 10 LEDs each.
+                // Two LB-10 bars daisy-chain on one controller, 10 LEDs each.
                 if (SchemaVersion < 4 && General.BrowLedCount == 10) General.BrowLedCount = 20;
+                if (SchemaVersion > 0) ReplaceCodeLayouts();
                 SchemaVersion = CurrentSchema;
             }
 
-            if (!Dashboards.Any(d => d.Id == "dashboard-summit")) Dashboards.Insert(0, DashboardSettings.CreateSummit());
-            if (!Dashboards.Any(d => d.Id == "dashboard-formula")) Dashboards.Insert(Math.Min(1, Dashboards.Count), DashboardSettings.CreateFormula());
-            if (!Dashboards.Any(d => d.Id == "dashboard-oval")) Dashboards.Insert(Math.Min(2, Dashboards.Count), DashboardSettings.CreateOval());
-            if (!Dashboards.Any(d => d.Id == "dashboard-2")) Dashboards.Insert(Math.Min(3, Dashboards.Count), DashboardSettings.CreateEndurance());
-
-            // Built-ins first in a fixed order, then the user's own dashboards.
-            Dashboards = Dashboards.OrderBy(d => IsBuiltIn(d) ? Array.IndexOf(BuiltInIds, d.Id) : BuiltInIds.Length).ToList();
+            if (Dashboards.Count == 0)
+            {
+                Dashboards.Add(DashboardSettings.CreateHalo());
+                Dashboards.Add(DashboardSettings.CreateOval());
+            }
             foreach (DashboardSettings dashboard in Dashboards) dashboard.Normalize();
             if (!Dashboards.Any(d => d.Id == DefaultDashboardId)) DefaultDashboardId = Dashboards[0].Id;
         }
 
-        public DashboardSettings AddDashboard(string layout, DashboardSettings copyFrom = null)
+        /// <summary>
+        /// Schema 5: the code-drawn dashboards are gone. Their track types move to the
+        /// Halo and Oval designs, which are added when the user has no design of that name.
+        /// </summary>
+        private void ReplaceCodeLayouts()
         {
-            DashboardSettings created = copyFrom != null
-                ? SettingsStore.Clone(copyFrom)
-                : DashboardSettings.CreateForLayout(layout);
+            var retired = Dashboards.Where(d => d.Layout != Layouts.Custom).ToList();
+            if (retired.Count == 0) return;
+            var orphanTypes = retired.SelectMany(d => d.RaceTypes ?? new List<string>()).Distinct().ToList();
+            bool defaultRetired = retired.Any(d => d.Id == DefaultDashboardId);
+            foreach (DashboardSettings d in retired) Dashboards.Remove(d);
+
+            DashboardSettings Ensure(string name, Func<DashboardSettings> create)
+            {
+                DashboardSettings found = Dashboards.FirstOrDefault(d => string.Equals(d.Name, name, StringComparison.OrdinalIgnoreCase));
+                if (found != null) return found;
+                found = create();
+                found.RaceTypes = new List<string>();
+                if (Dashboards.Any(d => d.Id == found.Id)) found.Id = NextId();
+                Dashboards.Add(found);
+                return found;
+            }
+
+            // A new Oval design takes over the oval tracks, as the old Oval layout did.
+            if (!Dashboards.Any(d => string.Equals(d.Name, "Oval", StringComparison.OrdinalIgnoreCase)))
+            {
+                foreach (DashboardSettings d in Dashboards)
+                    d.RaceTypes?.RemoveAll(type => type == Disciplines.Oval || type == Disciplines.DirtOval);
+                Ensure("Oval", DashboardSettings.CreateOval).RaceTypes.AddRange(new[] { Disciplines.Oval, Disciplines.DirtOval });
+            }
+
+            foreach (string type in orphanTypes.Where(type => !Dashboards.Any(d => d.RaceTypes != null && d.RaceTypes.Contains(type))))
+            {
+                bool oval = type == Disciplines.Oval || type == Disciplines.DirtOval;
+                DashboardSettings target = oval ? Ensure("Oval", DashboardSettings.CreateOval) : Ensure("Halo", DashboardSettings.CreateHalo);
+                target.RaceTypes.Add(type);
+            }
+            if (Dashboards.Count == 0) return;
+            if (defaultRetired) DefaultDashboardId = (Dashboards.FirstOrDefault(d => d.Name == "Halo") ?? Dashboards[0]).Id;
+        }
+
+        /// <summary>Adds a copy of a dashboard, or a new one from a template.</summary>
+        public DashboardSettings AddDashboard(DashboardSettings copyFrom)
+        {
+            DashboardSettings created = SettingsStore.Clone(copyFrom);
             created.Id = NextId();
-            created.Name = UniqueName(copyFrom != null ? copyFrom.Name + " copy" : created.Name);
+            created.Name = UniqueName(copyFrom.Name + " copy");
             created.RaceTypes = new List<string>();
             Dashboards.Add(created);
             return created;
         }
 
+        /// <summary>Adds a designed dashboard started from a template.</summary>
+        public DashboardSettings AddDesignedDashboard(DesignTemplate template, string name = null)
+        {
+            DashboardSettings created = DashboardSettings.CreateDesigned(template);
+            created.Id = NextId();
+            created.Name = UniqueName(name ?? template.Name);
+            created.RaceTypes = new List<string>();
+            Dashboards.Add(created);
+            return created;
+        }
+
+        /// <summary>Puts a dashboard's classic light settings back to their defaults.</summary>
         public void ResetDashboard(DashboardSettings dashboard)
         {
-            DashboardSettings factory = BuiltInFactory(dashboard.Id) ?? DashboardSettings.CreateForLayout(dashboard.Layout);
-            dashboard.AccentColor = factory.AccentColor;
+            DashboardSettings factory = dashboard.Name == "Oval" ? DashboardSettings.CreateOval() : DashboardSettings.CreateHalo();
             dashboard.CenterLeds = factory.CenterLeds;
             dashboard.LeftLeds = factory.LeftLeds;
             dashboard.RightLeds = factory.RightLeds;
@@ -158,23 +174,12 @@ namespace DV5Direct
             dashboard.Alerts = factory.Alerts;
         }
 
+        /// <summary>Removes a dashboard; the last one can't be removed.</summary>
         public bool RemoveDashboard(DashboardSettings dashboard)
         {
-            if (IsBuiltIn(dashboard) || !Dashboards.Remove(dashboard)) return false;
+            if (Dashboards.Count <= 1 || !Dashboards.Remove(dashboard)) return false;
             if (DefaultDashboardId == dashboard.Id) DefaultDashboardId = Dashboards[0].Id;
             return true;
-        }
-
-        private static DashboardSettings BuiltInFactory(string id)
-        {
-            switch (id)
-            {
-                case "dashboard-summit": return DashboardSettings.CreateSummit();
-                case "dashboard-formula": return DashboardSettings.CreateFormula();
-                case "dashboard-oval": return DashboardSettings.CreateOval();
-                case "dashboard-2": return DashboardSettings.CreateEndurance();
-                default: return null;
-            }
         }
 
         private string NextId()
@@ -206,37 +211,61 @@ namespace DV5Direct
         public string BrowPort { get; set; } = "COM6";
         /// <summary>Total LEDs across all chained bars; two LB-10s make 20 (left bar first).</summary>
         public int BrowLedCount { get; set; } = 20;
+        /// <summary>
+        /// Sends each LED frame as one packet instead of one packet per colour run.
+        /// Much faster, but off until confirmed on the hardware with the LED test.
+        /// </summary>
+        public bool FastLedUpdates { get; set; }
     }
 
     internal sealed class DashboardSettings
     {
-        public string Id { get; set; } = "dashboard-summit";
-        public string Name { get; set; } = "Summit";
-        public string Layout { get; set; } = Layouts.Summit;
+        public string Id { get; set; } = "dashboard-new";
+        public string Name { get; set; } = "Dashboard";
+        public string Layout { get; set; } = Layouts.Custom;
         public List<string> RaceTypes { get; set; } = new List<string>();
-        public string AccentColor { get; set; } = "#2DD4BF";
+        public string AccentColor { get; set; } = "#22D3EE";
         public LedBankSettings CenterLeds { get; set; } = new LedBankSettings();
         public SideLedSettings LeftLeds { get; set; } = new SideLedSettings();
         public SideLedSettings RightLeds { get; set; } = new SideLedSettings();
         public BrowLedSettings BrowLeds { get; set; }
         public AlertSettings Alerts { get; set; } = new AlertSettings();
+        /// <summary>The dashboard's design: screens of widgets, drawn by <see cref="LayoutRenderer"/>.</summary>
+        public DashLayout Design { get; set; }
+        /// <summary>Layered light profile; null keeps the classic light settings above.</summary>
+        public LightProfile Lights { get; set; }
 
-        public static DashboardSettings CreateForLayout(string layout)
+        /// <summary>A new dashboard started from a template.</summary>
+        public static DashboardSettings CreateDesigned(DesignTemplate template)
         {
-            switch (layout)
-            {
-                case Layouts.Formula: return CreateFormula();
-                case Layouts.Oval: return CreateOval();
-                case Layouts.Endurance: return CreateEndurance();
-                default: return CreateSummit();
-            }
+            DashboardSettings created = Create("dashboard-new", template.Name, template.Accent, "Edges to center", BrowFunctions.Shift);
+            created.Design = template.Create();
+            return created;
         }
 
-        private static DashboardSettings Create(string id, string name, string layout, string accent, string pattern, string brow, params string[] raceTypes) => new DashboardSettings
+        /// <summary>The default road dashboard.</summary>
+        public static DashboardSettings CreateHalo()
+        {
+            DashboardSettings halo = Create("dashboard-halo", "Halo", "#22D3EE", "Edges to center", BrowFunctions.Shift, Disciplines.Road, Disciplines.DirtRoad);
+            halo.Design = DesignTemplates.Find("halo").Create();
+            halo.Lights = LightPresets.Refined();
+            return halo;
+        }
+
+        /// <summary>The default oval dashboard.</summary>
+        public static DashboardSettings CreateOval()
+        {
+            DashboardSettings oval = Create("dashboard-oval", "Oval", "#FFB020", "Edges to center", BrowFunctions.BlindSpot, Disciplines.Oval, Disciplines.DirtOval);
+            oval.Design = DesignTemplates.Find("oval").Create();
+            oval.Lights = LightPresets.SpotterFocus();
+            return oval;
+        }
+
+        private static DashboardSettings Create(string id, string name, string accent, string pattern, string brow, params string[] raceTypes) => new DashboardSettings
         {
             Id = id,
             Name = name,
-            Layout = layout,
+            Layout = Layouts.Custom,
             AccentColor = accent,
             RaceTypes = raceTypes.ToList(),
             CenterLeds = LedBankSettings.CreateShiftLights(pattern),
@@ -245,35 +274,26 @@ namespace DV5Direct
             BrowLeds = BrowLedSettings.CreateDefault(brow)
         };
 
-        public static DashboardSettings CreateSummit() =>
-            Create("dashboard-summit", "Summit", Layouts.Summit, "#2DD4BF", "Edges to center", BrowFunctions.Shift, Disciplines.Road, Disciplines.DirtRoad);
-
-        public static DashboardSettings CreateFormula() =>
-            Create("dashboard-formula", "Formula", Layouts.Formula, "#38BDF8", "Left to right", BrowFunctions.Shift);
-
-        public static DashboardSettings CreateOval() =>
-            Create("dashboard-oval", "Oval", Layouts.Oval, "#FFB020", "Edges to center", BrowFunctions.BlindSpot, Disciplines.Oval, Disciplines.DirtOval);
-
-        public static DashboardSettings CreateEndurance() =>
-            Create("dashboard-2", "Endurance", Layouts.Endurance, "#27C7D9", "Left to right", BrowFunctions.Delta);
-
         public void Normalize()
         {
-            if (!Layouts.All.Contains(Layout)) Layout = Layouts.Summit;
-            if (string.IsNullOrWhiteSpace(Name)) Name = Layout;
+            Layout = Layouts.Custom;
+            if (string.IsNullOrWhiteSpace(Name)) Name = "Dashboard";
             if (RaceTypes == null) RaceTypes = new List<string>();
             if (CenterLeds == null) CenterLeds = LedBankSettings.CreateShiftLights("Edges to center");
             if (LeftLeds == null) LeftLeds = SideLedSettings.CreateDefault();
             if (RightLeds == null) RightLeds = SideLedSettings.CreateDefault();
-            if (BrowLeds == null) BrowLeds = BrowLedSettings.CreateDefault(Layout == Layouts.Oval ? BrowFunctions.BlindSpot : BrowFunctions.Shift);
+            if (BrowLeds == null) BrowLeds = BrowLedSettings.CreateDefault(BrowFunctions.Shift);
             if (!BrowFunctions.All.Contains(BrowLeds.Function)) BrowLeds.Function = BrowFunctions.Shift;
             if (Alerts == null) Alerts = new AlertSettings();
+            if (Design == null) Design = DesignTemplates.Blank();
+            Design.Normalize();
+            Lights?.Normalize();
             // "Red" was an early side-light profile; it has always meant one color.
             foreach (LedBankSettings bank in new LedBankSettings[] { CenterLeds, LeftLeds, RightLeds, BrowLeds })
                 if (bank.ColorProfile == "Red") bank.ColorProfile = LedProfiles.Single;
         }
 
-        [JsonIgnore]
+        [ScriptIgnore]
         public Color Accent => SettingsStore.ParseColor(AccentColor, Color.FromArgb(0, 155, 210));
     }
 
@@ -392,7 +412,7 @@ namespace DV5Direct
             {
                 if (File.Exists(FilePath))
                 {
-                    var loaded = JsonConvert.DeserializeObject<AppSettings>(File.ReadAllText(FilePath));
+                    var loaded = Json.Deserialize<AppSettings>(File.ReadAllText(FilePath));
                     if (loaded != null)
                     {
                         int schema = loaded.SchemaVersion;
@@ -412,7 +432,7 @@ namespace DV5Direct
         public static void Save(AppSettings settings)
         {
             string temporary = FilePath + ".tmp";
-            File.WriteAllText(temporary, JsonConvert.SerializeObject(settings, Formatting.Indented));
+            File.WriteAllText(temporary, Indent(Json.Serialize(settings)));
             if (File.Exists(FilePath)) File.Replace(temporary, FilePath, null);
             else File.Move(temporary, FilePath);
         }
@@ -423,7 +443,47 @@ namespace DV5Direct
             catch { return DateTime.MinValue; }
         }
 
-        public static T Clone<T>(T value) => JsonConvert.DeserializeObject<T>(JsonConvert.SerializeObject(value));
+        public static T Clone<T>(T value) => Json.Deserialize<T>(Json.Serialize(value));
+
+        public static string ToJson(object value) => Json.Serialize(value);
+
+        // Designs can embed images, so allow large settings files.
+        private static JavaScriptSerializer Json => new JavaScriptSerializer { MaxJsonLength = int.MaxValue, RecursionLimit = 256 };
+
+        /// <summary>Lays out compact JSON with two-space indents so settings.json stays readable.</summary>
+        private static string Indent(string json)
+        {
+            var output = new System.Text.StringBuilder(json.Length * 2);
+            int depth = 0;
+            bool quoted = false;
+            for (int i = 0; i < json.Length; i++)
+            {
+                char c = json[i];
+                if (quoted)
+                {
+                    output.Append(c);
+                    if (c == '\\' && i + 1 < json.Length) output.Append(json[++i]);
+                    else if (c == '"') quoted = false;
+                    continue;
+                }
+                switch (c)
+                {
+                    case '"': quoted = true; output.Append(c); break;
+                    case '{':
+                    case '[':
+                        output.Append(c);
+                        if (i + 1 < json.Length && (json[i + 1] == '}' || json[i + 1] == ']')) { output.Append(json[++i]); break; }
+                        output.AppendLine().Append(' ', ++depth * 2);
+                        break;
+                    case '}':
+                    case ']': output.AppendLine().Append(' ', --depth * 2).Append(c); break;
+                    case ',': output.Append(c).AppendLine().Append(' ', depth * 2); break;
+                    case ':': output.Append(": "); break;
+                    default: output.Append(c); break;
+                }
+            }
+            return output.ToString();
+        }
 
         public static Color ParseColor(string value, Color fallback)
         {

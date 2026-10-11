@@ -1,6 +1,8 @@
-# DV5Direct
+# Almost Fast Overlays
 
-Double-click `App\DV5Direct.exe` to open the settings app. The same
+(Formerly DV5Direct.)
+
+Double-click `App\AlmostFastOverlays.exe` to open the settings app. The same
 executable runs the dashboard with `--run`; the Windows Startup shortcut uses
 that quiet mode automatically. Preferences are stored in `App\settings.json`
 and save automatically as you edit.
@@ -20,22 +22,128 @@ The settings app has three areas:
 
 ## Dashboards
 
-All four share one design kit (`DashKit.cs`): Bahnschrift numerals, soft
-panels, color-coded values and a common flag screen.
+Every dashboard is a design made in the dashboard designer, in one Liquid Glass
+style shared with the overlays: frosted panels over an aurora background, a
+header hung from angled hairlines, readouts on glass tiles and a glowing delta
+badge. Two come with the app:
 
-- **Summit** – flagship for road and GT: RPM arc and pedal arc around the gear,
-  five-car relative with license and iRating, fuel plan with a range bar,
-  last/best/predicted laps, delta with a bar, temperatures. On pit road the
-  center becomes a pit-speed gauge.
-- **Formula** – wheel-style grid: current lap, RPM, incidents, position block,
-  speed, gaps, big gear, fuel, laps of fuel, lap counter, brake bias and a
-  full-width delta bar.
-- **Oval** – for stock cars: spotter with cars drawn alongside (car left, car
-  right, three wide), gaps with car numbers, lap time and average lap speed,
-  positions gained since the start, caution and white-flag banners, and
-  whether the fuel makes it to the end.
-- **Endurance** – fuel time, stops needed and refuel amount, stint length,
-  last five laps with pace bars, and car settings.
+- **Halo** (road and dirt road, the default) – the gear inside a halo of rev
+  lights; last, best and predicted laps on the left, fuel, laps of fuel and the
+  refuel amount on the right; TC/ABS/bias/incidents in the top notch; the car
+  behind bottom-left and the car ahead bottom-right. On pit road the ring becomes
+  a pit-speed gauge.
+- **Oval** (oval and dirt oval) – a glass spotter dial with your car and cars
+  alongside (car left, car right, three wide) and the spotter's call; the car
+  behind and ahead with gaps; last/best/current lap and lap speed; laps of fuel
+  and whether you make the finish; laps to go and places gained since the start.
+
+Both are ordinary designs: open them in the designer to change anything, or
+start new ones from **New dashboard** (Halo, Oval or a blank canvas).
+## App layout
+
+The app has four sections: **Dashboards** (the DV-5 screen designs and their
+lights), **Overlays** (on-monitor overlays), **Devices** (DV-5 screen and LEDs,
+LB-10 light bar, fast LED updates) and **Settings** (units, startup, diagnostics).
+On Windows 11 the windows use the acrylic glass backdrop.
+
+Every section works the same way. Dashboards and Overlays list their items under
+them in the sidebar; the section itself opens an overview of cards, and an item
+opens its own page with a "‹ All …" link back. The header has one control for each
+thing that runs on its own (the DV-5 dashboard and the overlays): its state, then
+start or stop. Everything saves as you go, including the screen and light
+designers; there is no Save button anywhere.
+
+While iRacing isn't running, the dashboard checks the screen 4 times a second and
+the lights run at 10 frames a second, instead of 20 and 60.
+
+## Overlays
+
+On-monitor overlays run in their own process (`--overlays`, stopped with
+`--stop-overlays`), so a problem there can never affect the wheel. They are
+transparent, always on top and click-through; **Arrange on screen** unlocks them
+to drag into place (positions are kept in `App\overlay-positions.json`). Run
+iRacing in borderless window mode so they can sit over the game.
+
+**Standings** is a multiclass leaderboard: classes fastest first, each with its
+car count and strength of field; the class leaders, the cars around you and the
+top of every other class; position, driver, license and iRating, car make,
+places gained, gap, interval, best and last lap (class-fastest in purple,
+personal best in green), and pit, out-lap and fastest-lap badges. Rows slide to
+new places when positions change, and the position flashes green or red.
+
+**Relative** uses the same glass table for the cars nearest you on track: class
+position, car number in the class colour, driver, license and iRating, and the
+gap in seconds. Cars lapping you are red and cars you're lapping are blue; rows
+slide as cars pass.
+
+On both tables every column can be dragged into a new order in the settings, and
+each has a **Header** chip that shows its label in a header row above the table.
+
+**Toasts** are race events as glass cards in the middle of the screen: ▲ 1 with
+your new position and the car you passed (▼ when you're passed), and incident
+points – 4x Contact w/ the nearest driver, 2x Loss of control, 1x Off track.
+Place changes wait a moment to settle; iRacing doesn't say who you hit, so the
+contact name is the closest car on track at the time.
+Code: `Overlays\`.
+
+## Light layers
+
+Each dashboard can use a layered light profile instead of the classic light
+settings: layers with an effect (car-accurate rev lights, meters, blink, breathe,
+sweep, flags, blind spot...), a set of LEDs, a Show-when condition and a blend
+mode, top of the list winning. LEDs run on their own loop at up to 60 frames a
+second with gamma and fade-out. Open **Light designer** from a dashboard's page.
+Code: `Lights\`.
+
+## Dashboard designer
+
+Designed dashboards are data, not code: a theme plus one or more screens of
+widgets, stored in `settings.json` (code in `Designer\`).
+
+Start one from **New dashboard** (pick Halo, Oval or a blank canvas), or press
+**Design** on any dashboard. Panels default to the **Liquid** glass style and
+backgrounds to **Aurora**.
+
+- **Canvas** – the DV-5 screen at 854×480. Drag to move, use the handles to
+  resize (Shift keeps proportions), drag across empty space to select several.
+  Snapping lines up edges and centers with the screen and other widgets; Alt
+  turns it off. Ctrl+wheel zooms.
+- **Add** – 16 widget types (panel, text, value, gear, bar, arc gauge, on-screen
+  shift lights, relative, blind spot, flag, session progress, pedal trace, delta
+  trace, lap history, shape, gradient, image) and ready-made blocks (stat card,
+  glass card, gear cluster, delta card, fuel card, lap times, relative card, car
+  settings strip, LED strip, spotter bars, low-fuel warning, pit limiter banner,
+  session header). Select widgets and right-click › **Save as reusable block**
+  to add your own (stored in `App\Blocks`).
+- **Layers** – stacking order (drag to reorder), hide, lock and rename.
+- **Theme** – presets (Midnight, Carbon, Deep ocean, Neon, Le Mans, Daylight),
+  accent, font, background style and every theme color. Widgets that use theme
+  colors (`accent`, `panel`, `good`...) restyle together.
+- **Inspector** – every property of the selected widget. The **ƒx** button turns
+  any property into a live formula; **Show when** hides or shows a widget by
+  condition. The + button beside a formula lists every data field (with its
+  current value), every function, and ready-made recipes.
+- **Screens** – a design can have several screens. One with a condition (such as
+  `OnPitRoad` or `Caution`) takes over while it is true.
+- **Preview** – an animated lap, live iRacing data, or fixed states (shift point,
+  pit lane, cars alongside, not connected, each flag). **Live on DV-5** saves
+  every change so a running dashboard updates within a second.
+- **Undo/redo**, copy/paste, duplicate, align and distribute, keyboard nudging.
+- **Export / Import** share a design as one `.afodash` file, images included.
+
+Formulas read like `FuelLapsLeft < 2 ? $bad : $text`. They support
+`+ - * / %`, comparisons, `and or not`, `cond ? a : b`, text in quotes, colors
+as `#RRGGBB` or theme colors such as `$accent`, about 80 data fields and
+functions including `format`, `laptime`, `signed`, `fuel`, `gear`, `clock`,
+`time`, `steps`, `deltacolor`, `alpha`, `mix`, `blink`, `clamp` and `norm`.
+
+On the device, a designed dashboard redraws only when something it shows
+changes. Everything that never changes is drawn once into a cached base image,
+so Halo and Oval draw in about 10–12 ms.
+
+`--render-templates <folder>` writes every template as PNGs.
+`--designer-selftest <report.txt>` runs the designer's end-to-end checks; it
+saves into the settings next to the exe, so run it from a copy.
 
 ## LB-10 brow light bar
 
@@ -65,15 +173,15 @@ It currently:
 - shows session progress in a slim white strip at the top of the screen;
 - does not modify or flash device firmware.
 
-SimHub must be closed while this program runs because both programs require exclusive access to the screen. DV5Direct now runs until stopped, reconnects automatically when the DV-5 is unplugged and restored, and continues waiting when iRacing closes or changes sessions.
+Only one program can drive the DV-5 at a time, so close any other dashboard software while this runs. Almost Fast Overlays runs until stopped, reconnects automatically when the DV-5 is unplugged and restored, and continues waiting when iRacing closes or changes sessions.
 
-On a normal shutdown, DV5Direct sends a black frame before releasing the display so the controller does not retain the last dashboard or flag image.
+On a normal shutdown, Almost Fast Overlays sends a black frame before releasing the display so the controller does not retain the last dashboard or flag image.
 
-Build and run from an x86-capable Windows shell:
+Build (needs the .NET SDK; the result needs only Windows) and run:
 
 ```powershell
 dotnet build -c Release
-& '.\bin\Release\net48\DV5Direct.exe'
+& '.\bin\Release\net48\AlmostFastOverlays.exe'
 ```
 
 Press Ctrl+C for a clean shutdown. Use `--seconds 120` for a time-limited run.
@@ -98,7 +206,7 @@ The upper RPM LEDs fill from both outside edges toward the center. At iRacing's 
 
 The screen's upper strip shrinks as time expires in timed races, fills equal lap blocks from left to right in lap-count races, and displays remaining time as text during practice and other non-race sessions.
 
-The Endurance dashboard tracks fuel used on each clean lap (laps that touch pit road or include a refuel are skipped) and averages the last five. From that it shows laps of fuel left, laps to go (estimated from average lap time in timed races), fuel to add to reach the finish, brake bias, stint length since the last pit stop, and a bar chart of the last five lap times.
+Fuel figures come from fuel used on each clean lap (laps that touch pit road or include a refuel are skipped) and averages the last five. From that it shows laps of fuel left, laps to go (estimated from average lap time in timed races), fuel to add to reach the finish, brake bias, stint length since the last pit stop, and a bar chart of the last five lap times.
 
 Speed can be shown in MPH or km/h and fuel in liters or gallons on every dashboard.
 
@@ -120,6 +228,20 @@ Compact radar diagnostics are stored in the `Logs` folder next to the executable
 
 ## Auto-start
 
-Run `Install-Autostart.ps1` once to build a compact Windows application under this project's `App` folder, add it to the current Windows user's Startup folder, and create desktop and Start Menu shortcuts. Diagnostics are stored under `App\Logs`, keeping the application data inside the DV5Direct folder. All shortcuts target the windowless executable directly; Windows Script Host is not used. The Start Menu also receives `Stop DV5Direct`, which requests a clean shutdown and clears the LCD. Run `Remove-Autostart.ps1` to remove the shortcuts. Only one DV5Direct instance is allowed at a time.
+Run `Install-Autostart.ps1` once to build a compact Windows application under this project's `App` folder, add it to the current Windows user's Startup folder, and create desktop and Start Menu shortcuts. Diagnostics are stored under `App\Logs`, keeping the application data inside the project folder. All shortcuts target the windowless executable directly; Windows Script Host is not used. The Start Menu also receives `Stop Almost Fast Overlays`, which requests a clean shutdown and clears the LCD. Run `Remove-Autostart.ps1` to remove the shortcuts. Only one Almost Fast Overlays instance is allowed at a time.
 
-The proof currently references display-driver assemblies from the local SimHub installation. Replacing or isolating that dependency is a later packaging decision; it is intentionally outside this first four-step milestone.
+## Standalone
+
+`AlmostFastOverlays.exe` is the whole application: one file, about 230 KB, with
+no DLLs beside it and nothing else to install. It targets .NET Framework 4.8,
+which is part of Windows 10 and 11, and references only Windows' own assemblies.
+
+- The DV-5 screen (USB `C872:1004`) is driven directly through Windows' built-in
+  WinUSB driver (`Dv5Screen.cs`).
+- iRacing telemetry is read straight from iRacing's shared memory, including its
+  session YAML (`IRacingSdk.cs`).
+- The DV-5 and LB-10 LEDs use serial ports (`Dv5LedController.cs`).
+- Settings use Windows' built-in JSON serializer.
+
+Copy the exe to any folder and run it; `settings.json` and `Logs` are created
+next to it.

@@ -1,5 +1,12 @@
+﻿# Build output
 bin/
 obj/
-App/
-*.user
 .vs/
+*.user
+
+# The installed app: settings.json (your ports and dashboards), logs, run-state files
+App/
+
+# Local backups (settings copies, zips); old code lives in git history instead
+Backups/
+*.zip

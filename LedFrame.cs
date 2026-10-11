@@ -1,7 +1,7 @@
-using System;
+﻿using System;
 using System.Drawing;
 
-namespace DV5Direct
+namespace AlmostFastOverlays
 {
     internal static class LedFunctions
     {
@@ -64,7 +64,7 @@ namespace DV5Direct
         {
             var frame = new Color[Count];
             for (int i = 0; i < Count; i++) frame[i] = Color.Black;
-            settings = settings ?? DashboardSettings.CreateSummit();
+            settings = settings ?? DashboardSettings.CreateHalo();
             int rpmPairs = (int)Math.Ceiling(Clamp01(input.ShiftPct) * 4);
             ComposeSide(frame, true, input.Left, rpmPairs, input, settings.LeftLeds);
             ComposeSide(frame, false, input.Right, rpmPairs, input, settings.RightLeds);

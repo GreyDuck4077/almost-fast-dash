@@ -1,22 +1,25 @@
-using System;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Diagnostics;
 using System.Windows;
 
-namespace DV5Direct
+namespace AlmostFastOverlays
 {
     internal static class Program
     {
         private const int RefreshIntervalMilliseconds = 50;
+        /// <summary>How often the screen is checked while iRacing isn't running; the waiting screen barely changes.</summary>
+        private const int IdleRefreshMilliseconds = 250;
         private const int ReconnectDelayMilliseconds = 2000;
         private const int GearTransitionMilliseconds = 420;
         private const int GearTransitionFrames = 14;
         private const string DefaultLedPort = "COM7";
         private static readonly ManualResetEventSlim StopRequested = new ManualResetEventSlim(false);
         private static readonly EventWaitHandle StopSignal = new EventWaitHandle(
-            false, EventResetMode.AutoReset, @"Local\DV5Direct.StopRequested");
+            false, EventResetMode.AutoReset, @"Local\AlmostFastOverlays.StopRequested");
         private static readonly string StopRequestPath = Path.Combine(
             AppDomain.CurrentDomain.BaseDirectory, "stop.request");
         internal static readonly string DashboardStatusPath = Path.Combine(
@@ -37,10 +40,25 @@ namespace DV5Direct
                 return 0;
             }
 
-            if (args.Contains("--brow-test")) return BrowTest(ParseRunSeconds(args) ?? 60);
+            if (args.Contains("--stop-overlays"))
+            {
+                OverlayHost.RequestStop();
+                return 0;
+            }
+            if (args.Contains("--overlays")) return RunOverlays();
+
+            if (args.Contains("--brow-test")) return BrowTest(ParseRunSeconds(args) ?? 60, int.TryParse(ParseOption(args, "--leds"), out int testLeds) ? testLeds : 0);
 
             string previewDirectory = ParseOption(args, "--render-previews");
             if (previewDirectory != null) return RenderPreviews(previewDirectory);
+            string templateDirectory = ParseOption(args, "--render-templates");
+            if (templateDirectory != null) return RenderTemplates(templateDirectory);
+            string flagDirectory = ParseOption(args, "--render-flags");
+            if (flagDirectory != null) return RenderFlags(flagDirectory);
+            string selfTestReport = ParseOption(args, "--designer-selftest");
+            if (selfTestReport != null) return DesignerSelfTest(selfTestReport);
+            string uiScenario = ParseOption(args, "--ui-snapshot");
+            if (uiScenario != null) return UiSnapshot(uiScenario, ParseOption(args, uiScenario) ?? "ui.png");
 
             bool explicitDashboardMode = args.Contains("--run") || args.Contains("--demo") ||
                 args.Contains("--preview") || args.Contains("--preview-timed") || args.Contains("--seconds") ||
@@ -56,12 +74,12 @@ namespace DV5Direct
                     // Keep the settings window alive and leave a trace instead of vanishing.
                     try { File.AppendAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings-error.txt"), DateTime.Now + Environment.NewLine + e.Exception + Environment.NewLine); }
                     catch { }
-                    MessageBox.Show(e.Exception.Message, "DV5 Direct", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(e.Exception.Message, "Almost Fast Overlays", MessageBoxButton.OK, MessageBoxImage.Warning);
                     e.Handled = true;
                 };
                 application.Resources.MergedDictionaries.Add(new ResourceDictionary
                 {
-                    Source = new Uri("pack://application:,,,/DV5Direct;component/Theme.xaml")
+                    Source = new Uri("pack://application:,,,/AlmostFastOverlays;component/Theme.xaml")
                 });
                 application.Run(new SettingsWindow());
                 return 0;
@@ -69,10 +87,10 @@ namespace DV5Direct
 
             if (File.Exists(StopRequestPath)) File.Delete(StopRequestPath);
 
-            _instanceMutex = new Mutex(true, @"Local\DV5Direct.SingleInstance", out bool ownsMutex);
+            _instanceMutex = new Mutex(true, @"Local\AlmostFastOverlays.SingleInstance", out bool ownsMutex);
             if (!ownsMutex)
             {
-                Console.Error.WriteLine("DV5Direct is already running.");
+                Console.Error.WriteLine("Almost Fast Overlays is already running.");
                 _instanceMutex.Dispose();
                 return 2;
             }
@@ -87,14 +105,14 @@ namespace DV5Direct
             bool demoMode = args.Contains("--demo");
             bool previewMode = args.Contains("--preview");
             bool timedPreviewMode = args.Contains("--preview-timed");
-            Console.WriteLine("DV-5 Direct");
-            Console.WriteLine("Close SimHub before running so it does not compete for the device.");
+            Console.WriteLine("Almost Fast Overlays");
+            Console.WriteLine("Close other dashboard software before running so it does not compete for the device.");
 
             Console.CancelKeyPress += OnCancelKeyPress;
 
             string captureDashboardId = ParseOption(args, "--capture-dashboard");
             var runtime = new DashboardRuntime(captureDashboardId);
-            string ledPort = ParseOption(args, "--led-port") ?? runtime.Settings.General.LedPort ?? DefaultLedPort;
+            string ledPort = ParseOption(args, "--led-port");
             bool logging = runtime.Settings.General.DiagnosticsEnabled && !args.Contains("--no-logging");
             using (runtime)
             using (var diagnostics = new DiagnosticLogger(logging))
@@ -141,7 +159,20 @@ namespace DV5Direct
                         ? DateTime.UtcNow.AddSeconds(runSeconds.Value)
                         : (DateTime?)null;
 
+                    // Overlays can ride along with the dashboard; they stop when it stops.
+                    bool startedOverlays = false;
+                    if (!demoMode && !previewMode && !timedPreviewMode && runtime.Settings.Overlays.StartWithDashboard && !OverlayHost.IsRunning())
+                    {
+                        try
+                        {
+                            Process.Start(new ProcessStartInfo(Process.GetCurrentProcess().MainModule.FileName, "--overlays") { UseShellExecute = false, WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory });
+                            startedOverlays = true;
+                        }
+                        catch (Exception exception) { Console.Error.WriteLine("Overlays did not start: " + exception.Message); }
+                    }
+
                     RunDashboard(telemetry, runtime, finishAt, ledPort);
+                    if (startedOverlays) OverlayHost.RequestStop();
 
                     Console.WriteLine("Dashboard stopped cleanly.");
                     return 0;
@@ -175,12 +206,12 @@ namespace DV5Direct
         /// Holds blocks of ten colors on the brow light bars (red, green, blue,
         /// white) so the number of chained bars and their order can be read by eye.
         /// </summary>
-        private static int BrowTest(int seconds)
+        private static int BrowTest(int seconds, int ledCount)
         {
             GeneralSettings general = SettingsStore.Load().General;
             string port = DevicePorts.Resolve(general.BrowPort, DevicePorts.LightBar);
             System.Drawing.Color[] blocks = { System.Drawing.Color.Red, System.Drawing.Color.Lime, System.Drawing.Color.Blue, System.Drawing.Color.White };
-            var frame = new System.Drawing.Color[40];
+            var frame = new System.Drawing.Color[Math.Max(2, Math.Min(40, ledCount > 0 ? ledCount : general.BrowLedCount))];
             for (int i = 0; i < frame.Length; i++)
                 frame[i] = System.Drawing.Color.FromArgb(blocks[i / 10].R * 6 / 10, blocks[i / 10].G * 6 / 10, blocks[i / 10].B * 6 / 10);
             try
@@ -223,11 +254,9 @@ namespace DV5Direct
             {
                 using (var frame = DashboardRendererFactory.RenderPreview(dashboard, units))
                     frame.Save(Path.Combine(directory, dashboard.Name + ".png"), System.Drawing.Imaging.ImageFormat.Png);
-                if (dashboard.Layout == Layouts.Oval)
-                    using (var spotter = DashboardRendererFactory.RenderPreview(dashboard, units, IRacingTelemetrySource.CreateSpotterPreviewSnapshot()))
-                        spotter.Save(Path.Combine(directory, dashboard.Name + " - Cars alongside.png"), System.Drawing.Imaging.ImageFormat.Png);
-                if (dashboard.Layout == Layouts.Summit)
-                    using (var pit = DashboardRendererFactory.RenderPreview(dashboard, units, IRacingTelemetrySource.CreatePitLanePreviewSnapshot()))
+                using (var spotter = DashboardRendererFactory.RenderPreview(dashboard, units, IRacingTelemetrySource.CreateSpotterPreviewSnapshot()))
+                    spotter.Save(Path.Combine(directory, dashboard.Name + " - Cars alongside.png"), System.Drawing.Imaging.ImageFormat.Png);
+                using (var pit = DashboardRendererFactory.RenderPreview(dashboard, units, IRacingTelemetrySource.CreatePitLanePreviewSnapshot()))
                         pit.Save(Path.Combine(directory, dashboard.Name + " - Pit lane.png"), System.Drawing.Imaging.ImageFormat.Png);
             }
             using (var flag = DashboardRendererFactory.RenderPreview(
@@ -236,12 +265,208 @@ namespace DV5Direct
             return 0;
         }
 
+        /// <summary>
+        /// Opens a window in a scripted state and saves a screenshot of it, for checking
+        /// the UI without a person at the screen. Nothing is saved to settings.
+        /// </summary>
+        private static int UiSnapshot(string scenario, string output)
+        {
+            if (!Path.IsPathRooted(output)) output = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, output);
+            var application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+            application.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("pack://application:,,,/AlmostFastOverlays;component/Theme.xaml") });
+            Window window;
+            if (scenario.StartsWith("standings") || scenario.StartsWith("relative") || scenario.StartsWith("toasts"))
+            {
+                string type = scenario.StartsWith("relative") ? "relative" : scenario.StartsWith("toasts") ? "toasts" : "standings";
+                var config = new OverlayConfig { Enabled = true, Id = type, Type = type };
+                if (scenario.Contains("all")) foreach (string key in new[] { "colGained", "colInterval" }) config.Set(key, "true");
+                if (scenario.Contains("headers"))
+                    foreach (OverlayOption option in OverlayTypes.Find(type).Options.Where(o => o.Inline)) config.Set(option.Key, "true");
+                if (scenario.Contains("reordered")) config.Set("columnOrder", "colBest,colLast,fixed-hdrPos,fixed-hdrName");
+                FrameworkElement view;
+                if (type == "toasts")
+                {
+                    var toasts = new ToastView();
+                    toasts.Update(null, null, config, false);
+                    foreach (Toast sample in ToastView.Samples.Reverse()) toasts.Show(sample);
+                    view = toasts;
+                }
+                else
+                {
+                    var table = new StandingsView();
+                    table.Update(StandingsSample.Create(scenario.Contains("later") ? 8 : 0), config);
+                    view = table;
+                }
+                var backdrop = new System.Windows.Controls.Grid
+                {
+                    Background = new System.Windows.Media.LinearGradientBrush(System.Windows.Media.Color.FromRgb(70, 92, 110), System.Windows.Media.Color.FromRgb(28, 34, 30), 90)
+                };
+                view.Margin = new Thickness(40);
+                view.HorizontalAlignment = HorizontalAlignment.Left;
+                view.VerticalAlignment = VerticalAlignment.Top;
+                backdrop.Children.Add(view);
+                window = new Window { Content = backdrop, Width = 1000, Height = 900 };
+            }
+            else if (scenario.StartsWith("lights"))
+            {
+                AppSettings settings = SettingsStore.Load();
+                DashboardSettings dashboard = SettingsStore.Clone(settings.GetDefaultDashboard());
+                if (scenario.Contains("refined")) dashboard.Lights = LightPresets.Refined();
+                window = new LightsWindow(settings, dashboard, null) { Width = 1440, Height = 880 };
+            }
+            else if (scenario.StartsWith("designer"))
+            {
+                AppSettings settings = SettingsStore.Load();
+                DashboardSettings dashboard = DashboardSettings.CreateDesigned(DesignTemplates.Find(scenario.Contains("oval") ? "oval" : "halo"));
+                var designer = new DesignerWindow(settings, dashboard, null) { Width = 1560, Height = 940 };
+                designer.Loaded += (s, e) => designer.Dispatcher.BeginInvoke(new Action(() => designer.PrepareSnapshot(scenario)), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+                window = designer;
+            }
+            else
+            {
+                var settingsWindow = new SettingsWindow { Width = 1360, Height = 900 };
+                settingsWindow.Loaded += (s, e) => settingsWindow.Dispatcher.BeginInvoke(new Action(() => settingsWindow.PrepareSnapshot(scenario)), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+                window = settingsWindow;
+            }
+            window.WindowStartupLocation = WindowStartupLocation.Manual;
+            window.Left = 0;
+            window.Top = 0;
+            window.ShowActivated = false;
+            var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(2.5) };
+            timer.Tick += (s, e) =>
+            {
+                timer.Stop();
+                var content = (FrameworkElement)window.Content;
+                var target = new System.Windows.Media.Imaging.RenderTargetBitmap((int)content.ActualWidth, (int)content.ActualHeight, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
+                // Glass windows are see-through; compose them over a dark desktop-like backdrop like the real blur.
+                var backdrop = new System.Windows.Media.DrawingVisual();
+                using (var dc = backdrop.RenderOpen())
+                    dc.DrawRectangle(new System.Windows.Media.LinearGradientBrush(System.Windows.Media.Color.FromRgb(20, 30, 46), System.Windows.Media.Color.FromRgb(8, 10, 16), 45), null, new Rect(0, 0, content.ActualWidth, content.ActualHeight));
+                target.Render(backdrop);
+                if (window.Background is System.Windows.Media.SolidColorBrush tint && tint.Color.A < 255)
+                {
+                    var tintLayer = new System.Windows.Media.DrawingVisual();
+                    using (var dc = tintLayer.RenderOpen()) dc.DrawRectangle(tint, null, new Rect(0, 0, content.ActualWidth, content.ActualHeight));
+                    target.Render(tintLayer);
+                }
+                target.Render(content);
+                var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+                encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(target));
+                Directory.CreateDirectory(Path.GetDirectoryName(output));
+                using (FileStream file = File.Create(output)) encoder.Save(file);
+                Environment.Exit(0);
+            };
+            window.Loaded += (s, e) => timer.Start();
+            application.Run(window);
+            return 0;
+        }
+
+        /// <summary>The overlay process: on-monitor overlays, one instance at a time.</summary>
+        private static int RunOverlays()
+        {
+            using (var mutex = new Mutex(true, OverlayHost.MutexName, out bool owns))
+            {
+                if (!owns) return 2;
+                var application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+                application.DispatcherUnhandledException += (sender, e) =>
+                {
+                    try { File.AppendAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "overlays-error.txt"), DateTime.Now + Environment.NewLine + e.Exception + Environment.NewLine); }
+                    catch { }
+                    e.Handled = true;
+                };
+                application.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("pack://application:,,,/AlmostFastOverlays;component/Theme.xaml") });
+                application.Startup += (s, e) => new OverlayHost();
+                application.Run();
+                mutex.ReleaseMutex();
+            }
+            return 0;
+        }
+
+        /// <summary>Runs the designer's end-to-end checks and writes the report. Saves into this folder's settings.</summary>
+        private static int DesignerSelfTest(string reportPath)
+        {
+            string folder = AppDomain.CurrentDomain.BaseDirectory;
+            if (!Path.IsPathRooted(reportPath)) reportPath = Path.Combine(folder, reportPath);
+            var application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+            application.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("pack://application:,,,/AlmostFastOverlays;component/Theme.xaml") });
+            AppSettings settings = SettingsStore.Load();
+            DashboardSettings dashboard = settings.AddDesignedDashboard(DesignTemplates.Find("halo"), "Self test");
+            var designer = new DesignerWindow(settings, dashboard, null) { Left = -4000, Top = 0, ShowActivated = false, WindowStartupLocation = WindowStartupLocation.Manual };
+            int exit = 1;
+            designer.Loaded += (s, e) => designer.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                List<string> report;
+                try { report = designer.RunSelfTest(folder); }
+                catch (Exception exception) { report = new List<string> { "CRASHED", exception.ToString() }; }
+                File.WriteAllLines(reportPath, report);
+                exit = report[0].StartsWith("ALL") ? 0 : 1;
+                Environment.Exit(exit);
+            }), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+            application.Run(designer);
+            return exit;
+        }
+
+        /// <summary>Writes a PNG of every designer template in racing, pit-lane and spotter states.</summary>
+        /// <summary>Writes every full-screen flag at a few moments of its breeze, and times a frame.</summary>
+        private static int RenderFlags(string directory)
+        {
+            if (!Path.IsPathRooted(directory)) directory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, directory);
+            Directory.CreateDirectory(directory);
+            using (var renderer = new LayoutRenderer(Dv5Screen.Width, Dv5Screen.Height, DashboardSettings.CreateHalo(), UnitSystem.Default))
+            {
+                foreach (RacingFlag flag in Enum.GetValues(typeof(RacingFlag)))
+                {
+                    if (flag == RacingFlag.None) continue;
+                    TelemetrySnapshot snapshot = IRacingTelemetrySource.CreatePreviewSnapshot(flag);
+                    foreach (int ms in new[] { 0, 900 })
+                    {
+                        renderer.FlagClock = ms;
+                        using (System.Drawing.Bitmap frame = renderer.Render(snapshot, false, snapshot.Gear, 1))
+                            frame.Save(Path.Combine(directory, flag + " " + ms + "ms.png"), System.Drawing.Imaging.ImageFormat.Png);
+                    }
+                }
+                TelemetrySnapshot green = IRacingTelemetrySource.CreatePreviewSnapshot(RacingFlag.Green);
+                var watch = System.Diagnostics.Stopwatch.StartNew();
+                for (int i = 0; i < 60; i++)
+                {
+                    renderer.FlagClock = i * 33;
+                    using (renderer.Render(green, false, green.Gear, 1)) { }
+                }
+                File.WriteAllText(Path.Combine(directory, "timing.txt"), (watch.Elapsed.TotalMilliseconds / 60).ToString("0.0") + " ms per waving flag frame");
+            }
+            return 0;
+        }
+
+        private static int RenderTemplates(string directory)
+        {
+            if (!Path.IsPathRooted(directory))
+                directory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, directory);
+            Directory.CreateDirectory(directory);
+            var units = new UnitSystem(SettingsStore.Load().General);
+            var states = new[]
+            {
+                Tuple.Create("", IRacingTelemetrySource.CreatePreviewSnapshot()),
+                Tuple.Create(" - Pit lane", IRacingTelemetrySource.CreatePitLanePreviewSnapshot()),
+                Tuple.Create(" - Cars alongside", IRacingTelemetrySource.CreateSpotterPreviewSnapshot())
+            };
+            foreach (DesignTemplate template in DesignTemplates.All)
+            {
+                DashboardSettings dashboard = DashboardSettings.CreateDesigned(template);
+                foreach (var state in states)
+                    using (var frame = DashboardRendererFactory.RenderPreview(dashboard, units, state.Item2))
+                        frame.Save(Path.Combine(directory, template.Name + state.Item1 + ".png"), System.Drawing.Imaging.ImageFormat.Png);
+            }
+            return 0;
+        }
+
         private static void RunDashboard(
             IRacingTelemetrySource telemetry,
             DashboardRuntime runtime,
             DateTime? finishAt,
-            string ledPort)
+            string ledPortOverride)
         {
+            // The LEDs run on their own loop, so they keep working while the screen reconnects.
+            using (new LightLoop(telemetry.GetSnapshot, () => runtime.Settings, () => runtime.Dashboard, ledPortOverride))
             while (!ShouldStop(finishAt))
             {
                 try
@@ -251,9 +476,6 @@ namespace DV5Direct
                         var connection = screen.Connect(runtime.Settings.General.ScreenBrightness);
                         Console.WriteLine("Screen connected: " + connection.ModelName);
                         Console.WriteLine("Display ID: " + connection.DisplayId);
-                        var leds = new LedLink(ledPort, LedFrame.Count, "SSG DV 5", DevicePorts.Dv5);
-                        GeneralSettings general = runtime.Settings.General;
-                        var brow = new LedLink(general.BrowPort, general.BrowLedCount, "SSG LB-10", DevicePorts.LightBar) { Enabled = general.BrowEnabled };
                         DateTime nextSettingsCheckUtc = DateTime.MinValue;
 
                         DisplayState lastDrawn = null;
@@ -279,9 +501,6 @@ namespace DV5Direct
                                         telemetry.ApplyAlertSettings(runtime.Dashboard.Alerts);
                                         screen.SetBrightness(runtime.Settings.General.ScreenBrightness);
                                         lastDrawn = null;
-                                        leds.Invalidate();
-                                        general = runtime.Settings.General;
-                                        brow.Reconfigure(general.BrowPort, general.BrowLedCount, general.BrowEnabled);
                                         Console.WriteLine("Dashboard: " + runtime.Dashboard.Name);
                                     }
                                 }
@@ -320,8 +539,10 @@ namespace DV5Direct
                                     lastTelemetryConnection = snapshot.Connected;
                                 }
 
+                                int designHash = runtime.Renderer is IStateRenderer designed
+                                    ? designed.StateHash(snapshot, shiftFlashOn, gearAnimationFrame) : 0;
                                 DisplayState current = DisplayState.From(
-                                    snapshot, shiftFlashOn, gearAnimationFrame, runtime.Renderer is ILiveTraceRenderer);
+                                    snapshot, shiftFlashOn, gearAnimationFrame, runtime.Renderer is ILiveTraceRenderer, designHash);
                                 if (!current.Equals(lastDrawn))
                                 {
                                     int previousGear = gearProgress < 1 ? transitionFromGear : snapshot.Gear;
@@ -331,19 +552,12 @@ namespace DV5Direct
                                     lastDrawn = current;
                                 }
 
-                                LedInputs ledInputs = LedInputs.From(snapshot, shiftFlashOn);
-                                leds.Send(LedFrame.Compose(runtime.Dashboard, ledInputs));
-                                if (brow.Enabled)
-                                    brow.Send(LedFrame.ComposeBrow(runtime.Dashboard.BrowLeds, brow.Count, ledInputs));
-
-                                StopRequested.Wait(gearProgress < 1 ? 25 : RefreshIntervalMilliseconds);
+                                // Gear changes and waving flags animate, so they get a faster refresh.
+                                StopRequested.Wait(gearProgress < 1 ? 25 : snapshot.Flag != RacingFlag.None ? 33
+                                    : snapshot.Connected ? RefreshIntervalMilliseconds : IdleRefreshMilliseconds);
                             }
                         }
-                        finally
-                        {
-                            leds.Dispose();
-                            brow.Dispose();
-                        }
+                        finally { }
                     }
                 }
                 catch (Exception exception)
@@ -351,6 +565,9 @@ namespace DV5Direct
                     if (ShouldStop(finishAt)) return;
                     Console.Error.WriteLine("DV-5 connection lost: " + exception.Message);
                     Console.Error.WriteLine("Retrying in 2 seconds...");
+                    // Keep following settings and track type so the lights stay right meanwhile.
+                    try { if (runtime.Refresh(telemetry.GetSnapshot().Discipline)) telemetry.ApplyAlertSettings(runtime.Dashboard.Alerts); }
+                    catch { }
                     StopRequested.Wait(ReconnectDelayMilliseconds);
                 }
             }
@@ -423,93 +640,6 @@ namespace DV5Direct
             }
 
             public void Dispose() => Renderer?.Dispose();
-        }
-
-        /// <summary>
-        /// One SimHub-protocol LED device: connects lazily, retries every five
-        /// seconds while unplugged, and only sends frames that changed.
-        /// </summary>
-        private sealed class LedLink : IDisposable
-        {
-            private readonly string _expectedName;
-            private readonly string _hardwareId;
-            private Dv5LedController _controller;
-            private DateTime _nextAttemptUtc = DateTime.MinValue;
-            private System.Drawing.Color[] _lastFrame;
-
-            public LedLink(string port, int count, string expectedName, string hardwareId)
-            {
-                Port = port;
-                Count = Math.Max(1, Math.Min(64, count));
-                _expectedName = expectedName;
-                _hardwareId = hardwareId;
-            }
-
-            public string Port { get; private set; }
-            public int Count { get; private set; }
-            public bool Enabled { get; set; } = true;
-
-            public void Invalidate() => _lastFrame = null;
-
-            public void Reconfigure(string port, int count, bool enabled)
-            {
-                count = Math.Max(1, Math.Min(64, count));
-                if (port != Port || count != Count || enabled != Enabled)
-                {
-                    Close();
-                    Port = port;
-                    Count = count;
-                    Enabled = enabled;
-                    _nextAttemptUtc = DateTime.MinValue;
-                }
-                _lastFrame = null;
-            }
-
-            public void Send(System.Drawing.Color[] frame)
-            {
-                if (!Enabled || string.IsNullOrWhiteSpace(Port)) return;
-                if (_controller == null)
-                {
-                    if (DateTime.UtcNow < _nextAttemptUtc) return;
-                    _nextAttemptUtc = DateTime.UtcNow.AddSeconds(5);
-                    // Follow the device if Windows gave it a new port number.
-                    string port = DevicePorts.Resolve(Port, _hardwareId);
-                    var controller = new Dv5LedController(port, 115200, Count, _expectedName);
-                    try
-                    {
-                        controller.Connect();
-                        Console.WriteLine("LED device on " + port + ": " + controller.QueryDeviceName());
-                        _controller = controller;
-                        _lastFrame = null;
-                    }
-                    catch (Exception exception)
-                    {
-                        Console.Error.WriteLine(_expectedName + " unavailable on " + port + ": " + exception.Message);
-                        controller.Dispose();
-                        return;
-                    }
-                }
-                if (LedFrame.SameFrame(frame, _lastFrame)) return;
-                try
-                {
-                    _controller.SetFrame(frame);
-                    _lastFrame = frame;
-                }
-                catch (Exception exception)
-                {
-                    Console.Error.WriteLine(_expectedName + " lost: " + exception.Message);
-                    Close();
-                }
-            }
-
-            private void Close()
-            {
-                _controller?.Dispose();
-                _controller = null;
-                _lastFrame = null;
-            }
-
-            public void Dispose() => Close();
         }
 
         private static bool ShouldStop(DateTime? finishAt)
@@ -618,7 +748,7 @@ namespace DV5Direct
             private int StrategyHash { get; }
 
             public static DisplayState From(
-                TelemetrySnapshot snapshot, bool shiftFlashOn, int gearAnimationFrame, bool liveTrace = false) => new DisplayState(
+                TelemetrySnapshot snapshot, bool shiftFlashOn, int gearAnimationFrame, bool liveTrace = false, int designHash = 0) => new DisplayState(
                 snapshot.Connected,
                 snapshot.Gear,
                 (int)Math.Round(snapshot.SpeedMph, MidpointRounding.AwayFromZero),
@@ -645,7 +775,7 @@ namespace DV5Direct
                 snapshot.LapColorVersion,
                 snapshot.MaxForwardGear,
                 gearAnimationFrame,
-                StrategyHashOf(snapshot) ^ (liveTrace ? snapshot.TraceVersion * 7919 : 0));
+                StrategyHashOf(snapshot) ^ (liveTrace ? snapshot.TraceVersion * 7919 : 0) ^ designHash);
 
             // Values only some layouts show (fuel strategy, brake bias, stint).
             private static int StrategyHashOf(TelemetrySnapshot s)

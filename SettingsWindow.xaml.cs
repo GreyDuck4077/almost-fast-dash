@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -21,7 +21,7 @@ using System.Windows.Shapes;
 using System.Windows.Threading;
 using DrawingColor = System.Drawing.Color;
 
-namespace DV5Direct
+namespace AlmostFastOverlays
 {
     public partial class SettingsWindow : Window
     {
@@ -52,7 +52,7 @@ namespace DV5Direct
         public SettingsWindow()
         {
             InitializeComponent();
-            SourceInitialized += (s, e) => UseDarkTitleBar();
+            SourceInitialized += (s, e) => UseDarkTitleBar(); GlassBackdrop.Apply(this);
             _settings = SettingsStore.Load();
             _dashboard = _settings.GetDefaultDashboard();
 
@@ -69,13 +69,12 @@ namespace DV5Direct
             BuildAccentPresets();
             HookEvents();
             LoadGeneralSettings();
-            BuildNav();
             _loading = false;
             NavGallery.IsChecked = true;
 
             AnimateLeds.Click += (s, e) => UpdateLedPreview();
             _statusTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
-            _statusTimer.Tick += (s, e) => { if (!_dashboardOperationInProgress) RefreshDashboardStatus(); };
+            _statusTimer.Tick += (s, e) => { if (!_dashboardOperationInProgress) RefreshDashboardStatus(); RefreshOverlayStatus(); };
             _statusTimer.Start();
             RefreshDashboardStatus();
 
@@ -244,53 +243,53 @@ namespace DV5Direct
         // Navigation
         // ------------------------------------------------------------------
 
-        private void BuildNav()
-        {
-            DashboardNavList.Children.Clear();
-            foreach (DashboardSettings dashboard in _settings.Dashboards)
-            {
-                var row = new Grid();
-                row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-                row.ColumnDefinitions.Add(new ColumnDefinition());
-                row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-                row.Children.Add(new Ellipse { Width = 8, Height = 8, Fill = BrushFor(dashboard.AccentColor), Margin = new Thickness(3, 0, 14, 0), VerticalAlignment = VerticalAlignment.Center });
-                var name = new TextBlock { Text = dashboard.Name, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center };
-                Grid.SetColumn(name, 1);
-                row.Children.Add(name);
-                if (dashboard.Id == _settings.DefaultDashboardId)
-                {
-                    var tag = new TextBlock { Text = "Default", Style = (Style)FindResource("T.Overline"), FontWeight = FontWeights.Normal, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 0, 0) };
-                    Grid.SetColumn(tag, 2);
-                    row.Children.Add(tag);
-                }
-                var item = new RadioButton
-                {
-                    Style = (Style)FindResource("Nav.Item"), GroupName = "Nav", Content = row, Tag = dashboard,
-                    HorizontalContentAlignment = HorizontalAlignment.Stretch,
-                    IsChecked = EditorPage.Visibility == Visibility.Visible && dashboard == _dashboard
-                };
-                item.Checked += (s, e) =>
-                {
-                    if (_loading || (dashboard == _dashboard && EditorPage.Visibility == Visibility.Visible)) return;
-                    ShowEditor(dashboard);
-                };
-                DashboardNavList.Children.Add(item);
-            }
-        }
-
-        private void SelectNavFor(DashboardSettings dashboard)
-        {
-            foreach (RadioButton item in DashboardNavList.Children.OfType<RadioButton>())
-                if (item.Tag == dashboard && item.IsChecked != true)
-                {
-                    item.IsChecked = true;
-                    return;
-                }
-        }
-
         private void NavGallery_Checked(object sender, RoutedEventArgs e) => ShowPage(GalleryPage);
         private void NavSettings_Checked(object sender, RoutedEventArgs e) => ShowPage(SettingsPage);
-        private void BackToGallery_Click(object sender, RoutedEventArgs e) => NavGallery.IsChecked = true;
+        private void BackToGallery_Click(object sender, RoutedEventArgs e) => ShowGallery();
+
+        // A dashboard's editor lives inside Dashboards, so the Dashboards item stays
+        // checked there and clicking it again goes back to the gallery.
+        private void NavGallery_Click(object sender, RoutedEventArgs e)
+        {
+            if (GalleryPage.Visibility != Visibility.Visible) ShowGallery();
+        }
+
+        private void ShowGallery()
+        {
+            if (NavGallery.IsChecked == true) ShowPage(GalleryPage);
+            else NavGallery.IsChecked = true;
+        }
+
+        private void NavOverlays_Checked(object sender, RoutedEventArgs e) => ShowPage(OverlaysPage);
+
+        private bool _buildingDashboardNav;
+
+        /// <summary>
+        /// The dashboards listed under Dashboards in the sidebar, the same way overlays are
+        /// listed under Overlays. Picking one opens its page.
+        /// </summary>
+        private void BuildDashboardSubNav()
+        {
+            _buildingDashboardNav = true;
+            DashboardSubNav.Children.Clear();
+            bool onEditor = EditorPage.Visibility == Visibility.Visible;
+            foreach (DashboardSettings dashboard in _settings.Dashboards)
+            {
+                DashboardSettings d = dashboard;
+                TextBlock marker = d.Id == _settings.DefaultDashboardId
+                    ? new TextBlock { Text = "Default", FontSize = 10.5, Foreground = (Brush)FindResource("Brush.TextTertiary"), VerticalAlignment = VerticalAlignment.Center }
+                    : null;
+                var item = new RadioButton
+                {
+                    Style = (Style)FindResource("Nav.SubItem"), GroupName = "DashboardSub", Content = SubNavRow(d.Name, marker),
+                    IsChecked = onEditor && d == _dashboard
+                };
+                item.Checked += (s, e) => { if (!_buildingDashboardNav && !(EditorPage.Visibility == Visibility.Visible && d == _dashboard)) ShowEditor(d); };
+                DashboardSubNav.Children.Add(item);
+            }
+            _buildingDashboardNav = false;
+        }
+        private void NavApp_Checked(object sender, RoutedEventArgs e) => ShowPage(AppPage);
 
         private void ShowPage(ScrollViewer page)
         {
@@ -298,6 +297,14 @@ namespace DV5Direct
             GalleryPage.Visibility = page == GalleryPage ? Visibility.Visible : Visibility.Collapsed;
             EditorPage.Visibility = page == EditorPage ? Visibility.Visible : Visibility.Collapsed;
             SettingsPage.Visibility = page == SettingsPage ? Visibility.Visible : Visibility.Collapsed;
+            AppPage.Visibility = page == AppPage ? Visibility.Visible : Visibility.Collapsed;
+            OverlaysPage.Visibility = page == OverlaysPage ? Visibility.Visible : Visibility.Collapsed;
+            if (page == OverlaysPage) { BuildOverlaySubNav(); BuildOverlaysPage(); } else StopOverlayPreview();
+            ShowOverlaySubNav(page == OverlaysPage);
+            bool dashboards = page == GalleryPage || page == EditorPage;
+            if (dashboards) BuildDashboardSubNav();
+            ShowSubNav(DashboardSubNav, dashboards);
+            AnimatePageIn(page);
             if (page == GalleryPage) BuildGalleryCards();
             if (page == SettingsPage) RefreshPorts();
             if (page == EditorPage) _ledTimer.Start(); else _ledTimer.Stop();
@@ -309,14 +316,13 @@ namespace DV5Direct
             _dashboard = dashboard;
             LoadDashboardValues();
             ShowPage(EditorPage);
-            SelectNavFor(dashboard);
         }
 
         // ------------------------------------------------------------------
         // Gallery
         // ------------------------------------------------------------------
 
-        private const double CardGap = 20, CardMinWidth = 330;
+        private const double CardGap = 20, CardMinWidth = 300;
 
         private void BuildGalleryCards()
         {
@@ -350,7 +356,7 @@ namespace DV5Direct
                 title.Children.Add(new TextBlock { Text = d.Name, Style = (Style)FindResource("T.Title"), VerticalAlignment = VerticalAlignment.Center });
                 if (isDefault) title.Children.Add(Pill("Default", "Brush.SuccessSubtle", "Brush.Success", new Thickness(10, 0, 0, 0)));
                 body.Children.Add(title);
-                body.Children.Add(new TextBlock { Text = Layouts.Describe(d.Layout), Style = (Style)FindResource("T.Caption"), Margin = new Thickness(0, 6, 0, 12) });
+                body.Children.Add(new TextBlock { Text = Describe(d), TextWrapping = TextWrapping.Wrap, Style = (Style)FindResource("T.Caption"), Margin = new Thickness(0, 6, 0, 12) });
 
                 var tags = new WrapPanel { Margin = new Thickness(0, 0, 0, 14) };
                 if (d.RaceTypes.Count == 0)
@@ -363,6 +369,9 @@ namespace DV5Direct
                 var customize = new Button { Content = "Customize", Margin = new Thickness(0, 0, 8, 0) };
                 customize.Click += (s, e) => ShowEditor(d);
                 actions.Children.Add(customize);
+                var design = new Button { Content = "Design", Style = (Style)FindResource("Btn.Primary"), Margin = new Thickness(0, 0, 8, 0) };
+                design.Click += (s, e) => OpenDesigner(d);
+                actions.Children.Add(design);
                 if (!isDefault)
                 {
                     var makeDefault = new Button { Content = "Set as default", Style = (Style)FindResource("Btn.Ghost") };
@@ -376,46 +385,105 @@ namespace DV5Direct
                 _galleryCards.Add(card);
                 DashboardCards.Children.Add(card);
             }
-            LayoutGalleryCards();
+            LayoutCards(DashboardCards, _galleryCards);
         }
 
-        private void DashboardCards_SizeChanged(object sender, SizeChangedEventArgs e) => LayoutGalleryCards();
+        private void DashboardCards_SizeChanged(object sender, SizeChangedEventArgs e) => LayoutCards(DashboardCards, _galleryCards);
 
-        private void LayoutGalleryCards()
+        /// <summary>
+        /// Lays out a grid of cards (dashboards, overlays) in as many equal columns as fit.
+        /// A card whose Tag is its thumbnail keeps that thumbnail in the DV-5's shape.
+        /// </summary>
+        private static void LayoutCards(Panel panel, List<Border> cards)
         {
-            double available = DashboardCards.ActualWidth;
+            double available = panel.ActualWidth;
             if (available <= 0) return;
             int columns = Math.Max(1, (int)((available + CardGap) / (CardMinWidth + CardGap)));
             double width = Math.Floor((available - CardGap * columns) / columns);
-            foreach (Border card in _galleryCards)
+            foreach (Border card in cards)
             {
                 card.Width = width;
-                ((Border)card.Tag).Height = Math.Round((width - 2) * Dv5Screen.Height / Dv5Screen.Width);
+                if (card.Tag is Border thumbnail) thumbnail.Height = Math.Round((width - 2) * Dv5Screen.Height / Dv5Screen.Width);
             }
         }
 
         private void NewDashboard_Click(object sender, RoutedEventArgs e)
         {
             var menu = new ContextMenu { PlacementTarget = NewDashboardButton, Placement = PlacementMode.Bottom };
-            foreach (string layout in Layouts.All)
+
+            var designHeader = new StackPanel { Margin = new Thickness(0, 1, 0, 1) };
+            designHeader.Children.Add(new TextBlock { Text = "New dashboard…", FontWeight = FontWeights.SemiBold });
+            designHeader.Children.Add(new TextBlock { Text = "Start from Halo, Oval or a blank canvas in the designer", Style = (Style)FindResource("T.Caption"), MaxWidth = 260 });
+            var designItem = new MenuItem { Header = designHeader, Icon = GlyphIcon("") };
+            designItem.Click += (s, a) =>
             {
-                string l = layout;
-                var header = new StackPanel { Margin = new Thickness(0, 1, 0, 1) };
-                header.Children.Add(new TextBlock { Text = l + " layout", FontWeight = FontWeights.SemiBold });
-                header.Children.Add(new TextBlock { Text = Layouts.Describe(l), Style = (Style)FindResource("T.Caption"), MaxWidth = 260 });
-                var item = new MenuItem { Header = header, Icon = GlyphIcon("") };
-                item.Click += (s, a) =>
-                {
-                    DashboardSettings created = _settings.AddDashboard(l);
-                    Save();
-                    BuildNav();
-                    ShowEditor(created);
-                    NameBox.Focus();
-                    NameBox.SelectAll();
-                };
-                menu.Items.Add(item);
-            }
+                DesignTemplate template = TemplatePicker.Choose(this, new UnitSystem(_settings.General));
+                if (template == null) return;
+                DashboardSettings created = _settings.AddDesignedDashboard(template);
+                Save();
+                ShowEditor(created);
+                OpenDesigner(created);
+            };
+            menu.Items.Add(designItem);
+            var importItem = new MenuItem { Header = "Import a design (.afodash)…", Icon = GlyphIcon("") };
+            importItem.Click += (s, a) => ImportDesign();
+            menu.Items.Add(importItem);
             menu.IsOpen = true;
+        }
+
+        /// <summary>One line under a dashboard's name: the template's description, or what's in a design of the user's own.</summary>
+        private static string Describe(DashboardSettings d)
+        {
+            DesignTemplate template = DesignTemplates.All.FirstOrDefault(t => t.Id != "blank" && string.Equals(t.Name, d.Name, StringComparison.OrdinalIgnoreCase));
+            if (template != null) return template.Description;
+            int widgets = d.Design?.AllWidgets().Count() ?? 0, screens = d.Design?.Screens.Count ?? 1;
+            return "Your own design: " + widgets + " widgets on " + screens + (screens == 1 ? " screen" : " screens") + ".";
+        }
+
+        // ------------------------------------------------------------------
+        // Designer
+        // ------------------------------------------------------------------
+
+        private readonly Dictionary<string, DesignerWindow> _designers = new Dictionary<string, DesignerWindow>();
+
+        private void OpenDesigner(DashboardSettings dashboard)
+        {
+            FlushSave();
+            if (_designers.TryGetValue(dashboard.Id, out DesignerWindow open))
+            {
+                if (open.WindowState == WindowState.Minimized) open.WindowState = WindowState.Normal;
+                open.Activate();
+                return;
+            }
+            var designer = new DesignerWindow(_settings, dashboard, () =>
+            {
+                if (GalleryPage.Visibility == Visibility.Visible) BuildGalleryCards();
+                else if (EditorPage.Visibility == Visibility.Visible && _dashboard == dashboard) LoadDashboardValues();
+                ShowSaved("Design saved");
+            }) { Owner = this };
+            _designers[dashboard.Id] = designer;
+            designer.Closed += (s, e) => _designers.Remove(dashboard.Id);
+            designer.Show();
+        }
+
+        private void Design_Click(object sender, RoutedEventArgs e) => OpenDesigner(_dashboard);
+
+        private void ImportDesign()
+        {
+            var dialog = new Microsoft.Win32.OpenFileDialog { Title = "Import dashboard design", Filter = "Almost Fast Overlays dashboard (*.afodash)|*.afodash|All files|*.*" };
+            if (dialog.ShowDialog(this) != true) return;
+            DesignPackage package;
+            try { package = DesignPackage.Read(dialog.FileName); }
+            catch (Exception exception)
+            {
+                MessageBox.Show(this, exception.Message, "Import design", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            DashboardSettings created = _settings.AddDesignedDashboard(DesignTemplates.Find("blank"), package.Name);
+            created.Design = package.Design;
+            if (!string.IsNullOrEmpty(package.AccentColor)) created.AccentColor = package.AccentColor;
+            Save("Imported " + created.Name);
+            ShowEditor(created);
         }
 
         private static T FindParent<T>(DependencyObject child) where T : DependencyObject
@@ -432,9 +500,14 @@ namespace DV5Direct
         {
             _loading = true;
             bool isDefault = _dashboard.Id == _settings.DefaultDashboardId;
-            bool builtIn = AppSettings.IsBuiltIn(_dashboard);
+            bool last = _settings.Dashboards.Count <= 1;
             EditorTitle.Text = _dashboard.Name;
-            EditorSubtitle.Text = _dashboard.Layout + " layout · " + Layouts.Describe(_dashboard.Layout);
+            EditorSubtitle.Text = Describe(_dashboard);
+            int widgets = _dashboard.Design?.AllWidgets().Count() ?? 0, screens = _dashboard.Design?.Screens.Count ?? 1;
+            DesignCardTitle.Text = "Screen design";
+            DesignCardText.Text = widgets + " widgets on " + screens + (screens == 1 ? " screen" : " screens") +
+                ". Open the designer to move, restyle or add anything on the DV-5 screen.";
+            DesignButtonLabel.Text = "Open designer";
             EditorDefaultBadge.Visibility = isDefault ? Visibility.Visible : Visibility.Collapsed;
             SetDefaultButton.Visibility = isDefault ? Visibility.Collapsed : Visibility.Visible;
             NameBox.Text = _dashboard.Name;
@@ -455,12 +528,11 @@ namespace DV5Direct
             HoldSlider.Value = _dashboard.Alerts.HoldMilliseconds;
             UpdateAlertLabels();
 
-            DeleteButton.IsEnabled = !builtIn;
-            DeleteButton.ToolTip = builtIn ? "Built-in dashboards can be reset but not deleted." : null;
-            ManageHelp.Text = builtIn
-                ? "Duplicate this dashboard to experiment freely. Built-in dashboards can be reset but not deleted."
-                : "Duplicate this dashboard to experiment, reset its lights and alerts, or remove it.";
+            DeleteButton.IsEnabled = !last;
+            DeleteButton.ToolTip = last ? "Your only dashboard can't be deleted." : null;
+            ManageHelp.Text = "Duplicate this dashboard to experiment, reset its lights and alerts, or remove it.";
             _loading = false;
+            UpdateLightsCard();
             RefreshAccent();
             RefreshPreview();
         }
@@ -652,14 +724,12 @@ namespace DV5Direct
             _dashboard.Name = name;
             EditorTitle.Text = name;
             Save();
-            BuildNav();
         }
 
         private void SetAccent(string hex)
         {
             _dashboard.AccentColor = hex;
             RefreshAccent();
-            BuildNav();
             Changed();
         }
 
@@ -697,7 +767,6 @@ namespace DV5Direct
         {
             _settings.DefaultDashboardId = dashboard.Id;
             Save();
-            BuildNav();
             if (GalleryPage.Visibility == Visibility.Visible) BuildGalleryCards();
             else LoadDashboardValues();
         }
@@ -709,7 +778,7 @@ namespace DV5Direct
             duplicate.Click += Duplicate_Click;
             var reset = new MenuItem { Header = "Reset to defaults", Icon = GlyphIcon("") };
             reset.Click += (s, a) => { ResetButton.BringIntoView(); ArmConfirm(ResetButton, ResetLabel, "Click again to reset"); };
-            var delete = new MenuItem { Header = "Delete", Icon = GlyphIcon(""), IsEnabled = !AppSettings.IsBuiltIn(_dashboard) };
+            var delete = new MenuItem { Header = "Delete", Icon = GlyphIcon(""), IsEnabled = _settings.Dashboards.Count > 1 };
             delete.Click += (s, a) => { DeleteButton.BringIntoView(); ArmConfirm(DeleteButton, DeleteLabel, "Click again to delete"); };
             menu.Items.Add(duplicate);
             menu.Items.Add(reset);
@@ -719,9 +788,8 @@ namespace DV5Direct
 
         private void Duplicate_Click(object sender, RoutedEventArgs e)
         {
-            DashboardSettings copy = _settings.AddDashboard(_dashboard.Layout, _dashboard);
+            DashboardSettings copy = _settings.AddDashboard(_dashboard);
             Save();
-            BuildNav();
             ShowEditor(copy);
         }
 
@@ -731,7 +799,6 @@ namespace DV5Direct
             DisarmConfirm();
             _settings.ResetDashboard(_dashboard);
             Save("Reset to defaults");
-            BuildNav();
             LoadDashboardValues();
         }
 
@@ -743,8 +810,7 @@ namespace DV5Direct
             if (!_settings.RemoveDashboard(_dashboard)) return;
             _dashboard = _settings.GetDefaultDashboard();
             Save("Deleted " + name);
-            BuildNav();
-            NavGallery.IsChecked = true;
+            ShowGallery();
         }
 
         private void ArmConfirm(Button button, TextBlock label, string text)
@@ -817,6 +883,7 @@ namespace DV5Direct
         private void UpdateLedPreview()
         {
             if (_dashboard == null || _ledDots[0] == null) return;
+            if (_dashboard.Lights != null) { UpdateLayeredPreview(); return; }
             double t = _ledPhase;
             bool animate = AnimateLeds.IsChecked == true;
             bool shiftState = PreviewState.SelectedIndex == 1;
@@ -899,6 +966,7 @@ namespace DV5Direct
             DiagnosticsToggle.IsChecked = general.DiagnosticsEnabled;
             StartupToggle.IsChecked = File.Exists(StartupShortcutPath);
             BrowEnabledToggle.IsChecked = general.BrowEnabled;
+            FastLedToggle.IsChecked = general.FastLedUpdates;
             BrowCountSlider.Value = Math.Max(2, Math.Min(40, general.BrowLedCount));
             BrowCountValue.Text = general.BrowLedCount + " LEDs";
             RefreshPorts();
@@ -1097,7 +1165,7 @@ namespace DV5Direct
         }
 
         private static string StartupShortcutPath =>
-            System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Startup), "DV5Direct.lnk");
+            System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Startup), "Almost Fast Overlays.lnk");
 
         private void Startup_Click(object sender, RoutedEventArgs e)
         {
@@ -1130,7 +1198,7 @@ namespace DV5Direct
                 t.InvokeMember("TargetPath", BindingFlags.SetProperty, null, shortcut, new object[] { exe });
                 t.InvokeMember("Arguments", BindingFlags.SetProperty, null, shortcut, new object[] { "--run" });
                 t.InvokeMember("WorkingDirectory", BindingFlags.SetProperty, null, shortcut, new object[] { System.IO.Path.GetDirectoryName(exe) });
-                t.InvokeMember("Description", BindingFlags.SetProperty, null, shortcut, new object[] { "Start the DV5Direct iRacing dashboard automatically" });
+                t.InvokeMember("Description", BindingFlags.SetProperty, null, shortcut, new object[] { "Start the Almost Fast Overlays iRacing dashboard automatically" });
                 t.InvokeMember("Save", BindingFlags.InvokeMethod, null, shortcut, null);
                 Marshal.FinalReleaseComObject(shortcut);
             }
@@ -1184,6 +1252,8 @@ namespace DV5Direct
             {
                 SettingsStore.Save(_settings);
                 ShowSaved(_pendingSaveMessage ?? (IsDashboardRunning() ? "Saved · applied to the running dashboard" : "Saved"));
+                // Names and the default show in the sidebar too.
+                if (DashboardSubNav.Visibility == Visibility.Visible) BuildDashboardSubNav();
             }
             catch (Exception ex)
             {
@@ -1262,7 +1332,7 @@ namespace DV5Direct
                 if (!File.Exists(Program.DashboardStatusPath)) return false;
                 if (!int.TryParse(File.ReadAllText(Program.DashboardStatusPath).Trim(), out int pid)) return false;
                 Process process = Process.GetProcessById(pid);
-                return !process.HasExited && string.Equals(process.ProcessName, "DV5Direct", StringComparison.OrdinalIgnoreCase);
+                return !process.HasExited && string.Equals(process.ProcessName, "AlmostFastOverlays", StringComparison.OrdinalIgnoreCase);
             }
             catch { return false; }
         }
@@ -1275,8 +1345,7 @@ namespace DV5Direct
                 return;
             }
             SetStatus("Running", "Brush.Success");
-            StartLabel.Text = "Restart dashboard";
-            StartIcon.Text = "";
+            SetRunButton(StartButton, StartIcon, false, "Restart the dashboard");
             StopButton.IsEnabled = true;
             string active = null, discipline = null;
             try
@@ -1287,25 +1356,35 @@ namespace DV5Direct
             }
             catch { }
             DashboardSettings shown = _settings.Dashboards.FirstOrDefault(d => d.Id == active);
-            ActiveText.Text = shown == null ? "" :
-                "Showing " + shown.Name + (string.IsNullOrEmpty(discipline) ? "" : " · " + discipline.ToLowerInvariant() + " track");
+            ActiveText.Text = shown == null ? "" : " · " + shown.Name;
+            StatusPill.ToolTip = shown == null ? null : "Showing " + shown.Name + (string.IsNullOrEmpty(discipline) ? "" : " for a " + discipline.ToLowerInvariant() + " track");
         }
 
         private void SetStopped(string text)
         {
             SetStatus(text, "Brush.TextTertiary");
-            StartLabel.Text = "Start dashboard";
-            StartIcon.Text = "";
+            SetRunButton(StartButton, StartIcon, true, "Start the dashboard on the DV-5");
             StopButton.IsEnabled = false;
-            ActiveText.Text = "Default is " + _settings.GetDefaultDashboard().Name;
+            ActiveText.Text = " · " + _settings.GetDefaultDashboard().Name;
+            StatusPill.ToolTip = "Starts with " + _settings.GetDefaultDashboard().Name + ", the default dashboard";
         }
 
         private void SetStatus(string text, string brushKey)
         {
-            var brush = (SolidColorBrush)FindResource(brushKey);
             StatusText.Text = text;
-            StatusDot.Fill = brush;
-            StatusPill.Background = new SolidColorBrush(Color.FromArgb(0x1F, brush.Color.R, brush.Color.G, brush.Color.B));
+            StatusDot.Fill = (Brush)FindResource(brushKey);
+        }
+
+        /// <summary>
+        /// The run controls in the header share one look: a filled play button when
+        /// something is stopped, and a quiet secondary button (restart or stop) while it runs.
+        /// </summary>
+        private void SetRunButton(Button button, TextBlock icon, bool start, string tip, string runningGlyph = "\uE72C")
+        {
+            button.Style = (Style)FindResource(start ? "Btn.RunPrimary" : "Btn.RunIcon");
+            icon.Text = start ? "\uE768" : runningGlyph;
+            icon.Foreground = start ? (Brush)FindResource("Brush.OnAccent") : (Brush)FindResource("Brush.Text");
+            button.ToolTip = tip;
         }
 
         // ------------------------------------------------------------------
@@ -1333,7 +1412,7 @@ namespace DV5Direct
         }
 
         private static bool SameJson(object a, object b) =>
-            Newtonsoft.Json.JsonConvert.SerializeObject(a) == Newtonsoft.Json.JsonConvert.SerializeObject(b);
+            SettingsStore.ToJson(a) == SettingsStore.ToJson(b);
 
         [DllImport("dwmapi.dll")]
         private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);

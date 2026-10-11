@@ -6,40 +6,49 @@ $installDirectory = Join-Path $projectDirectory 'App'
 $startupDirectory = [Environment]::GetFolderPath('Startup')
 $desktopDirectory = [Environment]::GetFolderPath('Desktop')
 $programsDirectory = [Environment]::GetFolderPath('Programs')
-$startupShortcutPath = Join-Path $startupDirectory 'DV5Direct.lnk'
-$desktopShortcutPath = Join-Path $desktopDirectory 'DV5Direct.lnk'
-$startShortcutPath = Join-Path $programsDirectory 'DV5Direct.lnk'
-$stopShortcutPath = Join-Path $programsDirectory 'Stop DV5Direct.lnk'
+$startupShortcutPath = Join-Path $startupDirectory 'Almost Fast Overlays.lnk'
+$desktopShortcutPath = Join-Path $desktopDirectory 'Almost Fast Overlays.lnk'
+$startShortcutPath = Join-Path $programsDirectory 'Almost Fast Overlays.lnk'
+$stopShortcutPath = Join-Path $programsDirectory 'Stop Almost Fast Overlays.lnk'
 
-dotnet build (Join-Path $projectDirectory 'DV5Direct.csproj') -c Release
+dotnet build (Join-Path $projectDirectory 'AlmostFastOverlays.csproj') -c Release
 if ($LASTEXITCODE -ne 0) {
-    throw 'DV5Direct build failed.'
+    throw 'Almost Fast Overlays build failed.'
 }
 
 New-Item -ItemType Directory -Path $installDirectory -Force | Out-Null
-Get-ChildItem -LiteralPath $buildDirectory -File |
-    Where-Object Extension -ne '.pdb' |
-    Copy-Item -Destination $installDirectory -Force
+# The app is a single self-contained exe; settings.json and Logs are created next to it.
+Copy-Item -LiteralPath (Join-Path $buildDirectory 'AlmostFastOverlays.exe') -Destination $installDirectory -Force
 $shell = New-Object -ComObject WScript.Shell
-function New-DV5Shortcut($path, $arguments, $description) {
+function New-AppShortcut($path, $arguments, $description) {
     $shortcut = $shell.CreateShortcut($path)
-    $shortcut.TargetPath = Join-Path $installDirectory 'DV5Direct.exe'
+    $shortcut.TargetPath = Join-Path $installDirectory 'AlmostFastOverlays.exe'
     $shortcut.Arguments = $arguments
     $shortcut.WorkingDirectory = $installDirectory
     $shortcut.Description = $description
     $shortcut.Save()
 }
 
-New-DV5Shortcut $startupShortcutPath '--run' 'Start the DV5Direct iRacing dashboard automatically'
-New-DV5Shortcut $desktopShortcutPath '' 'Open DV5Direct settings'
-New-DV5Shortcut $startShortcutPath '' 'Open DV5Direct settings'
-New-DV5Shortcut $stopShortcutPath '--stop' 'Stop DV5Direct and clear the display'
+New-AppShortcut $startupShortcutPath '--run' 'Start the Almost Fast Overlays iRacing dashboard automatically'
+New-AppShortcut $desktopShortcutPath '' 'Open Almost Fast Overlays settings'
+New-AppShortcut $startShortcutPath '' 'Open Almost Fast Overlays settings'
+New-AppShortcut $stopShortcutPath '--stop' 'Stop Almost Fast Overlays and clear the display'
 
-foreach ($obsoleteLauncher in @('Run-DV5Direct.vbs', 'Stop-DV5Direct.vbs')) {
-    $obsoletePath = Join-Path $installDirectory $obsoleteLauncher
+# Files left over from earlier versions, including the DV5Direct name.
+$obsoleteFiles = @(
+    (Join-Path $installDirectory 'Run-DV5Direct.vbs'),
+    (Join-Path $installDirectory 'Stop-DV5Direct.vbs'),
+    (Join-Path $installDirectory 'DV5Direct.exe'),
+    (Join-Path $installDirectory 'DV5Direct.exe.config'),
+    (Join-Path $installDirectory 'AlmostFastOverlays.exe.config'),
+    (Join-Path $startupDirectory 'DV5Direct.lnk'),
+    (Join-Path $desktopDirectory 'DV5Direct.lnk'),
+    (Join-Path $programsDirectory 'DV5Direct.lnk'),
+    (Join-Path $programsDirectory 'Stop DV5Direct.lnk'))
+foreach ($obsoletePath in $obsoleteFiles) {
     if (Test-Path -LiteralPath $obsoletePath) { Remove-Item -LiteralPath $obsoletePath }
 }
 
-Write-Host "Installed DV5Direct to $installDirectory"
+Write-Host "Installed Almost Fast Overlays to $installDirectory"
 Write-Host "Enabled auto-start shortcut at $startupShortcutPath"
 Write-Host "Created desktop and Start Menu shortcuts."

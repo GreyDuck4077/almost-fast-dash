@@ -1,8 +1,7 @@
 using System;
 using System.Threading;
-using iRacingSDK;
 
-namespace DV5Direct
+namespace AlmostFastOverlays
 {
     internal enum RacingFlag
     {
@@ -211,6 +210,16 @@ namespace DV5Direct
         public double TrackTempC { get; set; } = double.NaN;
         public double AirTempC { get; set; } = double.NaN;
         public bool EngineWarning { get; set; }
+        /// <summary>The whole field by class; only built when the source collects standings (overlays).</summary>
+        public StandingsSnapshot Standings { get; set; } = StandingsSnapshot.Empty;
+        /// <summary>True while ABS is working on this sample.</summary>
+        public bool AbsActive { get; set; }
+        /// <summary>The car's shift-light RPMs from iRacing; 0 when the car does not report them.</summary>
+        public double ShiftFirstRpm { get; set; }
+        public double ShiftRpm { get; set; }
+        public double ShiftLastRpm { get; set; }
+        public double ShiftBlinkRpm { get; set; }
+        public double RedlineRpm { get; set; }
         /// <summary>Lap delta history (seconds, positive = faster), oldest first, sampled every 250 ms.</summary>
         public float[] DeltaTrace { get; set; } = new float[0];
 
@@ -288,6 +297,15 @@ namespace DV5Direct
         private int _lapColorVersion;
         private bool _checkeredWasActive;
         private DateTime _checkeredAlertUntilUtc;
+        private readonly StandingsBuilder _standings = new StandingsBuilder();
+        private StandingsSnapshot _standingsSnapshot;
+        private DateTime _standingsBuiltUtc;
+
+        /// <summary>Build the whole-field standings (about ten times a second). Off for the device runtime.</summary>
+        public bool CollectStandings { get; set; }
+
+        private bool _whiteWasActive;
+        private DateTime _whiteAlertUntilUtc;
         private int _maximumObservedGear;
         private const int TraceLength = 120;
         private const int TraceIntervalMilliseconds = 50;
@@ -411,7 +429,7 @@ namespace DV5Direct
             return snapshot;
         }
 
-        private static TelemetrySnapshot WithPreviewExtras(TelemetrySnapshot snapshot)
+        internal static TelemetrySnapshot WithPreviewExtras(TelemetrySnapshot snapshot)
         {
             snapshot.Discipline = Disciplines.Road;
             snapshot.BrakeBias = 54.2;
@@ -442,6 +460,11 @@ namespace DV5Direct
             snapshot.CarName = "PORSCHE 911 GT3 R";
             snapshot.StartPosition = 7;
             snapshot.TrackLengthMiles = 2.5;
+            snapshot.ShiftFirstRpm = 3800;
+            snapshot.ShiftRpm = 7700;
+            snapshot.ShiftLastRpm = 7800;
+            snapshot.ShiftBlinkRpm = 7950;
+            snapshot.RedlineRpm = 8200;
             snapshot.TrackTempC = 31.4;
             snapshot.AirTempC = 22.0;
             snapshot.PitSpeedLimitMph = 45;
@@ -510,6 +533,18 @@ namespace DV5Direct
                 _checkeredWasActive = checkeredActive;
                 bool showCheckered = DateTime.UtcNow < _checkeredAlertUntilUtc;
 
+                // iRacing holds the white flag for the whole final lap. Like yellow, alert
+                // on its rising edge only, then give the screen and lights back.
+                bool whiteActive = (sessionFlags & SessionFlags.white) != 0;
+                if (whiteActive && !_whiteWasActive)
+                    _whiteAlertUntilUtc = DateTime.UtcNow.AddMilliseconds(
+                        _alertBlinkTotalMilliseconds + _alertHoldMilliseconds);
+                _whiteWasActive = whiteActive;
+                double whiteRemaining = (_whiteAlertUntilUtc - DateTime.UtcNow).TotalMilliseconds;
+                bool whitePulseVisible = whiteRemaining > 0 &&
+                    (whiteRemaining <= _alertHoldMilliseconds ||
+                     ((Environment.TickCount / _alertBlinkMilliseconds) & 1) == 0);
+
                 bool blackFlagActive =
                     (sessionFlags & SessionFlags.black) != 0 ||
                     (sessionFlags & SessionFlags.disqualify) != 0;
@@ -574,7 +609,7 @@ namespace DV5Direct
                     Math.Max(0, sample.Telemetry.Speed * MetersPerSecondToMph),
                     GetRacingFlag(
                         sessionFlags, _suppressHeldBlackFlag, greenPulseVisible,
-                        yellowPulseVisible, showCheckered),
+                        yellowPulseVisible, showCheckered, whitePulseVisible),
                     leftZone,
                     rightZone,
                     sample.Telemetry.ShiftIndicatorPct,
@@ -674,6 +709,23 @@ namespace DV5Direct
                 int warnings = ReadTelemetryInt(sample.Telemetry, "EngineWarnings");
                 _latest.PitLimiter = (warnings & (int)EngineWarnings.PitSpeedLimiter) != 0;
                 _latest.EngineWarning = (warnings & ((int)EngineWarnings.WaterTempWarning | (int)EngineWarnings.OilPressureWarning | (int)EngineWarnings.FuelPressureWarning)) != 0;
+                _latest.AbsActive = sample.Telemetry["BrakeABSactive"] is bool abs && abs;
+                if (CollectStandings && (DateTime.UtcNow - _standingsBuiltUtc).TotalMilliseconds >= 100)
+                {
+                    try { _standingsSnapshot = _standings.Build(sample.Telemetry, ReadTelemetryInt(sample.Telemetry, "PlayerCarIdx")); }
+                    catch { }
+                    _standingsBuiltUtc = DateTime.UtcNow;
+                }
+                if (_standingsSnapshot != null) _latest.Standings = _standingsSnapshot;
+                SessionData session = sample.Telemetry.SessionData;
+                if (session != null)
+                {
+                    _latest.ShiftFirstRpm = session.ShiftFirstRpm;
+                    _latest.ShiftRpm = session.ShiftRpm;
+                    _latest.ShiftLastRpm = session.ShiftLastRpm;
+                    _latest.ShiftBlinkRpm = session.ShiftBlinkRpm;
+                    _latest.RedlineRpm = session.RedlineRpm;
+                }
                 _latest.PitSpeedLimitMph = GetPitSpeedLimitMph(sample.Telemetry);
                 _latest.TrackTempC = ReadOptionalDouble(sample.Telemetry, "TrackTempCrew") is double track && track > -50 ? track : double.NaN;
                 _latest.AirTempC = ReadOptionalDouble(sample.Telemetry, "AirTemp") is double air && air > -50 ? air : double.NaN;
@@ -1312,7 +1364,8 @@ namespace DV5Direct
             bool suppressBlackFlag,
             bool greenPulseVisible,
             bool yellowPulseVisible,
-            bool showCheckered)
+            bool showCheckered,
+            bool whitePulseVisible)
         {
             if ((flags & SessionFlags.red) != 0) return RacingFlag.Red;
             if (!suppressBlackFlag &&
@@ -1325,7 +1378,7 @@ namespace DV5Direct
             // A caution can last for several pace laps. Alert on its rising edge,
             // then restore the useful dashboard while the raw state remains held.
             if (yellowPulseVisible) return RacingFlag.Yellow;
-            if ((flags & SessionFlags.white) != 0) return RacingFlag.White;
+            if (whitePulseVisible) return RacingFlag.White;
             // greenHeld is asserted while the starter is still holding the field.
             // Only the rising edge of the real green bit triggers the GO alert.
             if (greenPulseVisible) return RacingFlag.Green;

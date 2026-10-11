@@ -3,7 +3,7 @@ using System.IO.Ports;
 using System.Linq;
 using Microsoft.Win32;
 
-namespace DV5Direct
+namespace AlmostFastOverlays
 {
     /// <summary>
     /// Finds SSG devices by USB hardware ID. Windows can renumber COM ports
