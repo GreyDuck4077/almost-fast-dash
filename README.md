@@ -243,3 +243,13 @@ which is part of Windows 10 and 11, and references only Windows' own assemblies.
 
 Copy the exe to any folder and run it; `settings.json` and `Logs` are created
 next to it.
+
+## License
+
+Almost Fast Overlays is free for any noncommercial use under the
+[PolyForm Noncommercial License 1.0.0](LICENSE.md): use it, change it and share it
+for personal use, hobby projects, research, education and nonprofit work. Selling
+it, or building it into a commercial product or service, is not allowed.
+
+This makes it source-available rather than "open source" in the OSI sense, which
+does not allow restrictions on commercial use.
