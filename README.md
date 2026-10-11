@@ -246,10 +246,10 @@ next to it.
 
 ## License
 
-Almost Fast Overlays is free for any noncommercial use under the
-[PolyForm Noncommercial License 1.0.0](LICENSE.md): use it, change it and share it
-for personal use, hobby projects, research, education and nonprofit work. Selling
-it, or building it into a commercial product or service, is not allowed.
+Copyright (C) 2026 adam-paul (https://github.com/Sota4077)
 
-This makes it source-available rather than "open source" in the OSI sense, which
-does not allow restrictions on commercial use.
+Almost Fast Overlays is free and open-source software under the
+[GNU General Public License v3.0](LICENSE). You may use, study, change and share
+it, including commercially. If you distribute it or anything built from it, you
+must release that complete source code under the same license, so it stays open
+for everyone.
