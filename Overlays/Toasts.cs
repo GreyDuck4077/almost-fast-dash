@@ -206,6 +206,9 @@ namespace AlmostFastOverlays
         public void Show(Toast toast, bool stay = false)
         {
             Border card = Card(toast);
+            // A toast never changes once shown, so its shadow and glow are drawn once into a
+            // GPU texture; sliding and fading it then costs almost nothing.
+            card.CacheMode = new BitmapCache { RenderAtScale = _config.Scale * VisualTreeHelper.GetDpi(this).DpiScaleX, SnapsToDevicePixels = true };
             _stack.Children.Insert(0, card);
             int most = Math.Max(1, _config.Int("stack"));
             while (_stack.Children.Count > most) _stack.Children.RemoveAt(_stack.Children.Count - 1);

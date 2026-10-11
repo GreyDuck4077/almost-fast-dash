@@ -42,6 +42,36 @@ namespace AlmostFastOverlays
             }
         }
 
+        /// <summary>
+        /// Makes a borderless window see-through where nothing is drawn, with the
+        /// compositor (DWM) blending it on the GPU. Unlike WPF's AllowsTransparency,
+        /// which copies the whole window back from the GPU on every frame, this keeps
+        /// animations at the display's refresh rate for a fraction of the CPU.
+        /// </summary>
+        public static void MakeClear(Window window)
+        {
+            window.AllowsTransparency = false;
+            window.WindowStyle = WindowStyle.None;
+            window.ResizeMode = ResizeMode.NoResize;
+            window.Background = Brushes.Transparent;
+            window.SourceInitialized += (s, e) =>
+            {
+                IntPtr handle = new WindowInteropHelper(window).Handle;
+                HwndSource source = HwndSource.FromHwnd(handle);
+                if (source?.CompositionTarget != null) source.CompositionTarget.BackgroundColor = Colors.Transparent;
+                var margins = new Margins { Left = -1, Right = -1, Top = -1, Bottom = -1 };
+                DwmExtendFrameIntoClientArea(handle, ref margins);
+                // Windows 11: no rounded corners or accent border around an overlay.
+                int square = DoNotRound;
+                DwmSetWindowAttribute(handle, CornerPreference, ref square, sizeof(int));
+                int noBorder = ColorNone;
+                DwmSetWindowAttribute(handle, BorderColor, ref noBorder, sizeof(int));
+            };
+        }
+
+        private const int CornerPreference = 33, DoNotRound = 1, BorderColor = 34;
+        private const int ColorNone = unchecked((int)0xFFFFFFFE);
+
         [StructLayout(LayoutKind.Sequential)]
         private struct Margins { public int Left, Right, Top, Bottom; }
 

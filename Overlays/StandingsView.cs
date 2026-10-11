@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -22,8 +22,10 @@ namespace AlmostFastOverlays
         private const double RowH = 28, HeaderH = 36, LabelsH = 22, ClassH = 30, SpacerH = 8, Pad = 6;
         private static readonly FontFamily Ui = new FontFamily("Segoe UI Variable Display, Segoe UI");
         private static readonly FontFamily Digits = new FontFamily("Bahnschrift, Segoe UI");
-        private static readonly Duration Slide = new Duration(TimeSpan.FromMilliseconds(420));
-        private static readonly IEasingFunction Ease = new CubicEase { EasingMode = EasingMode.EaseInOut };
+        // Rows start moving at once and settle softly: quick enough to follow a pass, never jumpy.
+        private static readonly Duration Slide = new Duration(TimeSpan.FromMilliseconds(300));
+        private static readonly IEasingFunction Ease = Frozen(new CubicEase { EasingMode = EasingMode.EaseOut });
+        private static readonly Duration FadeIn = new Duration(TimeSpan.FromMilliseconds(180)), FadeOut = new Duration(TimeSpan.FromMilliseconds(160));
 
         private readonly Canvas _canvas = new Canvas { ClipToBounds = false };
         private readonly Dictionary<string, FrameworkElement> _items = new Dictionary<string, FrameworkElement>();
@@ -33,6 +35,7 @@ namespace AlmostFastOverlays
         private List<Column> _columns = new List<Column>();
         private double _width;
         private string _signature;
+        private int _alpha = -1;
 
         public StandingsView()
         {
@@ -52,7 +55,8 @@ namespace AlmostFastOverlays
             Child = body;
             LayoutTransform = _scale;
             ClipToBounds = true;
-            Effect = new DropShadowEffect { BlurRadius = 24, ShadowDepth = 6, Opacity = 0.45, Color = Colors.Black };
+            // No drop shadow: blurring a panel whose rows change would redraw the whole
+            // overlay on every animation frame. The bright rim outlines it instead.
         }
 
         private bool IsRelative => _config.Type == "relative";
@@ -80,12 +84,15 @@ namespace AlmostFastOverlays
         {
             _config = config ?? new OverlayConfig();
             _scale.ScaleX = _scale.ScaleY = _config.Scale;
-            Background = GlassFill((byte)(_config.Opacity * 2.55));
+            // Brushes are only replaced when something actually changes, so unchanged
+            // rows keep their cached image and nothing is redrawn needlessly.
+            byte alpha = (byte)(_config.Opacity * 2.55);
+            if (alpha != _alpha) { _alpha = alpha; Background = GlassFill(alpha); }
             _columns = Columns().ToList();
             _width = _columns.Sum(c => c.Width) + Pad * 2;
             _canvas.Width = _width;
             // Rows are built for a set of columns; when the columns change, rebuild them all.
-            string signature = _config.Type + "|" + string.Join(",", _columns.Select(c => c.Key + c.Width + (c.ShowLabel ? "h" : ""))) + _config.Bool("header") + _config.Bool("classHeaders");
+            string signature = _config.Type + "|" + _config.Scale + "|" + string.Join(",", _columns.Select(c => c.Key + c.Width + (c.ShowLabel ? "h" : ""))) + _config.Bool("header") + _config.Bool("classHeaders");
             if (signature != _signature)
             {
                 _signature = signature;
@@ -108,7 +115,7 @@ namespace AlmostFastOverlays
                     Canvas.SetTop(element, y);
                     _canvas.Children.Add(element);
                     _items[item.Key] = element;
-                    element.BeginAnimation(OpacityProperty, new DoubleAnimation(item.Opacity, new Duration(TimeSpan.FromMilliseconds(260))));
+                    element.BeginAnimation(OpacityProperty, new DoubleAnimation(item.Opacity, FadeIn));
                 }
                 else
                 {
@@ -117,7 +124,7 @@ namespace AlmostFastOverlays
                     if (Math.Abs(from - y) > 0.5)
                         element.BeginAnimation(Canvas.TopProperty, new DoubleAnimation(from, y, Slide) { EasingFunction = Ease, FillBehavior = FillBehavior.HoldEnd });
                     if (Math.Abs(element.Opacity - item.Opacity) > 0.01 && element.Tag as string != "leaving")
-                        element.BeginAnimation(OpacityProperty, new DoubleAnimation(item.Opacity, new Duration(TimeSpan.FromMilliseconds(200))));
+                        element.BeginAnimation(OpacityProperty, new DoubleAnimation(item.Opacity, FadeIn));
                 }
                 Canvas.SetTop(element, y);
                 element.Tag = null;
@@ -129,7 +136,7 @@ namespace AlmostFastOverlays
                 FrameworkElement gone = _items[key];
                 _items.Remove(key);
                 gone.Tag = "leaving";
-                var fade = new DoubleAnimation(0, new Duration(TimeSpan.FromMilliseconds(220)));
+                var fade = new DoubleAnimation(0, FadeOut);
                 fade.Completed += (s, e) => _canvas.Children.Remove(gone);
                 gone.BeginAnimation(OpacityProperty, fade);
             }
@@ -321,7 +328,29 @@ namespace AlmostFastOverlays
                 VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis
             };
 
-        private static SolidColorBrush Brush(DColor c, byte alpha = 255) => new SolidColorBrush(Color.FromArgb(alpha, c.R, c.G, c.B));
+        private static SolidColorBrush Brush(DColor c, byte alpha = 255) => Brush(Color.FromArgb(alpha, c.R, c.G, c.B));
+
+        private static readonly Dictionary<Color, SolidColorBrush> BrushCache = new Dictionary<Color, SolidColorBrush>();
+
+        /// <summary>One shared, frozen brush per color: assigning the same brush again changes nothing on screen.</summary>
+        private static SolidColorBrush Brush(Color color)
+        {
+            if (!BrushCache.TryGetValue(color, out SolidColorBrush brush))
+                BrushCache[color] = brush = Frozen(new SolidColorBrush(color));
+            return brush;
+        }
+
+        private static T Frozen<T>(T freezable) where T : Freezable
+        {
+            freezable.Freeze();
+            return freezable;
+        }
+
+        private static readonly Brush PlayerRow = Frozen(new LinearGradientBrush(Color.FromArgb(235, 168, 132, 42), Color.FromArgb(200, 112, 88, 30), 0));
+        private static readonly Brush OddRow = Brush(Color.FromArgb(14, 255, 255, 255));
+        private static readonly Brush FastestCell = Brush(Color.FromArgb(70, 0, 0, 0));
+        private static readonly Brush Clear = Brush(Colors.Transparent);
+        private static readonly FontFamily Icons = new FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets");
         private static readonly Brush White = Brushes.White;
         private static readonly Brush Muted = new SolidColorBrush(Color.FromRgb(150, 160, 175));
         private static readonly Brush Purple = new SolidColorBrush(Color.FromRgb(196, 120, 255));
@@ -435,15 +464,19 @@ namespace AlmostFastOverlays
             var badge = (StackPanel)grid.Children[0];
             var count = (Border)badge.Children[0];
             var name = (Border)badge.Children[1];
-            count.BorderBrush = Brush(g.Color);
             ((TextBlock)count.Child).Text = g.Entries.Count + (g.Entries.Count == 1 ? " CAR" : " CARS");
-            ((TextBlock)count.Child).Foreground = Brush(g.Color);
-            name.Background = new LinearGradientBrush(Color.FromRgb(g.Color.R, g.Color.G, g.Color.B), Color.FromArgb(255, (byte)(g.Color.R * 0.75), (byte)(g.Color.G * 0.75), (byte)(g.Color.B * 0.75)), 0);
             ((TextBlock)name.Child).Text = g.Name.ToUpperInvariant();
             var sof = (TextBlock)grid.Children[1];
             sof.Text = g.StrengthOfField > 0 ? "SOF " + (g.StrengthOfField >= 1000 ? (g.StrengthOfField / 1000.0).ToString("0.0", CultureInfo.InvariantCulture) + "k" : g.StrengthOfField.ToString()) : "";
+            // The class colour rarely changes; repaint only when it does.
+            int argb = g.Color.ToArgb();
+            if (grid.Tag is int painted && painted == argb) return;
+            grid.Tag = argb;
+            count.BorderBrush = Brush(g.Color);
+            ((TextBlock)count.Child).Foreground = Brush(g.Color);
+            name.Background = Frozen(new LinearGradientBrush(Color.FromRgb(g.Color.R, g.Color.G, g.Color.B), Color.FromArgb(255, (byte)(g.Color.R * 0.75), (byte)(g.Color.G * 0.75), (byte)(g.Color.B * 0.75)), 0));
             sof.Foreground = Brush(g.Color);
-            ((Border)grid.Children[2]).Background = new LinearGradientBrush(Color.FromArgb(220, g.Color.R, g.Color.G, g.Color.B), Color.FromArgb(0, g.Color.R, g.Color.G, g.Color.B), 0);
+            ((Border)grid.Children[2]).Background = Frozen(new LinearGradientBrush(Color.FromArgb(220, g.Color.R, g.Color.G, g.Color.B), Color.FromArgb(0, g.Color.R, g.Color.G, g.Color.B), 0));
         }
 
         // ------------------------------------------------------------------ one driver row
@@ -459,6 +492,10 @@ namespace AlmostFastOverlays
                 _owner = owner;
                 Width = owner._width - Pad * 2;
                 Height = RowH;
+                // Each row is drawn once into a GPU texture; sliding it just moves the texture.
+                // It's redrawn only when something in the row changes. Rendered at the overlay's
+                // size and the screen's DPI so text stays sharp.
+                CacheMode = new BitmapCache { RenderAtScale = owner._config.Scale * VisualTreeHelper.GetDpi(owner).DpiScaleX, SnapsToDevicePixels = true };
                 List<Column> columns = owner._columns;
                 foreach (Column c in columns) ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(c.Width) });
                 int Col(string key) => columns.FindIndex(c => c.Key == key);
@@ -557,9 +594,7 @@ namespace AlmostFastOverlays
                 }
                 _owner._lastPlace[e.CarIdx] = e.ClassPosition;
 
-                _back.Background = e.IsPlayer
-                    ? (Brush)new LinearGradientBrush(Color.FromArgb(235, 168, 132, 42), Color.FromArgb(200, 112, 88, 30), 0)
-                    : odd ? new SolidColorBrush(Color.FromArgb(14, 255, 255, 255)) : Brushes.Transparent;
+                _back.Background = e.IsPlayer ? PlayerRow : odd ? OddRow : Clear;
                 if (_pos != null) _pos.Text = e.ClassPosition > 0 ? e.ClassPosition.ToString() : "-";
                 if (_stripe != null) _stripe.Background = Brush(e.ClassColor);
                 if (_plate != null)
@@ -595,7 +630,7 @@ namespace AlmostFastOverlays
                 {
                     _best.Text = Fmt.LapTime(e.BestLap).Replace("--:--.---", "");
                     _best.Foreground = e.IsClassFastest ? Purple : White;
-                    _bestCell.Background = e.IsClassFastest ? new SolidColorBrush(Color.FromArgb(70, 0, 0, 0)) : Brushes.Transparent;
+                    _bestCell.Background = e.IsClassFastest ? FastestCell : Clear;
                 }
                 if (_last != null)
                 {
@@ -614,10 +649,10 @@ namespace AlmostFastOverlays
             private void Chip(string text, Color color, bool label)
             {
                 _status.Text = text;
-                _status.FontFamily = label ? Digits : new FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets");
+                _status.FontFamily = label ? Digits : Icons;
                 _status.FontSize = label ? 10 : 12;
                 _status.Foreground = label ? Dark : Brushes.White;
-                _statusChip.Background = new SolidColorBrush(color);
+                _statusChip.Background = Brush(color);
             }
         }
 

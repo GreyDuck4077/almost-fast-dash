@@ -53,6 +53,8 @@ namespace AlmostFastOverlays
             if (previewDirectory != null) return RenderPreviews(previewDirectory);
             string templateDirectory = ParseOption(args, "--render-templates");
             if (templateDirectory != null) return RenderTemplates(templateDirectory);
+            string fpsReport = ParseOption(args, "--overlay-fps");
+            if (fpsReport != null) return OverlayBench.Run(fpsReport);
             string flagDirectory = ParseOption(args, "--render-flags");
             if (flagDirectory != null) return RenderFlags(flagDirectory);
             string selfTestReport = ParseOption(args, "--designer-selftest");
@@ -367,6 +369,7 @@ namespace AlmostFastOverlays
             using (var mutex = new Mutex(true, OverlayHost.MutexName, out bool owns))
             {
                 if (!owns) return 2;
+                OverlayHost.LimitAnimationRate();
                 var application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
                 application.DispatcherUnhandledException += (sender, e) =>
                 {

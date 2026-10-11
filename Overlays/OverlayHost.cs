@@ -144,6 +144,20 @@ namespace AlmostFastOverlays
             catch { return false; }
         }
 
+        /// <summary>
+        /// Overlay animations run at up to 120 frames a second. On a high-refresh display WPF
+        /// would otherwise draw at the full refresh rate (165 Hz and up) while anything moves;
+        /// 120 looks just as fluid for these short slides and fades at about half the CPU.
+        /// Must run before any animation is created.
+        /// </summary>
+        public static void LimitAnimationRate()
+        {
+            System.Windows.Media.Animation.Timeline.DesiredFrameRateProperty.OverrideMetadata(
+                typeof(System.Windows.Media.Animation.Timeline), new FrameworkPropertyMetadata { DefaultValue = AnimationFrameRate });
+        }
+
+        public const int AnimationFrameRate = 120;
+
         public static void RequestStop()
         {
             try { File.WriteAllText(StopPath, DateTime.UtcNow.ToString("O")); } catch { }
@@ -166,9 +180,9 @@ namespace AlmostFastOverlays
         {
             Config = config;
             _view = config.Type == "toasts" ? (FrameworkElement)new ToastView() : new StandingsView();
-            WindowStyle = WindowStyle.None;
-            AllowsTransparency = true;
-            Background = Brushes.Transparent;
+            // See-through on the GPU (not WPF's AllowsTransparency, which copies every frame
+            // back from the graphics card), so animations keep up with the display.
+            GlassBackdrop.MakeClear(this);
             Topmost = true;
             ShowInTaskbar = false;
             ShowActivated = false;
@@ -208,6 +222,9 @@ namespace AlmostFastOverlays
 
         public OverlayConfig Config { get; set; }
 
+        /// <summary>What the window shows: the timing table or the toast stack.</summary>
+        internal FrameworkElement View => _view;
+
         public void Update(TelemetrySnapshot telemetry, StandingsSnapshot standings, bool editing)
         {
             if (_view is ToastView toasts) toasts.Update(telemetry, standings, Config, editing);
@@ -231,16 +248,26 @@ namespace AlmostFastOverlays
         }
 
         /// <summary>Tool window that never takes focus from the game; locked overlays are also click-through.</summary>
-        private void ApplyStyle()
+        private void ApplyStyle() => MakeClickThrough(this, _locked);
+
+        /// <summary>
+        /// A tool window that never takes focus from the game; when locked, clicks pass
+        /// straight through to whatever is underneath. Windows needs the layered style for
+        /// that, and a GPU-composited window then needs its opacity set or it draws nothing.
+        /// </summary>
+        internal static void MakeClickThrough(Window window, bool locked)
         {
-            IntPtr handle = new WindowInteropHelper(this).Handle;
+            IntPtr handle = new WindowInteropHelper(window).Handle;
             if (handle == IntPtr.Zero) return;
             int style = GetWindowLong(handle, GwlExStyle) | WsExToolWindow | WsExLayered | WsExNoActivate;
-            style = _locked ? style | WsExTransparent : style & ~WsExTransparent;
+            style = locked ? style | WsExTransparent : style & ~WsExTransparent;
             SetWindowLong(handle, GwlExStyle, style);
+            if (!window.AllowsTransparency) SetLayeredWindowAttributes(handle, 0, 255, LwaAlpha);
         }
 
+        private const int LwaAlpha = 0x2;
         [DllImport("user32.dll")] private static extern int GetWindowLong(IntPtr hwnd, int index);
         [DllImport("user32.dll")] private static extern int SetWindowLong(IntPtr hwnd, int index, int value);
+        [DllImport("user32.dll")] private static extern bool SetLayeredWindowAttributes(IntPtr hwnd, uint key, byte alpha, uint flags);
     }
 }
