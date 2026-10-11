@@ -1,7 +1,5 @@
 # Almost Fast Overlays
 
-(Formerly DV5Direct.)
-
 Double-click `App\AlmostFastOverlays.exe` to open the settings app. The same
 executable runs the dashboard with `--run`; the Windows Startup shortcut uses
 that quiet mode automatically. Preferences are stored in `App\settings.json`
