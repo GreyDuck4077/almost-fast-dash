@@ -362,8 +362,10 @@ namespace AlmostFastOverlays
             DateTime? finishAt,
             DiagnosticLogger diagnostics)
         {
+            // While iRacing isn't connected, the settings window's live preview can show on the wheel.
+            var preview = new PreviewRequest();
             // The LEDs run on their own loop, so they keep working while the screen reconnects.
-            using (new LightLoop(telemetry.GetSnapshot, () => runtime.Settings, () => runtime.Dashboard, diagnostics.RecordLight))
+            using (new LightLoop(() => preview.Apply(telemetry.GetSnapshot()), () => runtime.Settings, () => runtime.Dashboard, diagnostics.RecordLight))
             while (!ShouldStop(finishAt))
             {
                 try
@@ -386,14 +388,14 @@ namespace AlmostFastOverlays
                             while (!ShouldStop(finishAt))
                             {
 
-                                TelemetrySnapshot snapshot = telemetry.GetSnapshot();
+                                TelemetrySnapshot snapshot = preview.Apply(telemetry.GetSnapshot());
 
                                 // Pick up saved settings and switch dashboards when the
                                 // track type changes, without restarting the process.
                                 if (DateTime.UtcNow >= nextSettingsCheckUtc)
                                 {
                                     nextSettingsCheckUtc = DateTime.UtcNow.AddSeconds(1);
-                                    if (runtime.Refresh(snapshot.Discipline))
+                                    if (runtime.Refresh(preview.Active ? null : snapshot.Discipline, preview.Active ? preview.DashboardId : null))
                                     {
                                         telemetry.ApplyAlertSettings(runtime.Dashboard.Alerts);
                                         screen.SetBrightness(runtime.Settings.General.ScreenBrightness);
@@ -463,7 +465,13 @@ namespace AlmostFastOverlays
                     Console.Error.WriteLine("DV-5 connection lost: " + exception.Message);
                     Console.Error.WriteLine("Retrying in 2 seconds...");
                     // Keep following settings and track type so the lights stay right meanwhile.
-                    try { if (runtime.Refresh(telemetry.GetSnapshot().Discipline)) telemetry.ApplyAlertSettings(runtime.Dashboard.Alerts); }
+                    try
+                    {
+                        TelemetrySnapshot live = telemetry.GetSnapshot();
+                        preview.Apply(live);
+                        bool previewing = !live.Connected && preview.Active;
+                        if (runtime.Refresh(previewing ? null : live.Discipline, previewing ? preview.DashboardId : null)) telemetry.ApplyAlertSettings(runtime.Dashboard.Alerts);
+                    }
                     catch { }
                     StopRequested.Wait(ReconnectDelayMilliseconds);
                 }
@@ -479,6 +487,7 @@ namespace AlmostFastOverlays
             private readonly string _pinnedDashboardId;
             private DateTime _settingsWriteUtc;
             private string _discipline;
+            private string _previewId;
 
             public DashboardRuntime(string pinnedDashboardId)
             {
@@ -495,12 +504,15 @@ namespace AlmostFastOverlays
             public IDashboardRenderer Renderer { get; private set; }
 
             /// <summary>Returns true when the renderer or LED settings were replaced.</summary>
-            public bool Refresh(string discipline)
+            /// <param name="previewId">A dashboard the settings window is previewing, shown instead while set.</param>
+            public bool Refresh(string discipline, string previewId = null)
             {
                 DateTime writeUtc = SettingsStore.LastWriteUtc();
                 bool settingsChanged = writeUtc != _settingsWriteUtc;
                 bool disciplineChanged = discipline != null && discipline != _discipline;
-                if (!settingsChanged && !disciplineChanged) return false;
+                bool previewChanged = previewId != _previewId;
+                if (!settingsChanged && !disciplineChanged && !previewChanged) return false;
+                _previewId = previewId;
 
                 if (discipline != null) _discipline = discipline;
                 if (settingsChanged)
@@ -523,7 +535,9 @@ namespace AlmostFastOverlays
             }
 
             private DashboardSettings Select() =>
-                !string.IsNullOrWhiteSpace(_pinnedDashboardId)
+                _previewId != null && Settings.Dashboards.Any(d => d.Id == _previewId)
+                    ? Settings.Dashboards.First(d => d.Id == _previewId)
+                    : !string.IsNullOrWhiteSpace(_pinnedDashboardId)
                     ? Settings.Dashboards.FirstOrDefault(d => d.Id == _pinnedDashboardId) ?? Settings.GetDefaultDashboard()
                     : Settings.ResolveDashboard(_discipline);
 

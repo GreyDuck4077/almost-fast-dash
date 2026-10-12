@@ -128,6 +128,17 @@ namespace AlmostFastOverlays
                 Math.Round(LedPower.Milliamps(allWhite)) + " mA → " + Math.Round(LedPower.Milliamps(limited)) + " mA");
             Check("rev lights at full are left alone by the power limit", ReferenceEquals(LedPower.Limit(revs, LedPower.DefaultMilliamps), revs), Math.Round(LedPower.Milliamps(revs)) + " mA");
 
+            // ---------------- preview on a running dashboard
+            PreviewRequest.Write("dashboard-halo", 1, false);
+            var follower = new PreviewRequest();
+            TelemetrySnapshot shown = follower.Apply(TelemetrySnapshot.Disconnected);
+            TelemetrySnapshot live = Snap(0.2, 4000);
+            bool liveWins = ReferenceEquals(follower.Apply(live), live);
+            PreviewRequest.Clear();
+            var cleared = new PreviewRequest();
+            Check("a running dashboard shows the settings preview until iRacing connects", follower.DashboardId == "dashboard-halo" && shown.Connected && DataCatalog.AtShiftPoint(shown) && liveWins
+                && !cleared.Apply(TelemetrySnapshot.Disconnected).Connected);
+
             // ---------------- light log
             var activity = new LightActivity();
             var flagRenderer = new LightRenderer(LightPresets.Refined(), "#2DD4BF", units, devices);

@@ -22,6 +22,7 @@ namespace AlmostFastOverlays
         private string _stripsSignature;
         private readonly DeviceMirror _mirror = new DeviceMirror();
         private bool _dashboardRunning;
+        private int _lastRequestTick;
 
         /// <summary>Screenshots for the self-check: never touch the LED devices.</summary>
         internal bool Offline { get; set; }
@@ -115,31 +116,36 @@ namespace AlmostFastOverlays
             }
             TelemetrySnapshot snapshot;
             // Animation plays the racing state; any other state is shown as it is, on the screen and the lights alike.
-            if (AnimateLeds.IsChecked == true && PreviewState.SelectedIndex <= 0) snapshot = _previewSynthetic.Next(out _, out _, out _);
-            else
-                switch (PreviewState.SelectedIndex)
-                {
-                    case 1: snapshot = LightsWindow.Scenario("Shift point"); break;
-                    case 2: snapshot = IRacingTelemetrySource.CreatePitLanePreviewSnapshot(); break;
-                    case 3: snapshot = IRacingTelemetrySource.CreateSpotterPreviewSnapshot(); break;
-                    default: snapshot = IRacingTelemetrySource.CreatePreviewSnapshot(_previewFlag); break;
-                }
+            snapshot = PreviewRequest.ForState(PreviewState.SelectedIndex, AnimateLeds.IsChecked == true, _previewSynthetic);
             LightFrame frame = _previewLights.Compose(snapshot, Environment.TickCount);
             for (int d = 0; d < _stripDots.Count && d < frame.Leds.Length; d++)
                 for (int i = 0; i < _stripDots[d].Length && i < frame.Leds[d].Length; i++)
                     if (_stripDots[d][i] != null) PaintLed(_stripDots[d][i], _stripGlows[d][i], frame.Leds[d][i], profile.Gamma);
 
-            // The real devices show the preview too, unless the dashboard (or a device test or setup) has them.
-            bool mirror = !Offline && MirrorLeds.IsChecked == true && !_dashboardRunning && !_dashboardOperationInProgress && !_deviceBusy && WindowState != WindowState.Minimized;
-            if (mirror) _mirror.Show(frame, _settings.General.Devices);
+            // The real devices show the preview too: directly while the dashboard is stopped, or through
+            // the running dashboard (which owns them) while iRacing isn't connected.
+            bool show = !Offline && MirrorLeds.IsChecked == true && !_dashboardOperationInProgress && !_deviceBusy && WindowState != WindowState.Minimized;
+            if (show && !_dashboardRunning) { PreviewRequest.Clear(); _mirror.Show(frame, _settings.General.Devices); }
+            else if (show)
+            {
+                if (_mirror.Active) _mirror.Release();
+                if (Environment.TickCount - _lastRequestTick > 500 || Environment.TickCount < _lastRequestTick)
+                {
+                    PreviewRequest.Write(_dashboard.Id, PreviewState.SelectedIndex, AnimateLeds.IsChecked == true);
+                    _lastRequestTick = Environment.TickCount;
+                }
+            }
             else ReleaseDevices();
-            MirrorNote.Text = _dashboardRunning ? "The running dashboard is driving your LED devices." : "While the dashboard is stopped. A running dashboard drives them itself.";
+            MirrorNote.Text = _dashboardRunning
+                ? "Shown through the running dashboard while iRacing isn't connected; live data takes over when it is."
+                : "Lights your devices with this preview while the dashboard is stopped.";
         }
 
         /// <summary>Stops showing the preview on the devices, turning them off and freeing them for the dashboard or device setup.</summary>
         private void ReleaseDevices()
         {
             if (_mirror.Active) _mirror.Release();
+            PreviewRequest.Clear();
         }
 
         private void PaintLed(Ellipse dot, DropShadowEffect glowEffect, DrawingColor color, bool gamma)

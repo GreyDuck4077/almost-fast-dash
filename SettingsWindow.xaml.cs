@@ -28,9 +28,6 @@ namespace AlmostFastOverlays
         private static readonly string[] AccentPresetColors =
             { "#2DD4BF", "#27C7D9", "#0A84FF", "#5E5CE6", "#BF5AF2", "#FF375F", "#FF9F0A", "#30D158" };
 
-        private static readonly string[] PreviewStates =
-            { "Racing", "Shift point", "Pit lane", "Cars alongside", "Green flag", "Yellow flag", "White flag", "Blue flag", "Black flag", "Checkered flag" };
-
         private readonly AppSettings _settings;
         private DashboardSettings _dashboard;
         private bool _loading = true;
@@ -74,7 +71,7 @@ namespace AlmostFastOverlays
             Version version = Assembly.GetExecutingAssembly().GetName().Version;
             VersionText.Text = $"Version {version.Major}.{version.Minor} · Changes save automatically";
             SettingsPathText.Text = SettingsStore.FilePath;
-            Closing += (s, e) => { FlushSave(); _ledTimer.Stop(); _statusTimer.Stop(); _mirror.Dispose(); };
+            Closing += (s, e) => { FlushSave(); _ledTimer.Stop(); _statusTimer.Stop(); _mirror.Dispose(); PreviewRequest.Clear(); };
         }
 
         // ------------------------------------------------------------------
@@ -83,7 +80,7 @@ namespace AlmostFastOverlays
 
         private void PopulateChoices()
         {
-            PreviewState.ItemsSource = PreviewStates;
+            PreviewState.ItemsSource = PreviewRequest.States;
             PreviewState.SelectedIndex = 0;
         }
 
