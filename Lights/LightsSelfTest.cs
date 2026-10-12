@@ -120,6 +120,22 @@ namespace AlmostFastOverlays
             setupPreview.Dispose();
             Check("device setup sends only the LEDs it asks for, and clears only those", recorder.Lengths.SequenceEqual(new[] { 16, 3, 3 }), string.Join(", ", recorder.Lengths));
 
+            // ---------------- a light bar made of two groups (two bars side by side)
+            var twoBars = new List<DeviceSettings>
+            {
+                new DeviceSettings { Id = "bar", Name = "Bar", Kind = LedDeviceKinds.Arduino, LedCount = 20, Groups =
+                {
+                    new LedGroup { Id = "l", Name = "Left bar", Purpose = LedPurposes.Bar, From = 1, To = 10 },
+                    new LedGroup { Id = "r", Name = "Right bar", Purpose = LedPurposes.Bar, From = 11, To = 20, Reverse = true }
+                } }
+            };
+            LedTarget halves = LedTargets.Find("brow-mirror", twoBars);
+            var carLeftBar = new LightRenderer(new LightProfile { FadeMs = 0, Layers = { new LightLayer { Name = "Spot", Target = "brow-mirror", Effect = "spotter", Props = { ["style"] = "Whole strip" } } } },
+                "#000000", units, twoBars).Compose(Snap(0.3, 5000, left: BlindSpotZone.Beside), 0).Leds[0];
+            Check("two bars side by side: a car on the left lights only the left bar", halves.Strips.Count == 2 && halves.Strips[0].Select(l => l.Index).OrderBy(i => i).SequenceEqual(Enumerable.Range(0, 10))
+                && halves.Strips[1].Select(l => l.Index).OrderBy(i => i).SequenceEqual(Enumerable.Range(10, 10)) && halves.RightStrips.SequenceEqual(new[] { false, true })
+                && carLeftBar.Take(10).All(c => c.R > 0) && carLeftBar.Skip(10).All(c => (c.R | c.G | c.B) == 0));
+
             // ---------------- power limit
             Color[] allWhite = Enumerable.Repeat(Color.White, 16).ToArray();
             Color[] limited = LedPower.Limit(allWhite, LedPower.DefaultMilliamps);

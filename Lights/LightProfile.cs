@@ -123,12 +123,12 @@ namespace AlmostFastOverlays
             new Purpose { Id = "dv5", Name = "Every LED on shift-light devices", Description = "Every LED on each device that has shift lights, in the device's own wiring order.",
                 Strips = d => Devices(d).Where(x => x.Item2.Groups.Any(g => g.Purpose == LedPurposes.Shift)).Select(x => new Part(All(x.Item1, x.Item2), false)) },
             new Purpose { Id = "brow", Name = "Light bar", Description = "Every group set up as a light bar, left to right.", Strips = d => Groups(d, LedPurposes.Bar) },
-            new Purpose { Id = "brow-mirror", Name = "Light bar, mirrored", Description = "Both halves of every light bar, each from the middle outward.", FrontAtEnd = false,
-                Strips = d => Groups(d, LedPurposes.Bar).SelectMany(p => new[] { new Part(Half(p.Leds, true), false), new Part(Half(p.Leds, false), true) }) },
+            new Purpose { Id = "brow-mirror", Name = "Light bar, left and right halves", Description = "Both halves of every light bar, each from the middle outward: a car on the left lights the left half. A bar made of several groups (two bars side by side) is split between its groups.", FrontAtEnd = false,
+                Strips = d => BarHalves(d).SelectMany(h => new[] { new Part(h.Item1, false), new Part(h.Item2, true) }) },
             new Purpose { Id = "brow-left", Name = "Light bar, left half", Description = "The left half of every light bar, from the middle outward.", FrontAtEnd = false,
-                Strips = d => Groups(d, LedPurposes.Bar).Select(p => new Part(Half(p.Leds, true), false)) },
+                Strips = d => BarHalves(d).Select(h => new Part(h.Item1, false)) },
             new Purpose { Id = "brow-right", Name = "Light bar, right half", Description = "The right half of every light bar, from the middle outward.", FrontAtEnd = false,
-                Strips = d => Groups(d, LedPurposes.Bar).Select(p => new Part(Half(p.Leds, false), true)) },
+                Strips = d => BarHalves(d).Select(h => new Part(h.Item2, true)) },
             new Purpose { Id = "all", Name = "Everything", Description = "Every LED on every device.", Strips = d => Devices(d).Select(x => new Part(All(x.Item1, x.Item2), false)) },
         };
 
@@ -176,6 +176,30 @@ namespace AlmostFastOverlays
         private static LedRef[] Strip(int device, LedGroup group) => group.Indexes().Select(i => new LedRef(device, i)).ToArray();
 
         private static LedRef[] All(int device, DeviceSettings d) => Enumerable.Range(0, d.LedCount).Select(i => new LedRef(device, i)).ToArray();
+
+        /// <summary>
+        /// The left and right halves of each device's light bar, each from the middle outward. One
+        /// light bar group is cut in half; a bar made of several groups (such as two bars side by side)
+        /// is split between its groups, left to right by where they start, so each half is whole groups.
+        /// </summary>
+        private static IEnumerable<Tuple<LedRef[], LedRef[]>> BarHalves(IReadOnlyList<DeviceSettings> devices)
+        {
+            foreach (Tuple<int, DeviceSettings> device in Devices(devices))
+            {
+                List<LedGroup> bars = device.Item2.Groups.Where(g => g.Purpose == LedPurposes.Bar).OrderBy(g => Math.Min(g.From, g.To)).ToList();
+                if (bars.Count == 0) continue;
+                if (bars.Count == 1)
+                {
+                    LedRef[] strip = Strip(device.Item1, bars[0]);
+                    yield return Tuple.Create(Half(strip, true), Half(strip, false));
+                    continue;
+                }
+                int leftGroups = bars.Count / 2;
+                LedRef[] left = bars.Take(leftGroups).SelectMany(g => Strip(device.Item1, g)).Reverse().ToArray();
+                LedRef[] right = bars.Skip(leftGroups).SelectMany(g => Strip(device.Item1, g)).ToArray();
+                yield return Tuple.Create(left, right);
+            }
+        }
 
         /// <summary>Half of a strip, from its middle outward.</summary>
         private static LedRef[] Half(LedRef[] strip, bool left)

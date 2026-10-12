@@ -25,6 +25,8 @@ namespace AlmostFastOverlays
             {
                 ShowEditor(_settings.GetDefaultDashboard());
                 if (scenario.Contains("shift")) PreviewState.SelectedItem = "Shift point";
+                if (scenario.Contains("carleft")) PreviewState.SelectedItem = "Car left";
+                if (scenario.Contains("carright")) PreviewState.SelectedItem = "Car right";
             }
             else if (scenario.Contains("devices"))
             {
