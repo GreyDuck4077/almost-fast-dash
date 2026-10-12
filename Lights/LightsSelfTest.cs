@@ -177,6 +177,9 @@ namespace AlmostFastOverlays
             oddMap.Place(2); oddMap.Place(0);
             bool stillAsking = !oddMap.Done;
             oddMap.Place(1);
+            var byHand = new LayoutMapper(new LedLayout { Shape = LedShapes.Screen, Left = 4, Top = 8, Right = 4 }, false);
+            byHand.Place(0); byHand.Place(1);
+            Check("placing by hand never follows the chain", byHand.Next == 2 && byHand.LedAt(1) == 1 && byHand.LedAt(2) == -1);
             Check("wiring that jumps is mapped one LED at a time", stillAsking && oddMap.Done && oddMap.Map().SequenceEqual(new[] { 1, 2, 0 }));
 
             var loop = new LedLayout { Shape = LedShapes.Screen, Left = 2, Top = 2, Right = 2, Bottom = 2 };

@@ -57,11 +57,14 @@ namespace AlmostFastOverlays
             if (step == "find") { _device = null; Show(Step.Find); return; }
             _device = new DeviceSettings { Kind = LedDeviceKinds.Arduino, Port = "COM4", DetectedName = "SSG DV 5", Name = "Wheel LEDs" };
             _layout = step == "shape-empty" ? new LedLayout { Shape = "" } : new LedLayout { Shape = LedShapes.Screen, Left = 4, Top = 8, Right = 4 };
-            if (step == "map-partial" || step == "map-done" || step == "done")
+            if (step.StartsWith("map-") || step == "done")
             {
-                _mapper = new LayoutMapper(_layout);
+                _mapper = new LayoutMapper(_layout, step != "map-hand");
                 _mapper.Place(0);
                 if (step != "map-partial") _mapper.Place(1);
+                if (step == "map-ask" || step == "map-doubt") foreach (int led in new[] { 0, 5, 10, 15 }) _checked.Add(led);
+                if (step == "map-check") { _checked.Add(3); _testLed = 3; }
+                _doubted = step == "map-doubt";
             }
             Show(step == "name" ? Step.Name : step.StartsWith("shape") ? Step.Shape : step.StartsWith("map") ? Step.Map : Step.Done);
         }
@@ -536,6 +539,20 @@ namespace AlmostFastOverlays
         private TextBlock _mapPrompt, _mapHint;
         private ContentControl _mapDrawing;
         private Button _undo, _replay;
+        // Checking the map: LEDs clicked on the drawing light on the device; after a few, the user confirms.
+        private const int ChecksNeeded = 4;
+        private readonly HashSet<int> _checked = new HashSet<int>();
+        private int _testLed = -1;
+        private bool _verified, _doubted;
+        private StackPanel _verify;
+
+        private void ResetChecks()
+        {
+            _checked.Clear();
+            _testLed = -1;
+            _verified = false;
+            _doubted = false;
+        }
 
         private static readonly DrawingColor Asking = DrawingColor.FromArgb(220, 220, 220), Placed = DrawingColor.FromArgb(0, 45, 40);
 
@@ -587,8 +604,9 @@ namespace AlmostFastOverlays
             if (_mapper == null || _mapper.Total != _layout.Total)
             {
                 _mapper = new LayoutMapper(_layout);
-                // A shape mapped before is shown done, ready to check or map again.
-                if (_layout.IsMapped) _mapper.Load(_layout.Map);
+                ResetChecks();
+                // A shape mapped (and checked) before is shown done, ready to check again or map again.
+                if (_layout.IsMapped) { _mapper.Load(_layout.Map); _verified = true; }
             }
 
             var body = new StackPanel();
@@ -596,6 +614,9 @@ namespace AlmostFastOverlays
             _mapHint = new TextBlock { Style = (Style)FindResource("T.Secondary"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 16), MaxWidth = 680, HorizontalAlignment = HorizontalAlignment.Left };
             body.Children.Add(_mapPrompt);
             body.Children.Add(_mapHint);
+            // The check question and its answers sit right under the prompt, where they're seen.
+            _verify = new StackPanel { Margin = new Thickness(0, -4, 0, 16) };
+            body.Children.Add(_verify);
             _mapDrawing = new ContentControl { HorizontalAlignment = HorizontalAlignment.Center };
             body.Children.Add(new Border
             {
@@ -604,9 +625,9 @@ namespace AlmostFastOverlays
             });
             var actions = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 14, 0, 0) };
             _undo = new Button { Content = "Undo", Margin = new Thickness(0, 0, 8, 0) };
-            _undo.Click += (s, e) => { StopChase(); _mapper.Undo(); RenderMap(); };
+            _undo.Click += (s, e) => { StopChase(); _mapper.Undo(); ResetChecks(); RenderMap(); };
             var restart = new Button { Content = "Start over", Margin = new Thickness(0, 0, 8, 0) };
-            restart.Click += (s, e) => { StopChase(); _mapper = new LayoutMapper(_layout); RenderMap(); };
+            restart.Click += (s, e) => { StopChase(); _mapper = new LayoutMapper(_layout, !_mapper.ByHand); ResetChecks(); RenderMap(); };
             var replay = _replay = new Button { Content = "Play the order again" };
             replay.Click += (s, e) => StartChase();
             actions.Children.Add(_undo);
@@ -628,7 +649,7 @@ namespace AlmostFastOverlays
             foreach (LayoutSlot slot in slots)
             {
                 int led = _mapper.LedAt(slot.Index);
-                bool chasing = _chaseLed >= 0 && led == _chaseLed;
+                bool chasing = led >= 0 && (led == _chaseLed || (_chaseLed < 0 && led == _testLed));
                 var circle = new Ellipse
                 {
                     Width = size, Height = size, StrokeThickness = 1.5,
@@ -649,7 +670,20 @@ namespace AlmostFastOverlays
                     cell.Cursor = Cursors.Hand;
                     cell.MouseEnter += (s, e) => circle.Stroke = (Brush)FindResource("Brush.Accent");
                     cell.MouseLeave += (s, e) => circle.Stroke = new SolidColorBrush(Color.FromArgb(90, 255, 255, 255));
-                    cell.MouseLeftButtonUp += (s, e) => { _mapper.Place(index); RenderMap(); };
+                    cell.MouseLeftButtonUp += (s, e) =>
+                    {
+                        _mapper.Place(index);
+                        RenderMap();
+                        // Once every LED is placed, run them all in order once before the check.
+                        if (_mapper.Done) StartChase();
+                    };
+                }
+                else if (led >= 0 && _mapper.Done)
+                {
+                    // Checking: the clicked LED lights on the device, so the user can see it's the same one.
+                    cell.Cursor = Cursors.Hand;
+                    cell.ToolTip = "Light LED " + (led + 1) + " on the device";
+                    cell.MouseLeftButtonUp += (s, e) => TestLed(led);
                 }
                 dots.Add(cell);
             }
@@ -657,22 +691,76 @@ namespace AlmostFastOverlays
             _undo.IsEnabled = _mapper.CanUndo;
             _replay.Visibility = _mapper.Done ? Visibility.Visible : Visibility.Collapsed;
 
+            _verify.Children.Clear();
+            _verify.Visibility = Visibility.Collapsed;
             if (_mapper.Done)
             {
-                _mapPrompt.Text = "Every LED is placed";
-                _mapHint.Text = "Watch them run in order, on the drawing and on your device together. If they don't match, Undo or Start over.";
-                _next.IsEnabled = true;
+                if (_verified)
+                {
+                    _mapPrompt.Text = "Every LED is placed and checked";
+                    _mapHint.Text = "Click any LED to light it on your device again, or continue.";
+                }
+                else if (_checked.Count < ChecksNeeded)
+                {
+                    _mapPrompt.Text = "Now check it: click " + ChecksNeeded + " LEDs";
+                    _mapHint.Text = "Click any LED on the drawing and the same LED should light on your device. Pick ones in different places, such as each end and each side. " +
+                        _checked.Count + " of " + ChecksNeeded + " checked.";
+                }
+                else ShowVerifyQuestion();
+                _next.IsEnabled = _verified;
             }
             else
             {
                 _mapPrompt.Text = "LED #" + (asking + 1) + " is lit on your device. Click where it is.";
-                _mapHint.Text = _mapper.Pending
+                _mapHint.Text = _mapper.ByHand ? "Placing every LED by hand: " + asking + " of " + _mapper.Total + " placed. Undo takes back the last one."
+                    : _mapper.Pending
                     ? "The one after LED #" + asking + ". That shows the app which way the chain runs."
                     : asking == 0 ? "It's the bright white LED. Placed LEDs glow faintly so you can keep your bearings."
                     : "The chain jumped or reached the end of a part, so the app needs LED #" + (asking + 1) + " too.";
                 _next.IsEnabled = false;
                 ShowAsking(asking);
             }
+        }
+
+        private void TestLed(int led)
+        {
+            StopChase();
+            _testLed = led;
+            _checked.Add(led);
+            var frame = new DrawingColor[_mapper.Total];
+            frame[led] = Asking;
+            _preview?.Show(frame);
+            RenderMap();
+        }
+
+        /// <summary>After a few checks: did the right LED light each time? No offers to place every LED by hand.</summary>
+        private void ShowVerifyQuestion()
+        {
+            _mapPrompt.Text = _doubted ? "Let's fix it" : "Did the right LED light up each time?";
+            _mapHint.Text = _doubted
+                ? "Some LEDs don't follow the chain the app worked out, such as one side wired the other way round. Place every LED by hand instead: the app lights each in turn and you click where it is."
+                : "If each LED you clicked lit up in the same place on your device, the map is right.";
+            var buttons = new StackPanel { Orientation = Orientation.Horizontal };
+            if (!_doubted)
+            {
+                var yes = new Button { Content = "Yes, they all matched", Style = (Style)FindResource("Btn.Primary"), Margin = new Thickness(0, 0, 8, 0) };
+                yes.Click += (s, e) => { _verified = true; _preview?.Show(new DrawingColor[_mapper.Total]); _testLed = -1; RenderMap(); };
+                var no = new Button { Content = "No, something was off" };
+                no.Click += (s, e) => { _doubted = true; RenderMap(); };
+                buttons.Children.Add(yes);
+                buttons.Children.Add(no);
+            }
+            else
+            {
+                var byHand = new Button { Content = "Place every LED by hand", Style = (Style)FindResource("Btn.Primary"), Margin = new Thickness(0, 0, 8, 0) };
+                byHand.Click += (s, e) => { StopChase(); _mapper = new LayoutMapper(_layout, false); ResetChecks(); RenderMap(); };
+                var again = new Button { Content = "Try the two clicks again" };
+                again.Click += (s, e) => { StopChase(); _mapper = new LayoutMapper(_layout); ResetChecks(); RenderMap(); };
+                buttons.Children.Add(byHand);
+                buttons.Children.Add(again);
+            }
+            _verify.Children.Add(buttons);
+            _verify.Visibility = Visibility.Visible;
         }
 
         /// <summary>Lights the LED being asked for brightly and the placed ones faintly; nothing past the furthest LED involved.</summary>

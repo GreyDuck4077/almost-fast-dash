@@ -201,9 +201,12 @@ namespace AlmostFastOverlays
         private readonly bool _closed;
         private readonly Stack<List<int>> _history = new Stack<List<int>>();
         private int _pendingSlot = -1;
+        private readonly bool _followChain;
 
-        public LayoutMapper(LedLayout layout)
+        /// <param name="followChain">False to place every LED by its own click, for wiring the chain-following gets wrong.</param>
+        public LayoutMapper(LedLayout layout, bool followChain = true)
         {
+            _followChain = followChain;
             int total = layout.Total;
             _slotLed = Enumerable.Repeat(-1, total).ToArray();
             _ledSlot = Enumerable.Repeat(-1, total).ToArray();
@@ -211,6 +214,9 @@ namespace AlmostFastOverlays
         }
 
         public int Total => _ledSlot.Length;
+
+        /// <summary>True when every LED is placed by its own click.</summary>
+        public bool ByHand => !_followChain;
 
         /// <summary>The LED to find next (from 0), or -1 when all are placed.</summary>
         public int Next => Array.IndexOf(_ledSlot, -1);
@@ -231,7 +237,8 @@ namespace AlmostFastOverlays
             if (led < 0 || slot < 0 || slot >= _slotLed.Length || _slotLed[slot] >= 0) return 0;
             var placed = new List<int>();
             Assign(led, slot, placed);
-            if (_pendingSlot >= 0 && led > 0 && _ledSlot[led - 1] == _pendingSlot)
+            if (!_followChain) { }
+            else if (_pendingSlot >= 0 && led > 0 && _ledSlot[led - 1] == _pendingSlot)
             {
                 // Two neighbours known: if they're next to each other on the shape, follow the chain.
                 int step = Step(_pendingSlot, slot, out int[] path);
@@ -251,7 +258,7 @@ namespace AlmostFastOverlays
                 else _pendingSlot = slot;
             }
             else _pendingSlot = slot;
-            if (Done) _pendingSlot = -1;
+            if (Done || !_followChain) _pendingSlot = -1;
             _history.Push(placed);
             return placed.Count;
         }
