@@ -185,7 +185,7 @@ namespace AlmostFastOverlays
         // Gallery
         // ------------------------------------------------------------------
 
-        private const double CardGap = 20, CardMinWidth = 300;
+        private const double CardGap = 20, CardMinWidth = 340;
 
         private void BuildGalleryCards()
         {
@@ -213,7 +213,7 @@ namespace AlmostFastOverlays
                 };
                 stack.Children.Add(thumbnail);
 
-                var body = new StackPanel { Margin = new Thickness(20, 16, 20, 18) };
+                var body = new StackPanel { Margin = new Thickness(20, 16, 20, 10) };
                 var title = new StackPanel { Orientation = Orientation.Horizontal };
                 title.Children.Add(new Ellipse { Width = 8, Height = 8, Fill = BrushFor(d.AccentColor), Margin = new Thickness(0, 0, 10, 0), VerticalAlignment = VerticalAlignment.Center });
                 title.Children.Add(new TextBlock { Text = d.Name, Style = (Style)FindResource("T.Title"), VerticalAlignment = VerticalAlignment.Center });
@@ -228,16 +228,17 @@ namespace AlmostFastOverlays
                     tags.Children.Add(Pill(type, "Brush.SurfaceRaised", "Brush.TextSecondary", new Thickness(0, 0, 6, 6)));
                 body.Children.Add(tags);
 
-                var actions = new StackPanel { Orientation = Orientation.Horizontal };
-                var customize = new Button { Content = "Customize", Margin = new Thickness(0, 0, 8, 0) };
+                // Wraps rather than clips when a card is narrow.
+                var actions = new WrapPanel();
+                var customize = new Button { Content = "Customize", Margin = new Thickness(0, 0, 8, 8) };
                 customize.Click += (s, e) => ShowEditor(d);
                 actions.Children.Add(customize);
-                var design = new Button { Content = "Design", Style = (Style)FindResource("Btn.Primary"), Margin = new Thickness(0, 0, 8, 0) };
+                var design = new Button { Content = "Design", Style = (Style)FindResource("Btn.Primary"), Margin = new Thickness(0, 0, 8, 8) };
                 design.Click += (s, e) => OpenDesigner(d);
                 actions.Children.Add(design);
                 if (!isDefault)
                 {
-                    var makeDefault = new Button { Content = "Set as default", Style = (Style)FindResource("Btn.Ghost") };
+                    var makeDefault = new Button { Content = "Set as default", Style = (Style)FindResource("Btn.Ghost"), Margin = new Thickness(0, 0, 0, 8) };
                     makeDefault.Click += (s, e) => MakeDefault(d);
                     actions.Children.Add(makeDefault);
                 }
@@ -262,6 +263,8 @@ namespace AlmostFastOverlays
             double available = panel.ActualWidth;
             if (available <= 0) return;
             int columns = Math.Max(1, (int)((available + CardGap) / (CardMinWidth + CardGap)));
+            // No empty columns: two dashboards share the row instead of leaving room for a third.
+            columns = Math.Max(1, Math.Min(columns, Math.Max(cards.Count, 2)));
             double width = Math.Floor((available - CardGap * columns) / columns);
             foreach (Border card in cards)
             {
