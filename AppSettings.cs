@@ -226,6 +226,12 @@ namespace AlmostFastOverlays
         public int ScreenBrightness { get; set; } = 100;
         public string SpeedUnit { get; set; } = "MPH";
         public string FuelUnit { get; set; } = "Liters";
+        /// <summary>"Celsius" or "Fahrenheit"; empty follows the speed unit (km/h gives Celsius), as before it could be chosen.</summary>
+        public string TemperatureUnit { get; set; }
+        /// <summary>The sidebar page the window opens on: Dashboards, Devices or Settings.</summary>
+        public string StartPage { get; set; } = "Dashboards";
+        /// <summary>Minimizing the window hides it to the notification area instead of the taskbar.</summary>
+        public bool MinimizeToTray { get; set; }
         public bool AutoSwitchByDiscipline { get; set; } = true;
         public bool DiagnosticsEnabled { get; set; } = true;
 

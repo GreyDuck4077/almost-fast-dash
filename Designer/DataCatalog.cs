@@ -126,8 +126,9 @@ namespace AlmostFastOverlays
             Add("Pit", "OverPitLimit", "True when faster than the pit limit.", s => s.T.PitSpeedLimitMph > 0 && s.T.SpeedMph > s.T.PitSpeedLimitMph + 0.5);
 
             // ---------------- Conditions
-            Add("Conditions", "AirTemp", "Air temperature in °C or °F to match your speed unit.", s => Temp(s, s.T.AirTempC), "format(AirTemp, \"0\") + \"°\"");
-            Add("Conditions", "TrackTemp", "Track temperature in °C or °F to match your speed unit.", s => Temp(s, s.T.TrackTempC), "format(TrackTemp, \"0\") + \"°\"");
+            Add("Conditions", "AirTemp", "Air temperature in your temperature unit (°C or °F).", s => Temp(s, s.T.AirTempC), "format(AirTemp, \"0\") + \"°\"");
+            Add("Conditions", "TempUnit", "\"°C\" or \"°F\".", s => s.Units.TemperatureLabel);
+            Add("Conditions", "TrackTemp", "Track temperature in your temperature unit (°C or °F).", s => Temp(s, s.T.TrackTempC), "format(TrackTemp, \"0\") + \"°\"");
             Add("Conditions", "TrackLength", "Track length in miles or km to match your speed unit.", s => s.Units.Metric ? s.T.TrackLengthMiles * 1.609344 : s.T.TrackLengthMiles, "format(TrackLength, \"0.00\")");
         }
 
@@ -150,8 +151,7 @@ namespace AlmostFastOverlays
             return t.EngineRpm >= blink;
         }
 
-        private static double Temp(EvalScope s, double celsius) =>
-            double.IsNaN(celsius) ? double.NaN : s.Units.Metric ? celsius : celsius * 9 / 5 + 32;
+        private static double Temp(EvalScope s, double celsius) => s.Units.Temperature(celsius);
 
         private static double Progress(TelemetrySnapshot t)
         {

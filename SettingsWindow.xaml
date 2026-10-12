@@ -442,13 +442,48 @@
                                     </StackPanel>
                                 </Border>
                             </Grid>
+                            <Border Style="{StaticResource Divider}"/>
+                            <Grid Style="{StaticResource Row}">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                <TextBlock Text="Temperature" Style="{StaticResource T.Label}" VerticalAlignment="Center"/>
+                                <Border Grid.Column="1" Style="{StaticResource Segmented}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton x:Name="TempC" Style="{StaticResource Segment}" GroupName="Temp" Content="°C" Checked="Units_Changed"/>
+                                        <RadioButton x:Name="TempF" Style="{StaticResource Segment}" GroupName="Temp" Content="°F" Checked="Units_Changed"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
                         </StackPanel>
                     </Border>
 
                     <Border Style="{StaticResource Card}">
                         <StackPanel>
                             <TextBlock Text="Behavior" Style="{StaticResource T.Title}"/>
-                            <TextBlock Text="How and when the dashboard runs." Style="{StaticResource T.Caption}" Margin="0,4,0,18"/>
+                            <TextBlock Text="How the app opens and when the dashboard runs." Style="{StaticResource T.Caption}" Margin="0,4,0,18"/>
+                            <Grid Style="{StaticResource Row}">
+                                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Text="Open on" Style="{StaticResource T.Label}"/>
+                                    <TextBlock Text="The page the app shows when it starts." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                </StackPanel>
+                                <Border Grid.Column="1" Style="{StaticResource Segmented}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton x:Name="OpenDashboards" Style="{StaticResource Segment}" GroupName="StartPage" Content="Dashboards" Checked="StartPage_Changed"/>
+                                        <RadioButton x:Name="OpenDevices" Style="{StaticResource Segment}" GroupName="StartPage" Content="Devices" Checked="StartPage_Changed"/>
+                                        <RadioButton x:Name="OpenSettings" Style="{StaticResource Segment}" GroupName="StartPage" Content="Settings" Checked="StartPage_Changed"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                            <Border Style="{StaticResource Divider}"/>
+                            <Grid Style="{StaticResource Row}">
+                                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Text="Minimize to the system tray" Style="{StaticResource T.Label}"/>
+                                    <TextBlock Text="Minimizing tucks the window into the notification area instead of the taskbar. The dashboard keeps running either way." Style="{StaticResource T.Caption}" Margin="0,3,0,0" TextWrapping="Wrap"/>
+                                </StackPanel>
+                                <CheckBox x:Name="TrayToggle" Grid.Column="1" Style="{StaticResource Switch}" VerticalAlignment="Center" Checked="Tray_Click" Unchecked="Tray_Click"/>
+                            </Grid>
+                            <Border Style="{StaticResource Divider}"/>
                             <Grid Style="{StaticResource Row}">
                                 <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
@@ -470,8 +505,8 @@
                             <Grid Style="{StaticResource Row}">
                                 <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
-                                    <TextBlock Text="Radar diagnostics" Style="{StaticResource T.Label}"/>
-                                    <TextBlock Text="Keep small CSV logs of blind-spot decisions. No names or account details are recorded." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                    <TextBlock Text="Diagnostic logs" Style="{StaticResource T.Label}"/>
+                                    <TextBlock Text="Keep small logs of blind-spot calls and of which light layers lit which LEDs, to look into an odd light after a race. No names or account details are recorded." TextWrapping="Wrap" Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
                                 </StackPanel>
                                 <Button Grid.Column="1" Style="{StaticResource Btn.Ghost}" Content="Open logs" Margin="0,0,12,0" VerticalAlignment="Center" Click="OpenLogs_Click"/>
                                 <CheckBox x:Name="DiagnosticsToggle" Grid.Column="2" Style="{StaticResource Switch}" VerticalAlignment="Center" Checked="Diagnostics_Click" Unchecked="Diagnostics_Click"/>

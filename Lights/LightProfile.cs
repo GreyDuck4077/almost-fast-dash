@@ -19,6 +19,22 @@ namespace AlmostFastOverlays
         public bool Gamma { get; set; } = true;
         /// <summary>How long an LED takes to fade out after it turns off, in milliseconds; 0 snaps off.</summary>
         public int FadeMs { get; set; } = 90;
+        /// <summary>The colour theme (<see cref="LightThemes"/>) its good, warn and bad colours come from; "custom" uses the three below.</summary>
+        public string ThemeId { get; set; } = LightThemes.DefaultId;
+        public string CustomLow { get; set; } = "#008000";
+        public string CustomMid { get; set; } = "#FFBE2E";
+        public string CustomHigh { get; set; } = "#890711";
+
+        /// <summary>The colour names as this profile's LEDs show them: the theme's low, middle and high as good, warn and bad.</summary>
+        public LayoutTheme LedTheme()
+        {
+            LayoutTheme theme = LayoutTheme.ForLights();
+            LightTheme chosen = ThemeId == LightThemes.CustomId ? null : LightThemes.Find(ThemeId) ?? LightThemes.Find(LightThemes.DefaultId);
+            theme.Good = chosen?.Low ?? CustomLow ?? theme.Good;
+            theme.Warn = chosen?.Mid ?? CustomMid ?? theme.Warn;
+            theme.Bad = chosen?.High ?? CustomHigh ?? theme.Bad;
+            return theme;
+        }
         /// <summary>Highest priority first.</summary>
         public List<LightLayer> Layers { get; set; } = new List<LightLayer>();
 

@@ -525,9 +525,12 @@ namespace AlmostFastOverlays
                     if (_opening.Status == System.Threading.Tasks.TaskStatus.RanToCompletion) _output = new BackgroundOutput(_opening.Result, Device.Name);
                     else
                     {
-                        string why = _opening.Exception?.GetBaseException().Message;
+                        Exception cause = _opening.Exception?.GetBaseException();
+                        string why = cause?.Message;
                         Console.Error.WriteLine(Device.Name + " unavailable on " + Device.Connection + ": " + why);
-                        if (State != LinkStates.Dropping) State = LinkStates.Missing;
+                        // Access denied: another program (other dashboard software) has the port open.
+                        if (cause is UnauthorizedAccessException) State = LinkStates.Busy;
+                        else if (State != LinkStates.Dropping) State = LinkStates.Missing;
                         Detail = why;
                     }
                     _opening = null;
@@ -609,13 +612,18 @@ namespace AlmostFastOverlays
     internal static class LedDeviceScanner
     {
         /// <summary>LED boards on serial ports other than <paramref name="skipPorts"/> (ports already in use by set-up devices).</summary>
-        public static List<DeviceSettings> Scan(IEnumerable<string> skipPorts, Action<string> progress)
+        public static List<DeviceSettings> Scan(IEnumerable<string> skipPorts, Action<string> progress) => Scan(skipPorts, progress, out _);
+
+        /// <param name="busy">Ports another program has open (other dashboard software), which can't be asked.</param>
+        public static List<DeviceSettings> Scan(IEnumerable<string> skipPorts, Action<string> progress, out List<string> busy)
         {
             var skip = new HashSet<string>(skipPorts.Where(p => p != null), StringComparer.OrdinalIgnoreCase);
             var found = new List<DeviceSettings>();
+            busy = new List<string>();
             foreach (string port in SerialPorts().Where(p => !skip.Contains(p)))
             {
                 progress?.Invoke(port);
+                if (InUse(port)) { busy.Add(port); continue; }
                 string usbId = DevicePorts.HardwareIdForPort(port);
                 // Known devices are asked first by name, which is quick and doesn't wait for an Adalight greeting.
                 KnownDevices.Profile known = KnownDevices.Find(usbId, null);
@@ -644,6 +652,14 @@ namespace AlmostFastOverlays
             }
             catch { }
             return ports.OrderBy(p => p.Length).ThenBy(p => p).ToList();
+        }
+
+        /// <summary>True when another program has the port open.</summary>
+        private static bool InUse(string port)
+        {
+            try { using (var serial = new SerialPort(port)) serial.Open(); return false; }
+            catch (UnauthorizedAccessException) { return true; }
+            catch { return false; }
         }
 
         private static bool IsAdalight(string port)

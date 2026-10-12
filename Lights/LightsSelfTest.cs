@@ -202,6 +202,14 @@ namespace AlmostFastOverlays
             LightFrame namedFrame = new LightRenderer(namedColours, "#000000", units, devices).Compose(Snap(0, 3000), 0);
             Check("on LEDs bad is deep red and good is true green", namedFrame.Leds[0][4] == Color.FromArgb(0x89, 0x07, 0x11) && namedFrame.Leds[0][0] == Color.FromArgb(0, 0x80, 0), Hex(namedFrame.Leds[0][4]) + " / " + Hex(namedFrame.Leds[0][0]));
 
+            namedColours.ThemeId = "arctic";
+            LightFrame arctic = new LightRenderer(namedColours, "#000000", units, devices).Compose(Snap(0, 3000), 0);
+            namedColours.ThemeId = LightThemes.CustomId;
+            namedColours.CustomHigh = "#123456";
+            LightFrame customFrame = new LightRenderer(namedColours, "#000000", units, devices).Compose(Snap(0, 3000), 0);
+            Check("a colour theme sets what good and bad mean, and custom uses its own", arctic.Leds[0][4] == Color.FromArgb(0, 0x40, 0xFF) && arctic.Leds[0][0] == Color.FromArgb(0, 0xFF, 0xFF)
+                && customFrame.Leds[0][4] == Color.FromArgb(0x12, 0x34, 0x56), Hex(arctic.Leds[0][4]) + " / " + Hex(customFrame.Leds[0][4]));
+
             // ---------------- power limit
             Color[] allWhite = Enumerable.Repeat(Color.White, 16).ToArray();
             Color[] limited = LedPower.Limit(allWhite, LedPower.DefaultMilliamps);

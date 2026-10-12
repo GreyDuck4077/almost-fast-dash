@@ -279,15 +279,23 @@ namespace AlmostFastOverlays
             _status.Text = "Looking for LED devices…";
             var skip = _settings.General.Devices.Select(d => d.ResolvePort()).Where(p => p != null).ToList();
             List<DeviceSettings> found;
+            List<string> busy = new List<string>();
             try
             {
-                found = await Task.Run(() => LedDeviceScanner.Scan(skip, port => Dispatcher.BeginInvoke(new Action(() => _status.Text = "Looking for LED devices… " + port))));
+                found = await Task.Run(() =>
+                {
+                    List<DeviceSettings> result = LedDeviceScanner.Scan(skip, port => Dispatcher.BeginInvoke(new Action(() => _status.Text = "Looking for LED devices… " + port)), out List<string> inUse);
+                    busy = inUse;
+                    return result;
+                });
             }
             catch (Exception exception) { found = new List<DeviceSettings>(); _status.Text = "The search stopped: " + exception.Message; }
             _scanning = false;
             foreach (DeviceSettings device in found.Where(f => _found.All(x => x.Port != f.Port))) _found.Add(device);
             if (_step != Step.Find) return;
-            _status.Text = _found.Count == 0 ? "Nothing answered. Check the cable, then look again. Boards need the common sim-racing LED firmware or Adalight." : "";
+            _status.Text = busy.Count > 0
+                ? string.Join(", ", busy) + (busy.Count == 1 ? " is" : " are") + " in use by another program, such as SimHub, so " + (busy.Count == 1 ? "it" : "they") + " can't be asked. Close it, then look again."
+                : _found.Count == 0 ? "Nothing answered. Check the cable, then look again. Boards need the common sim-racing LED firmware or Adalight." : "";
             RenderFound();
             if (_device == null && _found.Count == 1) Select(_found[0]);
         }

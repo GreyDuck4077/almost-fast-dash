@@ -108,6 +108,7 @@ namespace AlmostFastOverlays
                     {
                         case LinkStates.Connected: text = "Connected · " + device.Connection + (string.IsNullOrEmpty(entry.Detail) ? "" : " · " + entry.Detail); tone = "Brush.Success"; break;
                         case LinkStates.Missing: text = "Not found on " + device.Connection + ". Check it's plugged in and powered."; tone = "Brush.Danger"; break;
+                        case LinkStates.Busy: text = "In use by another program, such as SimHub. Close it to use " + device.Connection + " here."; tone = "Brush.Warning"; break;
                         case LinkStates.Dropping: text = "Keeps disconnecting. Check its cable and power, or set Power to the PC's USB port."; tone = "Brush.Danger"; break;
                         default: text = "Connecting…"; tone = "Brush.Warning"; break;
                     }
@@ -231,6 +232,7 @@ namespace AlmostFastOverlays
                     }
                     return null;
                 }
+                catch (UnauthorizedAccessException) { return "its port is in use by another program, such as SimHub. Close it and try again."; }
                 catch (Exception exception) { return exception.Message; }
             });
             ShowDevicesStatus(error == null ? device.Name + " test finished." : device.Name + " didn't respond: " + error);

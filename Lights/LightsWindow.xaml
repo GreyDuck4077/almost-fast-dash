@@ -107,6 +107,11 @@
                 <StackPanel x:Name="DeviceStages" Margin="0,18,0,0" MaxWidth="720"/>                <TextBlock x:Name="HoverText" Style="{StaticResource T.Caption}" HorizontalAlignment="Center" Margin="0,14,0,0"
                            Text="Hover an LED to see which layer lit it. The selected layer's LEDs are ringed."/>
 
+                <!-- The colour theme: what good, warn and bad mean on the LEDs -->
+                <Border Style="{StaticResource Card}" Margin="0,22,0,0" Width="640">
+                    <StackPanel x:Name="ThemeHost"/>
+                </Border>
+
                 <!-- Profile-wide output settings -->
                 <Border Style="{StaticResource Card}" Margin="0,22,0,0" Width="640">
                     <StackPanel>

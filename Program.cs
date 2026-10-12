@@ -240,7 +240,9 @@ namespace AlmostFastOverlays
                 AppSettings settings = SettingsStore.Load();
                 DashboardSettings dashboard = SettingsStore.Clone(settings.GetDefaultDashboard());
                 if (scenario.Contains("refined")) dashboard.Lights = LightPresets.Refined();
-                window = new LightsWindow(settings, dashboard, null) { Width = 1440, Height = 880 };
+                var lights = new LightsWindow(settings, dashboard, null) { Width = 1440, Height = 880 };
+                if (scenario.Contains("themes")) lights.Loaded += (s, e) => lights.ShowThemes();
+                window = lights;
             }
             else if (scenario.StartsWith("designer"))
             {

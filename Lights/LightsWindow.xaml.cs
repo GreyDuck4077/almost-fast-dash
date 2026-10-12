@@ -322,6 +322,7 @@ namespace AlmostFastOverlays
             MasterValue.Text = _profile.Brightness + "%";
             FadeValue.Text = _profile.FadeMs + " ms";
             _loading = false;
+            BuildThemePicker();
         }
 
         // ==================================================================
@@ -554,7 +555,13 @@ namespace AlmostFastOverlays
                 {
                     if (_profile.Layers.Count > 0 && MessageBox.Show(this, "Replace these layers with the \"" + p.Name + "\" preset? You can undo this.",
                             "Light presets", MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK) return;
+                    LightProfile previous = _profile;
                     _profile = p.Create(_dashboard);
+                    // A preset changes the layers, not the colours chosen for them.
+                    _profile.ThemeId = previous.ThemeId;
+                    _profile.CustomLow = previous.CustomLow;
+                    _profile.CustomMid = previous.CustomMid;
+                    _profile.CustomHigh = previous.CustomHigh;
                     _profile.Normalize();
                     _selected = _profile.Layers.FirstOrDefault();
                     _renderer = null;

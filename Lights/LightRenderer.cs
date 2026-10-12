@@ -26,7 +26,7 @@ namespace AlmostFastOverlays
         private readonly LightProfile _profile;
         private readonly string _accent;
         private readonly UnitSystem _units;
-        private readonly LayoutTheme _theme = LayoutTheme.ForLights();
+        private readonly LayoutTheme _theme;
         private readonly int[] _counts;
         private readonly Dictionary<string, LedTarget> _targets;
         private readonly double[][] _state;
@@ -38,6 +38,7 @@ namespace AlmostFastOverlays
         {
             _profile = profile ?? new LightProfile();
             _profile.Normalize();
+            _theme = _profile.LedTheme();
             _accent = accent ?? "#2DD4BF";
             _units = units ?? UnitSystem.Default;
             devices = devices ?? new List<DeviceSettings>();

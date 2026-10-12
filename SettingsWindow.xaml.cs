@@ -59,7 +59,14 @@ namespace AlmostFastOverlays
             HookEvents();
             LoadGeneralSettings();
             _loading = false;
-            NavGallery.IsChecked = true;
+            // The page chosen in Settings › Open on.
+            switch (_settings.General.StartPage)
+            {
+                case "Devices": NavSettings.IsChecked = true; break;
+                case "Settings": NavApp.IsChecked = true; break;
+                default: NavGallery.IsChecked = true; break;
+            }
+            SetUpTray();
 
             MirrorLeds.Click += (s, e) => { if (MirrorLeds.IsChecked != true) ReleaseDevices(); UpdateLedPreview(); };
             _statusTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
@@ -644,6 +651,12 @@ namespace AlmostFastOverlays
             SpeedMph.IsChecked = SpeedKph.IsChecked != true;
             FuelGallons.IsChecked = string.Equals(general.FuelUnit, "Gallons", StringComparison.OrdinalIgnoreCase);
             FuelLiters.IsChecked = FuelGallons.IsChecked != true;
+            TempC.IsChecked = new UnitSystem(general).Celsius;
+            TempF.IsChecked = TempC.IsChecked != true;
+            OpenDevices.IsChecked = general.StartPage == "Devices";
+            OpenSettings.IsChecked = general.StartPage == "Settings";
+            OpenDashboards.IsChecked = OpenDevices.IsChecked != true && OpenSettings.IsChecked != true;
+            TrayToggle.IsChecked = general.MinimizeToTray;
             AutoSwitchToggle.IsChecked = general.AutoSwitchByDiscipline;
             DiagnosticsToggle.IsChecked = general.DiagnosticsEnabled;
             StartupToggle.IsChecked = File.Exists(StartupShortcutPath);
@@ -654,6 +667,21 @@ namespace AlmostFastOverlays
             if (_loading) return;
             _settings.General.SpeedUnit = SpeedKph.IsChecked == true ? "KPH" : "MPH";
             _settings.General.FuelUnit = FuelGallons.IsChecked == true ? "Gallons" : "Liters";
+            if (TempC.IsChecked == true || TempF.IsChecked == true) _settings.General.TemperatureUnit = TempC.IsChecked == true ? "Celsius" : "Fahrenheit";
+            Save();
+        }
+
+        private void StartPage_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_loading) return;
+            _settings.General.StartPage = OpenDevices.IsChecked == true ? "Devices" : OpenSettings.IsChecked == true ? "Settings" : "Dashboards";
+            Save();
+        }
+
+        private void Tray_Click(object sender, RoutedEventArgs e)
+        {
+            if (_loading) return;
+            _settings.General.MinimizeToTray = TrayToggle.IsChecked == true;
             Save();
         }
 
