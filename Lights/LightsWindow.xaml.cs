@@ -28,7 +28,7 @@ namespace AlmostFastOverlays
         private readonly DashboardSettings _dashboard;
         private readonly Action _onSaved;
         private readonly UnitSystem _units;
-        private readonly DashLayout _colorContext = new DashLayout();
+        private readonly DashLayout _colorContext = new DashLayout { Theme = LayoutTheme.ForLights() };
 
         private LightProfile _profile;
         private LightLayer _selected;

@@ -26,7 +26,7 @@ namespace AlmostFastOverlays
         private readonly LightProfile _profile;
         private readonly string _accent;
         private readonly UnitSystem _units;
-        private readonly LayoutTheme _theme = new LayoutTheme();
+        private readonly LayoutTheme _theme = LayoutTheme.ForLights();
         private readonly int[] _counts;
         private readonly Dictionary<string, LedTarget> _targets;
         private readonly double[][] _state;

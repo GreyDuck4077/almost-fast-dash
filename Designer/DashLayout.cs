@@ -47,6 +47,12 @@ namespace AlmostFastOverlays
 
     internal sealed class LayoutTheme
     {
+        /// <summary>
+        /// The colour names as LEDs show them. The screen's red and green read pink and minty on an LED,
+        /// so lights use a deeper red and a true green; warn and the rest match the screen.
+        /// </summary>
+        public static LayoutTheme ForLights() => new LayoutTheme { Bad = "#890711", Good = "#008000" };
+
         public string Background { get; set; } = "#05070A";
         public string Background2 { get; set; } = "#0E1622";
         /// <summary>Bloom, Solid, Gradient or Vignette.</summary>

@@ -196,6 +196,11 @@ namespace AlmostFastOverlays
                 && storedAgain.Groups.All(g => g.Leds != null));
             stored.Layout.Roles.Clear();
 
+            // ---------------- LED colour names
+            var namedColours = new LightProfile { FadeMs = 0, Gamma = false, Layers = { new LightLayer { Target = "shift", Effect = "solid", Props = { ["color"] = "bad" } }, new LightLayer { Target = "left", Effect = "solid", Props = { ["color"] = "good" } } } };
+            LightFrame namedFrame = new LightRenderer(namedColours, "#000000", units, devices).Compose(Snap(0, 3000), 0);
+            Check("on LEDs bad is deep red and good is true green", namedFrame.Leds[0][4] == Color.FromArgb(0x89, 0x07, 0x11) && namedFrame.Leds[0][0] == Color.FromArgb(0, 0x80, 0), Hex(namedFrame.Leds[0][4]) + " / " + Hex(namedFrame.Leds[0][0]));
+
             // ---------------- power limit
             Color[] allWhite = Enumerable.Repeat(Color.White, 16).ToArray();
             Color[] limited = LedPower.Limit(allWhite, LedPower.DefaultMilliamps);
