@@ -50,6 +50,8 @@ namespace AlmostFastOverlays
             Inspector.Children.Clear();
             _liveFormulas.Clear();
             _positionBoxes.Clear();
+            _propRows.Clear();
+            _groupHeaders.Clear();
             _primaryEditor = null;
             if (_selection.Count == 0) BuildScreenInspector();
             else if (_selection.Count > 1) BuildMultiInspector();
@@ -285,9 +287,30 @@ namespace AlmostFastOverlays
                     if (nowCollapsed) CollapsedGroups.Add(groupName); else CollapsedGroups.Remove(groupName);
                 };
                 Inspector.Children.Add(headerButton);
-                foreach (PropDef def in group) content.Children.Add(PropertyRow(widget, def));
+                foreach (PropDef def in group)
+                {
+                    FrameworkElement row = PropertyRow(widget, def);
+                    _propRows[def.Key] = row;
+                    content.Children.Add(row);
+                }
                 Inspector.Children.Add(content);
+                _groupHeaders[groupName] = headerButton;
             }
+            UpdateApplicableRows(widget, type);
+        }
+
+        private readonly Dictionary<string, FrameworkElement> _propRows = new Dictionary<string, FrameworkElement>();
+        private readonly Dictionary<string, FrameworkElement> _groupHeaders = new Dictionary<string, FrameworkElement>();
+
+        /// <summary>Hides settings that don't matter as the widget is set up (and groups left empty), without rebuilding the panel.</summary>
+        private void UpdateApplicableRows(DashWidget widget, WidgetType type)
+        {
+            foreach (PropDef def in type.Props)
+                if (_propRows.TryGetValue(def.Key, out FrameworkElement row))
+                    row.Visibility = def.Applies(widget, type) ? Visibility.Visible : Visibility.Collapsed;
+            foreach (IGrouping<string, PropDef> group in type.Props.GroupBy(p => p.Group))
+                if (_groupHeaders.TryGetValue(group.Key, out FrameworkElement header))
+                    header.Visibility = group.Any(p => p.Applies(widget, type)) ? Visibility.Visible : Visibility.Collapsed;
         }
 
         private static double Axis(DashWidget w, string axis) => axis == "X" ? w.X : axis == "Y" ? w.Y : axis == "W" ? w.W : w.H;
@@ -345,6 +368,8 @@ namespace AlmostFastOverlays
             {
                 widget.Set(def.Key, value);
                 if (structural) _rendererDirty = true;
+                WidgetType owner = WidgetCatalog.Find(widget.Type);
+                if (owner != null && owner.Props.Any(p => p.DependsOn == def.Key)) UpdateApplicableRows(widget, owner);
                 label.Foreground = (Brush)FindResource(value == def.Default ? "Brush.TextSecondary" : "Brush.Text");
                 RequestRender();
                 CommitSoon("Edit " + def.Label.ToLowerInvariant());

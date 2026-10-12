@@ -33,7 +33,6 @@ namespace AlmostFastOverlays
         public DateTime? FixedNow { get; set; }
         private readonly Dictionary<string, Font> _fonts = new Dictionary<string, Font>();
         private readonly Dictionary<string, Bitmap> _images = new Dictionary<string, Bitmap>();
-        private readonly bool _usesTraces;
 
         public LayoutRenderer(int width, int height, DashboardSettings settings, UnitSystem units)
         {
@@ -44,7 +43,6 @@ namespace AlmostFastOverlays
             _accent = settings?.AccentColor ?? "#2DD4BF";
             _units = units ?? UnitSystem.Default;
             _flags = new FlagPainter(width, height);
-            _usesTraces = _layout.AllWidgets().Any(w => WidgetCatalog.Find(w.Type)?.UsesTraces == true);
         }
 
         public DashLayout Layout => _layout;
@@ -166,6 +164,17 @@ namespace AlmostFastOverlays
         internal double LastRedrawShare { get; private set; }
 
         private void ForgetFrame() => _frameScreen = null;
+
+        /// <summary>
+        /// Drops the cached base images and the kept frame after the design itself was edited in
+        /// place (the designer calls this on every edit); the next frame is drawn in full.
+        /// </summary>
+        public void Invalidate()
+        {
+            foreach (BaseLayer layer in _bases.Values) layer.Bitmap.Dispose();
+            _bases.Clear();
+            ForgetFrame();
+        }
 
         private Bitmap RenderChanges(DashScreen screen, EvalScope scope, int previousGear, float progress)
         {

@@ -399,6 +399,50 @@ namespace AlmostFastOverlays
             using (var band = ring.Band(135, 270, true)) ringBounds = band.GetBounds();
             Check("oval ring follows its box", ringBounds.Width > ringBounds.Height * 1.3f && ringBounds.Right < 150 + 120 + 11 && ringBounds.Bottom < 150 + 80 + 11);
 
+            // ---------------- turned widgets on the canvas
+            {
+                DashWidget turned = WidgetCatalog.Create("panel", 300, 200);
+                turned.W = 200;
+                turned.H = 40;
+                turned.Set("rotate", "90");
+                _screen.Widgets.Add(turned);
+                // Turned a quarter about (400, 220) it covers x 380-420, y 120-320.
+                Check("a turned widget is picked where it is drawn", WidgetAt(new System.Windows.Point(400, 140)) == turned && WidgetAt(new System.Windows.Point(310, 220)) != turned);
+                Select(turned);
+                _originals = new Dictionary<DashWidget, System.Windows.Rect> { [turned] = RectOf(turned) };
+                _handle = 3; // the right-hand handle, which now sits at the bottom
+                DoResize(new System.Windows.Point(400, 360), true, false);
+                // 40 longer, with the far end (the top, at y 120) left where it was.
+                Check("a turned widget resizes from its own edges", turned.W == 240 && turned.H == 40 && Math.Abs(turned.X - 280) < 0.6 && Math.Abs(turned.Y - 220) < 0.6,
+                    turned.X + "," + turned.Y + " " + turned.W + "x" + turned.H);
+                _screen.Widgets.Remove(turned);
+                Select(null);
+            }
+
+            // ---------------- shape tools on every shaped widget
+            foreach (WidgetType shaped in WidgetCatalog.All.Where(t => t.Prop("bend") != null))
+            {
+                var layout = DesignTemplates.Blank();
+                layout.Theme.BackgroundStyle = "Solid";
+                DashWidget plainOne = WidgetCatalog.Create(shaped.Id, 100, 100), bent = WidgetCatalog.Create(shaped.Id, 100, 100);
+                foreach (DashWidget w in new[] { plainOne, bent }) { w.W = 300; w.H = shaped.Id == "blindspot" ? 200 : 80; }
+                bent.Set("bend", "60");
+                bent.Set("taper", "50");
+                string Draw(DashWidget w, out int errors)
+                {
+                    layout.Screens[0].Widgets.Clear();
+                    layout.Screens[0].Widgets.Add(w);
+                    using (var renderer = new LayoutRenderer(854, 480, new DashboardSettings { Layout = Layouts.Custom, Design = layout }, _units))
+                    using (System.Drawing.Bitmap frame = renderer.Render(IRacingTelemetrySource.CreateSpotterPreviewSnapshot(), false, 4, 1, layout.Screens[0]))
+                    {
+                        errors = renderer.Errors.Count;
+                        return Pixels(frame);
+                    }
+                }
+                string a = Draw(plainOne, out int e1), b = Draw(bent, out int e2);
+                Check("shape tools change " + shaped.Name, e1 == 0 && e2 == 0 && a != b);
+            }
+
             // ---------------- editing operations
             int count = _screen.Widgets.Count;
             AddWidgetAtCenter("metric");

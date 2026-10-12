@@ -110,6 +110,10 @@ namespace AlmostFastOverlays
             Closing += Window_Closing;
             Closed += (s, e) => { StopLive(); _animationTimer.Stop(); _renderer?.Dispose(); };
             SizeChanged += (s, e) => { if (_fitOnResize) ZoomFit(); };
+            // In the background the preview slows to a few frames a second; minimized it stops.
+            Activated += (s, e) => PaceAnimation();
+            Deactivated += (s, e) => PaceAnimation();
+            StateChanged += (s, e) => PaceAnimation();
         }
 
         private bool _fitOnResize = true;
@@ -118,11 +122,16 @@ namespace AlmostFastOverlays
         // Rendering
         // ==================================================================
 
+        /// <summary>Asks for a redraw after something changed: the design (so cached images go) or the overlay.</summary>
         private void RequestRender()
         {
             _renderPending = true;
+            _designChanged = true;
             if (!_renderTimer.IsEnabled) _renderTimer.Start();
         }
+
+        private bool _designChanged = true;
+        private string _shownErrors = "";
 
         private void RenderNow()
         {
@@ -130,18 +139,39 @@ namespace AlmostFastOverlays
             if (_rendererDirty || _renderer == null)
             {
                 _renderer?.Dispose();
+                // The same redraw-what-changed renderer as the wheel; every edit invalidates it, so an
+                // animated preview only redraws the moving parts between edits.
                 _renderer = new LayoutRenderer((int)CanvasW, (int)CanvasH,
-                    new DashboardSettings { Layout = Layouts.Custom, Design = _layout, AccentColor = _dashboard.AccentColor }, _units) { CacheStatic = false };
+                    new DashboardSettings { Layout = Layouts.Custom, Design = _layout, AccentColor = _dashboard.AccentColor }, _units);
                 _rendererDirty = false;
+                _designChanged = true;
             }
+            bool edited = _designChanged;
+            if (edited) _renderer.Invalidate();
+            _designChanged = false;
 
             TelemetrySnapshot snapshot = PreviewSnapshot(out bool flash, out int previousGear, out float progress);
             bool flagTakeover = _layout.FullScreenFlags && snapshot.Flag != RacingFlag.None;
             using (DrawingBitmap bitmap = _renderer.Render(snapshot, flash, previousGear, progress, flagTakeover ? null : _screen))
                 CopyToFrame(bitmap);
-            UpdateOverlay();
+            // Animation frames leave the selection overlay and layer list alone unless an error came or went.
+            string errors = string.Join(",", _renderer.Errors.Keys.OrderBy(k => k));
+            if (edited || errors != _shownErrors)
+            {
+                _shownErrors = errors;
+                UpdateOverlay();
+                MarkLayerErrors();
+            }
             UpdateFormulaResults(snapshot, flash);
-            MarkLayerErrors();
+        }
+
+        /// <summary>The animated preview runs at full rate only while the designer is the window in use.</summary>
+        private void PaceAnimation()
+        {
+            bool moving = PreviewState == "Animated lap" || PreviewState == "Live iRacing" || PreviewState == "Shift point";
+            if (!moving || WindowState == WindowState.Minimized) { _animationTimer.Stop(); return; }
+            _animationTimer.Interval = TimeSpan.FromMilliseconds(IsActive ? 33 : 250);
+            if (!_animationTimer.IsEnabled) _animationTimer.Start();
         }
 
         private void CopyToFrame(DrawingBitmap bitmap)
@@ -201,8 +231,7 @@ namespace AlmostFastOverlays
         {
             if (!IsLoaded && _frame == null) return;
             if (PreviewState == "Live iRacing") StartLive(); else StopLive();
-            bool moving = PreviewState == "Animated lap" || PreviewState == "Live iRacing" || PreviewState == "Shift point";
-            if (moving) _animationTimer.Start(); else _animationTimer.Stop();
+            PaceAnimation();
             RequestRender();
         }
 
@@ -289,13 +318,12 @@ namespace AlmostFastOverlays
 
             foreach (DashWidget w in _selection)
             {
+                // A turned widget's outline turns with it.
                 AddRect(RectOf(w), accent, 1.5, false);
-                // A turned widget also shows its turned outline.
-                double angle = Expr.Num(w.Get("rotate", "0")) % 360;
-                if (!double.IsNaN(angle) && Math.Abs(angle) > 0.01)
+                double angle = Angle(w);
+                if (angle != 0)
                 {
                     Rect r = RectOf(w);
-                    AddRect(r, new SolidColorBrush(Color.FromArgb(170, accent.Color.R, accent.Color.G, accent.Color.B)), 1, true);
                     ((Rectangle)Overlay.Children[Overlay.Children.Count - 1]).RenderTransform = new RotateTransform(angle, r.Width / 2, r.Height / 2);
                 }
             }
@@ -306,7 +334,7 @@ namespace AlmostFastOverlays
             if (_selection.Count == 1 && !_selection[0].Locked)
             {
                 Rect r = RectOf(_selection[0]);
-                foreach (Point p in HandlePoints(r))
+                foreach (Point p in HandlePoints(_selection[0]))
                 {
                     double size = 8 * Px;
                     var handle = new Rectangle { Width = size, Height = size, Fill = Brushes.White, Stroke = accent, StrokeThickness = 1.5 * Px };
@@ -390,10 +418,36 @@ namespace AlmostFastOverlays
         private static readonly Cursor[] HandleCursors =
             { Cursors.SizeNWSE, Cursors.SizeNS, Cursors.SizeNESW, Cursors.SizeWE, Cursors.SizeNWSE, Cursors.SizeNS, Cursors.SizeNESW, Cursors.SizeWE };
 
+        /// <summary>A widget's fixed rotation in degrees; 0 when it isn't turned or a formula turns it.</summary>
+        private static double Angle(DashWidget w)
+        {
+            string raw = w.Get("rotate", "0") ?? "0";
+            if (raw.StartsWith("=")) return 0;
+            double a = Expr.Num(raw) % 360;
+            return double.IsNaN(a) || Math.Abs(a) < 0.01 ? 0 : a;
+        }
+
+        private static Point Center(Rect r) => new Point(r.X + r.Width / 2, r.Y + r.Height / 2);
+
+        private static Point Turn(Point p, Point about, double degrees)
+        {
+            if (degrees == 0) return p;
+            double a = degrees * Math.PI / 180, cos = Math.Cos(a), sin = Math.Sin(a), dx = p.X - about.X, dy = p.Y - about.Y;
+            return new Point(about.X + dx * cos - dy * sin, about.Y + dx * sin + dy * cos);
+        }
+
+        /// <summary>The selection handles of a widget, turned with it.</summary>
+        private static Point[] HandlePoints(DashWidget w)
+        {
+            Rect r = RectOf(w);
+            double angle = Angle(w);
+            return HandlePoints(r).Select(p => Turn(p, Center(r), angle)).ToArray();
+        }
+
         private int HandleAt(Point p)
         {
             if (_selection.Count != 1 || _selection[0].Locked) return -1;
-            Point[] points = HandlePoints(RectOf(_selection[0]));
+            Point[] points = HandlePoints(_selection[0]);
             double reach = 7 * Px;
             for (int i = 0; i < points.Length; i++)
                 if (Math.Abs(points[i].X - p.X) <= reach && Math.Abs(points[i].Y - p.Y) <= reach) return i;
@@ -420,7 +474,8 @@ namespace AlmostFastOverlays
                 if (w.Hidden || w.Locked || !ShownNow(w)) continue;
                 Rect r = RectOf(w);
                 r.Inflate(pad, pad);
-                if (r.Contains(p)) return w;
+                // A turned widget is hit where it is drawn: test the point turned back into the widget's own frame.
+                if (r.Contains(Turn(p, Center(r), -Angle(w)))) return w;
             }
             return null;
         }
@@ -489,7 +544,9 @@ namespace AlmostFastOverlays
                 case DragMode.None:
                 {
                     int handle = HandleAt(p);
-                    Overlay.Cursor = handle >= 0 ? HandleCursors[handle] : WidgetAt(p) != null ? Cursors.SizeAll : Cursors.Arrow;
+                    // Handles keep pointing the way they face on a turned widget.
+                    int turned = handle < 0 ? -1 : ((handle + (int)Math.Round(Angle(_selection[0]) / 45)) % 8 + 8) % 8;
+                    Overlay.Cursor = handle >= 0 ? HandleCursors[turned] : WidgetAt(p) != null ? Cursors.SizeAll : Cursors.Arrow;
                     DashWidget hover = WidgetAt(p);
                     if (hover != _hover) { _hover = hover; UpdateOverlay(); }
                     return;
@@ -598,12 +655,15 @@ namespace AlmostFastOverlays
         {
             DashWidget w = _selection[0];
             Rect o = _originals[w];
+            double angle = Angle(w);
+            // A turned widget is resized in its own frame: the pointer is turned back about the original middle.
+            if (angle != 0) p = Turn(p, Center(o), -angle);
             double left = o.Left, top = o.Top, right = o.Right, bottom = o.Bottom;
             bool l = _handle == 0 || _handle == 6 || _handle == 7, r = _handle == 2 || _handle == 3 || _handle == 4;
             bool t = _handle == 0 || _handle == 1 || _handle == 2, b = _handle == 4 || _handle == 5 || _handle == 6;
             _guides.Clear();
             double x = p.X, y = p.Y;
-            if (!free)
+            if (!free && angle == 0)
             {
                 if (l || r) x += SnapAxis(new[] { x }, true, new Rect(x, top, 0, bottom - top));
                 if (t || b) y += SnapAxis(new[] { y }, false, new Rect(left, y, right - left, 0));
@@ -621,6 +681,17 @@ namespace AlmostFastOverlays
                 else if (width / height > ratio) height = width / ratio; else width = height * ratio;
                 if (l) left = right - width; else right = left + width;
                 if (t) top = bottom - height; else bottom = top + height;
+            }
+            if (angle != 0)
+            {
+                // Back to the screen: the new box's middle turns about the original middle, which keeps the
+                // edge opposite the handle where it was.
+                Point middle = Turn(new Point((left + right) / 2, (top + bottom) / 2), Center(o), angle);
+                double width = right - left, height = bottom - top;
+                left = middle.X - width / 2;
+                right = middle.X + width / 2;
+                top = middle.Y - height / 2;
+                bottom = middle.Y + height / 2;
             }
             w.X = Math.Round(left);
             w.Y = Math.Round(top);
@@ -880,6 +951,8 @@ namespace AlmostFastOverlays
         {
             _pendingCommitLabel = null;
             _commitTimer.Stop();
+            // Every finished edit passes through here, so the preview always catches up with it.
+            RequestRender();
             string json = Snapshot();
             if (json == _committed)
             {

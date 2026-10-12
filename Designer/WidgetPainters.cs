@@ -19,7 +19,9 @@ namespace AlmostFastOverlays
             string style = c.Choice("style");
             float glow = (float)c.Num("glow");
             string corners = c.Choice("corners");
-            using (GraphicsPath path = Paint.Box(b, r, corners))
+            var tool = new ShapeTool(c);
+            using (GraphicsPath box = Paint.Box(b, r, corners))
+            using (GraphicsPath path = tool.Apply(box))
             {
                 if (glow > 0) Paint.Glow(g, path, c.Color("glowColor"), glow);
                 Color fill = c.Color("fill"), fill2 = c.Color("fill2"), tint = c.Color("tint"), border = c.Color("border");
@@ -31,17 +33,25 @@ namespace AlmostFastOverlays
                         // Frosted glass: a soft shadow below, a translucent body, a sheen that
                         // fades down from the top, a bright inner top edge and a rim that is
                         // brightest at the top, as light catches the edge of a glass pane.
-                        using (GraphicsPath shadow = Paint.Box(Paint.Offset(b, 0, 4), r, corners)) Paint.Glow(g, shadow, Color.FromArgb(150, 0, 0, 0), 10, 0.7f);
+                        using (GraphicsPath plainShadow = Paint.Box(Paint.Offset(b, 0, 4), r, corners))
+                        using (GraphicsPath shadow = tool.Apply(plainShadow))
+                            Paint.Glow(g, shadow, Color.FromArgb(150, 0, 0, 0), 10, 0.7f);
                         using (var body = new SolidBrush(Color.FromArgb(Math.Min(fill.A, (byte)150), fill))) g.FillPath(body, path);
-                        using (var sheen = new LinearGradientBrush(Paint.Grow(b, 0, 1), Color.FromArgb(34, 255, 255, 255), Color.FromArgb(3, 255, 255, 255), 90f))
+                        RectangleF shaped = path.GetBounds();
+                        using (var sheen = new LinearGradientBrush(Paint.Grow(shaped, 0, 1), Color.FromArgb(34, 255, 255, 255), Color.FromArgb(3, 255, 255, 255), 90f))
                         {
                             sheen.Blend = new Blend { Positions = new[] { 0f, 0.5f, 1f }, Factors = new[] { 0f, 0.85f, 1f } };
                             g.FillPath(sheen, path);
                         }
                         GraphicsState state = g.Save();
                         g.SetClip(path, CombineMode.Intersect);
+                        // The bright inner top edge follows the shape's top.
                         using (var highlight = new Pen(Color.FromArgb(70, 255, 255, 255), 1.2f))
-                            g.DrawLine(highlight, b.X + Math.Max(r, 6), b.Y + 1.2f, b.Right - Math.Max(r, 6), b.Y + 1.2f);
+                        using (var rim = new GraphicsPath())
+                        {
+                            rim.AddLine(b.X + Math.Max(r, 6), b.Y + 1.2f, b.Right - Math.Max(r, 6), b.Y + 1.2f);
+                            using (GraphicsPath top = tool.Apply(rim)) g.DrawPath(highlight, top);
+                        }
                         g.Restore(state);
                         using (var rim = new LinearGradientBrush(Paint.Grow(b, 0, 1), Color.FromArgb(105, 255, 255, 255), Color.FromArgb(18, 255, 255, 255), 90f))
                         using (var pen = new Pen(rim, Math.Max(1f, bw)))
@@ -81,7 +91,7 @@ namespace AlmostFastOverlays
                     edge == "Right" ? new RectangleF(b.Right - t, b.Y + inset, t, b.Height - inset * 2) :
                     edge == "Top" ? new RectangleF(b.X + inset, b.Y, b.Width - inset * 2, t) :
                     new RectangleF(b.X + inset, b.Bottom - t, b.Width - inset * 2, t);
-                if (e.Width > 0 && e.Height > 0) DashKit.Fill(g, e, ec, 1.5f);
+                if (e.Width > 0 && e.Height > 0) tool.Fill(g, e, ec, 1.5f);
             }
 
             string title = c.Text("title");
@@ -637,6 +647,7 @@ namespace AlmostFastOverlays
             Color low = c.Color("lowColor"), mid = c.Color("midColor"), high = c.Color("highColor"), off = c.Color("offColor"), flashColor = c.Color("flashColor");
             float glow = (float)c.Num("glow");
             float cell = b.Width / n, gap = Math.Min(cell * 0.25f, 8);
+            var tool = new ShapeTool(c);
 
             // Rank: the order a light comes on in (0 first). Steps: how many distinct ranks there are.
             int steps = FillOrder.Steps(order, n);
@@ -660,10 +671,10 @@ namespace AlmostFastOverlays
                     r = new RectangleF(b.X + i * cell + gap / 2, b.Y, cell - gap, b.Height);
                     radius = shape == "Pill" ? Math.Min(r.Width, r.Height) / 2 : 2;
                 }
-                if (on && glow > 0) using (GraphicsPath p = Paint.Rounded(r, radius)) Paint.Glow(g, p, color, glow);
-                DashKit.Fill(g, r, on ? color : off, radius);
+                if (on && glow > 0) using (GraphicsPath p = tool.Rect(r, radius)) Paint.Glow(g, p, color, glow);
+                tool.Fill(g, r, on ? color : off, radius);
                 if (on)
-                    using (GraphicsPath p = Paint.Rounded(new RectangleF(r.X + r.Width * 0.2f, r.Y + r.Height * 0.12f, r.Width * 0.6f, r.Height * 0.3f), radius * 0.5f))
+                    using (GraphicsPath p = tool.Rect(new RectangleF(r.X + r.Width * 0.2f, r.Y + r.Height * 0.12f, r.Width * 0.6f, r.Height * 0.3f), radius * 0.5f))
                     using (var shine = new SolidBrush(Color.FromArgb(50, 255, 255, 255))) g.FillPath(shine, p);
             }
         }
@@ -905,6 +916,7 @@ namespace AlmostFastOverlays
             Color color = c.Color("color"), off = c.Color("offColor");
             float glow = (float)c.Num("glow");
             float radius = Math.Min(b.Width, b.Height) / 2;
+            var tool = new ShapeTool(c, b.Height >= b.Width);
             if (c.Choice("shape") == "Zones")
             {
                 float gap = 4, h = (b.Height - gap * 2) / 3;
@@ -914,18 +926,18 @@ namespace AlmostFastOverlays
                     // Beside lights all three; front and rear light their end.
                     bool on = zone == BlindSpotZone.Beside || (zone == BlindSpotZone.Front && i == 0) || (zone == BlindSpotZone.Rear && i == 2);
                     float r = Math.Min(seg.Width, seg.Height) / 2;
-                    if (on && glow > 0) using (GraphicsPath p = Paint.Rounded(seg, r)) Paint.Glow(g, p, color, glow);
-                    DashKit.Fill(g, seg, on ? color : off, r);
+                    if (on && glow > 0) using (GraphicsPath p = tool.Rect(seg, r)) Paint.Glow(g, p, color, glow);
+                    tool.Fill(g, seg, on ? color : off, r);
                 }
                 return;
             }
-            DashKit.Fill(g, b, off, radius);
+            tool.Fill(g, b, off, radius);
             if (zone == BlindSpotZone.None) return;
             float focus = zone == BlindSpotZone.Front ? 0.15f : zone == BlindSpotZone.Rear ? 0.85f : 0.5f;
-            using (GraphicsPath path = Paint.Rounded(b, radius))
+            using (GraphicsPath path = tool.Rect(b, radius))
             {
                 if (glow > 0) Paint.Glow(g, path, color, glow);
-                using (var brush = new LinearGradientBrush(Paint.Grow(b, 0, 1), color, color, 90f))
+                using (var brush = new LinearGradientBrush(Paint.Grow(path.GetBounds(), 0, 1), color, color, 90f))
                 {
                     var blend = new ColorBlend
                     {
@@ -1019,6 +1031,7 @@ namespace AlmostFastOverlays
             TelemetrySnapshot t = c.T;
             Color color = c.Color("color"), caution = c.Color("cautionColor"), track = c.Color("track");
             float radius = Math.Min(b.Height / 2, 3);
+            var tool = new ShapeTool(c);
             if (t.ProgressMode == SessionProgressMode.LapRace && t.TotalLaps > 0)
             {
                 int laps = Math.Min(t.TotalLaps, 400);
@@ -1028,22 +1041,22 @@ namespace AlmostFastOverlays
                 {
                     bool done = i < t.LapsCompleted;
                     bool yellow = done && t.YellowCompletedLaps != null && i < t.YellowCompletedLaps.Length && t.YellowCompletedLaps[i];
-                    DashKit.Fill(g, new RectangleF(b.X + i * (w + gap), b.Y, Math.Max(0.5f, w), b.Height), done ? (yellow ? caution : color) : track, Math.Min(radius, w / 2));
+                    tool.Fill(g, new RectangleF(b.X + i * (w + gap), b.Y, Math.Max(0.5f, w), b.Height), done ? (yellow ? caution : color) : track, Math.Min(radius, w / 2));
                 }
                 return;
             }
-            DashKit.Fill(g, b, track, radius);
+            tool.Fill(g, b, track, radius);
             double remaining = t.SessionTotalSeconds > 0 ? t.SessionSecondsRemaining / t.SessionTotalSeconds : 0;
             if (t.ProgressMode == SessionProgressMode.TimedRace)
             {
                 Color tone = remaining > 0.6 ? color : remaining >= 0.25 ? c.Theme("warn") : c.Theme("bad");
                 float w = (float)(Math.Max(0, Math.Min(1, remaining)) * b.Width);
-                if (w >= 1) DashKit.Fill(g, new RectangleF(b.X, b.Y, w, b.Height), tone, radius);
+                if (w >= 1) tool.Fill(g, new RectangleF(b.X, b.Y, w, b.Height), tone, radius);
             }
             else if (t.SessionTotalSeconds > 0)
             {
                 float w = (float)(Math.Max(0, Math.Min(1, 1 - remaining)) * b.Width);
-                if (w >= 1) DashKit.Fill(g, new RectangleF(b.X, b.Y, w, b.Height), color, radius);
+                if (w >= 1) tool.Fill(g, new RectangleF(b.X, b.Y, w, b.Height), color, radius);
             }
         }
 
@@ -1171,14 +1184,17 @@ namespace AlmostFastOverlays
                         path.AddPolygon(new[] { new PointF(b.X + b.Width / 2, b.Y), new PointF(b.Right, b.Bottom), new PointF(b.X, b.Bottom) });
                         break;
                     default:
-                        path.AddPath(Paint.Rounded(b, radius), false);
+                        using (GraphicsPath rounded = Paint.Rounded(b, radius)) path.AddPath(rounded, false);
                         break;
                 }
-                if (glow > 0) Paint.Glow(g, path, fill ?? stroke, glow);
-                if (fill.HasValue && !open) using (var brush = new SolidBrush(fill.Value)) g.FillPath(brush, path);
-                if (sw > 0)
-                    using (var pen = new Pen(stroke, sw) { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round })
-                        g.DrawPath(pen, path);
+                using (GraphicsPath shaped = new ShapeTool(c).Apply(path))
+                {
+                    if (glow > 0) Paint.Glow(g, shaped, fill ?? stroke, glow);
+                    if (fill.HasValue && !open) using (var brush = new SolidBrush(fill.Value)) g.FillPath(brush, shaped);
+                    if (sw > 0)
+                        using (var pen = new Pen(stroke, sw) { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round })
+                            g.DrawPath(pen, shaped);
+                }
             }
         }
 

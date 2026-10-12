@@ -23,6 +23,17 @@ namespace AlmostFastOverlays
         public PropKind Kind;
         public string[] Choices;
         public double Min = double.NaN, Max = double.NaN, Step = 1;
+        /// <summary>The setting this one depends on, and when it applies (given that setting's value). Null: always.</summary>
+        public string DependsOn;
+        public Func<string, bool> AppliesWhen;
+
+        /// <summary>Whether the setting matters for this widget as set up. A formula in charge could be anything, so it shows.</summary>
+        public bool Applies(DashWidget widget, WidgetType type)
+        {
+            if (DependsOn == null || AppliesWhen == null) return true;
+            string raw = widget.Get(DependsOn, type.Prop(DependsOn)?.Default) ?? "";
+            return raw.StartsWith("=") || AppliesWhen(raw);
+        }
     }
 
     internal sealed class WidgetType
@@ -66,6 +77,7 @@ namespace AlmostFastOverlays
                 .Color("edgeColor", "Edge color", "accent", "Border")
                 .Number("glow", "Glow", "0", "Glow", 0, 40)
                 .Color("glowColor", "Glow color", "accent", "Glow")
+                .ShapeTools()
                 .Text("title", "Title", "", "Title")
                 .Color("titleColor", "Title color", "muted", "Title")
                 .Number("titleSize", "Title size", "13", "Title", 6, 40);
@@ -131,13 +143,7 @@ namespace AlmostFastOverlays
                 .Choice("fill", "Fill direction", FillOrder.StartToEnd, "Look", FillOrder.All)
                 .Number("segments", "Segments", "20", "Look", 2, 80)
                 .Number("radius", "Corner radius (-1 round)", "-1", "Look", -1, 40)
-                .Number("bend", "Bend %", "0", "Shape", -100, 100)
-                .Number("peak", "Peak position %", "50", "Shape", 0, 100)
-                .Number("taper", "Taper %", "0", "Shape", -100, 100)
-                .Number("bulge", "Bulge %", "0", "Shape", -100, 100)
-                .Number("skew", "Slant °", "0", "Shape", -60, 60)
-                .Number("thickness", "Thickness %", "100", "Shape", 2, 100)
-                .Choice("grow", "Grow from", "Middle", "Shape", BarWarp.Anchors)
+                .ShapeTools()
                 .Choice("colorMode", "Colors", "Solid", "Colors", "Solid", "Shift colors", "Gradient")
                 .Color("color", "Color", "accent", "Colors")
                 .Color("warnColor", "Warning color", "warn", "Colors")
@@ -194,6 +200,7 @@ namespace AlmostFastOverlays
                 .Number("count", "Lights", "10", "Look", 2, 40)
                 .Choice("shape", "Shape", "Dot", "Look", "Dot", "Pill", "Bar")
                 .Choice("fill", "Fill direction", FillOrder.StartToEnd, "Look", FillOrder.All)
+                .ShapeTools()
                 .Color("lowColor", "Low", "good", "Colors")
                 .Color("midColor", "Middle", "warn", "Colors")
                 .Color("highColor", "High", "bad", "Colors")
@@ -258,6 +265,7 @@ namespace AlmostFastOverlays
                 .Choice("shape", "Shape", "Bar", "Look", "Bar", "Zones")
                 .Color("color", "Color", "bad", "Look")
                 .Color("offColor", "Off color", "track", "Look")
+                .ShapeTools()
                 .Number("glow", "Glow", "14", "Effects", 0, 40);
 
             Define("flag", "Flag", "Racing", "", "Shows the current flag inside its own area. Use it when full-screen flags are off.", 260, 90, WidgetPainters.Flag)
@@ -270,7 +278,8 @@ namespace AlmostFastOverlays
                 .Color("color", "Color", "accent", "Colors")
                 .Color("cautionColor", "Caution laps", "warn", "Colors")
                 .Color("track", "Track", "track", "Colors")
-                .Number("gap", "Gap between laps", "2", "Look", 0, 10);
+                .Number("gap", "Gap between laps", "2", "Look", 0, 10)
+                .ShapeTools();
 
             // ------------------------------------------------------------ Graphs
             Define("trace", "Pedal trace", "Graphs", "", "Scrolling throttle and brake history, about six seconds long.", 300, 90, WidgetPainters.Trace)
@@ -303,6 +312,7 @@ namespace AlmostFastOverlays
                 .Color("stroke", "Line color", "accent", "Colors")
                 .Number("strokeWidth", "Line width", "2", "Look", 0, 30, 0.5)
                 .Number("radius", "Corner radius", "6", "Look", 0, 80)
+                .ShapeTools()
                 .Number("glow", "Glow", "0", "Effects", 0, 40);
 
             Define("gradient", "Gradient", "Decor", "", "A soft color wash or light bloom to give a layout depth.", 300, 200, WidgetPainters.Gradient)
@@ -310,6 +320,36 @@ namespace AlmostFastOverlays
                 .Color("color", "Color", "accent", "Look")
                 .Color("color2", "Fade to", "", "Look", "Empty fades to transparent.")
                 .Number("strength", "Strength", "25", "Look", 0, 100);
+
+            // Settings that only matter in some setups stay out of the way until they do.
+            Func<string, bool> notSolid = v => v != "Solid", set = v => v.Trim().Length > 0, on = v => Expr.Bool(v), nonZero = v => Math.Abs(Expr.Num(v)) > 1e-9;
+            Rule("panel", "style", v => v == "Soft", "fill2");
+            Rule("panel", "style", v => v == "Tinted", "tint");
+            Rule("panel", "style", v => v != "None", "fill", "border", "borderWidth");
+            Rule("panel", "edge", v => v != "None", "edgeColor");
+            Rule("panel", "glow", nonZero, "glowColor");
+            Rule("panel", "title", set, "titleColor", "titleSize");
+            Rule("text", "glow", nonZero, "glowColor");
+            Rule("metric", "unit", set, "unitSize", "unitColor");
+            Rule("metric", "layout", v => v != "Value only", "labelSize", "labelColor", "labelTracking");
+            Rule("gear", "flash", set, "flashColor");
+            Rule("gear", "neighbors", on, "neighborColor", "neighborSize");
+            Rule("gear", "glow", nonZero, "glowColor");
+            Rule("bar", "mode", v => v == "Segments", "segments");
+            Rule("bar", "mode", v => v == "Center", "negColor");
+            Rule("bar", "colorMode", notSolid, "warnColor", "dangerColor", "warnAt", "dangerAt");
+            Rule("bar", "marker", set, "markerColor");
+            Rule("bar", "flash", set, "flashColor");
+            Rule("arc", "style", v => v == "Segmented", "segments");
+            Rule("arc", "colorMode", notSolid, "warnColor", "dangerColor", "warnAt", "dangerAt");
+            Rule("arc", "needle", v => v != "None", "needleColor", "needleLength", "needleWidth", "hub");
+            Rule("arc", "ticks", nonZero, "minorTicks", "tickLength", "tickColor", "numbers");
+            Rule("arc", "numbers", on, "numbersFrom", "numbersTo", "numberSize", "numberColor");
+            Rule("arc", "flash", set, "flashColor");
+            Rule("shiftlights", "flash", set, "flashColor");
+            Rule("shape", "shape", v => v == "Rectangle", "radius");
+            foreach (WidgetType shaped in All.Where(x => x.Prop("bend") != null)) Rule(shaped.Id, "bend", nonZero, "peak");
+            Rule("shape", "shape", v => v != "Line" && v != "Diagonal down" && v != "Diagonal up" && v != "Brackets" && v != "Chevron", "fill");
 
             foreach (WidgetType type in All)
             {
@@ -324,6 +364,19 @@ namespace AlmostFastOverlays
         }
 
         public static WidgetType Find(string id) => All.FirstOrDefault(t => t.Id == id);
+
+        /// <summary>Shows some of a widget's settings only while another setting makes them matter.</summary>
+        private static void Rule(string typeId, string dependsOn, Func<string, bool> appliesWhen, params string[] keys)
+        {
+            WidgetType type = Find(typeId);
+            foreach (string key in keys)
+            {
+                PropDef prop = type?.Prop(key);
+                if (prop == null) throw new InvalidOperationException("No setting " + typeId + "." + key);
+                prop.DependsOn = dependsOn;
+                prop.AppliesWhen = appliesWhen;
+            }
+        }
 
         /// <summary>A new widget of a type with its default size, named after the type.</summary>
         public static DashWidget Create(string typeId, double x, double y)
@@ -366,6 +419,16 @@ namespace AlmostFastOverlays
 
         private static WidgetType Image(this WidgetType t) =>
             t.Add(new PropDef { Key = "image", Label = "Image", Default = "", Group = "Image", Kind = PropKind.Image });
+
+        /// <summary>The shared Shape tools: bend, peak, taper, bulge, slant, thickness and grow from (see <see cref="ShapeTool"/>).</summary>
+        private static WidgetType ShapeTools(this WidgetType t) => t
+            .Number("bend", "Bend %", "0", "Shape", -100, 100)
+            .Number("peak", "Peak position %", "50", "Shape", 0, 100)
+            .Number("taper", "Taper %", "0", "Shape", -100, 100)
+            .Number("bulge", "Bulge %", "0", "Shape", -100, 100)
+            .Number("skew", "Slant °", "0", "Shape", -60, 60)
+            .Number("thickness", "Thickness %", "100", "Shape", 2, 100)
+            .Choice("grow", "Grow from", "Middle", "Shape", BarWarp.Anchors);
 
         private static WidgetType Uses(this WidgetType t, bool traces) { t.UsesTraces = traces; return t; }
     }

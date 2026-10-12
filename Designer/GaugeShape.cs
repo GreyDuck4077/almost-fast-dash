@@ -172,6 +172,61 @@ namespace AlmostFastOverlays
     }
 
     /// <summary>
+    /// The shared Shape tools (bend, peak, taper, bulge, slant, thickness, grow from) for any widget:
+    /// its painter draws as usual in screen space and passes each shape through here, which warps
+    /// it when the tools are in use and leaves it untouched otherwise.
+    /// </summary>
+    internal sealed class ShapeTool
+    {
+        private readonly RectangleF _box;
+        private readonly bool _vertical;
+
+        public ShapeTool(WidgetContext c, bool vertical = false)
+        {
+            _box = c.B;
+            _vertical = vertical;
+            Warp = new BarWarp(c.B, vertical, c.Num("bend") / 100, c.Num("peak") / 100, c.Num("taper") / 100, c.Num("bulge") / 100,
+                c.Num("skew"), c.Num("thickness") / 100, c.Choice("grow"));
+        }
+
+        public BarWarp Warp { get; }
+        public bool Straight => Warp.IsStraight;
+
+        /// <summary>A screen-space shape, warped (a new path; the caller disposes both).</summary>
+        public GraphicsPath Apply(GraphicsPath screen)
+        {
+            if (Straight) return (GraphicsPath)screen.Clone();
+            using (var flat = (GraphicsPath)screen.Clone())
+            {
+                // Into the warp's flat space: along the bar from its start, across from its top edge.
+                using (var toFlat = _vertical ? new Matrix(0, 1, -1, 0, _box.Bottom, -_box.X) : new Matrix(1, 0, 0, 1, -_box.X, -_box.Y))
+                    flat.Transform(toFlat);
+                return Warp.Map(flat);
+            }
+        }
+
+        public GraphicsPath Rect(RectangleF r, float radius)
+        {
+            using (GraphicsPath plain = Paint.Rounded(r, radius)) return Apply(plain);
+        }
+
+        /// <summary>Fills a rounded rectangle, warped; the plain case is exactly the classic fill.</summary>
+        public void Fill(Graphics g, RectangleF r, Color color, float radius)
+        {
+            if (Straight) { DashKit.Fill(g, r, color, radius); return; }
+            using (GraphicsPath path = Rect(r, Math.Max(0, Math.Min(radius, Math.Min(r.Width, r.Height) / 2))))
+            using (var brush = new SolidBrush(color))
+                g.FillPath(brush, path);
+        }
+
+        public PointF Point(PointF p)
+        {
+            if (Straight) return p;
+            return _vertical ? Warp.Map(_box.Bottom - p.Y, p.X - _box.X) : Warp.Map(p.X - _box.X, p.Y - _box.Y);
+        }
+    }
+
+    /// <summary>
     /// The ring of an arc gauge: a circle or an oval that fills its box, optionally growing thicker
     /// (or thinner) along its sweep. Angles are in degrees, clockwise from three o'clock.
     /// </summary>

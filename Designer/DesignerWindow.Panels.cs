@@ -122,7 +122,9 @@ namespace AlmostFastOverlays
             string key = section + "/" + name;
             bool open = searching || OpenFolders.Contains(key);
             var content = new StackPanel { Visibility = open ? Visibility.Visible : Visibility.Collapsed, Margin = new Thickness(10, 0, 0, 4) };
-            foreach (DesignBlock block in blocks) content.Children.Add(BlockRow(block));
+            // A closed folder's rows are only built the first time it opens.
+            void Fill() { if (content.Children.Count == 0) foreach (DesignBlock block in blocks) content.Children.Add(BlockRow(block)); }
+            if (open) Fill();
 
             var header = new Grid();
             header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(26) });
@@ -150,6 +152,7 @@ namespace AlmostFastOverlays
             row.MouseLeftButtonUp += (s, e) =>
             {
                 bool nowOpen = content.Visibility != Visibility.Visible;
+                if (nowOpen) Fill();
                 content.Visibility = nowOpen ? Visibility.Visible : Visibility.Collapsed;
                 chevron.Text = nowOpen ? "" : "";
                 if (searching) return;
