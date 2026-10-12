@@ -48,6 +48,8 @@ namespace AlmostFastOverlays
             if (flagDirectory != null) return RenderFlags(flagDirectory);
             string selfTestReport = ParseOption(args, "--designer-selftest");
             if (selfTestReport != null) return DesignerSelfTest(selfTestReport);
+            string recording = ParseOption(args, "--replay-ibt");
+            if (recording != null) return RecordingReplay.Run(recording, ParseOption(args, recording) ?? "replay.txt");
             string uiScenario = ParseOption(args, "--ui-snapshot");
             if (uiScenario != null) return UiSnapshot(uiScenario, ParseOption(args, uiScenario) ?? "ui.png");
 
@@ -149,7 +151,7 @@ namespace AlmostFastOverlays
                         ? DateTime.UtcNow.AddSeconds(runSeconds.Value)
                         : (DateTime?)null;
 
-                    RunDashboard(telemetry, runtime, finishAt);
+                    RunDashboard(telemetry, runtime, finishAt, diagnostics);
 
                     Console.WriteLine("Dashboard stopped cleanly.");
                     return 0;
@@ -357,10 +359,11 @@ namespace AlmostFastOverlays
         private static void RunDashboard(
             IRacingTelemetrySource telemetry,
             DashboardRuntime runtime,
-            DateTime? finishAt)
+            DateTime? finishAt,
+            DiagnosticLogger diagnostics)
         {
             // The LEDs run on their own loop, so they keep working while the screen reconnects.
-            using (new LightLoop(telemetry.GetSnapshot, () => runtime.Settings, () => runtime.Dashboard))
+            using (new LightLoop(telemetry.GetSnapshot, () => runtime.Settings, () => runtime.Dashboard, diagnostics.RecordLight))
             while (!ShouldStop(finishAt))
             {
                 try

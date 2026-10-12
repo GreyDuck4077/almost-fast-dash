@@ -97,6 +97,20 @@ namespace AlmostFastOverlays
             Check("replace takes the whole target: pit limiter", Enumerable.Range(4, 8).All(i => f2.Owners[0][i] == "Pit limiter"));
             LightFrame f3 = refined.Compose(LightsWindow.Scenario("Yellow flag"), 3000);
             Check("flags take over the bar", f3.Owners[1].All(o => o == "Flags") && f3.Leds[1].All(c => c.R > 0 && c.B == 0));
+            TelemetrySnapshot replay = LightsWindow.Scenario("Checkered flag");
+            replay.OutOfCar = true;
+            LightFrame dark = new LightRenderer(LightPresets.Refined(), "#2DD4BF", units, devices).Compose(replay.ForLights(), 4000);
+            Check("out of the car or in a replay the LEDs go dark", dark.Leds.All(d => d.All(c => (c.R | c.G | c.B) == 0)));
+
+            // ---------------- light log
+            var activity = new LightActivity();
+            var flagRenderer = new LightRenderer(LightPresets.Refined(), "#2DD4BF", units, devices);
+            var logged = new List<LightSpan>();
+            for (int ms = 0; ms <= 3000; ms += 100)
+                logged.AddRange(activity.Observe(flagRenderer.Compose(ms < 2000 ? LightsWindow.Scenario("Yellow flag") : TelemetrySnapshot.Disconnected, ms), devices, ms / 1000.0, "test"));
+            LightSpan flagSpan = logged.FirstOrDefault(s => s.Layer == "Flags");
+            Check("the light log records what lit a group and for how long", flagSpan != null && flagSpan.Device == devices[1].Name && Math.Abs(flagSpan.Seconds - 1.9) < 0.01 && flagSpan.Colour == "yellow",
+                flagSpan == null ? "nothing logged" : flagSpan.Device + " " + flagSpan.Seconds + "s " + flagSpan.Colour);
 
             // ---------------- output stage
             var gamma = new LightProfile { Gamma = true, FadeMs = 0, Layers = { new LightLayer { Target = "shift", Effect = "solid", Props = { ["color"] = "#808080" } } } };

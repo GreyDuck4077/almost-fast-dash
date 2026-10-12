@@ -212,6 +212,11 @@ namespace AlmostFastOverlays
         public bool EngineWarning { get; set; }
         /// <summary>True while ABS is working on this sample.</summary>
         public bool AbsActive { get; set; }
+        /// <summary>True when connected but the driver isn't driving: out of the car, or watching a replay.</summary>
+        public bool OutOfCar { get; set; }
+
+        /// <summary>What the LEDs follow: nothing while out of the car or in a replay, so they go dark instead of replaying alerts.</summary>
+        public TelemetrySnapshot ForLights() => Connected && OutOfCar ? Disconnected : this;
         /// <summary>The car's shift-light RPMs from iRacing; 0 when the car does not report them.</summary>
         public double ShiftFirstRpm { get; set; }
         public double ShiftRpm { get; set; }
@@ -295,6 +300,7 @@ namespace AlmostFastOverlays
         private int _lapColorVersion;
         private bool _checkeredWasActive;
         private DateTime _checkeredAlertUntilUtc;
+        private int _checkeredSession = int.MinValue;
         private bool _whiteWasActive;
         private DateTime _whiteAlertUntilUtc;
         private int _maximumObservedGear;
@@ -324,6 +330,11 @@ namespace AlmostFastOverlays
 
         private const double AlongsideDistancePct = 0.0008;
         private const int RearHoldMilliseconds = 750;
+
+        /// <summary>The clock alerts and holds are timed by; a recording replay sets it to the recorded session time.</summary>
+        internal Func<DateTime> Clock;
+        private DateTime UtcNow => Clock == null ? DateTime.UtcNow : Clock();
+        private int TickNow => Clock == null ? Environment.TickCount : (int)(Clock().Ticks / TimeSpan.TicksPerMillisecond);
 
         public IRacingTelemetrySource(DiagnosticLogger diagnostics, DashboardSettings dashboardSettings)
         {
@@ -483,7 +494,7 @@ namespace AlmostFastOverlays
             }
         }
 
-        private void OnNewData(DataSample sample)
+        internal void OnNewData(DataSample sample)
         {
             if (sample == null || !sample.IsConnected || sample.Telemetry == null)
             {
@@ -496,13 +507,13 @@ namespace AlmostFastOverlays
                 SessionFlags sessionFlags = sample.Telemetry.SessionFlags;
                 bool greenActive = (sessionFlags & SessionFlags.green) != 0;
                 if (greenActive && !_greenWasActive)
-                    _greenAlertUntilUtc = DateTime.UtcNow.AddMilliseconds(
+                    _greenAlertUntilUtc = UtcNow.AddMilliseconds(
                         _alertBlinkTotalMilliseconds + _alertHoldMilliseconds);
                 _greenWasActive = greenActive;
-                double greenRemaining = (_greenAlertUntilUtc - DateTime.UtcNow).TotalMilliseconds;
+                double greenRemaining = (_greenAlertUntilUtc - UtcNow).TotalMilliseconds;
                 bool greenPulseVisible = greenRemaining > 0 &&
                     (greenRemaining <= _alertHoldMilliseconds ||
-                     ((Environment.TickCount / _alertBlinkMilliseconds) & 1) == 0);
+                     ((TickNow / _alertBlinkMilliseconds) & 1) == 0);
 
                 bool yellowActive =
                     (sessionFlags & SessionFlags.caution) != 0 ||
@@ -510,31 +521,36 @@ namespace AlmostFastOverlays
                     (sessionFlags & SessionFlags.yellow) != 0 ||
                     (sessionFlags & SessionFlags.yellowWaving) != 0;
                 if (yellowActive && !_yellowWasActive)
-                    _yellowAlertUntilUtc = DateTime.UtcNow.AddMilliseconds(
+                    _yellowAlertUntilUtc = UtcNow.AddMilliseconds(
                         _alertBlinkTotalMilliseconds + _alertHoldMilliseconds);
                 _yellowWasActive = yellowActive;
-                double yellowRemaining = (_yellowAlertUntilUtc - DateTime.UtcNow).TotalMilliseconds;
+                double yellowRemaining = (_yellowAlertUntilUtc - UtcNow).TotalMilliseconds;
                 bool yellowPulseVisible = yellowRemaining > 0 &&
                     (yellowRemaining <= _alertHoldMilliseconds ||
-                     ((Environment.TickCount / _alertBlinkMilliseconds) & 1) == 0);
+                     ((TickNow / _alertBlinkMilliseconds) & 1) == 0);
 
                 bool checkeredActive = (sessionFlags & SessionFlags.checkered) != 0;
-                if (checkeredActive && !_checkeredWasActive)
-                    _checkeredAlertUntilUtc = DateTime.UtcNow.AddSeconds(10);
+                // The checkered flag is shown once per session: iRacing can raise it again after the
+                // finish (replays, leaving the car), and it should never hold the lights afterwards.
+                if (checkeredActive && !_checkeredWasActive && sample.Telemetry.SessionUniqueID != _checkeredSession)
+                {
+                    _checkeredSession = sample.Telemetry.SessionUniqueID;
+                    _checkeredAlertUntilUtc = UtcNow.AddSeconds(10);
+                }
                 _checkeredWasActive = checkeredActive;
-                bool showCheckered = DateTime.UtcNow < _checkeredAlertUntilUtc;
+                bool showCheckered = UtcNow < _checkeredAlertUntilUtc;
 
                 // iRacing holds the white flag for the whole final lap. Like yellow, alert
                 // on its rising edge only, then give the screen and lights back.
                 bool whiteActive = (sessionFlags & SessionFlags.white) != 0;
                 if (whiteActive && !_whiteWasActive)
-                    _whiteAlertUntilUtc = DateTime.UtcNow.AddMilliseconds(
+                    _whiteAlertUntilUtc = UtcNow.AddMilliseconds(
                         _alertBlinkTotalMilliseconds + _alertHoldMilliseconds);
                 _whiteWasActive = whiteActive;
-                double whiteRemaining = (_whiteAlertUntilUtc - DateTime.UtcNow).TotalMilliseconds;
+                double whiteRemaining = (_whiteAlertUntilUtc - UtcNow).TotalMilliseconds;
                 bool whitePulseVisible = whiteRemaining > 0 &&
                     (whiteRemaining <= _alertHoldMilliseconds ||
-                     ((Environment.TickCount / _alertBlinkMilliseconds) & 1) == 0);
+                     ((TickNow / _alertBlinkMilliseconds) & 1) == 0);
 
                 bool blackFlagActive =
                     (sessionFlags & SessionFlags.black) != 0 ||
@@ -619,7 +635,7 @@ namespace AlmostFastOverlays
                     driverBehind,
                     relativeBehind,
                     GetTotalStarters(sample.Telemetry),
-                    DateTime.UtcNow < _lapSummaryUntilUtc,
+                    UtcNow < _lapSummaryUntilUtc,
                     _lastLapSeconds,
                     sample.Telemetry.LapBestLapTime,
                     _completedLapTimeCount > 0
@@ -662,9 +678,9 @@ namespace AlmostFastOverlays
                 _latest.LapMinSpeedMph = _lapMinSpeed;
                 _latest.LapMaxSpeedMph = _lapMaxSpeed;
 
-                if (DateTime.UtcNow >= _nextTraceUtc)
+                if (UtcNow >= _nextTraceUtc)
                 {
-                    _nextTraceUtc = DateTime.UtcNow.AddMilliseconds(TraceIntervalMilliseconds);
+                    _nextTraceUtc = UtcNow.AddMilliseconds(TraceIntervalMilliseconds);
                     _throttleTrace[_traceHead] = (float)Math.Max(0, Math.Min(1, _latest.Throttle));
                     _brakeTrace[_traceHead] = (float)Math.Max(0, Math.Min(1, _latest.Brake));
                     _traceHead = (_traceHead + 1) % TraceLength;
@@ -672,9 +688,9 @@ namespace AlmostFastOverlays
                     _brakeTraceCopy = Unroll(_brakeTrace, _traceHead);
                     _traceVersion++;
                 }
-                if (DateTime.UtcNow >= _nextDeltaUtc)
+                if (UtcNow >= _nextDeltaUtc)
                 {
-                    _nextDeltaUtc = DateTime.UtcNow.AddMilliseconds(250);
+                    _nextDeltaUtc = UtcNow.AddMilliseconds(250);
                     _deltaTrace[_deltaHead] = (float)Math.Max(-2, Math.Min(2, lapDelta));
                     _deltaHead = (_deltaHead + 1) % DeltaTraceLength;
                     _deltaTraceCopy = Unroll(_deltaTrace, _deltaHead);
@@ -701,6 +717,8 @@ namespace AlmostFastOverlays
                 _latest.PitLimiter = (warnings & (int)EngineWarnings.PitSpeedLimiter) != 0;
                 _latest.EngineWarning = (warnings & ((int)EngineWarnings.WaterTempWarning | (int)EngineWarnings.OilPressureWarning | (int)EngineWarnings.FuelPressureWarning)) != 0;
                 _latest.AbsActive = sample.Telemetry["BrakeABSactive"] is bool abs && abs;
+                _latest.OutOfCar = (sample.Telemetry["IsOnTrack"] is bool onTrack && !onTrack) ||
+                    (sample.Telemetry["IsReplayPlaying"] is bool replay && replay);
                 SessionData session = sample.Telemetry.SessionData;
                 if (session != null)
                 {
@@ -1112,7 +1130,7 @@ namespace AlmostFastOverlays
                     _completedLapTimeTotal += telemetry.LapLastLapTime;
                     _completedLapTimeCount++;
                 }
-                _lapSummaryUntilUtc = DateTime.UtcNow.AddSeconds(4);
+                _lapSummaryUntilUtc = UtcNow.AddSeconds(4);
             }
             else if (telemetry.LapCompleted < _lastCompletedLap)
             {
@@ -1318,7 +1336,7 @@ namespace AlmostFastOverlays
             return BlindSpotZone.Beside;
         }
 
-        private static BlindSpotZone UpdateBlindSpotZone(
+        private BlindSpotZone UpdateBlindSpotZone(
             bool occupied,
             BlindSpotZone measuredZone,
             ref BlindSpotZone previousZone,
@@ -1332,10 +1350,10 @@ namespace AlmostFastOverlays
             }
 
             if (previousZone != BlindSpotZone.None && clearedAtUtc == DateTime.MinValue)
-                clearedAtUtc = DateTime.UtcNow;
+                clearedAtUtc = UtcNow;
 
             if (clearedAtUtc != DateTime.MinValue &&
-                (DateTime.UtcNow - clearedAtUtc).TotalMilliseconds < RearHoldMilliseconds)
+                (UtcNow - clearedAtUtc).TotalMilliseconds < RearHoldMilliseconds)
                 return BlindSpotZone.Rear;
 
             previousZone = BlindSpotZone.None;

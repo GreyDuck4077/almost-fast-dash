@@ -9,7 +9,8 @@ namespace AlmostFastOverlays
     /// Drives every set-up LED device on its own thread at up to 60 frames a second,
     /// independent of the screen. The active dashboard's light layers are composed for
     /// the current devices and each device gets its own LEDs. A dashboard without light
-    /// layers uses its classic light settings, converted to layers exactly.
+    /// layers uses its classic light settings, converted to layers exactly. Out of the car
+    /// or in a replay the LEDs follow nothing, as if iRacing weren't running.
     /// </summary>
     internal sealed class LightLoop : IDisposable
     {
@@ -17,11 +18,14 @@ namespace AlmostFastOverlays
         private readonly Func<TelemetrySnapshot> _telemetry;
         private readonly Func<AppSettings> _settings;
         private readonly Func<DashboardSettings> _dashboard;
+        private readonly Action<LightSpan> _log;
         private readonly ManualResetEventSlim _stop = new ManualResetEventSlim(false);
         private readonly Thread _thread;
 
-        public LightLoop(Func<TelemetrySnapshot> telemetry, Func<AppSettings> settings, Func<DashboardSettings> dashboard)
+        /// <param name="log">Given each stretch of a layer lighting a group, for the light log; may be null.</param>
+        public LightLoop(Func<TelemetrySnapshot> telemetry, Func<AppSettings> settings, Func<DashboardSettings> dashboard, Action<LightSpan> log = null)
         {
+            _log = log;
             _telemetry = telemetry;
             _settings = settings;
             _dashboard = dashboard;
@@ -35,6 +39,7 @@ namespace AlmostFastOverlays
             LightRenderer renderer = null;
             DashboardSettings lastDashboard = null;
             LightProfile profile = null;
+            var activity = new LightActivity();
             try
             {
                 while (!_stop.IsSet)
@@ -46,7 +51,8 @@ namespace AlmostFastOverlays
                         GeneralSettings general = _settings().General;
                         List<DeviceSettings> devices = general.Devices ?? new List<DeviceSettings>();
                         DashboardSettings dashboard = _dashboard();
-                        snapshot = _telemetry() ?? TelemetrySnapshot.Disconnected;
+                        TelemetrySnapshot live = _telemetry() ?? TelemetrySnapshot.Disconnected;
+                        snapshot = live.ForLights();
 
                         if (dashboard != lastDashboard)
                         {
@@ -60,7 +66,12 @@ namespace AlmostFastOverlays
                         {
                             if (renderer == null || renderer.Signature != LightRenderer.DeviceSignature(devices))
                                 renderer = new LightRenderer(profile, dashboard.AccentColor, new UnitSystem(general), devices);
-                            Send(links, devices, renderer.Compose(snapshot, Environment.TickCount));
+                            LightFrame frame = renderer.Compose(snapshot, Environment.TickCount);
+                            Send(links, devices, frame);
+                            if (_log != null)
+                                foreach (LightSpan span in activity.Observe(frame, devices, Environment.TickCount / 1000.0, Context(live), profile.Gamma))
+                                    // Rev lights come and go all lap; the log is for everything else.
+                                    if (span.Seconds >= 1 && !profile.Layers.Any(l => l.Name == span.Layer && l.Effect == "revs")) _log(span);
                         }
                     }
                     catch (Exception exception)
@@ -78,6 +89,9 @@ namespace AlmostFastOverlays
                 foreach (LedDeviceLink link in links.Values) link.Dispose();
             }
         }
+
+        private static string Context(TelemetrySnapshot t) =>
+            !t.Connected ? "not connected" : t.OutOfCar ? "out of car" : t.Flag != RacingFlag.None ? "flag " + t.Flag : t.OnPitRoad ? "pit road" : "driving";
 
         /// <summary>Gives each device its LEDs, following devices being added, removed or changed as it happens.</summary>
         private static void Send(Dictionary<string, LedDeviceLink> links, List<DeviceSettings> devices, LightFrame frame)

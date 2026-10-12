@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.IO.MemoryMappedFiles;
 using System.Text;
 using System.Threading;
@@ -259,6 +260,38 @@ namespace AlmostFastOverlays
 
             session.Refresh(view, view.ReadInt32(12), view.ReadInt32(20), view.ReadInt32(16), varHeaderOffset, numVars);
             return new Telemetry(session.Vars, buffer, session.Data);
+        }
+
+        /// <summary>
+        /// Every sample of an iRacing telemetry recording (.ibt), as live telemetry, so a
+        /// race can be replayed through the dashboard and lights after the fact.
+        /// </summary>
+        internal static IEnumerable<Telemetry> ReadRecording(string path)
+        {
+            byte[] file = File.ReadAllBytes(path);
+            int sessionLength = BitConverter.ToInt32(file, 16), sessionOffset = BitConverter.ToInt32(file, 20);
+            int numVars = BitConverter.ToInt32(file, 24), varHeaderOffset = BitConverter.ToInt32(file, 28);
+            int bufLen = BitConverter.ToInt32(file, 36), dataOffset = BitConverter.ToInt32(file, HeaderVarBuffers + 4);
+            var vars = new Dictionary<string, VarHeader>(numVars, StringComparer.Ordinal);
+            for (int i = 0; i < numVars; i++)
+            {
+                int at = varHeaderOffset + i * VarHeaderSize;
+                int length = Array.IndexOf(file, (byte)0, at + 16, 32) - (at + 16);
+                vars[Encoding.ASCII.GetString(file, at + 16, length < 0 ? 32 : length)] = new VarHeader
+                {
+                    Type = BitConverter.ToInt32(file, at),
+                    Offset = BitConverter.ToInt32(file, at + 4),
+                    Count = Math.Max(1, BitConverter.ToInt32(file, at + 8))
+                };
+            }
+            int end = Array.IndexOf(file, (byte)0, sessionOffset, sessionLength);
+            var session = new SessionData(Yaml.Parse(Encoding.GetEncoding(1252).GetString(file, sessionOffset, (end < 0 ? sessionOffset + sessionLength : end) - sessionOffset)));
+            for (long at = dataOffset; at + bufLen <= file.Length; at += bufLen)
+            {
+                var buffer = new byte[bufLen];
+                Buffer.BlockCopy(file, (int)at, buffer, 0, bufLen);
+                yield return new Telemetry(vars, buffer, session);
+            }
         }
 
         private int Int(string name) => this[name] is object value && !(value is Array) ? Convert.ToInt32(value) : 0;
