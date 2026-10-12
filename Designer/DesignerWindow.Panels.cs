@@ -63,17 +63,14 @@ namespace AlmostFastOverlays
             bool Match(string name, string description) =>
                 filter.Length == 0 || name.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0 || (description ?? "").IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0;
 
-            List<DesignBlock> blocks = DesignBlocks.BuiltIn().Where(b => Match(b.Name, b.Description)).ToList();
+            // Blocks sit in folders; a search opens every folder with a match.
+            List<DesignBlock> blocks = DesignBlocks.BuiltIn().Concat(DesignBlocks.UserMade().Select(b => { b.Folder = "My blocks"; return b; }))
+                .Where(b => Match(b.Name, b.Description) || Match(b.Folder, null)).ToList();
             if (blocks.Count > 0)
             {
                 host.Children.Add(SectionTitle("Ready-made blocks"));
-                foreach (DesignBlock block in blocks) host.Children.Add(BlockRow(block));
-            }
-            List<DesignBlock> mine = DesignBlocks.UserMade().Where(b => Match(b.Name, b.Description)).ToList();
-            if (mine.Count > 0)
-            {
-                host.Children.Add(SectionTitle("My blocks"));
-                foreach (DesignBlock block in mine) host.Children.Add(BlockRow(block));
+                foreach (IGrouping<string, DesignBlock> folder in blocks.GroupBy(b => b.Folder).OrderBy(f => FolderOrder(f.Key)))
+                    host.Children.Add(BlockFolder(folder.Key, folder.ToList(), filter.Length > 0));
             }
 
             foreach (string category in WidgetCatalog.Categories)
@@ -100,6 +97,59 @@ namespace AlmostFastOverlays
             };
             HookTile(tile, () => AddWidgetAtCenter(type.Id), () => new DataObject("afo-widget", type.Id));
             return tile;
+        }
+
+        private static readonly string[] Folders = { "Rev gauges", "Cards", "Warnings and spotter", "My blocks" };
+        private static readonly HashSet<string> OpenFolders = new HashSet<string>();
+
+        private static int FolderOrder(string folder)
+        {
+            int i = Array.IndexOf(Folders, folder);
+            return i < 0 ? Folders.Length : i;
+        }
+
+        /// <summary>A folder of blocks that opens and closes with a click; it remembers being open while the designer runs.</summary>
+        private StackPanel BlockFolder(string name, List<DesignBlock> blocks, bool searching)
+        {
+            var panel = new StackPanel { Margin = new Thickness(0, 0, 0, 4) };
+            bool open = searching || OpenFolders.Contains(name);
+            var content = new StackPanel { Visibility = open ? Visibility.Visible : Visibility.Collapsed, Margin = new Thickness(10, 0, 0, 4) };
+            foreach (DesignBlock block in blocks) content.Children.Add(BlockRow(block));
+
+            var header = new Grid();
+            header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(26) });
+            header.ColumnDefinitions.Add(new ColumnDefinition());
+            header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            TextBlock chevron = Glyph(open ? "" : "", 10, "Brush.TextTertiary");
+            chevron.HorizontalAlignment = HorizontalAlignment.Center;
+            chevron.VerticalAlignment = VerticalAlignment.Center;
+            header.Children.Add(chevron);
+            var title = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+            title.Children.Add(Glyph("", 14, "Brush.Accent"));
+            title.Children.Add(new TextBlock { Text = name, FontWeight = FontWeights.SemiBold, FontSize = 12.5, Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center });
+            Grid.SetColumn(title, 1);
+            header.Children.Add(title);
+            var count = new TextBlock { Text = blocks.Count.ToString(), Style = (Style)FindResource("T.Caption"), VerticalAlignment = VerticalAlignment.Center };
+            Grid.SetColumn(count, 2);
+            header.Children.Add(count);
+            var row = new Border
+            {
+                Margin = new Thickness(0, 2, 0, 2), Padding = new Thickness(2, 9, 10, 9), CornerRadius = new CornerRadius(8), Cursor = Cursors.Hand,
+                Background = (Brush)FindResource("Brush.Surface"), BorderBrush = (Brush)FindResource("Brush.Border"), BorderThickness = new Thickness(1), Child = header
+            };
+            row.MouseEnter += (s, e) => row.Background = (Brush)FindResource("Brush.SurfaceHover");
+            row.MouseLeave += (s, e) => row.Background = (Brush)FindResource("Brush.Surface");
+            row.MouseLeftButtonUp += (s, e) =>
+            {
+                bool nowOpen = content.Visibility != Visibility.Visible;
+                content.Visibility = nowOpen ? Visibility.Visible : Visibility.Collapsed;
+                chevron.Text = nowOpen ? "" : "";
+                if (searching) return;
+                if (nowOpen) OpenFolders.Add(name); else OpenFolders.Remove(name);
+            };
+            panel.Children.Add(row);
+            panel.Children.Add(content);
+            return panel;
         }
 
         private Border BlockRow(DesignBlock block)

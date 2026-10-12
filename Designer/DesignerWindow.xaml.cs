@@ -288,7 +288,17 @@ namespace AlmostFastOverlays
                 AddRect(RectOf(_hover), new SolidColorBrush(Color.FromArgb(150, accent.Color.R, accent.Color.G, accent.Color.B)), 1, false);
 
             foreach (DashWidget w in _selection)
+            {
                 AddRect(RectOf(w), accent, 1.5, false);
+                // A turned widget also shows its turned outline.
+                double angle = Expr.Num(w.Get("rotate", "0")) % 360;
+                if (!double.IsNaN(angle) && Math.Abs(angle) > 0.01)
+                {
+                    Rect r = RectOf(w);
+                    AddRect(r, new SolidColorBrush(Color.FromArgb(170, accent.Color.R, accent.Color.G, accent.Color.B)), 1, true);
+                    ((Rectangle)Overlay.Children[Overlay.Children.Count - 1]).RenderTransform = new RotateTransform(angle, r.Width / 2, r.Height / 2);
+                }
+            }
 
             if (_selection.Count > 1)
                 AddRect(Union(_selection), accent, 1, true);
@@ -1232,6 +1242,14 @@ namespace AlmostFastOverlays
                 bar.X = 220;
                 bar.Y = 150;
                 _screen.Widgets.Add(bar);
+                foreach (DashWidget half in DesignBlocks.BuiltIn().First(b => b.Name == "Mirrored rev bars").Create())
+                {
+                    half.X += 15;
+                    half.Y = 380;
+                    _screen.Widgets.Add(half);
+                }
+                OpenFolders.Add("Rev gauges");
+                BuildToolbox();
                 CollapsedGroups.Add("Value");
                 CollapsedGroups.Add("Look");
                 Select(bar);

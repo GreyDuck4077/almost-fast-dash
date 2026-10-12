@@ -12,6 +12,8 @@ namespace AlmostFastOverlays
     internal sealed class DesignBlock
     {
         public string Name, Description, Icon;
+        /// <summary>The folder it is listed under in the designer's Add panel.</summary>
+        public string Folder = "Other";
         public bool UserMade;
         public string FilePath;
         public Func<List<DashWidget>> Create;
@@ -32,7 +34,7 @@ namespace AlmostFastOverlays
         {
             yield return new DesignBlock
             {
-                Name = "Stat card", Icon = "", Description = "A soft panel with a labelled live value.",
+                Folder = "Cards", Name = "Stat card", Icon = "", Description = "A soft panel with a labelled live value.",
                 Create = () => new List<DashWidget>
                 {
                     W("panel", "Card", 0, 0, 170, 74),
@@ -41,7 +43,7 @@ namespace AlmostFastOverlays
             };
             yield return new DesignBlock
             {
-                Name = "Glass card", Icon = "", Description = "Frosted glass with a soft accent glow and a big value.",
+                Folder = "Cards", Name = "Glass card", Icon = "", Description = "Frosted glass with a soft accent glow and a big value.",
                 Create = () => new List<DashWidget>
                 {
                     W("panel", "Glass", 0, 0, 200, 90, "style", "Glass", "radius", "16", "glow", "10", "glowColor", "=alpha($accent, 0.35)"),
@@ -50,7 +52,7 @@ namespace AlmostFastOverlays
             };
             yield return new DesignBlock
             {
-                Name = "Gear cluster", Icon = "", Description = "Segmented rev arc around a big animated gear, with speed and RPM.",
+                Folder = "Rev gauges", Name = "Gear cluster", Icon = "", Description = "Segmented rev arc around a big animated gear, with speed and RPM.",
                 Create = () => new List<DashWidget>
                 {
                     W("arc", "Rev arc", 0, 0, 300, 300, "start", "135", "sweep", "270"),
@@ -61,7 +63,7 @@ namespace AlmostFastOverlays
             };
             yield return new DesignBlock
             {
-                Name = "Tach dial", Icon = "", Description = "A needle tachometer with numbered thousands, a red zone and the RPM underneath.",
+                Folder = "Rev gauges", Name = "Tach dial", Icon = "", Description = "A needle tachometer with numbered thousands, a red zone and the RPM underneath.",
                 Create = () =>
                 {
                     const string top = "=Redline > 0 ? ceil(Redline / 1000) : 8";
@@ -76,7 +78,7 @@ namespace AlmostFastOverlays
             };
             yield return new DesignBlock
             {
-                Name = "Tapered rev ring", Icon = "", Description = "A smooth rev ring that grows thicker toward the redline, around a big gear.",
+                Folder = "Rev gauges", Name = "Tapered rev ring", Icon = "", Description = "A smooth rev ring that grows thicker toward the redline, around a big gear.",
                 Create = () => new List<DashWidget>
                 {
                     W("arc", "Rev ring", 0, 0, 300, 300, "value", "=RevPct", "style", "Smooth", "thickness", "28", "taper", "85", "start", "150", "sweep", "240", "colorMode", "Gradient", "glow", "8"),
@@ -85,7 +87,7 @@ namespace AlmostFastOverlays
             };
             yield return new DesignBlock
             {
-                Name = "Swoosh rev bar", Icon = "", Description = "A rev bar that sweeps up and widens toward the shift point.",
+                Folder = "Rev gauges", Name = "Swoosh rev bar", Icon = "", Description = "A rev bar that sweeps up and widens toward the shift point.",
                 Create = () => new List<DashWidget>
                 {
                     W("bar", "Swoosh rev bar", 0, 0, 440, 120, "value", "=RevPct", "bend", "70", "peak", "100", "taper", "85", "thickness", "45", "radius", "3",
@@ -94,7 +96,7 @@ namespace AlmostFastOverlays
             };
             yield return new DesignBlock
             {
-                Name = "Arched rev bar", Icon = "", Description = "Segmented revs with a flat base and an arched top, blending to red.",
+                Folder = "Rev gauges", Name = "Arched rev bar", Icon = "", Description = "Segmented revs with a flat base and an arched top, blending to red.",
                 Create = () => new List<DashWidget>
                 {
                     W("bar", "Arched rev bar", 0, 0, 600, 60, "value", "=RevPct", "mode", "Segments", "segments", "30", "bulge", "100", "grow", "Bottom edge", "radius", "2",
@@ -103,7 +105,7 @@ namespace AlmostFastOverlays
             };
             yield return new DesignBlock
             {
-                Name = "Slanted rev bar", Icon = "", Description = "Angled segments in shift colors, like a race display.",
+                Folder = "Rev gauges", Name = "Slanted rev bar", Icon = "", Description = "Angled segments in shift colors, like a race display.",
                 Create = () => new List<DashWidget>
                 {
                     W("bar", "Slanted rev bar", 0, 0, 560, 36, "value", "=RevPct", "mode", "Segments", "segments", "24", "skew", "25", "radius", "0",
@@ -112,7 +114,18 @@ namespace AlmostFastOverlays
             };
             yield return new DesignBlock
             {
-                Name = "Delta card", Icon = "", Description = "Delta to best that tints green or red, with a centered bar.",
+                Folder = "Rev gauges", Name = "Mirrored rev bars", Icon = "", Description = "Two sweeping rev bars that fill toward each other and meet in the middle.",
+                Create = () =>
+                {
+                    DashWidget Half(string name, double x, bool flip) =>
+                        W("bar", name, x, 0, 400, 90, "value", "=RevPct", "bend", "50", "peak", "100", "taper", "85", "thickness", "45", "radius", "3",
+                            "colorMode", "Gradient", "flash", "=ShiftFlash", "glow", "8", "flipX", flip ? "true" : "false");
+                    return new List<DashWidget> { Half("Revs left", 0, false), Half("Revs right", 412, true) };
+                }
+            };
+            yield return new DesignBlock
+            {
+                Folder = "Cards", Name = "Delta card", Icon = "", Description = "Delta to best that tints green or red, with a centered bar.",
                 Create = () => new List<DashWidget>
                 {
                     W("panel", "Delta panel", 0, 0, 446, 74, "style", "Tinted", "tint", "=Delta > 0.005 ? $good : Delta < -0.005 ? $bad : $accent"),
@@ -123,7 +136,7 @@ namespace AlmostFastOverlays
             };
             yield return new DesignBlock
             {
-                Name = "Fuel card", Icon = "", Description = "Fuel, laps of fuel, a range bar with the finish marked, and refuel.",
+                Folder = "Cards", Name = "Fuel card", Icon = "", Description = "Fuel, laps of fuel, a range bar with the finish marked, and refuel.",
                 Create = () =>
                 {
                     const string scale = "max(1, max(FuelLapsLeft, LapsRemaining) * 1.05)";
@@ -143,7 +156,7 @@ namespace AlmostFastOverlays
             };
             yield return new DesignBlock
             {
-                Name = "Lap times", Icon = "", Description = "Last, best and predicted laps, color coded.",
+                Folder = "Cards", Name = "Lap times", Icon = "", Description = "Last, best and predicted laps, color coded.",
                 Create = () => new List<DashWidget>
                 {
                     W("panel", "Lap times panel", 0, 0, 268, 150),
@@ -157,7 +170,7 @@ namespace AlmostFastOverlays
             };
             yield return new DesignBlock
             {
-                Name = "Relative card", Icon = "", Description = "A titled panel with the five-car relative.",
+                Folder = "Cards", Name = "Relative card", Icon = "", Description = "A titled panel with the five-car relative.",
                 Create = () => new List<DashWidget>
                 {
                     W("panel", "Relative panel", 0, 0, 268, 326, "title", "RELATIVE"),
@@ -166,7 +179,7 @@ namespace AlmostFastOverlays
             };
             yield return new DesignBlock
             {
-                Name = "Car settings strip", Icon = "", Description = "TC, ABS, brake bias and incidents in color-coded cells.",
+                Folder = "Cards", Name = "Car settings strip", Icon = "", Description = "TC, ABS, brake bias and incidents in color-coded cells.",
                 Create = () =>
                 {
                     string[] labels = { "TC", "ABS", "BIAS", "INC" }, tones = { "info", "warn", "bad", "muted" };
@@ -182,12 +195,12 @@ namespace AlmostFastOverlays
             };
             yield return new DesignBlock
             {
-                Name = "LED strip", Icon = "", Description = "Glowing on-screen shift lights that fill from the edges and flash at the shift point.",
+                Folder = "Rev gauges", Name = "LED strip", Icon = "", Description = "Glowing on-screen shift lights that fill from the edges and flash at the shift point.",
                 Create = () => new List<DashWidget> { W("shiftlights", "LED strip", 0, 0, 520, 26, "count", "15", "shape", "Pill", "pattern", "Edges to center", "glow", "12") }
             };
             yield return new DesignBlock
             {
-                Name = "Spotter bars", Icon = "", Description = "Blind-spot bars down both edges of the screen.",
+                Folder = "Warnings and spotter", Name = "Spotter bars", Icon = "", Description = "Blind-spot bars down both edges of the screen.",
                 Create = () => new List<DashWidget>
                 {
                     W("blindspot", "Car left", 0, 0, 10, 300, "side", "Left"),
@@ -196,7 +209,7 @@ namespace AlmostFastOverlays
             };
             yield return new DesignBlock
             {
-                Name = "Low fuel warning", Icon = "", Description = "A blinking banner when fewer than two laps of fuel remain.",
+                Folder = "Warnings and spotter", Name = "Low fuel warning", Icon = "", Description = "A blinking banner when fewer than two laps of fuel remain.",
                 Create = () => new List<DashWidget>
                 {
                     W("panel", "Low fuel banner", 0, 0, 260, 44, "style", "Tinted", "tint", "bad", "radius", "22", "visible", "FuelLapsLeft >= 0 && FuelLapsLeft < 2 && blink(400)"),
@@ -205,7 +218,7 @@ namespace AlmostFastOverlays
             };
             yield return new DesignBlock
             {
-                Name = "Pit limiter banner", Icon = "", Description = "Shows on pit road: limiter state, colored by whether you are over the limit.",
+                Folder = "Warnings and spotter", Name = "Pit limiter banner", Icon = "", Description = "Shows on pit road: limiter state, colored by whether you are over the limit.",
                 Create = () => new List<DashWidget>
                 {
                     W("panel", "Pit banner", 0, 0, 300, 54, "style", "Tinted", "tint", "=OverPitLimit ? $bad : PitLimiter ? $good : $warn", "radius", "14", "visible", "OnPitRoad"),
@@ -215,7 +228,7 @@ namespace AlmostFastOverlays
             };
             yield return new DesignBlock
             {
-                Name = "Session header", Icon = "", Description = "Session, laps to go and current lap.",
+                Folder = "Cards", Name = "Session header", Icon = "", Description = "Session, laps to go and current lap.",
                 Create = () => new List<DashWidget>
                 {
                     W("panel", "Session panel", 0, 0, 228, 50),

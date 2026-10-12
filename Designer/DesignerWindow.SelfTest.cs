@@ -169,6 +169,34 @@ namespace AlmostFastOverlays
                             errors.AddRange(renderer.Errors.Values);
                 Check("block draws: " + block.Name, errors.Count == 0, string.Join("; ", errors.Distinct().Take(3)));
             }
+            Check("every built-in block is in a folder", DesignBlocks.BuiltIn().All(b => b.Folder != "Other"));
+
+            // ---------------- flip and rotate
+            System.Drawing.Color Sample(DashWidget w, int x, int y, bool cache = true)
+            {
+                var layout = DesignTemplates.Blank();
+                layout.Theme.BackgroundStyle = "Solid";
+                layout.Theme.Background = "#000000";
+                layout.Screens[0].Widgets.Add(w);
+                using (var renderer = new LayoutRenderer(854, 480, new DashboardSettings { Layout = Layouts.Custom, Design = layout }, _units) { CacheStatic = cache })
+                using (System.Drawing.Bitmap frame = renderer.Render(IRacingTelemetrySource.CreatePreviewSnapshot(), false, 4, 1, layout.Screens[0]))
+                    return frame.GetPixel(x, y);
+            }
+            DashWidget FillBar(bool flip, string rotate = "0")
+            {
+                DashWidget w = WidgetCatalog.Create("bar", 100, 100);
+                w.W = 400; w.H = 40;
+                w.Set("value", "0.3"); w.Set("color", "#FF0000"); w.Set("track", "#00000000"); w.Set("flipX", flip ? "true" : "false"); w.Set("rotate", rotate);
+                return w;
+            }
+            Check("flipped bar fills from the other side",
+                Sample(FillBar(false), 110, 120).R > 200 && Sample(FillBar(false), 490, 120).R < 50 && Sample(FillBar(true), 490, 120).R > 200 && Sample(FillBar(true), 110, 120).R < 50);
+            Check("rotated bar turns about its middle", Sample(FillBar(false, "-90"), 300, 290).R > 200 && Sample(FillBar(false, "-90"), 110, 120).R < 50);
+            DashWidget turnedPanel = WidgetCatalog.Create("panel", 300, 150);
+            turnedPanel.Set("rotate", "30");
+            turnedPanel.Set("opacity", "60");
+            Check("rotated widget is cached without clipping", Sample(turnedPanel, 330, 140).ToArgb() == Sample(SettingsStore.Clone(turnedPanel), 330, 140, false).ToArgb());
+
             var box = new System.Drawing.RectangleF(10, 20, 400, 100);
             BarWarp Warp(double bend, double peak, double taper, double bulge, double skew, double thick, string anchor, bool vertical = false) =>
                 new BarWarp(box, vertical, bend, peak, taper, bulge, skew, thick, anchor);

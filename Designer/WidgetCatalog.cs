@@ -276,6 +276,11 @@ namespace AlmostFastOverlays
 
             foreach (WidgetType type in All)
             {
+                type.Props.Add(new PropDef { Key = "flipX", Label = "Flip horizontally", Kind = PropKind.Bool, Default = "false", Group = "Transform",
+                    Help = "Mirrors the widget left to right; text stays readable. A flipped copy beside the original makes a pair that meets in the middle." });
+                type.Props.Add(new PropDef { Key = "flipY", Label = "Flip vertically", Kind = PropKind.Bool, Default = "false", Group = "Transform", Help = "Mirrors the widget top to bottom; text stays readable." });
+                type.Props.Add(new PropDef { Key = "rotate", Label = "Rotate °", Kind = PropKind.Number, Default = "0", Group = "Transform", Min = -180, Max = 180,
+                    Help = "Turns the widget about its middle." });
                 type.Props.Add(new PropDef { Key = "visible", Label = "Show when", Kind = PropKind.Formula, Default = "", Group = "Visibility", Help = "A condition such as OnPitRoad or Fuel < 5. Empty means always." });
                 type.Props.Add(new PropDef { Key = "opacity", Label = "Opacity %", Kind = PropKind.Number, Default = "100", Group = "Visibility", Min = 0, Max = 100 });
             }

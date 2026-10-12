@@ -1206,6 +1206,17 @@ namespace AlmostFastOverlays
                 box.Y + box.Height / 2 + cap / 2;
             float x = align == StringAlignment.Center ? box.X + (box.Width - total) / 2 : align == StringAlignment.Far ? box.Right - total : box.X;
 
+            // In a mirrored widget the text keeps its mirrored place but is turned back to read normally.
+            GraphicsState unmirror = null;
+            if (c.FlipX || c.FlipY)
+            {
+                unmirror = g.Save();
+                float mx = x + total / 2, my = baseline - cap / 2;
+                g.TranslateTransform(mx, my);
+                g.ScaleTransform(c.FlipX ? -1 : 1, c.FlipY ? -1 : 1);
+                g.TranslateTransform(-mx, -my);
+            }
+
             for (int i = 0; i < runs.Count; i++)
             {
                 Run run = runs[i];
@@ -1236,6 +1247,7 @@ namespace AlmostFastOverlays
                 }
                 x += w;
             }
+            if (unmirror != null) g.Restore(unmirror);
         }
 
         private static float Width(Graphics g, Run run, float tracking = 0)

@@ -160,6 +160,12 @@ namespace AlmostFastOverlays
             float margin = 2 + 2 * (float)Math.Max(0, Expr.Num(widget.Get("glow", "0")));
             if (widget.Type == "gear") margin += 1.4f * (float)Math.Max(30, Expr.Num(widget.Get("neighborSize", "30")));
             RectangleF b = widget.Bounds;
+            if (Math.Abs(Expr.Num(widget.Get("rotate", "0")) % 360) > 0.01 || IsFormula(widget.Get("rotate", "0"), new PropDef { Kind = PropKind.Number }))
+            {
+                // A turned widget can reach anywhere within the circle around its box.
+                float half = (float)Math.Sqrt(b.Width * b.Width + b.Height * b.Height) / 2;
+                b = new RectangleF(b.X + b.Width / 2 - half, b.Y + b.Height / 2 - half, half * 2, half * 2);
+            }
             b.Inflate(margin, margin);
             return b;
         }
@@ -274,32 +280,54 @@ namespace AlmostFastOverlays
 
             double opacity = Math.Max(0, Math.Min(100, context.Num("opacity"))) / 100.0;
             if (opacity <= 0.001) return;
+            bool flipX = context.Bool("flipX"), flipY = context.Bool("flipY");
+            float rotate = (float)(context.Num("rotate") % 360);
+            RectangleF b = context.B;
             if (opacity >= 0.999)
             {
+                GraphicsState state = g.Save();
+                Turn(g, b, flipX, flipY, rotate);
+                context.FlipX = flipX;
+                context.FlipY = flipY;
                 type.Draw(context);
+                g.Restore(state);
                 return;
             }
 
-            // Partial opacity: draw into a layer and blend it, so overlapping parts fade together.
+            // Partial opacity: draw into a layer and blend it, so overlapping parts fade together. The
+            // layer is centred on the widget and big enough for it at any angle.
             const int pad = 48;
-            RectangleF b = context.B;
-            int lw = (int)Math.Ceiling(b.Width) + pad * 2, lh = (int)Math.Ceiling(b.Height) + pad * 2;
+            float span = Math.Abs(rotate) > 0.01f ? (float)Math.Sqrt(b.Width * b.Width + b.Height * b.Height) : 0;
+            int lw = (int)Math.Ceiling(Math.Max(b.Width, span)) + pad * 2, lh = (int)Math.Ceiling(Math.Max(b.Height, span)) + pad * 2;
+            float left = (float)Math.Round(b.X + b.Width / 2 - lw / 2f), top = (float)Math.Round(b.Y + b.Height / 2 - lh / 2f);
             using (var layer = new Bitmap(lw, lh, PixelFormat.Format32bppArgb))
             {
                 using (Graphics lg = Graphics.FromImage(layer))
                 {
                     DashKit.Prepare(lg);
-                    lg.TranslateTransform(pad - b.X, pad - b.Y);
-                    var inner = new WidgetContext(this, lg, scope, widget, type) { PreviousGear = previousGear, GearProgress = progress };
+                    lg.TranslateTransform(-left, -top);
+                    Turn(lg, b, flipX, flipY, rotate);
+                    var inner = new WidgetContext(this, lg, scope, widget, type) { PreviousGear = previousGear, GearProgress = progress, FlipX = flipX, FlipY = flipY };
                     type.Draw(inner);
                 }
                 var matrix = new ColorMatrix { Matrix33 = (float)opacity };
                 using (var attributes = new ImageAttributes())
                 {
                     attributes.SetColorMatrix(matrix);
-                    g.DrawImage(layer, new Rectangle((int)b.X - pad, (int)b.Y - pad, lw, lh), 0, 0, lw, lh, GraphicsUnit.Pixel, attributes);
+                    g.DrawImage(layer, new Rectangle((int)left, (int)top, lw, lh), 0, 0, lw, lh, GraphicsUnit.Pixel, attributes);
                 }
             }
+        }
+
+        /// <summary>Mirrors and turns everything drawn next about the middle of a widget's box.</summary>
+        private static void Turn(Graphics g, RectangleF b, bool flipX, bool flipY, float rotate)
+        {
+            if (!flipX && !flipY && Math.Abs(rotate) < 0.01f) return;
+            float cx = b.X + b.Width / 2, cy = b.Y + b.Height / 2;
+            g.TranslateTransform(cx, cy);
+            if (Math.Abs(rotate) >= 0.01f) g.RotateTransform(rotate);
+            g.ScaleTransform(flipX ? -1 : 1, flipY ? -1 : 1);
+            g.TranslateTransform(-cx, -cy);
         }
 
         private void DrawBackground(Graphics g)
@@ -437,6 +465,9 @@ namespace AlmostFastOverlays
         public TelemetrySnapshot T => Scope.T;
         public int PreviousGear { get; set; }
         public float GearProgress { get; set; } = 1;
+        /// <summary>The widget is mirrored; its text is turned back so it still reads the right way round.</summary>
+        public bool FlipX { get; set; }
+        public bool FlipY { get; set; }
 
         public string Raw(string key) => Widget.Get(key, Type.Prop(key)?.Default ?? "");
 
