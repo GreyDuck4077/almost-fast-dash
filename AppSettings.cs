@@ -47,7 +47,6 @@ namespace AlmostFastOverlays
         public string DefaultDashboardId { get; set; } = "dashboard-halo";
         public GeneralSettings General { get; set; } = new GeneralSettings();
         public List<DashboardSettings> Dashboards { get; set; } = new List<DashboardSettings>();
-        public OverlaySettings Overlays { get; set; } = new OverlaySettings();
 
         public static AppSettings CreateDefault()
         {
@@ -79,8 +78,6 @@ namespace AlmostFastOverlays
         {
             if (Dashboards == null) Dashboards = new List<DashboardSettings>();
             if (General == null) General = new GeneralSettings();
-            if (Overlays == null) Overlays = new OverlaySettings();
-            Overlays.Normalize();
             Dashboards.RemoveAll(d => d == null);
 
             if (SchemaVersion < CurrentSchema)

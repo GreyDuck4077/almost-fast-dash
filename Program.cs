@@ -40,21 +40,12 @@ namespace AlmostFastOverlays
                 return 0;
             }
 
-            if (args.Contains("--stop-overlays"))
-            {
-                OverlayHost.RequestStop();
-                return 0;
-            }
-            if (args.Contains("--overlays")) return RunOverlays();
-
             if (args.Contains("--brow-test")) return BrowTest(ParseRunSeconds(args) ?? 60, int.TryParse(ParseOption(args, "--leds"), out int testLeds) ? testLeds : 0);
 
             string previewDirectory = ParseOption(args, "--render-previews");
             if (previewDirectory != null) return RenderPreviews(previewDirectory);
             string templateDirectory = ParseOption(args, "--render-templates");
             if (templateDirectory != null) return RenderTemplates(templateDirectory);
-            string fpsReport = ParseOption(args, "--overlay-fps");
-            if (fpsReport != null) return OverlayBench.Run(fpsReport);
             string flagDirectory = ParseOption(args, "--render-flags");
             if (flagDirectory != null) return RenderFlags(flagDirectory);
             string selfTestReport = ParseOption(args, "--designer-selftest");
@@ -161,20 +152,7 @@ namespace AlmostFastOverlays
                         ? DateTime.UtcNow.AddSeconds(runSeconds.Value)
                         : (DateTime?)null;
 
-                    // Overlays can ride along with the dashboard; they stop when it stops.
-                    bool startedOverlays = false;
-                    if (!demoMode && !previewMode && !timedPreviewMode && runtime.Settings.Overlays.StartWithDashboard && !OverlayHost.IsRunning())
-                    {
-                        try
-                        {
-                            Process.Start(new ProcessStartInfo(Process.GetCurrentProcess().MainModule.FileName, "--overlays") { UseShellExecute = false, WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory });
-                            startedOverlays = true;
-                        }
-                        catch (Exception exception) { Console.Error.WriteLine("Overlays did not start: " + exception.Message); }
-                    }
-
                     RunDashboard(telemetry, runtime, finishAt, ledPort);
-                    if (startedOverlays) OverlayHost.RequestStop();
 
                     Console.WriteLine("Dashboard stopped cleanly.");
                     return 0;
@@ -277,39 +255,7 @@ namespace AlmostFastOverlays
             var application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
             application.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("pack://application:,,,/AlmostFastOverlays;component/Theme.xaml") });
             Window window;
-            if (scenario.StartsWith("standings") || scenario.StartsWith("relative") || scenario.StartsWith("toasts"))
-            {
-                string type = scenario.StartsWith("relative") ? "relative" : scenario.StartsWith("toasts") ? "toasts" : "standings";
-                var config = new OverlayConfig { Enabled = true, Id = type, Type = type };
-                if (scenario.Contains("all")) foreach (string key in new[] { "colGained", "colInterval" }) config.Set(key, "true");
-                if (scenario.Contains("headers"))
-                    foreach (OverlayOption option in OverlayTypes.Find(type).Options.Where(o => o.Inline)) config.Set(option.Key, "true");
-                if (scenario.Contains("reordered")) config.Set("columnOrder", "colBest,colLast,fixed-hdrPos,fixed-hdrName");
-                FrameworkElement view;
-                if (type == "toasts")
-                {
-                    var toasts = new ToastView();
-                    toasts.Update(null, null, config, false);
-                    foreach (Toast sample in ToastView.Samples.Reverse()) toasts.Show(sample);
-                    view = toasts;
-                }
-                else
-                {
-                    var table = new StandingsView();
-                    table.Update(StandingsSample.Create(scenario.Contains("later") ? 8 : 0), config);
-                    view = table;
-                }
-                var backdrop = new System.Windows.Controls.Grid
-                {
-                    Background = new System.Windows.Media.LinearGradientBrush(System.Windows.Media.Color.FromRgb(70, 92, 110), System.Windows.Media.Color.FromRgb(28, 34, 30), 90)
-                };
-                view.Margin = new Thickness(40);
-                view.HorizontalAlignment = HorizontalAlignment.Left;
-                view.VerticalAlignment = VerticalAlignment.Top;
-                backdrop.Children.Add(view);
-                window = new Window { Content = backdrop, Width = 1000, Height = 900 };
-            }
-            else if (scenario.StartsWith("lights"))
+            if (scenario.StartsWith("lights"))
             {
                 AppSettings settings = SettingsStore.Load();
                 DashboardSettings dashboard = SettingsStore.Clone(settings.GetDefaultDashboard());
@@ -360,28 +306,6 @@ namespace AlmostFastOverlays
             };
             window.Loaded += (s, e) => timer.Start();
             application.Run(window);
-            return 0;
-        }
-
-        /// <summary>The overlay process: on-monitor overlays, one instance at a time.</summary>
-        private static int RunOverlays()
-        {
-            using (var mutex = new Mutex(true, OverlayHost.MutexName, out bool owns))
-            {
-                if (!owns) return 2;
-                OverlayHost.LimitAnimationRate();
-                var application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-                application.DispatcherUnhandledException += (sender, e) =>
-                {
-                    try { File.AppendAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "overlays-error.txt"), DateTime.Now + Environment.NewLine + e.Exception + Environment.NewLine); }
-                    catch { }
-                    e.Handled = true;
-                };
-                application.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("pack://application:,,,/AlmostFastOverlays;component/Theme.xaml") });
-                application.Startup += (s, e) => new OverlayHost();
-                application.Run();
-                mutex.ReleaseMutex();
-            }
             return 0;
         }
 

@@ -1,29 +1,36 @@
 # Almost Fast Overlays
 
+A small, standalone dashboard manager for sim racing wheel screens, with LED
+control. It drives the SSG DV-5 wheel screen and its LEDs and the SSG LB-10
+light bar from iRacing telemetry, and lets you design exactly what the screen
+shows.
+
+## Scope
+
+In scope:
+
+- **Dashboards** on the wheel screen, and a designer to build them.
+- **LEDs** on the screen and on light bars: rev lights, flags, blind spot, alerts.
+- **Devices**: finding, testing and configuring the screen and LED hardware.
+- **iRacing** telemetry, a small footprint, and one standalone exe.
+
+Out of scope: on-monitor overlays (standings, relative and the like) and
+anything else that isn't the wheel screen or its lights. New ideas go on a list
+until the core is proven on real hardware.
+
+## Using it
+
 Double-click `App\AlmostFastOverlays.exe` to open the settings app. The same
 executable runs the dashboard with `--run`; the Windows Startup shortcut uses
 that quiet mode automatically. Preferences are stored in `App\settings.json`
 and save automatically as you edit.
 
-The settings app has three areas:
-
-- **Dashboards** shows a live thumbnail of every dashboard, which one is the
-  default, and which track types each one is assigned to.
-- **Dashboard editor** shows a live preview of the DV-5 and the LB-10 light
-  bar with animated LEDs and a selectable screen state (racing, shift point,
-  pit lane, cars alongside, flags). It edits the name, accent color,
-  track-type assignment, shift lights, side lights, brow light bar and flag
-  alert timing.
-- **Device & app** sets the DV-5 LED port, screen brightness, the LB-10 port
-  and LED count (each with a light test), units, automatic switching by track
-  type, start with Windows, and radar diagnostics.
-
 ## Dashboards
 
 Every dashboard is a design made in the dashboard designer, in one Liquid Glass
-style shared with the overlays: frosted panels over an aurora background, a
-header hung from angled hairlines, readouts on glass tiles and a glowing delta
-badge. Two come with the app:
+style: frosted panels over an aurora background, a header hung from angled
+hairlines, readouts on glass tiles and a glowing delta badge. Two come with the
+app:
 
 - **Halo** (road and dirt road, the default) – the gear inside a halo of rev
   lights; last, best and predicted laps on the left, fuel, laps of fuel and the
@@ -37,53 +44,22 @@ badge. Two come with the app:
 
 Both are ordinary designs: open them in the designer to change anything, or
 start new ones from **New dashboard** (Halo, Oval or a blank canvas).
+
 ## App layout
 
-The app has four sections: **Dashboards** (the DV-5 screen designs and their
-lights), **Overlays** (on-monitor overlays), **Devices** (DV-5 screen and LEDs,
-LB-10 light bar, fast LED updates) and **Settings** (units, startup, diagnostics).
-On Windows 11 the windows use the acrylic glass backdrop.
+The app has three sections: **Dashboards** (the screen designs and their
+lights), **Devices** (DV-5 screen and LEDs, LB-10 light bar, fast LED updates)
+and **Settings** (units, startup, diagnostics). On Windows 11 the windows use the
+acrylic glass backdrop.
 
-Every section works the same way. Dashboards and Overlays list their items under
-them in the sidebar; the section itself opens an overview of cards, and an item
-opens its own page with a "‹ All …" link back. The header has one control for each
-thing that runs on its own (the DV-5 dashboard and the overlays): its state, then
-start or stop. Everything saves as you go, including the screen and light
-designers; there is no Save button anywhere.
+Dashboards lists each dashboard under it in the sidebar; the section itself opens
+an overview of cards, and a dashboard opens its own page with an "‹ All
+dashboards" link back. The header shows whether the dashboard is running on the
+DV-5, with start, restart and stop. Everything saves as you go, including the
+screen and light designers; there is no Save button anywhere.
 
 While iRacing isn't running, the dashboard checks the screen 4 times a second and
 the lights run at 10 frames a second, instead of 20 and 60.
-
-## Overlays
-
-On-monitor overlays run in their own process (`--overlays`, stopped with
-`--stop-overlays`), so a problem there can never affect the wheel. They are
-transparent, always on top and click-through; **Arrange on screen** unlocks them
-to drag into place (positions are kept in `App\overlay-positions.json`). Run
-iRacing in borderless window mode so they can sit over the game.
-
-**Standings** is a multiclass leaderboard: classes fastest first, each with its
-car count and strength of field; the class leaders, the cars around you and the
-top of every other class; position, driver, license and iRating, car make,
-places gained, gap, interval, best and last lap (class-fastest in purple,
-personal best in green), and pit, out-lap and fastest-lap badges. Rows slide to
-new places when positions change, and the position flashes green or red.
-
-**Relative** uses the same glass table for the cars nearest you on track: class
-position, car number in the class colour, driver, license and iRating, and the
-gap in seconds. Cars lapping you are red and cars you're lapping are blue; rows
-slide as cars pass.
-
-On both tables every column can be dragged into a new order in the settings, and
-each has a **Header** chip that shows its label in a header row above the table.
-
-**Toasts** are race events as glass cards in the middle of the screen: ▲ 1 with
-your new position and the car you passed (▼ when you're passed), and incident
-points – 4x Contact w/ the nearest driver, 2x Loss of control, 1x Off track.
-Place changes wait a moment to settle; iRacing doesn't say who you hit, so the
-contact name is the closest car on track at the time.
-Code: `Overlays\`.
-
 ## Light layers
 
 Each dashboard can use a layered light profile instead of the classic light

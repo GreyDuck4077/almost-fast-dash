@@ -327,7 +327,7 @@
         </Setter>
     </Style>
 
-    <!-- A nested sidebar entry under a section, such as one overlay under Overlays -->
+    <!-- A nested sidebar entry under a section, such as one dashboard under Dashboards -->
     <Style x:Key="Nav.SubItem" TargetType="RadioButton">
         <Setter Property="Foreground" Value="{StaticResource Brush.TextTertiary}"/>
         <Setter Property="FontSize" Value="12.5"/>

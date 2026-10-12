@@ -74,7 +74,7 @@ namespace AlmostFastOverlays
 
             AnimateLeds.Click += (s, e) => UpdateLedPreview();
             _statusTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
-            _statusTimer.Tick += (s, e) => { if (!_dashboardOperationInProgress) RefreshDashboardStatus(); RefreshOverlayStatus(); };
+            _statusTimer.Tick += (s, e) => { if (!_dashboardOperationInProgress) RefreshDashboardStatus(); };
             _statusTimer.Start();
             RefreshDashboardStatus();
 
@@ -260,13 +260,10 @@ namespace AlmostFastOverlays
             else NavGallery.IsChecked = true;
         }
 
-        private void NavOverlays_Checked(object sender, RoutedEventArgs e) => ShowPage(OverlaysPage);
-
         private bool _buildingDashboardNav;
 
         /// <summary>
-        /// The dashboards listed under Dashboards in the sidebar, the same way overlays are
-        /// listed under Overlays. Picking one opens its page.
+        /// The dashboards listed under Dashboards in the sidebar. Picking one opens its page.
         /// </summary>
         private void BuildDashboardSubNav()
         {
@@ -298,9 +295,6 @@ namespace AlmostFastOverlays
             EditorPage.Visibility = page == EditorPage ? Visibility.Visible : Visibility.Collapsed;
             SettingsPage.Visibility = page == SettingsPage ? Visibility.Visible : Visibility.Collapsed;
             AppPage.Visibility = page == AppPage ? Visibility.Visible : Visibility.Collapsed;
-            OverlaysPage.Visibility = page == OverlaysPage ? Visibility.Visible : Visibility.Collapsed;
-            if (page == OverlaysPage) { BuildOverlaySubNav(); BuildOverlaysPage(); } else StopOverlayPreview();
-            ShowOverlaySubNav(page == OverlaysPage);
             bool dashboards = page == GalleryPage || page == EditorPage;
             if (dashboards) BuildDashboardSubNav();
             ShowSubNav(DashboardSubNav, dashboards);
@@ -391,7 +385,7 @@ namespace AlmostFastOverlays
         private void DashboardCards_SizeChanged(object sender, SizeChangedEventArgs e) => LayoutCards(DashboardCards, _galleryCards);
 
         /// <summary>
-        /// Lays out a grid of cards (dashboards, overlays) in as many equal columns as fit.
+        /// Lays out a grid of dashboard cards in as many equal columns as fit.
         /// A card whose Tag is its thumbnail keeps that thumbnail in the DV-5's shape.
         /// </summary>
         private static void LayoutCards(Panel panel, List<Border> cards)

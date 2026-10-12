@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 
 namespace AlmostFastOverlays
@@ -210,8 +210,6 @@ namespace AlmostFastOverlays
         public double TrackTempC { get; set; } = double.NaN;
         public double AirTempC { get; set; } = double.NaN;
         public bool EngineWarning { get; set; }
-        /// <summary>The whole field by class; only built when the source collects standings (overlays).</summary>
-        public StandingsSnapshot Standings { get; set; } = StandingsSnapshot.Empty;
         /// <summary>True while ABS is working on this sample.</summary>
         public bool AbsActive { get; set; }
         /// <summary>The car's shift-light RPMs from iRacing; 0 when the car does not report them.</summary>
@@ -297,13 +295,6 @@ namespace AlmostFastOverlays
         private int _lapColorVersion;
         private bool _checkeredWasActive;
         private DateTime _checkeredAlertUntilUtc;
-        private readonly StandingsBuilder _standings = new StandingsBuilder();
-        private StandingsSnapshot _standingsSnapshot;
-        private DateTime _standingsBuiltUtc;
-
-        /// <summary>Build the whole-field standings (about ten times a second). Off for the device runtime.</summary>
-        public bool CollectStandings { get; set; }
-
         private bool _whiteWasActive;
         private DateTime _whiteAlertUntilUtc;
         private int _maximumObservedGear;
@@ -710,13 +701,6 @@ namespace AlmostFastOverlays
                 _latest.PitLimiter = (warnings & (int)EngineWarnings.PitSpeedLimiter) != 0;
                 _latest.EngineWarning = (warnings & ((int)EngineWarnings.WaterTempWarning | (int)EngineWarnings.OilPressureWarning | (int)EngineWarnings.FuelPressureWarning)) != 0;
                 _latest.AbsActive = sample.Telemetry["BrakeABSactive"] is bool abs && abs;
-                if (CollectStandings && (DateTime.UtcNow - _standingsBuiltUtc).TotalMilliseconds >= 100)
-                {
-                    try { _standingsSnapshot = _standings.Build(sample.Telemetry, ReadTelemetryInt(sample.Telemetry, "PlayerCarIdx")); }
-                    catch { }
-                    _standingsBuiltUtc = DateTime.UtcNow;
-                }
-                if (_standingsSnapshot != null) _latest.Standings = _standingsSnapshot;
                 SessionData session = sample.Telemetry.SessionData;
                 if (session != null)
                 {

@@ -43,13 +43,6 @@
                         </StackPanel>
                     </RadioButton>
                     <StackPanel x:Name="DashboardSubNav" Visibility="Collapsed" Margin="0,0,0,6"/>
-                    <RadioButton x:Name="NavOverlays" Style="{StaticResource Nav.Item}" GroupName="Nav" Checked="NavOverlays_Checked" Click="NavOverlays_Click">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Style="{StaticResource T.Icon}" Text="&#xE7F4;" Margin="0,0,12,0"/>
-                            <TextBlock Text="Overlays" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </RadioButton>
-                    <StackPanel x:Name="OverlaySubNav" Visibility="Collapsed" Margin="0,0,0,6"/>
                     <RadioButton x:Name="NavSettings" Style="{StaticResource Nav.Item}" GroupName="Nav" Checked="NavSettings_Checked">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Style="{StaticResource T.Icon}" Text="&#xE772;" Margin="0,0,12,0"/>
@@ -73,8 +66,7 @@
                 <RowDefinition/>
             </Grid.RowDefinitions>
 
-            <!-- Header: what's running. Each part of the app that runs on its own (the DV-5
-                 dashboard, the on-screen overlays) has the same control: status, then start or stop. -->
+            <!-- Header: whether the dashboard is running on the DV-5, and start, restart or stop. -->
             <Border BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,0,0,1">
                 <Grid Margin="32,0,24,0">
                     <Grid.ColumnDefinitions>
@@ -96,18 +88,6 @@
                                     ToolTip="Stop the dashboard and blank the DV-5 screen"/>
                             <Button x:Name="StartButton" Style="{StaticResource Btn.RunIcon}" Click="StartDashboard_Click" Margin="4,0,0,0">
                                 <TextBlock x:Name="StartIcon" Style="{StaticResource T.Icon}" Text="&#xE768;" FontSize="12"/>
-                            </Button>
-                        </StackPanel>
-                    </Border>
-                    <Border x:Name="OverlayRunPill" Grid.Column="1" Style="{StaticResource RunControl}" Margin="10,0,0,0">
-                        <StackPanel Orientation="Horizontal">
-                            <Ellipse x:Name="OverlayRunDot" Width="8" Height="8" Fill="{StaticResource Brush.TextTertiary}" VerticalAlignment="Center" Margin="2,0,10,0"/>
-                            <StackPanel VerticalAlignment="Center" MinWidth="128">
-                                <TextBlock Text="Overlays" FontSize="12" FontWeight="SemiBold"/>
-                                <TextBlock x:Name="OverlayRunText" Text="Off" FontSize="11" Foreground="{StaticResource Brush.TextSecondary}"/>
-                            </StackPanel>
-                            <Button x:Name="OverlayRunButton" Style="{StaticResource Btn.RunIcon}" Click="OverlayRun_Click" Margin="8,0,0,0">
-                                <TextBlock x:Name="OverlayRunIcon" Style="{StaticResource T.Icon}" Text="&#xE768;" FontSize="12"/>
                             </Button>
                         </StackPanel>
                     </Border>
@@ -747,11 +727,6 @@
                         </StackPanel>
                     </Border>
                 </StackPanel>
-            </ScrollViewer>
-
-            <!-- ============ Overlays page ============ -->
-            <ScrollViewer x:Name="OverlaysPage" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
-                <StackPanel x:Name="OverlaysHost" Margin="32,28,32,32" MaxWidth="1120"/>
             </ScrollViewer>
         </Grid>
     </Grid>
