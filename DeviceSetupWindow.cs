@@ -824,6 +824,26 @@ namespace AlmostFastOverlays
                 body.Children.Add(fast);
                 body.Children.Add(new TextBlock { Text = "Sends each light frame in one message, for the smoothest lights. If the lights look wrong with it on, turn it off.", Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap });
             }
+            if (_device.Kind != LedDeviceKinds.Wled)
+            {
+                body.Children.Add(new TextBlock { Text = "POWER", Style = (Style)FindResource("T.Overline"), Margin = new Thickness(0, 22, 0, 8) });
+                var power = new ComboBox
+                {
+                    ItemsSource = new[] { "From the PC's USB port", "A powered hub or its own power supply" }, Width = 320, HorizontalAlignment = HorizontalAlignment.Left,
+                    SelectedIndex = _device.MaxMilliamps > 0 ? 0 : 1
+                };
+                var powerHelp = new TextBlock { Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0), MaxWidth = 640, HorizontalAlignment = HorizontalAlignment.Left };
+                void ShowPower()
+                {
+                    powerHelp.Text = _device.MaxMilliamps > 0
+                        ? "Keeps the LEDs to about " + _device.MaxMilliamps + " mA, dimming bright frames (a whole bar lit white, say) so a USB port isn't overloaded. An overloaded port can drop the device and leave its LEDs stuck on."
+                        : "No limit: every LED can light at full brightness. Only choose this when the device has power of its own.";
+                }
+                power.SelectionChanged += (s, e) => { _device.MaxMilliamps = power.SelectedIndex == 0 ? LedPower.DefaultMilliamps : 0; ShowPower(); };
+                ShowPower();
+                body.Children.Add(power);
+                body.Children.Add(powerHelp);
+            }
             _body.Content = body;
             _preview?.Show(new DrawingColor[Math.Max(1, _layout.Total)]);
         }

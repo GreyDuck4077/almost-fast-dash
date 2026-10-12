@@ -795,13 +795,16 @@
     </Style>
     <Style TargetType="ToolTip">
         <Setter Property="OverridesDefaultStyle" Value="True"/>
+        <!-- Tooltips take their owner's font otherwise, so an icon button's tooltip would draw in the icon font. -->
+        <Setter Property="FontFamily" Value="{StaticResource Font.Ui}"/>
+        <Setter Property="FontWeight" Value="Normal"/>
         <Setter Property="HasDropShadow" Value="False"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ToolTip">
                     <Border Background="{StaticResource Brush.Popup}" BorderBrush="{StaticResource Brush.BorderStrong}" BorderThickness="1"
                             CornerRadius="6" Padding="9,6" MaxWidth="320">
-                        <ContentPresenter TextElement.Foreground="{StaticResource Brush.Text}" TextElement.FontSize="12">
+                        <ContentPresenter TextElement.Foreground="{StaticResource Brush.Text}" TextElement.FontSize="12" TextElement.FontFamily="{StaticResource Font.Ui}">
                             <ContentPresenter.Resources>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="TextWrapping" Value="Wrap"/>

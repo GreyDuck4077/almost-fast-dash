@@ -413,6 +413,60 @@ namespace AlmostFastOverlays
     }
 
     /// <summary>
+    /// Sends a device's frames on its own thread, always the newest one. A board that takes a while
+    /// per frame (many colour runs without fast updates) then shows the latest frame as soon as it
+    /// can, instead of slowing the light loop and every other device with it. A failed send is
+    /// reported on the next Send, so the caller can reconnect.
+    /// </summary>
+    internal sealed class BackgroundOutput : ILedOutput
+    {
+        private readonly ILedOutput _inner;
+        private readonly Thread _thread;
+        private readonly AutoResetEvent _wake = new AutoResetEvent(false);
+        private Color[] _pending;
+        private volatile Exception _error;
+        private volatile bool _stop;
+
+        public BackgroundOutput(ILedOutput inner, string name)
+        {
+            _inner = inner;
+            _thread = new Thread(Run) { IsBackground = true, Name = "LEDs: " + name };
+            _thread.Start();
+        }
+
+        public int KeepAliveMilliseconds => _inner.KeepAliveMilliseconds;
+
+        public void Send(Color[] frame)
+        {
+            Exception error = _error;
+            if (error != null) throw error;
+            Volatile.Write(ref _pending, frame);
+            _wake.Set();
+        }
+
+        private void Run()
+        {
+            while (!_stop)
+            {
+                _wake.WaitOne(500);
+                Color[] frame = Interlocked.Exchange(ref _pending, null);
+                if (frame == null || _stop) continue;
+                try { _inner.Send(frame); }
+                catch (Exception exception) { _error = exception; return; }
+            }
+        }
+
+        public void Dispose()
+        {
+            _stop = true;
+            _wake.Set();
+            _thread.Join(3000);
+            _inner.Dispose();
+            _wake.Dispose();
+        }
+    }
+
+    /// <summary>
     /// Keeps one extra device connected: opens it in the background (an Arduino takes a
     /// second or two to start, and the light loop must never wait for that), retries every
     /// five seconds while it's missing, sends only frames that changed (plus a keep-alive
@@ -449,7 +503,8 @@ namespace AlmostFastOverlays
                 if (_opening != null)
                 {
                     if (!_opening.IsCompleted) return;
-                    if (_opening.Status == System.Threading.Tasks.TaskStatus.RanToCompletion) _output = _opening.Result;
+                    // Each device sends on its own thread, so a slow one never holds up the others.
+                    if (_opening.Status == System.Threading.Tasks.TaskStatus.RanToCompletion) _output = new BackgroundOutput(_opening.Result, Device.Name);
                     else Console.Error.WriteLine(Device.Name + " unavailable on " + Device.Connection + ": " + _opening.Exception?.GetBaseException().Message);
                     _opening = null;
                     if (_output == null) return;
