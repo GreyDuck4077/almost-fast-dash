@@ -173,13 +173,12 @@
                             <StackPanel Grid.Column="1" Margin="28,4,0,0">
                                 <TextBlock Text="LIVE PREVIEW" Style="{StaticResource T.Overline}"/>
                                 <TextBlock Style="{StaticResource T.Secondary}" Margin="0,8,0,20"
-                                           Text="The screen and lights play through an RPM sweep, blind-spot calls and pedal inputs. Pick a state to see just that, such as the shift point or a flag. Changes apply to a running dashboard within a second."/>
-                                <CheckBox x:Name="AnimateLeds" Style="{StaticResource Switch}" Content="Animate the racing state" IsChecked="True" Margin="0,0,0,12"/>
+                                           Text="Pick a moment in a race to see exactly how the screen and every light look in it: the shift point, a car alongside, the pit limiter, a flag. Animated lap plays through a lap; Live iRacing shows your session. Changes apply to a running dashboard within a second."/>
                                 <CheckBox x:Name="MirrorLeds" Style="{StaticResource Switch}" Content="Show on my wheel" IsChecked="True" Margin="0,0,0,4"
                                           ToolTip="Shows this preview on your wheel screen and LED devices when iRacing isn't running"/>
                                 <TextBlock x:Name="MirrorNote" Style="{StaticResource T.Caption}" TextWrapping="Wrap" Margin="0,0,0,18"
                                            Text="Lights your devices with this preview while the dashboard is stopped."/>
-                                <TextBlock Text="Screen state" Style="{StaticResource T.Label}" Margin="0,0,0,8"/>
+                                <TextBlock Text="Preview state" Style="{StaticResource T.Label}" Margin="0,0,0,8"/>
                                 <ComboBox x:Name="PreviewState" MinWidth="0" HorizontalAlignment="Stretch" SelectionChanged="PreviewState_SelectionChanged"/>
                             </StackPanel>
                         </Grid>

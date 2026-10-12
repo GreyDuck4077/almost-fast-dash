@@ -4,16 +4,23 @@ using System.IO;
 namespace AlmostFastOverlays
 {
     /// <summary>
-    /// Lets the dashboard page's live preview show on the wheel while the dashboard is running.
-    /// The settings window keeps a small file fresh while its preview is open (which dashboard,
-    /// which state); the running dashboard, which owns the screen and LEDs, shows that state
-    /// whenever iRacing isn't connected. Live telemetry always wins, and a request that hasn't
-    /// been refreshed for a few seconds (the window closed or moved on) is ignored.
+    /// The preview states shared by the dashboard page and the light designer, and the way the
+    /// dashboard page's preview reaches the wheel while the dashboard is running. The settings
+    /// window keeps a small file fresh while its preview is open (which dashboard, which state);
+    /// the running dashboard, which owns the screen and LEDs, shows that state whenever iRacing
+    /// isn't connected. Live telemetry always wins, and a request that hasn't been refreshed for
+    /// a few seconds (the window closed or moved on) is ignored.
     /// </summary>
     internal sealed class PreviewRequest
     {
+        public const string AnimatedLap = "Animated lap", LiveIRacing = "Live iRacing";
+
+        /// <summary>Every preview state, in menu order. Each one is exactly the telemetry the dashboard and lights are shown with.</summary>
         public static readonly string[] States =
-            { "Racing", "Shift point", "Pit lane", "Cars alongside", "Green flag", "Yellow flag", "White flag", "Blue flag", "Black flag", "Checkered flag" };
+        {
+            AnimatedLap, LiveIRacing, "Racing", "Shift point", "Car left", "Car right", "Three wide", "Pit limiter", "Over pit limit",
+            "Low fuel", "ABS working", "Green flag", "Yellow flag", "White flag", "Blue flag", "Black flag", "Checkered flag", "Not connected"
+        };
 
         private static readonly string FilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "preview.request");
         private const double FreshSeconds = 3;
@@ -23,18 +30,17 @@ namespace AlmostFastOverlays
         private DateTime _nextReadUtc;
 
         public string DashboardId { get; private set; }
-        public int State { get; private set; }
-        public bool Animate { get; private set; }
+        public string State { get; private set; }
 
-        /// <summary>True while a preview has been asked for recently.</summary>
-        public bool Active => DashboardId != null;
+        /// <summary>True while a preview other than live data has been asked for recently.</summary>
+        public bool Active => DashboardId != null && State != LiveIRacing;
 
         // ------------------------------------------------------------------ settings window side
 
         /// <summary>Asks a running dashboard to show this preview (call at least every second while it's open).</summary>
-        public static void Write(string dashboardId, int state, bool animate)
+        public static void Write(string dashboardId, string state)
         {
-            try { File.WriteAllText(FilePath, dashboardId + "\n" + state + "\n" + (animate ? "1" : "0")); }
+            try { File.WriteAllText(FilePath, dashboardId + "\n" + state); }
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }
         }
@@ -46,21 +52,17 @@ namespace AlmostFastOverlays
             catch (UnauthorizedAccessException) { }
         }
 
-        /// <summary>The telemetry a preview state stands for; the racing state animates when asked.</summary>
-        public static TelemetrySnapshot ForState(int state, bool animate, SyntheticTelemetry synthetic)
+        /// <summary>
+        /// The telemetry a preview state stands for. Animated lap plays <paramref name="synthetic"/>;
+        /// Live iRacing is <paramref name="live"/> (or not connected without it).
+        /// </summary>
+        public static TelemetrySnapshot ForState(string state, SyntheticTelemetry synthetic, TelemetrySnapshot live = null)
         {
             switch (state)
             {
-                case 1: return LightsWindow.Scenario("Shift point");
-                case 2: return IRacingTelemetrySource.CreatePitLanePreviewSnapshot();
-                case 3: return IRacingTelemetrySource.CreateSpotterPreviewSnapshot();
-                case 4: return IRacingTelemetrySource.CreatePreviewSnapshot(RacingFlag.Green);
-                case 5: return IRacingTelemetrySource.CreatePreviewSnapshot(RacingFlag.Yellow);
-                case 6: return IRacingTelemetrySource.CreatePreviewSnapshot(RacingFlag.White);
-                case 7: return IRacingTelemetrySource.CreatePreviewSnapshot(RacingFlag.BlueYellowStripe);
-                case 8: return IRacingTelemetrySource.CreatePreviewSnapshot(RacingFlag.Black);
-                case 9: return IRacingTelemetrySource.CreatePreviewSnapshot(RacingFlag.Checkered);
-                default: return animate ? synthetic.Next(out _, out _, out _) : IRacingTelemetrySource.CreatePreviewSnapshot();
+                case AnimatedLap: return synthetic.Next(out _, out _, out _);
+                case LiveIRacing: return live ?? TelemetrySnapshot.Disconnected;
+                default: return LightsWindow.Scenario(state);
             }
         }
 
@@ -79,9 +81,8 @@ namespace AlmostFastOverlays
                     var file = new FileInfo(FilePath);
                     if (!file.Exists || (DateTime.UtcNow - file.LastWriteTimeUtc).TotalSeconds > FreshSeconds) return;
                     string[] lines = File.ReadAllLines(FilePath);
-                    if (lines.Length < 3 || string.IsNullOrWhiteSpace(lines[0])) return;
-                    State = int.TryParse(lines[1], out int state) ? state : 0;
-                    Animate = lines[2].Trim() == "1";
+                    if (lines.Length < 2 || string.IsNullOrWhiteSpace(lines[0]) || Array.IndexOf(States, lines[1].Trim()) < 0) return;
+                    State = lines[1].Trim();
                     DashboardId = lines[0].Trim();
                 }
                 catch (IOException) { }
@@ -95,7 +96,7 @@ namespace AlmostFastOverlays
             if (live != null && live.Connected) return live;
             Refresh();
             lock (_gate)
-                return Active ? ForState(State, Animate, _synthetic) : live;
+                return Active ? ForState(State, _synthetic, live) : live;
         }
     }
 }

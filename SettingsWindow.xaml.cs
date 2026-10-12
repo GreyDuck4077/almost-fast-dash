@@ -61,7 +61,6 @@ namespace AlmostFastOverlays
             _loading = false;
             NavGallery.IsChecked = true;
 
-            AnimateLeds.Click += (s, e) => UpdateLedPreview();
             MirrorLeds.Click += (s, e) => { if (MirrorLeds.IsChecked != true) ReleaseDevices(); UpdateLedPreview(); };
             _statusTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
             _statusTimer.Tick += (s, e) => { if (!_dashboardOperationInProgress) RefreshDashboardStatus(); };
@@ -71,7 +70,7 @@ namespace AlmostFastOverlays
             Version version = Assembly.GetExecutingAssembly().GetName().Version;
             VersionText.Text = $"Version {version.Major}.{version.Minor} · Changes save automatically";
             SettingsPathText.Text = SettingsStore.FilePath;
-            Closing += (s, e) => { FlushSave(); _ledTimer.Stop(); _statusTimer.Stop(); _mirror.Dispose(); PreviewRequest.Clear(); };
+            Closing += (s, e) => { FlushSave(); _ledTimer.Stop(); _statusTimer.Stop(); _mirror.Dispose(); PreviewRequest.Clear(); StopLivePreview(); };
         }
 
         // ------------------------------------------------------------------
@@ -574,27 +573,35 @@ namespace AlmostFastOverlays
         private void RefreshPreview()
         {
             if (_dashboard == null || PreviewState == null) return;
-            RacingFlag flag;
-            switch (PreviewState.SelectedIndex)
-            {
-                case 4: flag = RacingFlag.Green; break;
-                case 5: flag = RacingFlag.Yellow; break;
-                case 6: flag = RacingFlag.White; break;
-                case 7: flag = RacingFlag.BlueYellowStripe; break;
-                case 8: flag = RacingFlag.Black; break;
-                case 9: flag = RacingFlag.Checkered; break;
-                default: flag = RacingFlag.None; break;
-            }
-            TelemetrySnapshot snapshot =
-                PreviewState.SelectedIndex == 2 ? IRacingTelemetrySource.CreatePitLanePreviewSnapshot() :
-                PreviewState.SelectedIndex == 3 ? IRacingTelemetrySource.CreateSpotterPreviewSnapshot() :
-                IRacingTelemetrySource.CreatePreviewSnapshot(flag);
-            _previewFlag = flag;
-            PreviewBrush.ImageSource = RenderPreview(_dashboard, new UnitSystem(_settings.General), snapshot, PreviewState.SelectedIndex == 1);
+            string state = PreviewStateName;
+            if (state == PreviewRequest.LiveIRacing) StartLivePreview(); else StopLivePreview();
+            // The screen shows the same telemetry as the lights. A lap in motion is shown as a still of racing.
+            TelemetrySnapshot snapshot = state == PreviewRequest.AnimatedLap ? LightsWindow.Scenario("Racing")
+                : PreviewRequest.ForState(state, _previewSynthetic, _livePreview?.GetSnapshot());
+            PreviewBrush.ImageSource = RenderPreview(_dashboard, new UnitSystem(_settings.General), snapshot, snapshot.ShiftAlert);
             UpdateLedPreview();
         }
 
-        private RacingFlag _previewFlag;
+        private string PreviewStateName => PreviewState.SelectedItem as string ?? PreviewRequest.AnimatedLap;
+
+        private IRacingTelemetrySource _livePreview;
+        private DiagnosticLogger _livePreviewLog;
+
+        private void StartLivePreview()
+        {
+            if (_livePreview != null) return;
+            _livePreviewLog = new DiagnosticLogger(false);
+            _livePreview = new IRacingTelemetrySource(_livePreviewLog, _dashboard);
+            _livePreview.Start();
+        }
+
+        private void StopLivePreview()
+        {
+            _livePreview?.Dispose();
+            _livePreview = null;
+            _livePreviewLog?.Dispose();
+            _livePreviewLog = null;
+        }
 
         private static BitmapSource RenderPreview(DashboardSettings dashboard, UnitSystem units, TelemetrySnapshot snapshot, bool shiftFlash = false)
         {

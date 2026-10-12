@@ -129,7 +129,7 @@ namespace AlmostFastOverlays
             Check("rev lights at full are left alone by the power limit", ReferenceEquals(LedPower.Limit(revs, LedPower.DefaultMilliamps), revs), Math.Round(LedPower.Milliamps(revs)) + " mA");
 
             // ---------------- preview on a running dashboard
-            PreviewRequest.Write("dashboard-halo", 1, false);
+            PreviewRequest.Write("dashboard-halo", "Shift point");
             var follower = new PreviewRequest();
             TelemetrySnapshot shown = follower.Apply(TelemetrySnapshot.Disconnected);
             TelemetrySnapshot live = Snap(0.2, 4000);

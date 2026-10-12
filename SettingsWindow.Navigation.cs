@@ -24,7 +24,7 @@ namespace AlmostFastOverlays
             if (scenario.Contains("editor"))
             {
                 ShowEditor(_settings.GetDefaultDashboard());
-                if (scenario.Contains("shift")) PreviewState.SelectedIndex = 1;
+                if (scenario.Contains("shift")) PreviewState.SelectedItem = "Shift point";
             }
             else if (scenario.Contains("devices"))
             {

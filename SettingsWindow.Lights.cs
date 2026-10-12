@@ -115,8 +115,8 @@ namespace AlmostFastOverlays
                 _previewDashboard = _dashboard;
             }
             TelemetrySnapshot snapshot;
-            // Animation plays the racing state; any other state is shown as it is, on the screen and the lights alike.
-            snapshot = PreviewRequest.ForState(PreviewState.SelectedIndex, AnimateLeds.IsChecked == true, _previewSynthetic);
+            // Exactly the telemetry the screen preview and the light designer use for this state.
+            snapshot = PreviewRequest.ForState(PreviewStateName, _previewSynthetic, _livePreview?.GetSnapshot());
             LightFrame frame = _previewLights.Compose(snapshot, Environment.TickCount);
             for (int d = 0; d < _stripDots.Count && d < frame.Leds.Length; d++)
                 for (int i = 0; i < _stripDots[d].Length && i < frame.Leds[d].Length; i++)
@@ -131,7 +131,7 @@ namespace AlmostFastOverlays
                 if (_mirror.Active) _mirror.Release();
                 if (Environment.TickCount - _lastRequestTick > 500 || Environment.TickCount < _lastRequestTick)
                 {
-                    PreviewRequest.Write(_dashboard.Id, PreviewState.SelectedIndex, AnimateLeds.IsChecked == true);
+                    PreviewRequest.Write(_dashboard.Id, PreviewStateName);
                     _lastRequestTick = Environment.TickCount;
                 }
             }

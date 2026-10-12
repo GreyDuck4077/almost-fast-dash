@@ -79,7 +79,7 @@ namespace AlmostFastOverlays
             _liveSaveTimer.Tick += (s, e) => { _liveSaveTimer.Stop(); SaveProfile(true); };
 
             BuildStage();
-            ScenarioCombo.ItemsSource = Scenarios;
+            ScenarioCombo.ItemsSource = PreviewRequest.States;
             ScenarioCombo.SelectedIndex = 0;
             ScenarioCombo.SelectionChanged += (s, e) => { if (ScenarioName == "Live iRacing") StartLive(); else StopLive(); };
             HookOutputControls();
@@ -101,12 +101,6 @@ namespace AlmostFastOverlays
         // ==================================================================
         // Preview scenarios
         // ==================================================================
-
-        private static readonly string[] Scenarios =
-        {
-            "Animated lap", "Live iRacing", "Racing", "Shift point", "Car left", "Car right", "Three wide", "Pit limiter", "Over pit limit",
-            "Low fuel", "ABS working", "Green flag", "Yellow flag", "White flag", "Blue flag", "Black flag", "Checkered flag", "Not connected"
-        };
 
         private string ScenarioName => ScenarioCombo.SelectedItem as string ?? "Animated lap";
 
