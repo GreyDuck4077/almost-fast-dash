@@ -39,7 +39,7 @@ namespace AlmostFastOverlays
                             g.FillPath(sheen, path);
                         }
                         GraphicsState state = g.Save();
-                        g.SetClip(path);
+                        g.SetClip(path, CombineMode.Intersect);
                         using (var highlight = new Pen(Color.FromArgb(70, 255, 255, 255), 1.2f))
                             g.DrawLine(highlight, b.X + Math.Max(r, 6), b.Y + 1.2f, b.Right - Math.Max(r, 6), b.Y + 1.2f);
                         g.Restore(state);
@@ -122,7 +122,7 @@ namespace AlmostFastOverlays
                 target = new RectangleF(b.X + (b.Width - w) / 2, b.Y + (b.Height - h) / 2, w, h);
             }
             GraphicsState state = c.G.Save();
-            c.G.SetClip(b);
+            c.G.SetClip(b, CombineMode.Intersect);
             c.G.InterpolationMode = InterpolationMode.HighQualityBicubic;
             c.G.DrawImage(image, target);
             c.G.Restore(state);
@@ -866,7 +866,8 @@ namespace AlmostFastOverlays
             Color text = c.Color("textColor"), label = c.Color("labelColor");
             DashKit.Fill(g, b, c.Color("panelColor"), radius);
             double cool = c.Num("coolBelow"), hot = c.Num("hotAbove");
-            Color Heat(double celsius) => double.IsNaN(celsius) ? c.Theme("track") : celsius < cool ? c.Color("coolColor") : celsius > hot ? c.Color("hotColor") : c.Color("okColor");
+            // The limits are in the temperature unit you chose.
+            Color Heat(double celsius) => double.IsNaN(celsius) ? c.Theme("track") : c.Scope.Units.Temperature(celsius) < cool ? c.Color("coolColor") : c.Scope.Units.Temperature(celsius) > hot ? c.Color("hotColor") : c.Color("okColor");
             string Temp(double celsius) => double.IsNaN(celsius) ? "--" : c.Scope.Units.Temperature(celsius).ToString("0") + "°";
 
             float pad = Math.Max(6, b.Height * 0.06f), y = b.Y + pad;
@@ -974,7 +975,7 @@ namespace AlmostFastOverlays
             GraphicsState state = g.Save();
             using (GraphicsPath clip = Paint.Rounded(b, radius))
             {
-                g.SetClip(clip);
+                g.SetClip(clip, CombineMode.Intersect);
                 if (flag == RacingFlag.Checkered)
                 {
                     float cell = Math.Max(6, b.Height / 4);
@@ -1076,10 +1077,10 @@ namespace AlmostFastOverlays
             }
             Color good = c.Color("goodColor"), bad = c.Color("badColor");
             float lw = (float)c.Num("lineWidth");
-            GraphicsState state = g.Save();
             foreach (bool upper in new[] { true, false })
             {
-                g.SetClip(upper ? new RectangleF(b.X, b.Y - lw, b.Width, b.Height / 2 + lw) : new RectangleF(b.X, mid, b.Width, b.Height / 2 + lw));
+                GraphicsState state = g.Save();
+                g.SetClip(upper ? new RectangleF(b.X, b.Y - lw, b.Width, b.Height / 2 + lw) : new RectangleF(b.X, mid, b.Width, b.Height / 2 + lw), CombineMode.Intersect);
                 Color tone = upper ? good : bad;
                 if (c.Bool("fill"))
                     using (var area = new GraphicsPath())
@@ -1091,8 +1092,8 @@ namespace AlmostFastOverlays
                         using (var brush = new SolidBrush(Color.FromArgb(50, tone))) g.FillPath(brush, area);
                     }
                 using (var pen = new Pen(tone, lw) { LineJoin = LineJoin.Round }) g.DrawLines(pen, points);
+                g.Restore(state);
             }
-            g.Restore(state);
         }
 
         public static void LapHistory(WidgetContext c)
@@ -1304,12 +1305,14 @@ namespace AlmostFastOverlays
                         using (var brush = new SolidBrush(core)) sg.FillPath(brush, path);
                         using (var pen = new Pen(core, size * 0.5f) { LineJoin = LineJoin.Round }) sg.DrawPath(pen, path);
                     }
-                    if (GlowCache.Count >= 400)
+                    // Oldest first: a moving gauge's passing shapes go, the steady ones (panels, digits) stay.
+                    while (GlowCache.Count >= 300 && GlowOrder.Count > 0)
                     {
-                        foreach (Bitmap old in GlowCache.Values) old.Dispose();
-                        GlowCache.Clear();
+                        long old = GlowOrder.Dequeue();
+                        if (GlowCache.TryGetValue(old, out Bitmap stale)) { stale.Dispose(); GlowCache.Remove(old); }
                     }
                     GlowCache[key] = small;
+                    GlowOrder.Enqueue(key);
                 }
                 // Map exactly the drawn part of the small bitmap back onto the area, so the glow stays centered.
                 GraphicsState state = g.Save();
@@ -1321,6 +1324,7 @@ namespace AlmostFastOverlays
         }
 
         private static readonly Dictionary<long, Bitmap> GlowCache = new Dictionary<long, Bitmap>();
+        private static readonly Queue<long> GlowOrder = new Queue<long>();
 
         private static long GlowKey(GraphicsPath path, Color color, float size, float intensity)
         {

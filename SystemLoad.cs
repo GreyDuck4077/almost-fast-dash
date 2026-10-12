@@ -29,8 +29,9 @@ namespace AlmostFastOverlays
                 if (GetSystemTimes(out long idle, out long kernel, out long user))
                 {
                     // Kernel time includes idle time.
-                    long busy = kernel - _kernel + user - _user, total = busy, rest = idle - _idle;
-                    if (_kernel != 0 && total > 0) _cpu = Math.Max(0, Math.Min(100, (total - rest) * 100.0 / total));
+                    // The first reading is the average since Windows started, so it is sensible straight away.
+                    long total = kernel - _kernel + user - _user, rest = idle - _idle;
+                    if (total > 0) _cpu = Math.Max(0, Math.Min(100, (total - rest) * 100.0 / total));
                     _idle = idle;
                     _kernel = kernel;
                     _user = user;

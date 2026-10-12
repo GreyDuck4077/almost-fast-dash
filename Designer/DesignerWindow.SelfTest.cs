@@ -12,6 +12,8 @@ namespace AlmostFastOverlays
         /// each check. Used by --designer-selftest; it saves into the settings next to
         /// the exe it runs from, so run it from a scratch copy.
         /// </summary>
+        private static readonly DateTime TestNow = new DateTime(2026, 1, 1, 12, 0, 0);
+
         internal List<string> RunSelfTest(string scratchFolder)
         {
             var report = new List<string>();
@@ -94,6 +96,17 @@ namespace AlmostFastOverlays
                     costs.Add((widget?.Name ?? "background only") + " " + Time(renderer).ToString("0.0"));
             }
             report.Add("INFO  halo cost by widget (ms): " + string.Join(", ", costs));
+            using (var profiled = new LayoutRenderer(854, 480, DashboardSettings.CreateDesigned(DesignTemplates.Find("halo")), _units) { Timings = new Dictionary<string, double>() })
+            {
+                TelemetrySnapshot snapshot = IRacingTelemetrySource.CreatePreviewSnapshot();
+                using (profiled.Render(snapshot, false, 4, 1)) { }
+                profiled.Timings.Clear();
+                var watch = System.Diagnostics.Stopwatch.StartNew();
+                for (int i = 0; i < 30; i++) using (profiled.Render(snapshot, false, 4, 1)) { }
+                double frame = watch.Elapsed.TotalMilliseconds / 30, widgets = profiled.Timings.Values.Sum() / 30;
+                report.Add("INFO  halo frame " + frame.ToString("0.00") + " ms: live widgets " + widgets.ToString("0.00") + " ms over " + profiled.Timings.Count + " widgets; slowest " +
+                    string.Join(", ", profiled.Timings.OrderByDescending(p => p.Value).Take(8).Select(p => p.Key + " " + (p.Value / 30).ToString("0.00"))));
+            }
 
             using (var designed = new LayoutRenderer(854, 480, DashboardSettings.CreateDesigned(DesignTemplates.Find("halo")), _units))
             {
@@ -120,8 +133,8 @@ namespace AlmostFastOverlays
                 DashboardSettings d = DashboardSettings.CreateDesigned(template);
                 int mismatches = 0, baked = 0;
                 // Waving flags follow the clock; hold both renderers at the same moment.
-                using (var cached = new LayoutRenderer(854, 480, d, _units) { FlagClock = 0 })
-                using (var plain = new LayoutRenderer(854, 480, d, _units) { CacheStatic = false, FlagClock = 0 })
+                using (var cached = new LayoutRenderer(854, 480, d, _units) { FlagClock = 0, FixedNow = TestNow })
+                using (var plain = new LayoutRenderer(854, 480, d, _units) { CacheStatic = false, FlagClock = 0, FixedNow = TestNow })
                     foreach (TelemetrySnapshot snapshot in states)
                         using (var a = cached.Render(snapshot, false, snapshot.Gear, 1))
                         using (var b = plain.Render(snapshot, false, snapshot.Gear, 1))
@@ -132,6 +145,88 @@ namespace AlmostFastOverlays
                     baked = d.Design.Screens[0].Widgets.Count(w => counter.IsBaked(d.Design.Screens[0], w));
                 }
                 Check("static cache is pixel-identical: " + template.Name, mismatches == 0, mismatches + " of " + states.Length + " states differ; " + baked + " widgets cached");
+            }
+
+            // The largest difference in any colour channel between two frames.
+            int Largest(System.Drawing.Bitmap x, System.Drawing.Bitmap y)
+            {
+                int most = 0;
+                for (int py = 0; py < x.Height; py++)
+                    for (int px = 0; px < x.Width; px++)
+                    {
+                        System.Drawing.Color p = x.GetPixel(px, py), q = y.GetPixel(px, py);
+                        most = Math.Max(most, Math.Max(Math.Abs(p.A - q.A), Math.Max(Math.Abs(p.R - q.R), Math.Max(Math.Abs(p.G - q.G), Math.Abs(p.B - q.B)))));
+                    }
+                return most;
+            }
+
+            // Where two frames differ, and which widgets cover that spot.
+            string DiffBox(System.Drawing.Bitmap x, System.Drawing.Bitmap y)
+            {
+                int l = int.MaxValue, t = int.MaxValue, r = -1, btm = -1, count = 0, most = 0;
+                for (int py = 0; py < x.Height; py += 1)
+                    for (int px = 0; px < x.Width; px += 1)
+                    {
+                        System.Drawing.Color p = x.GetPixel(px, py), q = y.GetPixel(px, py);
+                        if (p.ToArgb() == q.ToArgb()) continue;
+                        count++;
+                        most = Math.Max(most, Math.Max(Math.Abs(p.R - q.R), Math.Max(Math.Abs(p.G - q.G), Math.Abs(p.B - q.B))));
+                        l = Math.Min(l, px); t = Math.Min(t, py); r = Math.Max(r, px); btm = Math.Max(btm, py);
+                    }
+                return count + " px within " + l + "," + t + " to " + r + "," + btm + " (largest difference " + most + "/255)";
+            }
+
+            // Redrawing only what changed must give exactly the frames a full redraw gives, across an animated lap.
+            foreach (DesignTemplate template in DesignTemplates.All)
+            {
+                DashboardSettings d = DashboardSettings.CreateDesigned(template);
+                d.Design.FullScreenFlags = false;
+                var lap = new SyntheticTelemetry();
+                int mismatches = 0, frames = 0, rounded = 0;
+                double share = 0, fast = 0, slow = 0;
+                string firstDiff = "", changed = "";
+                using (var incremental = new LayoutRenderer(854, 480, d, _units) { FlagClock = 0, FixedNow = TestNow, Timings = new Dictionary<string, double>() })
+                using (var whole = new LayoutRenderer(854, 480, d, _units) { FlagClock = 0, FixedNow = TestNow, RedrawChangesOnly = false })
+                    for (int i = 0; i < 90; i++)
+                    {
+                        TelemetrySnapshot snapshot = i % 30 == 29 ? states[i / 30 % states.Length] : lap.Next(out _, out _, out _);
+                        long a0 = System.Diagnostics.Stopwatch.GetTimestamp();
+                        using (var a = incremental.Render(snapshot, i % 4 == 0, snapshot.Gear, 1))
+                        {
+                            long a1 = System.Diagnostics.Stopwatch.GetTimestamp();
+                            using (var b = whole.Render(snapshot, i % 4 == 0, snapshot.Gear, 1))
+                            {
+                                long b1 = System.Diagnostics.Stopwatch.GetTimestamp();
+                                if (i > 0) { fast += a1 - a0; slow += b1 - a1; share += incremental.LastRedrawShare; frames++; }
+                                if (i == 89) changed = string.Join(", ", incremental.Timings.Where(p => p.Key.StartsWith("changed: ")).OrderByDescending(p => p.Value).Take(14).Select(p => p.Key.Substring(9) + " " + p.Value));
+                                // Scaled glows can round 1/255 differently when clipped; anything larger is a real difference.
+                                if (Pixels(a) != Pixels(b) && Largest(a, b) <= 2) rounded++;
+                                else if (Pixels(a) != Pixels(b))
+                                {
+                                    if (mismatches++ == 0)
+                                    {
+                                        firstDiff = "frame " + i + " differs in " + DiffBox(a, b);
+                                        string[] at = firstDiff.Split(new[] { " within " }, StringSplitOptions.None)[1].Split(' ')[0].Split(',');
+                                        var spot = new System.Drawing.PointF(float.Parse(at[0]), float.Parse(at[1]));
+                                        firstDiff += "; widgets there: " + string.Join(", ", d.Design.Screens[0].Widgets
+                                            .Where(w => System.Drawing.RectangleF.Inflate(w.Bounds, 24, 24).Contains(spot))
+                                            .Select(w => w.Name + " [" + w.Type + " " + w.X + "," + w.Y + " " + w.W + "x" + w.H + "]"));
+                                        using (var map = new System.Drawing.Bitmap(a))
+                                        {
+                                            for (int py = 0; py < a.Height; py++)
+                                                for (int px = 0; px < a.Width; px++)
+                                                    if (a.GetPixel(px, py).ToArgb() != b.GetPixel(px, py).ToArgb()) map.SetPixel(px, py, System.Drawing.Color.Magenta);
+                                            map.Save(Path.Combine(scratchFolder, "diff-" + template.Id + ".png"));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                Check("redrawing only changes matches a full redraw: " + template.Name, mismatches == 0, mismatches + " of 90 frames differ" + (rounded > 0 ? ", " + rounded + " within 2/255 rounding" : "") + "; " + firstDiff);
+                if (frames > 0)
+                    report.Add("INFO  " + template.Id + " animated lap: " + (fast / frames * 1000 / System.Diagnostics.Stopwatch.Frequency).ToString("0.00") + " ms per frame redrawing changes (" +
+                        (share / frames * 100).ToString("0") + "% of the screen) vs " + (slow / frames * 1000 / System.Diagnostics.Stopwatch.Frequency).ToString("0.00") + " ms redrawing everything; changed most: " + changed);
             }
 
             // Waving flags: the cloth moves with time, and the runtime is told to redraw it.
@@ -170,6 +265,29 @@ namespace AlmostFastOverlays
                 Check("block draws: " + block.Name, errors.Count == 0, string.Join("; ", errors.Distinct().Take(3)));
             }
             Check("every built-in block is in a folder", DesignBlocks.BuiltIn().All(b => b.Folder != "Other"));
+
+            // ---------------- cost of glowing gauges whose value changes every frame
+            foreach (string block in new[] { "Swoosh rev bar", "Tapered rev ring", "Tach dial", "Arched rev bar" })
+            {
+                var layout = DesignTemplates.Blank();
+                List<DashWidget> parts = DesignBlocks.BuiltIn().First(b => b.Name == block).Create();
+                DashWidget gauge = parts[0];
+                foreach (DashWidget w in parts) { w.X += 100; w.Y += 60; layout.Screens[0].Widgets.Add(w); }
+                using (var renderer = new LayoutRenderer(854, 480, new DashboardSettings { Layout = Layouts.Custom, Design = layout }, _units))
+                {
+                    TelemetrySnapshot snapshot = IRacingTelemetrySource.CreatePreviewSnapshot();
+                    gauge.Set("value", "0.5");
+                    using (renderer.Render(snapshot, false, 4, 1, layout.Screens[0])) { }
+                    var watch = System.Diagnostics.Stopwatch.StartNew();
+                    for (int i = 0; i < 120; i++)
+                    {
+                        gauge.Set("value", ((i * 7 % 100) / 100.0).ToString(System.Globalization.CultureInfo.InvariantCulture) + (gauge.Type == "arc" ? "" : ""));
+                        if (gauge.Get("max") != null && gauge.Type == "arc" && block == "Tach dial") gauge.Set("value", (i * 7 % 90 / 10.0).ToString(System.Globalization.CultureInfo.InvariantCulture));
+                        using (renderer.Render(snapshot, false, 4, 1, layout.Screens[0])) { }
+                    }
+                    report.Add("INFO  " + block + " with a changing value: " + (watch.Elapsed.TotalMilliseconds / 120).ToString("0.00") + " ms per frame");
+                }
+            }
 
             // ---------------- quick values and race data
             var quickErrors = new List<string>();

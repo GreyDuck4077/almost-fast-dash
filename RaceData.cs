@@ -188,6 +188,7 @@ namespace AlmostFastOverlays
                 int[] classPositions = t["CarIdxClassPosition"] as int[];
                 float[] last = t["CarIdxLastLapTime"] as float[], best = t["CarIdxBestLapTime"] as float[], f2 = t["CarIdxF2Time"] as float[];
                 int[] laps = t["CarIdxLapCompleted"] as int[];
+                float[] distances = t.CarIdxLapDistPct;
                 bool[] pits = t.CarIdxOnPitRoad;
                 int player = ReadTelemetryInt(t, "PlayerCarIdx");
                 bool race = t.Session?.IsRace == true;
@@ -209,7 +210,9 @@ namespace AlmostFastOverlays
                         if (sessionBest <= 0 || carBest < sessionBest) sessionBest = carBest;
                         if (me != null && driver.CarClassId == me.CarClassId && (classBest <= 0 || carBest < classBest)) classBest = carBest;
                     }
-                    if (positions[i] <= 0) continue;
+                    // Early in a session iRacing gives no position until a car sets a time; list every car
+                    // that is in the session anyway (ranked below).
+                    if (positions[i] <= 0 && carBest <= 0 && (distances == null || i >= distances.Length || distances[i] < 0) && i != player) continue;
                     RelativeDriver info = BuildRelative(details, i, GetDriverName(details, i));
                     rows.Add(new StandingsEntry
                     {
@@ -222,7 +225,24 @@ namespace AlmostFastOverlays
                         GapToLeader = race ? At(f2, i) : 0, IsPlayer = i == player, InPits = pits != null && i < pits.Length && pits[i]
                     });
                 }
-                rows.Sort((a, b) => a.Position.CompareTo(b.Position));
+                // iRacing's order first; cars it hasn't placed yet follow by best lap, then car number.
+                rows.Sort((a, b) =>
+                {
+                    bool pa = a.Position > 0, pb = b.Position > 0;
+                    if (pa != pb) return pa ? -1 : 1;
+                    if (pa) return a.Position.CompareTo(b.Position);
+                    if ((a.BestLap > 0) != (b.BestLap > 0)) return a.BestLap > 0 ? -1 : 1;
+                    if (a.BestLap > 0 && a.BestLap != b.BestLap) return a.BestLap.CompareTo(b.BestLap);
+                    return CarNumberOrder(a.CarNumber).CompareTo(CarNumberOrder(b.CarNumber));
+                });
+                for (int k = 0; k < rows.Count; k++)
+                    if (rows[k].Position <= 0) rows[k].Position = k + 1;
+                if (rows.Any(r => r.ClassPosition <= 0))
+                    foreach (IGrouping<string, StandingsEntry> cls in rows.GroupBy(r => r.ClassName ?? ""))
+                    {
+                        int n = cls.Where(r => r.ClassPosition > 0).Select(r => r.ClassPosition).DefaultIfEmpty(0).Max();
+                        foreach (StandingsEntry r in cls.Where(r => r.ClassPosition <= 0)) r.ClassPosition = ++n;
+                    }
                 StandingsEntry mine = rows.FirstOrDefault(r => r.IsPlayer);
                 for (int k = 0; k < rows.Count; k++)
                 {
@@ -243,6 +263,8 @@ namespace AlmostFastOverlays
                 return new StandingsEntry[0];
             }
         }
+
+        private static int CarNumberOrder(string number) => int.TryParse(number, out int n) ? n : int.MaxValue;
 
         private static double At(float[] values, int i) => values != null && i < values.Length && values[i] > 0 ? values[i] : 0;
 

@@ -249,8 +249,8 @@ namespace AlmostFastOverlays
                 .Color("coolColor", "Cool", "info", "Colors")
                 .Color("okColor", "In range", "good", "Colors")
                 .Color("hotColor", "Hot", "bad", "Colors")
-                .Number("coolBelow", "Cool below (°C)", "70", "Colors", 0, 200)
-                .Number("hotAbove", "Hot above (°C)", "105", "Colors", 0, 200)
+                .Number("coolBelow", "Cool below", "=temp(70)", "Colors", 0, 250)
+                .Number("hotAbove", "Hot above", "=temp(105)", "Colors", 0, 250)
                 .Number("radius", "Corners", "10", "Look", 0, 40);
 
             Define("blindspot", "Blind spot", "Racing", "", "Lights up while a car is alongside, brighter toward where it is.", 26, 220, WidgetPainters.BlindSpot)

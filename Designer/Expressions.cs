@@ -455,7 +455,7 @@ namespace AlmostFastOverlays
             Add("nz", "nz(value, fallback)", "Uses the fallback when the value is zero, negative or unknown.", 2, 2,
                 (s, a) => { double v = Expr.Num(a[0]); return v <= 0 || double.IsNaN(v) ? a[1] : a[0]; });
             Add("blink", "blink(milliseconds)", "Alternates true/false at a rate, for flashing warnings.", 0, 1,
-                (s, a) => { int ms = Math.Max(40, a.Length > 0 ? (int)Expr.Num(a[0]) : 250); return ((Environment.TickCount / ms) & 1) == 0; });
+                (s, a) => { int ms = Math.Max(40, a.Length > 0 ? (int)Expr.Num(a[0]) : 250); return (((long)s.Now.TimeOfDay.TotalMilliseconds / ms) & 1) == 0; });
             Add("upper", "upper(text)", "Capital letters.", 1, 1, (s, a) => Expr.Text(a[0]).ToUpperInvariant());
             Add("lower", "lower(text)", "Small letters.", 1, 1, (s, a) => Expr.Text(a[0]).ToLowerInvariant());
             Add("left", "left(text, count)", "The first characters of text.", 2, 2, (s, a) => { string t = Expr.Text(a[0]); int n = Math.Max(0, (int)Expr.Num(a[1])); return t.Length <= n ? t : t.Substring(0, n); });
@@ -476,6 +476,7 @@ namespace AlmostFastOverlays
                 });
             Add("deltacolor", "deltacolor(seconds)", "Green when gaining, red when losing, text color when even.", 1, 1,
                 (s, a) => { double d = Expr.Num(a[0]); return Expr.Color(d > 0.005 ? "good" : d < -0.005 ? "bad" : "text", s); });
+            Add("temp", "temp(celsius)", "A temperature given in °C, in your temperature unit: temp(100) is 212 in °F.", 1, 1, (s, a) => s.Units.Temperature(Expr.Num(a[0])));
             Add("seconds", "seconds(value)", "Formats a short time such as a sector: 29.904; shows --.--- when unknown.", 1, 1,
                 (s, a) => { double v = Expr.Num(a[0]); return v <= 0 || double.IsNaN(v) ? "--.---" : v < 60 ? v.ToString("0.000", CultureInfo.InvariantCulture) : Fmt.LapTime(v); });
 

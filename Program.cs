@@ -50,6 +50,8 @@ namespace AlmostFastOverlays
             if (lightReport != null) return LightFrames.Run(lightReport);
             string recording = ParseOption(args, "--replay-ibt");
             if (recording != null) return RecordingReplay.Run(recording, ParseOption(args, recording) ?? "replay.txt");
+            string liveReport = ParseOption(args, "--live-check");
+            if (liveReport != null) return LiveCheck.Run(liveReport, int.TryParse(ParseOption(args, liveReport), out int liveSeconds) ? liveSeconds : 20);
             string uiScenario = ParseOption(args, "--ui-snapshot");
             if (uiScenario != null) return UiSnapshot(uiScenario, ParseOption(args, uiScenario) ?? "ui.png");
 
