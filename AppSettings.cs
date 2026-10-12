@@ -41,7 +41,7 @@ namespace AlmostFastOverlays
 
     internal sealed class AppSettings
     {
-        private const int CurrentSchema = 6;
+        private const int CurrentSchema = 7;
 
         public int SchemaVersion { get; set; }
         public string DefaultDashboardId { get; set; } = "dashboard-halo";
@@ -88,6 +88,7 @@ namespace AlmostFastOverlays
                 if (SchemaVersion < 4 && General.BrowLedCount == 10) General.BrowLedCount = 20;
                 if (SchemaVersion > 0 && SchemaVersion < 5) ReplaceCodeLayouts();
                 if (SchemaVersion > 0 && SchemaVersion < 6) DevicesFromFixedSettings();
+                if (SchemaVersion > 0 && SchemaVersion < 7) RenameBrowLayers();
                 SchemaVersion = CurrentSchema;
             }
             foreach (DeviceSettings device in General.Devices) device.Normalize();
@@ -206,6 +207,14 @@ namespace AlmostFastOverlays
             for (int n = 2; Dashboards.Any(d => string.Equals(d.Name, candidate, StringComparison.OrdinalIgnoreCase)); n++)
                 candidate = name + " " + n;
             return candidate;
+        }
+
+        /// <summary>Schema 7: light layers named after one device ("Brow rev lights") take the generic name ("Light bar rev lights").</summary>
+        private void RenameBrowLayers()
+        {
+            foreach (DashboardSettings dashboard in Dashboards)
+                foreach (LightLayer layer in dashboard.Lights?.Layers ?? new List<LightLayer>())
+                    if (layer.Name != null && layer.Name.StartsWith("Brow ", StringComparison.Ordinal)) layer.Name = "Light bar " + layer.Name.Substring(5);
         }
     }
 

@@ -120,7 +120,7 @@ namespace AlmostFastOverlays
             new Purpose { Id = "left", Name = "Left side", Description = "Every group set up as a left side, usually bottom to top.", Strips = d => Groups(d, LedPurposes.Left) },
             new Purpose { Id = "right", Name = "Right side", Description = "Every group set up as a right side, usually bottom to top.", Strips = d => Groups(d, LedPurposes.Right) },
             new Purpose { Id = "sides", Name = "Both sides", Description = "The left and right side groups, filled alike.", Strips = d => Groups(d, LedPurposes.Left).Concat(Groups(d, LedPurposes.Right)) },
-            new Purpose { Id = "dv5", Name = "Whole screen LEDs", Description = "Every LED on each device with shift lights, in the device's own order (on a DV-5: up the left, across, down the right).",
+            new Purpose { Id = "dv5", Name = "Every LED on shift-light devices", Description = "Every LED on each device that has shift lights, in the device's own wiring order.",
                 Strips = d => Devices(d).Where(x => x.Item2.Groups.Any(g => g.Purpose == LedPurposes.Shift)).Select(x => new Part(All(x.Item1, x.Item2), false)) },
             new Purpose { Id = "brow", Name = "Light bar", Description = "Every group set up as a light bar, left to right.", Strips = d => Groups(d, LedPurposes.Bar) },
             new Purpose { Id = "brow-mirror", Name = "Light bar, mirrored", Description = "Both halves of every light bar, each from the middle outward.", FrontAtEnd = false,

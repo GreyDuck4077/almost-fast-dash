@@ -20,6 +20,11 @@ namespace AlmostFastOverlays
         private readonly List<Ellipse[]> _stripDots = new List<Ellipse[]>();
         private readonly List<DropShadowEffect[]> _stripGlows = new List<DropShadowEffect[]>();
         private string _stripsSignature;
+        private readonly DeviceMirror _mirror = new DeviceMirror();
+        private bool _dashboardRunning;
+
+        /// <summary>Screenshots for the self-check: never touch the LED devices.</summary>
+        internal bool Offline { get; set; }
 
         // ------------------------------------------------------------------ card
 
@@ -109,7 +114,8 @@ namespace AlmostFastOverlays
                 _previewDashboard = _dashboard;
             }
             TelemetrySnapshot snapshot;
-            if (AnimateLeds.IsChecked == true) snapshot = _previewSynthetic.Next(out _, out _, out _);
+            // Animation plays the racing state; any other state is shown as it is, on the screen and the lights alike.
+            if (AnimateLeds.IsChecked == true && PreviewState.SelectedIndex <= 0) snapshot = _previewSynthetic.Next(out _, out _, out _);
             else
                 switch (PreviewState.SelectedIndex)
                 {
@@ -122,6 +128,18 @@ namespace AlmostFastOverlays
             for (int d = 0; d < _stripDots.Count && d < frame.Leds.Length; d++)
                 for (int i = 0; i < _stripDots[d].Length && i < frame.Leds[d].Length; i++)
                     if (_stripDots[d][i] != null) PaintLed(_stripDots[d][i], _stripGlows[d][i], frame.Leds[d][i], profile.Gamma);
+
+            // The real devices show the preview too, unless the dashboard (or a device test or setup) has them.
+            bool mirror = !Offline && MirrorLeds.IsChecked == true && !_dashboardRunning && !_dashboardOperationInProgress && !_deviceBusy && WindowState != WindowState.Minimized;
+            if (mirror) _mirror.Show(frame, _settings.General.Devices);
+            else ReleaseDevices();
+            MirrorNote.Text = _dashboardRunning ? "The running dashboard is driving your LED devices." : "While the dashboard is stopped. A running dashboard drives them itself.";
+        }
+
+        /// <summary>Stops showing the preview on the devices, turning them off and freeing them for the dashboard or device setup.</summary>
+        private void ReleaseDevices()
+        {
+            if (_mirror.Active) _mirror.Release();
         }
 
         private void PaintLed(Ellipse dot, DropShadowEffect glowEffect, DrawingColor color, bool gamma)

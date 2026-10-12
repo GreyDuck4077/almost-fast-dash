@@ -15,7 +15,7 @@ namespace AlmostFastOverlays
     {
         public static readonly List<LightPreset> All = new List<LightPreset>
         {
-            new LightPreset { Id = "refined", Name = "Refined", Description = "Car-accurate rev lights on the DV-5 and the bar, blind spot on the sides, a pit-limiter scanner, low-fuel and ABS cues, flags on top.", Create = d => Refined() },
+            new LightPreset { Id = "refined", Name = "Refined", Description = "Car-accurate rev lights on the shift lights and light bar, blind spot on the sides, a pit-limiter scanner, low-fuel and ABS cues, flags on top.", Create = d => Refined() },
             new LightPreset { Id = "classic", Name = "My current lights", Description = "This dashboard's existing light settings, converted to layers so you can build on them.", Create = FromClassic },
             new LightPreset { Id = "spotter", Name = "Spotter focus", Description = "For ovals: the bar and both sides call cars alongside; revs stay on the shift row.", Create = d => SpotterFocus() },
             new LightPreset { Id = "endurance", Name = "Endurance", Description = "Revs on the shift row, fuel level across the bar, lap delta on the sides.", Create = d => Endurance() },
@@ -52,17 +52,17 @@ namespace AlmostFastOverlays
             OverPitLimit(),
             PitScanner(),
             L("Blind spot", "sides", "spotter", "", "Over", 100),
-            L("Brow blind spot", "brow-mirror", "spotter", "", "Over", 100, "style", "Whole strip"),
+            L("Light bar blind spot", "brow-mirror", "spotter", "", "Over", 100, "style", "Whole strip"),
             L("Low fuel", "sides", "blink", "FuelLapsLeft >= 0 && FuelLapsLeft < 2", "Over", 70, "color", "warn", "rateMs", "400"),
             L("ABS working", "sides", "solid", "AbsActive", "Over", 45, "color", "warn"),
             L("Rev lights", "shift", "revs", "", "Over", 60),
-            L("Brow rev lights", "brow", "revs", "", "Over", 55));
+            L("Light bar rev lights", "brow", "revs", "", "Over", 55));
 
         public static LightProfile SpotterFocus() => Profile(
             Flags(),
             OverPitLimit(),
             PitScanner(),
-            L("Brow blind spot", "brow-mirror", "spotter", "", "Replace", 100, "style", "Whole strip"),
+            L("Light bar blind spot", "brow-mirror", "spotter", "", "Replace", 100, "style", "Whole strip"),
             L("Blind spot", "sides", "spotter", "", "Over", 100),
             L("Rev lights", "shift", "revs", "", "Over", 60));
 
@@ -148,26 +148,26 @@ namespace AlmostFastOverlays
             switch (brow.Function)
             {
                 case BrowFunctions.Shift:
-                    layers.Add(L("Brow rev lights", "brow", "revs", "", "Over", brow.Brightness,
+                    layers.Add(L("Light bar rev lights", "brow", "revs", "", "Over", brow.Brightness,
                         browColors.Concat(new[] { "source", "iRacing shift %", "smooth", "false", "midAt", "0.4", "highAt", "0.7", "flashColor", "#FF0000", "flashStyle", "Over fill", "flashMs", "140" }).ToArray()));
                     break;
                 case BrowFunctions.BlindSpot:
-                    layers.Add(L("Brow blind spot", "brow-mirror", "spotter", "", "Over", brow.Brightness, "color", BankColors(brow)[2], "style", "Halves"));
+                    layers.Add(L("Light bar blind spot", "brow-mirror", "spotter", "", "Over", brow.Brightness, "color", BankColors(brow)[2], "style", "Halves"));
                     break;
                 case BrowFunctions.Pedals:
-                    layers.Add(L("Brow brake", "brow-left", "meter", "", "Over", brow.Brightness, "value", "=Brake", "direction", "Start to end", "smooth", "false", "colorMode", "Bands", "low", "#FF0000", "mid", "#FF0000", "high", "#FF0000"));
-                    layers.Add(L("Brow throttle", "brow-right", "meter", "", "Over", brow.Brightness, "value", "=Throttle", "direction", "Start to end", "smooth", "false", "low", "#00FF00", "mid", "#00FF00", "high", "#00FF00"));
+                    layers.Add(L("Light bar brake", "brow-left", "meter", "", "Over", brow.Brightness, "value", "=Brake", "direction", "Start to end", "smooth", "false", "colorMode", "Bands", "low", "#FF0000", "mid", "#FF0000", "high", "#FF0000"));
+                    layers.Add(L("Light bar throttle", "brow-right", "meter", "", "Over", brow.Brightness, "value", "=Throttle", "direction", "Start to end", "smooth", "false", "low", "#00FF00", "mid", "#00FF00", "high", "#00FF00"));
                     break;
                 case BrowFunctions.Brake:
                 case BrowFunctions.Throttle:
-                    layers.Add(L(brow.Function == BrowFunctions.Brake ? "Brow brake" : "Brow throttle", "brow", "meter", "", "Over", brow.Brightness,
+                    layers.Add(L(brow.Function == BrowFunctions.Brake ? "Light bar brake" : "Light bar throttle", "brow", "meter", "", "Over", brow.Brightness,
                         browColors.Concat(new[] { "value", brow.Function == BrowFunctions.Brake ? "=Brake" : "=Throttle", "direction", "Center out", "smooth", "false", "midAt", "0.4", "highAt", "0.7" }).ToArray()));
                     break;
                 case BrowFunctions.Delta:
-                    layers.Add(L("Brow lap delta", "brow-mirror", "center", "", "Over", brow.Brightness, "positive", "#00FF00", "negative", "#FF0000", "smooth", "false"));
+                    layers.Add(L("Light bar lap delta", "brow-mirror", "center", "", "Over", brow.Brightness, "positive", "#00FF00", "negative", "#FF0000", "smooth", "false"));
                     break;
                 case BrowFunctions.Fuel:
-                    layers.Add(L("Brow fuel", "brow", "meter", "", "Over", brow.Brightness,
+                    layers.Add(L("Light bar fuel", "brow", "meter", "", "Over", brow.Brightness,
                         browColors.Concat(new[] { "value", "=FuelPct", "direction", "Start to end", "smooth", "false", "colorMode", "By level", "low", BankColors(brow)[2], "high", BankColors(brow)[0], "midAt", "0.1", "highAt", "0.25" }).ToArray()));
                     break;
             }

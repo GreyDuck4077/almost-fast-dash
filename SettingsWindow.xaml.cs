@@ -65,6 +65,7 @@ namespace AlmostFastOverlays
             NavGallery.IsChecked = true;
 
             AnimateLeds.Click += (s, e) => UpdateLedPreview();
+            MirrorLeds.Click += (s, e) => { if (MirrorLeds.IsChecked != true) ReleaseDevices(); UpdateLedPreview(); };
             _statusTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
             _statusTimer.Tick += (s, e) => { if (!_dashboardOperationInProgress) RefreshDashboardStatus(); };
             _statusTimer.Start();
@@ -73,7 +74,7 @@ namespace AlmostFastOverlays
             Version version = Assembly.GetExecutingAssembly().GetName().Version;
             VersionText.Text = $"Version {version.Major}.{version.Minor} · Changes save automatically";
             SettingsPathText.Text = SettingsStore.FilePath;
-            Closing += (s, e) => { FlushSave(); _ledTimer.Stop(); _statusTimer.Stop(); };
+            Closing += (s, e) => { FlushSave(); _ledTimer.Stop(); _statusTimer.Stop(); _mirror.Dispose(); };
         }
 
         // ------------------------------------------------------------------
@@ -173,7 +174,7 @@ namespace AlmostFastOverlays
             AnimatePageIn(page);
             if (page == GalleryPage) BuildGalleryCards();
             if (page == SettingsPage) BuildDeviceList();
-            if (page == EditorPage) _ledTimer.Start(); else _ledTimer.Stop();
+            if (page == EditorPage) _ledTimer.Start(); else { _ledTimer.Stop(); ReleaseDevices(); }
             page.ScrollToTop();
         }
 
@@ -786,6 +787,7 @@ namespace AlmostFastOverlays
                 await WaitForDashboardState(false, 10000);
             }
             SetStatus(wasRunning ? "Restarting…" : "Starting…", "Brush.Warning");
+            ReleaseDevices();
             Launch("--run");
             bool running = await WaitForDashboardState(true, 10000);
             _dashboardOperationInProgress = false;
@@ -841,7 +843,8 @@ namespace AlmostFastOverlays
 
         private void RefreshDashboardStatus()
         {
-            if (!IsDashboardRunning())
+            _dashboardRunning = IsDashboardRunning();
+            if (!_dashboardRunning)
             {
                 SetStopped("Stopped");
                 return;
@@ -865,7 +868,7 @@ namespace AlmostFastOverlays
         private void SetStopped(string text)
         {
             SetStatus(text, "Brush.TextTertiary");
-            SetRunButton(StartButton, StartIcon, true, "Start the dashboard on the DV-5");
+            SetRunButton(StartButton, StartIcon, true, "Start the dashboard on your wheel");
             StopButton.IsEnabled = false;
             ActiveText.Text = " · " + _settings.GetDefaultDashboard().Name;
             StatusPill.ToolTip = "Starts with " + _settings.GetDefaultDashboard().Name + ", the default dashboard";

@@ -85,7 +85,7 @@ namespace AlmostFastOverlays
             Inspector.Children.Add(Tip("", "Theme first", "Pick a preset under Theme. Widgets that use theme colors ($accent, $panel...) restyle together."));
             Inspector.Children.Add(Tip("", "Make it live", "Click ƒx next to any property to drive it with a formula, such as a color that turns red when fuel is low."));
             Inspector.Children.Add(Tip("", "Show when", "Every widget has a Show when condition, so one screen can change with the session."));
-            Inspector.Children.Add(Tip("", "Test it", "Use Preview › Animated lap, Live iRacing or a flag state, and turn on Live on DV-5 to see it on the wheel."));
+            Inspector.Children.Add(Tip("", "Test it", "Use Preview › Animated lap, Live iRacing or a flag state, Saved changes reach a running dashboard on the wheel within a second."));
 
             Inspector.Children.Add(SectionTitle("Shortcuts"));
             Inspector.Children.Add(Caption("Arrows nudge 1 px, Shift+arrows 10 px · Ctrl+D duplicate · Ctrl+C / Ctrl+V copy and paste · Del delete · [ and ] change order · Ctrl+Z / Ctrl+Y undo and redo · Ctrl+wheel zoom · Shift while resizing keeps proportions · Alt turns off snapping. Changes save as you go."));

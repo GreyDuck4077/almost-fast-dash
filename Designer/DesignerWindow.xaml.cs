@@ -21,7 +21,7 @@ namespace AlmostFastOverlays
     /// <summary>
     /// The dashboard designer: a canvas for placing and styling widgets, with a
     /// toolbox, layers, theme and an inspector. It edits a working copy of the
-    /// design and writes it back on Save (or continuously with "Live on DV-5").
+    /// design and writes it back on Save .
     /// </summary>
     public partial class DesignerWindow : Window
     {

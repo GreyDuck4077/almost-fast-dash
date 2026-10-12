@@ -483,7 +483,15 @@ namespace AlmostFastOverlays
             opening?.ContinueWith(t => { if (t.Status == System.Threading.Tasks.TaskStatus.RanToCompletion) t.Result.Dispose(); });
         }
 
-        public void Dispose() => Close();
+        /// <summary>Closes the device, waiting for a connection still being opened so the port is free on return.</summary>
+        public void Dispose()
+        {
+            System.Threading.Tasks.Task<ILedOutput> opening = _opening;
+            _opening = null;
+            Close();
+            if (opening == null) return;
+            try { if (opening.Wait(3000)) opening.Result.Dispose(); } catch { }
+        }
     }
 
     /// <summary>

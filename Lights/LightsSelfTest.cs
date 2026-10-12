@@ -213,7 +213,13 @@ namespace AlmostFastOverlays
             old.EnsureBuiltInDashboards();
             DeviceSettings dv5 = old.General.Devices.FirstOrDefault(), lb10 = old.General.Devices.Skip(1).FirstOrDefault();
             Check("old DV-5 and LB-10 settings become set-up devices", old.General.Devices.Count == 2 && dv5.Port == "COM4" && dv5.UsbId == DevicePorts.Dv5 && dv5.Groups.Count == 3 && dv5.FastUpdates
-                && lb10.Port == "COM3" && lb10.LedCount == 20 && !lb10.Enabled && lb10.Groups.Single().To == 20 && old.General.LedPort == null && old.SchemaVersion == 6);
+                && lb10.Port == "COM3" && lb10.LedCount == 20 && !lb10.Enabled && lb10.Groups.Single().To == 20 && old.General.LedPort == null && old.SchemaVersion == 7);
+            var named = new AppSettings { SchemaVersion = 6 };
+            named.Dashboards.Add(DashboardSettings.CreateHalo());
+            named.Dashboards[0].Lights.Layers.Add(new LightLayer { Name = "Brow rev lights", Target = "brow", Effect = "revs" });
+            named.EnsureBuiltInDashboards();
+            Check("light layers aren't named after one device", named.Dashboards.SelectMany(d => d.Lights?.Layers ?? new List<LightLayer>()).All(l => !l.Name.StartsWith("Brow"))
+                && LightPresets.Refined().Layers.Any(l => l.Name == "Light bar rev lights"));
             var fresh = new AppSettings();
             fresh.EnsureBuiltInDashboards();
             Check("a new install starts with no devices, for setup", fresh.General.Devices.Count == 0);

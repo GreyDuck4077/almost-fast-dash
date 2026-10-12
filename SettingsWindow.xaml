@@ -66,7 +66,7 @@
                 <RowDefinition/>
             </Grid.RowDefinitions>
 
-            <!-- Header: whether the dashboard is running on the DV-5, and start, restart or stop. -->
+            <!-- Header: whether the dashboard is running on the wheel screen, and start, restart or stop. -->
             <Border BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,0,0,1">
                 <Grid Margin="32,0,24,0">
                     <Grid.ColumnDefinitions>
@@ -85,7 +85,7 @@
                                 </TextBlock>
                             </StackPanel>
                             <Button x:Name="StopButton" Style="{StaticResource Btn.RunIcon}" Content="&#xE71A;" Click="StopDashboard_Click" Margin="8,0,0,0"
-                                    ToolTip="Stop the dashboard and blank the DV-5 screen"/>
+                                    ToolTip="Stop the dashboard and blank the wheel screen"/>
                             <Button x:Name="StartButton" Style="{StaticResource Btn.RunIcon}" Click="StartDashboard_Click" Margin="4,0,0,0">
                                 <TextBlock x:Name="StartIcon" Style="{StaticResource T.Icon}" Text="&#xE768;" FontSize="12"/>
                             </Button>
@@ -109,7 +109,7 @@
                         <StackPanel>
                             <TextBlock Text="Dashboards" Style="{StaticResource T.PageTitle}"/>
                             <TextBlock Style="{StaticResource T.Secondary}" Margin="0,6,0,0" MaxWidth="640" HorizontalAlignment="Left"
-                                       Text="Choose what your DV-5 shows. The default dashboard is used unless another one is assigned to the session's track type."/>
+                                       Text="Choose what your wheel screen shows. The default dashboard is used unless another one is assigned to the session's track type."/>
                         </StackPanel>
                         <Button x:Name="NewDashboardButton" Grid.Column="1" VerticalAlignment="Top" Click="NewDashboard_Click">
                             <StackPanel Orientation="Horizontal">
@@ -173,8 +173,12 @@
                             <StackPanel Grid.Column="1" Margin="28,4,0,0">
                                 <TextBlock Text="LIVE PREVIEW" Style="{StaticResource T.Overline}"/>
                                 <TextBlock Style="{StaticResource T.Secondary}" Margin="0,8,0,20"
-                                           Text="The screen and your LED devices play through an RPM sweep, blind-spot calls and pedal inputs. Pick a flag to see how it takes over. Changes apply to a running dashboard within a second."/>
-                                <CheckBox x:Name="AnimateLeds" Style="{StaticResource Switch}" Content="Animate lights" IsChecked="True" Margin="0,0,0,18"/>
+                                           Text="The screen and lights play through an RPM sweep, blind-spot calls and pedal inputs. Pick a state to see just that, such as the shift point or a flag. Changes apply to a running dashboard within a second."/>
+                                <CheckBox x:Name="AnimateLeds" Style="{StaticResource Switch}" Content="Animate the racing state" IsChecked="True" Margin="0,0,0,12"/>
+                                <CheckBox x:Name="MirrorLeds" Style="{StaticResource Switch}" Content="Show on my LED devices" IsChecked="True" Margin="0,0,0,4"
+                                          ToolTip="Lights your LED devices with this preview while the dashboard is stopped"/>
+                                <TextBlock x:Name="MirrorNote" Style="{StaticResource T.Caption}" TextWrapping="Wrap" Margin="0,0,0,18"
+                                           Text="While the dashboard is stopped. A running dashboard drives them itself."/>
                                 <TextBlock Text="Screen state" Style="{StaticResource T.Label}" Margin="0,0,0,8"/>
                                 <ComboBox x:Name="PreviewState" MinWidth="0" HorizontalAlignment="Stretch" SelectionChanged="PreviewState_SelectionChanged"/>
                             </StackPanel>
@@ -390,7 +394,7 @@
                     <Border Style="{StaticResource Card}">
                         <StackPanel>
                             <TextBlock Text="Wheel screen" Style="{StaticResource T.Title}"/>
-                            <TextBlock Text="The SSG DV-5's screen. It can be driven by only one program at a time, so close other dashboard software while this runs." Style="{StaticResource T.Caption}" Margin="0,4,0,18"/>
+                            <TextBlock Text="The screen on your wheel. It can be driven by only one program at a time, so close other dashboard software while this runs." Style="{StaticResource T.Caption}" Margin="0,4,0,18"/>
                             <Grid Style="{StaticResource Row}">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">

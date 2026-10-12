@@ -21,7 +21,11 @@ namespace AlmostFastOverlays
         /// <summary>Opens a page for the --ui-snapshot self-check.</summary>
         internal void PrepareSnapshot(string scenario)
         {
-            if (scenario.Contains("editor")) ShowEditor(_settings.GetDefaultDashboard());
+            if (scenario.Contains("editor"))
+            {
+                ShowEditor(_settings.GetDefaultDashboard());
+                if (scenario.Contains("shift")) PreviewState.SelectedIndex = 1;
+            }
             else if (scenario.Contains("devices"))
             {
                 NavSettings.IsChecked = true;

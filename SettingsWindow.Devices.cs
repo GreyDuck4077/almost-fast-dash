@@ -94,6 +94,7 @@ namespace AlmostFastOverlays
         private async void OpenDeviceSetup(DeviceSettings existing)
         {
             FlushSave();
+            ReleaseDevices();
             var wizard = new DeviceSetupWindow(_settings, existing, IsDashboardRunning, StopDashboardAsync) { Owner = this };
             bool done = wizard.ShowDialog() == true;
             if (done && wizard.Result != null)
@@ -128,6 +129,7 @@ namespace AlmostFastOverlays
                 return;
             }
             _deviceBusy = true;
+            ReleaseDevices();
             button.IsEnabled = false;
             ShowDevicesStatus("Testing " + device.Name + ": each group lights in turn, in the direction it fills.");
             DeviceSettings copy = SettingsStore.Clone(device);
