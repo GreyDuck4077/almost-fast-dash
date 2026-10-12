@@ -138,12 +138,14 @@ namespace AlmostFastOverlays
         {
             public string Name, Match, UsbId;
             public int LedCount;
+            /// <summary>Known to take a whole frame in one message, so setup turns Fast updates on.</summary>
+            public bool FastUpdates;
             public Func<int, List<LedGroup>> Groups;
         }
 
         public static readonly Profile Dv5 = new Profile
         {
-            Name = "DV-5", Match = "SSG DV 5", UsbId = DevicePorts.Dv5, LedCount = 16,
+            Name = "DV-5", Match = "SSG DV 5", UsbId = DevicePorts.Dv5, LedCount = 16, FastUpdates = true,
             // The DV-5's chain runs up the left side, across the top, then down the right.
             Groups = n => new List<LedGroup>
             {

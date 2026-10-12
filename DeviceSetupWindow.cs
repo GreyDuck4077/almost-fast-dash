@@ -347,7 +347,11 @@ namespace AlmostFastOverlays
             _profile = KnownDevices.Find(found.UsbId, found.DetectedName);
             _expectedCount = _profile?.LedCount ?? (found.Kind == LedDeviceKinds.Wled ? found.LedCount : 0);
             _groups = null;
-            if (_profile != null) _device.Name = _profile.Name;
+            if (_profile != null)
+            {
+                _device.Name = _profile.Name;
+                _device.FastUpdates = _profile.FastUpdates;
+            }
             _next.IsEnabled = true;
             RenderFound();
         }

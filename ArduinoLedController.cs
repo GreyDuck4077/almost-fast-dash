@@ -87,17 +87,21 @@ namespace AlmostFastOverlays
         public void Clear()
         {
             if (_lastLength > 0) SetRange(0, _lastLength, 0, 0, 0);
+            _shown = null;
         }
 
-        /// <summary>
-        /// Sends a composed 16-LED frame, grouping neighbouring LEDs that share a
-        /// color into one packet to keep serial traffic low.
-        /// </summary>
         /// <summary>
         /// Send a whole frame as one packet: several colour runs before the terminating
         /// mode 0. Far fewer packets and pauses than one packet per run.
         /// </summary>
         public bool Batched { get; set; }
+
+        // One packet per colour run costs a pause each, so a frame of many colours (a gradient) can take
+        // a fifth of a second and the LEDs visibly update one after another. Without batching, only the
+        // LEDs that changed are sent, with the whole frame resent every second in case a packet was lost.
+        private const int FullFrameMilliseconds = 1000;
+        private Color[] _shown;
+        private int _fullFrameTick;
 
         /// <remarks>
         /// Only the LEDs in the frame are sent, up to the board's count: writing past a board's
@@ -113,16 +117,33 @@ namespace AlmostFastOverlays
                 foreach (byte[] payload in BatchedPayloads(frame, count)) SendPacket(payload);
                 return;
             }
+            bool full = _shown == null || _shown.Length != count || unchecked(Environment.TickCount - _fullFrameTick) >= FullFrameMilliseconds;
+            if (full) _fullFrameTick = Environment.TickCount;
+            foreach (Tuple<int, int, Color> run in Runs(frame, full ? null : _shown, count))
+                SetRange(run.Item1, run.Item2, run.Item3.R, run.Item3.G, run.Item3.B);
+            if (_shown == null || _shown.Length != count) _shown = new Color[count];
+            Array.Copy(frame, _shown, count);
+        }
+
+        /// <summary>
+        /// The colour runs (start, count, colour) to send for a frame: every LED, or with <paramref name="shown"> only
+        /// the LEDs that differ from it. Neighbouring LEDs of one colour share a run.
+        /// </summary>
+        internal static System.Collections.Generic.List<Tuple<int, int, Color>> Runs(Color[] frame, Color[] shown, int count)
+        {
+            var runs = new System.Collections.Generic.List<Tuple<int, int, Color>>();
             int index = 0;
             while (index < count)
             {
                 Color color = frame[index];
+                if (shown != null && shown[index].ToArgb() == color.ToArgb()) { index++; continue; }
                 int run = 1;
-                while (index + run < count &&
-                       frame[index + run].ToArgb() == color.ToArgb()) run++;
-                SetRange(index, run, color.R, color.G, color.B);
+                while (index + run < count && frame[index + run].ToArgb() == color.ToArgb() &&
+                       (shown == null || shown[index + run].ToArgb() != color.ToArgb())) run++;
+                runs.Add(Tuple.Create(index, run, color));
                 index += run;
             }
+            return runs;
         }
 
         /// <summary>

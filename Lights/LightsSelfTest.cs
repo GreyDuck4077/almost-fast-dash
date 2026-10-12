@@ -136,6 +136,16 @@ namespace AlmostFastOverlays
                 && halves.Strips[1].Select(l => l.Index).OrderBy(i => i).SequenceEqual(Enumerable.Range(10, 10)) && halves.RightStrips.SequenceEqual(new[] { false, true })
                 && carLeftBar.Take(10).All(c => c.R > 0) && carLeftBar.Skip(10).All(c => (c.R | c.G | c.B) == 0));
 
+            // ---------------- without fast updates, only changed LEDs are sent
+            Color[] gradient = Enumerable.Range(0, 20).Select(i => Color.FromArgb(i * 10, 200 - i * 10, 0)).ToArray();
+            Color[] nextGradient = (Color[])gradient.Clone();
+            nextGradient[9] = Color.Red;
+            nextGradient[10] = Color.Red;
+            var fullRuns = ArduinoLedController.Runs(gradient, null, 20);
+            var changedRuns = ArduinoLedController.Runs(nextGradient, gradient, 20);
+            Check("a frame of many colours sends only what changed", fullRuns.Count == 20 && changedRuns.Count == 1 && changedRuns[0].Item1 == 9 && changedRuns[0].Item2 == 2,
+                fullRuns.Count + " runs for the first frame, " + changedRuns.Count + " for the next");
+
             // ---------------- power limit
             Color[] allWhite = Enumerable.Repeat(Color.White, 16).ToArray();
             Color[] limited = LedPower.Limit(allWhite, LedPower.DefaultMilliamps);
