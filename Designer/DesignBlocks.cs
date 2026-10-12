@@ -196,7 +196,7 @@ namespace AlmostFastOverlays
             yield return new DesignBlock
             {
                 Folder = "Rev gauges", Name = "LED strip", Icon = "", Description = "Glowing on-screen shift lights that fill from the edges and flash at the shift point.",
-                Create = () => new List<DashWidget> { W("shiftlights", "LED strip", 0, 0, 520, 26, "count", "15", "shape", "Pill", "pattern", "Edges to center", "glow", "12") }
+                Create = () => new List<DashWidget> { W("shiftlights", "LED strip", 0, 0, 520, 26, "count", "15", "shape", "Pill", "fill", "Edges to center", "glow", "12") }
             };
             yield return new DesignBlock
             {

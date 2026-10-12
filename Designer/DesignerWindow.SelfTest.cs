@@ -192,7 +192,33 @@ namespace AlmostFastOverlays
             Check("flipped bar fills from the other side",
                 Sample(FillBar(false), 110, 120).R > 200 && Sample(FillBar(false), 490, 120).R < 50 && Sample(FillBar(true), 490, 120).R > 200 && Sample(FillBar(true), 110, 120).R < 50);
             Check("rotated bar turns about its middle", Sample(FillBar(false, "-90"), 300, 290).R > 200 && Sample(FillBar(false, "-90"), 110, 120).R < 50);
-            DashWidget turnedPanel = WidgetCatalog.Create("panel", 300, 150);
+            // ---------------- fill directions
+            foreach (string mode in new[] { "Fill", "Segments" })
+            {
+                DashWidget Directed(string order)
+                {
+                    DashWidget w = FillBar(false);
+                    w.Set("fill", order);
+                    w.Set("mode", mode);
+                    w.Set("value", "0.4");
+                    w.Set("bend", "1");
+                    return w;
+                }
+                // The bar runs 100..500 across; at 40% each direction lights a different part of it.
+                bool Lit(string order, int x) => Sample(Directed(order), x, 120).R > 200;
+                Check("fill directions light the right parts (" + mode + ")",
+                    Lit(FillOrder.StartToEnd, 110) && !Lit(FillOrder.StartToEnd, 490) &&
+                    Lit(FillOrder.EndToStart, 490) && !Lit(FillOrder.EndToStart, 110) &&
+                    Lit(FillOrder.EdgesToCenter, 110) && Lit(FillOrder.EdgesToCenter, 490) && !Lit(FillOrder.EdgesToCenter, 295) &&
+                    Lit(FillOrder.CenterOut, 295) && !Lit(FillOrder.CenterOut, 110) && !Lit(FillOrder.CenterOut, 490));
+            }
+            var oldBar = new DashWidget { Type = "bar", Props = { ["reverse"] = "true" } };
+            var oldLights = new DashWidget { Type = "shiftlights", Props = { ["pattern"] = "Center out" } };
+            oldBar.Normalize();
+            oldLights.Normalize();
+            Check("older fill settings carry over", oldBar.Get("fill") == FillOrder.EndToStart && !oldBar.Props.ContainsKey("reverse") && oldLights.Get("fill") == FillOrder.CenterOut);
+
+            DashWidget turnedPanel =WidgetCatalog.Create("panel", 300, 150);
             turnedPanel.Set("rotate", "30");
             turnedPanel.Set("opacity", "60");
             Check("rotated widget is cached without clipping", Sample(turnedPanel, 330, 140).ToArgb() == Sample(SettingsStore.Clone(turnedPanel), 330, 140, false).ToArgb());

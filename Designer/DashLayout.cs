@@ -155,6 +155,20 @@ namespace AlmostFastOverlays
             if (string.IsNullOrWhiteSpace(Id)) Id = DashScreen.NewId("w");
             if (Props == null) Props = new Dictionary<string, string>();
             if (string.IsNullOrWhiteSpace(Type)) Type = "text";
+            // Older designs: bars had a "fill from the other end" switch and shift lights their own
+            // pattern names; both are now the shared fill direction.
+            if (Props.TryGetValue("reverse", out string reverse))
+            {
+                Props.Remove("reverse");
+                if (!Props.ContainsKey("fill") && reverse != null)
+                    Props["fill"] = reverse.StartsWith("=") ? "=(" + reverse.Substring(1) + ") ? \"" + FillOrder.EndToStart + "\" : \"" + FillOrder.StartToEnd + "\""
+                        : Expr.Bool(reverse) ? FillOrder.EndToStart : FillOrder.StartToEnd;
+            }
+            if (Props.TryGetValue("pattern", out string pattern) && Type == "shiftlights")
+            {
+                Props.Remove("pattern");
+                if (!Props.ContainsKey("fill") && pattern != null) Props["fill"] = pattern.StartsWith("=") ? pattern : FillOrder.Normalize(pattern);
+            }
             W = Math.Max(2, W);
             H = Math.Max(2, H);
         }

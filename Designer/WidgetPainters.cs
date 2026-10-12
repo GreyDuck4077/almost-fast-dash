@@ -253,10 +253,11 @@ namespace AlmostFastOverlays
         {
             Graphics g = c.G;
             RectangleF b = c.B;
-            bool vertical = c.Choice("orientation") == "Vertical", reverse = c.Bool("reverse");
+            string order = FillOrder.Normalize(c.Choice("fill"));
+            bool vertical = c.Choice("orientation") == "Vertical", reverse = order == FillOrder.EndToStart;
             var warp = new BarWarp(b, vertical, c.Num("bend") / 100, c.Num("peak") / 100, c.Num("taper") / 100, c.Num("bulge") / 100,
                 c.Num("skew"), c.Num("thickness") / 100, c.Choice("grow"));
-            if (!warp.IsStraight || c.Choice("colorMode") != "Solid" || !string.IsNullOrWhiteSpace(c.Raw("flash")))
+            if (!warp.IsStraight || c.Choice("colorMode") != "Solid" || !string.IsNullOrWhiteSpace(c.Raw("flash")) || FillOrder.Symmetric(order))
             {
                 ShapedBar(c, warp);
                 return;
@@ -364,7 +365,8 @@ namespace AlmostFastOverlays
             Graphics g = c.G;
             float length = warp.Length, thick = warp.Thickness;
             var flat = new RectangleF(0, 0, length, thick);
-            bool reverse = c.Bool("reverse");
+            string order = FillOrder.Normalize(c.Choice("fill"));
+            bool reverse = order == FillOrder.EndToStart;
             string mode = c.Choice("mode"), colorMode = c.Choice("colorMode");
             double value = c.Num("value");
             float radius = (float)c.Num("radius");
@@ -401,13 +403,14 @@ namespace AlmostFastOverlays
             if (mode == "Segments")
             {
                 int n = Math.Max(2, (int)c.Num("segments"));
-                int lit = (int)Math.Round(Fraction(c, value) * n);
+                int steps = FillOrder.Steps(order, n);
+                int lit = (int)Math.Round(Fraction(c, value) * steps);
                 float gap = 3, len = (length - gap * (n - 1)) / n;
                 for (int i = 0; i < n; i++)
                 {
-                    int slot = reverse ? n - 1 - i : i;
-                    bool on = flash || i < lit;
-                    Draw(new RectangleF(slot * (len + gap), 0, len, thick), on ? (flash ? flashColor : ToneAt((i + 0.5) / n)) : track, on);
+                    int rank = FillOrder.Rank(order, i, n);
+                    bool on = flash || rank < lit;
+                    Draw(new RectangleF(i * (len + gap), 0, len, thick), on ? (flash ? flashColor : ToneAt((rank + 0.5) / steps)) : track, on);
                 }
             }
             else if (mode == "Center")
@@ -424,37 +427,45 @@ namespace AlmostFastOverlays
             {
                 Draw(flat, track, false);
                 double f = flash ? 1 : Fraction(c, value);
-                // A sliver is drawn at least as long as the bar is thick so rounded ends stay round.
-                float len = (float)(f * length);
-                if (len > 0 && len < Math.Min(length, thick)) len = Math.Min(length, thick);
-                var fill = reverse ? new RectangleF(length - len, 0, len, thick) : new RectangleF(0, 0, len, thick);
                 if (f > 0)
                 {
-                    if (flash) Draw(fill, flashColor, true);
-                    else if (colorMode == "Gradient")
+                    // Each lit stretch grows from its own origin; filling from both ends gives two, each half as long.
+                    float reach = FillOrder.Symmetric(order) ? 0.5f : 1f;
+                    foreach ((float from, float to) in FillOrder.Spans(order, f))
                     {
-                        // The blend runs the full length of the bar, so the fill shows how far into the red it is.
-                        PointF from = warp.Map(reverse ? length : 0, thick / 2), to = warp.Map(reverse ? 0 : length, thick / 2);
-                        if (Math.Abs(from.X - to.X) + Math.Abs(from.Y - to.Y) < 1) Draw(fill, ToneAt(f), true);
-                        else
+                        float dir = to >= from ? 1 : -1;
+                        // A sliver is drawn at least as long as the bar is thick so rounded ends stay round.
+                        float len = Math.Abs(to - from) * length;
+                        if (len < Math.Min(length * reach, thick)) len = Math.Min(length * reach, thick);
+                        float start = from * length, end = start + dir * len;
+                        var fill = new RectangleF(Math.Min(start, end), 0, len, thick);
+                        if (flash) Draw(fill, flashColor, true);
+                        else if (colorMode == "Gradient")
                         {
-                            float w = (float)Math.Max(0.01, Math.Min(0.98, warnAt)), d = (float)Math.Max(w + 0.01, Math.Min(0.99, dangerAt));
-                            using (var brush = new LinearGradientBrush(from, to, color, danger)
+                            // The blend runs the full reach of the stretch, so the fill shows how far into the red it is.
+                            PointF a = warp.Map(start, thick / 2), z = warp.Map(start + dir * reach * length, thick / 2);
+                            if (Math.Abs(a.X - z.X) + Math.Abs(a.Y - z.Y) < 1) Draw(fill, ToneAt(f), true);
+                            else
                             {
-                                InterpolationColors = new ColorBlend { Positions = new[] { 0f, w, d, 1f }, Colors = new[] { color, warn, danger, danger } },
-                                WrapMode = WrapMode.TileFlipX
-                            })
-                                Draw(fill, ToneAt(f), true, brush);
+                                float w = (float)Math.Max(0.01, Math.Min(0.98, warnAt)), d = (float)Math.Max(w + 0.01, Math.Min(0.99, dangerAt));
+                                using (var brush = new LinearGradientBrush(a, z, color, danger)
+                                {
+                                    InterpolationColors = new ColorBlend { Positions = new[] { 0f, w, d, 1f }, Colors = new[] { color, warn, danger, danger } },
+                                    WrapMode = WrapMode.TileFlipX
+                                })
+                                    Draw(fill, ToneAt(f), true, brush);
+                            }
                         }
+                        else Draw(fill, ToneAt(f), true);
                     }
-                    else Draw(fill, ToneAt(f), true);
                 }
             }
 
             if (!string.IsNullOrWhiteSpace(c.Raw("marker")))
             {
                 double m = Fraction(c, c.Num("marker"));
-                if (m > 0) Line(reverse ? length - (float)(m * length) : (float)(m * length), 5, c.Color("markerColor"));
+                if (m > 0)
+                    foreach (float at in FillOrder.Marks(order, m)) Line(at * length, 5, c.Color("markerColor"));
             }
         }
 
@@ -622,19 +633,17 @@ namespace AlmostFastOverlays
             int n = Math.Max(2, (int)c.Num("count"));
             double f = Math.Max(0, Math.Min(1, c.Num("value")));
             bool flash = c.Bool("flash");
-            string pattern = c.Choice("pattern"), shape = c.Choice("shape");
+            string order = FillOrder.Normalize(c.Choice("fill")), shape = c.Choice("shape");
             Color low = c.Color("lowColor"), mid = c.Color("midColor"), high = c.Color("highColor"), off = c.Color("offColor"), flashColor = c.Color("flashColor");
             float glow = (float)c.Num("glow");
             float cell = b.Width / n, gap = Math.Min(cell * 0.25f, 8);
 
             // Rank: the order a light comes on in (0 first). Steps: how many distinct ranks there are.
-            int steps = pattern == "Left to right" ? n : (n + 1) / 2;
+            int steps = FillOrder.Steps(order, n);
             int litSteps = (int)Math.Round(f * steps);
             for (int i = 0; i < n; i++)
             {
-                int rank = pattern == "Left to right" ? i
-                    : pattern == "Edges to center" ? Math.Min(i, n - 1 - i)
-                    : (int)Math.Floor(Math.Abs(i - (n - 1) / 2.0));
+                int rank = FillOrder.Rank(order, i, n);
                 bool on = flash || rank < litSteps;
                 double at = (rank + 0.5) / steps;
                 Color color = flash ? flashColor : at >= 0.8 ? high : at >= 0.5 ? mid : low;

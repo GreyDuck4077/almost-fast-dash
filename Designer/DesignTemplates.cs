@@ -163,7 +163,7 @@ namespace AlmostFastOverlays
         private static void DeltaBadge(Builder b, double wing)
         {
             const string tone = "Delta > 0.005 ? $good : Delta < -0.005 ? $bad : $accent";
-            b.Add("bar", "Delta losing", 342 - wing, 429, wing, 4, "value", "=Delta < 0 ? -Delta : 0", "reverse", "true", "color", "bad", "glow", "6");
+            b.Add("bar", "Delta losing", 342 - wing, 429, wing, 4, "value", "=Delta < 0 ? -Delta : 0", "fill", "End to start", "color", "bad", "glow", "6");
             b.Add("bar", "Delta gaining", 512, 429, wing, 4, "value", "=Delta > 0 ? Delta : 0", "color", "good", "glow", "6");
             b.Panel("Delta badge", 342, 398, 170, 66, "corners", "Cut diagonal", "radius", "14", "glow", "12", "glowColor", "=alpha(" + tone + ", 0.45)");
             b.Text("Delta label", 342, 404, 170, 12, "DELTA", "size", "10", "tracking", "3", "weight", "Regular", "color", "text", "shadow", "true");

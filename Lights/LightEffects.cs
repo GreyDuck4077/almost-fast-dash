@@ -66,7 +66,7 @@ namespace AlmostFastOverlays
     internal static class LightEffects
     {
         public static readonly List<LightEffect> All = new List<LightEffect>();
-        public static readonly string[] Directions = { "Start to end", "End to start", "Edges to center", "Center out" };
+        public static readonly string[] Directions = FillOrder.All;
 
         static LightEffects()
         {
@@ -350,8 +350,8 @@ namespace AlmostFastOverlays
             int n = c.Length;
             if (n == 0) return result;
             fraction = double.IsNaN(fraction) ? 0 : Math.Max(0, Math.Min(1, fraction));
-            string direction = c.Text("direction");
-            int steps = direction == "Edges to center" || direction == "Center out" ? (n + 1) / 2 : n;
+            string direction = FillOrder.Normalize(c.Text("direction"));
+            int steps = FillOrder.Steps(direction, n);
             double lit = fraction * steps;
             string mode = c.Text("colorMode");
             bool smooth = c.Bool("smooth"), gradient = mode == "Gradient", byLevel = mode == "By level";
@@ -361,14 +361,7 @@ namespace AlmostFastOverlays
             Color levelColor = fraction >= highAt ? high : fraction >= midAt ? mid : low;
             for (int i = 0; i < n; i++)
             {
-                int rank;
-                switch (direction)
-                {
-                    case "End to start": rank = n - 1 - i; break;
-                    case "Edges to center": rank = Math.Min(i, n - 1 - i); break;
-                    case "Center out": rank = (int)Math.Floor(Math.Abs(i - (n - 1) / 2.0)); break;
-                    default: rank = i; break;
-                }
+                int rank = FillOrder.Rank(direction, i, n);
                 double at = (rank + 0.5) / steps;
                 Color color = byLevel ? levelColor : gradient
                     ? (at < midAt ? Functions.Mix(low, mid, at / Math.Max(0.001, midAt)) : Functions.Mix(mid, high, (at - midAt) / Math.Max(0.001, 1 - midAt)))
