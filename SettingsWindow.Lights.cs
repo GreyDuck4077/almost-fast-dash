@@ -83,19 +83,19 @@ namespace AlmostFastOverlays
                 _stripGlows.Add(glows);
                 if (!device.Enabled) continue;
                 LedStripsHost.Children.Add(new TextBlock { Text = device.Name.ToUpperInvariant(), Style = (Style)FindResource("T.Overline"), Margin = new Thickness(0, 6, 0, 6) });
-                double size = device.LedCount <= 24 ? 12 : device.LedCount <= 48 ? 9 : 6;
-                var row = new WrapPanel { Margin = new Thickness(0, 0, 0, 8) };
+                double size = LedDrawing.FitSize(device, 480, 12);
                 for (int i = 0; i < device.LedCount; i++)
                 {
                     glows[i] = new DropShadowEffect { ShadowDepth = 0, BlurRadius = 12, Opacity = 0 };
                     dots[i] = new Ellipse
                     {
-                        Width = size, Height = size, Margin = new Thickness(0, 0, size * 0.5, 4), Fill = (Brush)FindResource("Brush.LedOff"),
+                        Width = size, Height = size, Fill = (Brush)FindResource("Brush.LedOff"),
                         Stroke = new SolidColorBrush(Color.FromArgb(40, 255, 255, 255)), StrokeThickness = 1, Effect = glows[i], ToolTip = "LED " + (i + 1)
                     };
-                    row.Children.Add(dots[i]);
                 }
-                LedStripsHost.Children.Add(row);
+                FrameworkElement drawing = LedDrawing.Arrange(device, dots, size);
+                drawing.HorizontalAlignment = HorizontalAlignment.Left;
+                LedStripsHost.Children.Add(new Border { Margin = new Thickness(0, 0, 0, 8), Child = drawing });
             }
             _previewLights = null;
         }

@@ -5,22 +5,26 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Shapes;
 using System.Windows.Threading;
 using DrawingColor = System.Drawing.Color;
 
 namespace AlmostFastOverlays
 {
     /// <summary>
-    /// Sets up an LED device step by step: find it, name it, count its LEDs, then split
-    /// them into groups. The device lights up along the way so every answer can be
-    /// checked against the real thing. Opens at the naming step for a device that is
-    /// already set up.
+    /// Sets up an LED device step by step: find it, name it, describe its shape (LEDs around a
+    /// screen, light bars, a strip), then show the app where each LED is. The device lights one
+    /// LED at a time and the user clicks where it is on the drawing; two neighbours are enough
+    /// for the app to follow an ordinary chain. Nothing is filled in from known devices: every
+    /// device is described from scratch, so the lights never depend on assumptions about wiring.
+    /// Opens at the naming step for a device that is already set up.
     /// </summary>
     internal sealed class DeviceSetupWindow : Window
     {
-        private enum Step { Find, Name, Count, Map, Done }
+        private enum Step { Find, Name, Shape, Map, Done }
 
         private readonly AppSettings _settings;
         private readonly DeviceSettings _existing;
@@ -32,11 +36,9 @@ namespace AlmostFastOverlays
         private readonly Button _next = new Button { Content = "Continue", MinWidth = 120 };
         private Step _step;
 
-        // The device being set up. LedCount and Groups are only final at the end.
+        // The device being set up, and its shape; the LED count and groups come from the shape when it's mapped.
         private DeviceSettings _device;
-        private KnownDevices.Profile _profile;
-        private int _expectedCount;
-        private List<LedGroup> _groups;
+        private LedLayout _layout;
         private LedPreview _preview;
 
         /// <summary>The device, set when setup finishes.</summary>
@@ -48,17 +50,20 @@ namespace AlmostFastOverlays
         /// <summary>For --ui-snapshot: sample devices, and LEDs that go nowhere, so no hardware is touched.</summary>
         internal bool Offline { get; set; }
 
-        /// <summary>For --ui-snapshot: opens a step directly with the first set-up device (or a sample).</summary>
+        /// <summary>For --ui-snapshot: opens a step directly with a sample device.</summary>
         internal void JumpTo(string step)
         {
             Offline = true;
-            DeviceSettings sample = _settings.General.Devices.FirstOrDefault() ?? KnownDevices.Create(KnownDevices.Dv5, "COM4", 16, true, false);
             if (step == "find") { _device = null; Show(Step.Find); return; }
-            _device = SettingsStore.Clone(sample);
-            _profile = KnownDevices.Find(sample.UsbId, sample.DetectedName);
-            _expectedCount = step == "count-guided" ? 0 : sample.LedCount;
-            _groups = sample.Groups.Select(SettingsStore.Clone).ToList();
-            Show(step == "name" ? Step.Name : step.StartsWith("count") ? Step.Count : step == "map" ? Step.Map : Step.Done);
+            _device = new DeviceSettings { Kind = LedDeviceKinds.Arduino, Port = "COM4", DetectedName = "SSG DV 5", Name = "Wheel LEDs" };
+            _layout = step == "shape-empty" ? new LedLayout { Shape = "" } : new LedLayout { Shape = LedShapes.Screen, Left = 4, Top = 8, Right = 4 };
+            if (step == "map-partial" || step == "map-done" || step == "done")
+            {
+                _mapper = new LayoutMapper(_layout);
+                _mapper.Place(0);
+                if (step != "map-partial") _mapper.Place(1);
+            }
+            Show(step == "name" ? Step.Name : step.StartsWith("shape") ? Step.Shape : step.StartsWith("map") ? Step.Map : Step.Done);
         }
 
         public DeviceSetupWindow(AppSettings settings, DeviceSettings existing, Func<bool> dashboardRunning, Func<Task<bool>> stopDashboard)
@@ -68,10 +73,10 @@ namespace AlmostFastOverlays
             _dashboardRunning = dashboardRunning;
             _stopDashboard = stopDashboard;
             Title = existing == null ? "Add a device" : "Set up " + existing.Name;
-            Width = 820;
-            Height = 680;
-            MinWidth = 700;
-            MinHeight = 560;
+            Width = 860;
+            Height = 720;
+            MinWidth = 720;
+            MinHeight = 600;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
             ShowInTaskbar = false;
             ResizeMode = ResizeMode.CanResize;
@@ -80,23 +85,21 @@ namespace AlmostFastOverlays
             Foreground = (Brush)FindResource("Brush.Text");
             Background = (Brush)FindResource("Brush.Bg");
             GlassBackdrop.Apply(this, 0xD8);
-            Content = new Border { Padding = new Thickness(32, 26, 32, 22), Child = Layout() };
-            Closed += (s, e) => _preview?.Dispose();
+            Content = new Border { Padding = new Thickness(32, 26, 32, 22), Child = Frame() };
+            Closed += (s, e) => { StopChase(); _preview?.Dispose(); };
 
             if (existing == null) Show(Step.Find);
             else
             {
                 _device = SettingsStore.Clone(existing);
-                _profile = KnownDevices.Find(existing.UsbId, existing.DetectedName);
-                _expectedCount = existing.LedCount;
-                _groups = existing.Groups.Select(SettingsStore.Clone).ToList();
+                _layout = existing.Layout != null ? SettingsStore.Clone(existing.Layout) : new LedLayout { Shape = "" };
                 Show(Step.Name);
             }
         }
 
         // ------------------------------------------------------------------ frame
 
-        private Grid Layout()
+        private Grid Frame()
         {
             var root = new Grid();
             root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
@@ -143,6 +146,7 @@ namespace AlmostFastOverlays
 
         private void Show(Step step)
         {
+            if (_step == Step.Map && step != Step.Map) StopChase();
             _step = step;
             _status.Text = "";
             int number = (int)step + (_existing == null ? 1 : 0), total = _existing == null ? 4 : 3;
@@ -154,7 +158,7 @@ namespace AlmostFastOverlays
             {
                 case Step.Find: ShowFind(); break;
                 case Step.Name: ShowName(); break;
-                case Step.Count: ShowCount(); break;
+                case Step.Shape: ShowShape(); break;
                 case Step.Map: ShowMap(); break;
                 default: ShowDone(); break;
             }
@@ -163,8 +167,8 @@ namespace AlmostFastOverlays
         private void GoBack()
         {
             if (_step == Step.Name) Show(Step.Find);
-            else if (_step == Step.Count) Show(Step.Name);
-            else if (_step == Step.Map) Show(Step.Count);
+            else if (_step == Step.Shape) Show(Step.Name);
+            else if (_step == Step.Map) Show(Step.Shape);
         }
 
         private void GoNext()
@@ -174,16 +178,15 @@ namespace AlmostFastOverlays
                 case Step.Find: if (_device != null) Show(Step.Name); break;
                 case Step.Name:
                     _device.Name = string.IsNullOrWhiteSpace(_nameBox?.Text) ? (_device.DetectedName ?? "LED device") : _nameBox.Text.Trim();
-                    Show(Step.Count);
+                    Show(Step.Shape);
                     break;
-                case Step.Count:
-                    if (_countValue < 1) return;
-                    _device.LedCount = _countValue;
+                case Step.Shape:
+                    if (!ShapeReady()) return;
                     Show(Step.Map);
                     break;
                 case Step.Map:
-                    foreach (LedGroup group in _groups) group.Normalize(_device.LedCount);
-                    _device.Groups = _groups.ToList();
+                    if (_mapper == null || !_mapper.Done) return;
+                    _layout.Map = _mapper.Map();
                     Show(Step.Done);
                     break;
                 default:
@@ -194,7 +197,9 @@ namespace AlmostFastOverlays
 
         private void Finish()
         {
-            _device.Groups = _groups ?? _device.Groups;
+            _device.Layout = _layout;
+            _device.LedCount = _layout.Total;
+            _device.Groups = _layout.Groups();
             _device.Normalize();
             Result = _device;
             DialogResult = true;
@@ -245,8 +250,7 @@ namespace AlmostFastOverlays
             _next.IsEnabled = _device != null;
             if (Offline && _found.Count == 0)
             {
-                _found.Add(KnownDevices.Create(KnownDevices.Dv5, "COM4", 16, true, false));
-                _found[0].DetectedName = "SSG DV 5";
+                _found.Add(new DeviceSettings { Kind = LedDeviceKinds.Arduino, Port = "COM4", DetectedName = "SSG DV 5", Name = "SSG DV 5" });
                 _found.Add(new DeviceSettings { Kind = LedDeviceKinds.Arduino, Port = "COM9", DetectedName = "Arduino LED board", Name = "Arduino LED board" });
             }
             RenderFound();
@@ -316,26 +320,14 @@ namespace AlmostFastOverlays
             foreach (DeviceSettings found in _found)
             {
                 DeviceSettings f = found;
-                KnownDevices.Profile known = KnownDevices.Find(f.UsbId, f.DetectedName);
                 var card = Card();
                 card.Cursor = Cursors.Hand;
                 card.BorderThickness = new Thickness(1.5);
-                card.BorderBrush = (Brush)FindResource(f == _device ? "Brush.Accent" : "Brush.Border");
-                var grid = new Grid();
-                grid.ColumnDefinitions.Add(new ColumnDefinition());
-                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                card.BorderBrush = (Brush)FindResource(_device != null && f.Connection == _device.Connection && f.Kind == _device.Kind ? "Brush.Accent" : "Brush.Border");
                 var text = new StackPanel();
                 text.Children.Add(new TextBlock { Text = f.DetectedName, Style = (Style)FindResource("T.Label") });
                 text.Children.Add(new TextBlock { Text = f.Kind + " · " + f.Connection, Style = (Style)FindResource("T.Caption"), Margin = new Thickness(0, 3, 0, 0) });
-                grid.Children.Add(text);
-                if (known != null)
-                {
-                    var tag = new Border { Style = (Style)FindResource("Pill"), Background = (Brush)FindResource("Brush.AccentSubtle"), VerticalAlignment = VerticalAlignment.Center,
-                        Child = new TextBlock { Text = "Known: " + known.Name, FontSize = 11, FontWeight = FontWeights.SemiBold, Foreground = (Brush)FindResource("Brush.Accent") } };
-                    Grid.SetColumn(tag, 1);
-                    grid.Children.Add(tag);
-                }
-                card.Child = grid;
+                card.Child = text;
                 card.MouseLeftButtonUp += (s, e) => Select(f);
                 _foundList.Children.Add(card);
             }
@@ -344,14 +336,11 @@ namespace AlmostFastOverlays
         private void Select(DeviceSettings found)
         {
             _device = SettingsStore.Clone(found);
-            _profile = KnownDevices.Find(found.UsbId, found.DetectedName);
-            _expectedCount = _profile?.LedCount ?? (found.Kind == LedDeviceKinds.Wled ? found.LedCount : 0);
-            _groups = null;
-            if (_profile != null)
-            {
-                _device.Name = _profile.Name;
-                _device.FastUpdates = _profile.FastUpdates;
-            }
+            // Only technical settings come from a recognised board; its shape is always described from scratch.
+            KnownDevices.Profile profile = KnownDevices.Find(found.UsbId, found.DetectedName);
+            if (profile != null) _device.FastUpdates = profile.FastUpdates;
+            _layout = new LedLayout { Shape = "" };
+            _mapper = null;
             _next.IsEnabled = true;
             RenderFound();
         }
@@ -371,95 +360,187 @@ namespace AlmostFastOverlays
             _nameBox = new TextBox { Text = _device.Name, Width = 360, HorizontalAlignment = HorizontalAlignment.Left, MaxLength = 40 };
             _nameBox.KeyDown += (s, e) => { if (e.Key == Key.Enter) GoNext(); };
             body.Children.Add(_nameBox);
-            if (_profile != null)
-                body.Children.Add(new TextBlock
-                {
-                    Text = "This is a " + _profile.Name + ", so its LED count and groups are filled in for you in the next steps. You can still change them.",
-                    Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 12, 0, 0)
-                });
             _body.Content = body;
             Dispatcher.BeginInvoke(new Action(() => { _nameBox.Focus(); _nameBox.SelectAll(); }), DispatcherPriority.Input);
         }
 
-        // ------------------------------------------------------------------ 3. count
+        // ------------------------------------------------------------------ 3. shape
 
-        private int _countValue;
+        private StackPanel _shapeFields;
+        private ContentControl _shapeDrawing;
+        private TextBlock _shapeTotal;
 
-        private async void ShowCount()
+        private int Limit => _device.Kind == LedDeviceKinds.Wled ? 1500 : _device.Kind == LedDeviceKinds.Adalight ? 300 : ArduinoLedController.MaxLeds;
+
+        private bool ShapeReady() => !string.IsNullOrEmpty(_layout.Shape) && _layout.Total >= 1 && _layout.Total <= Limit;
+
+        private void ShowShape()
         {
-            _title.Text = "How many LEDs?";
-            _countValue = Math.Max(1, _device.LedCount);
-            _next.IsEnabled = false;
-            _body.Content = new TextBlock { Text = "Connecting to " + _device.Name + "…", Style = (Style)FindResource("T.Secondary") };
-            if (!await EnsurePreview()) return;
-            if (_expectedCount > 0) ShowConfirmCount(); else ShowGuidedCount(Math.Max(1, _device.LedCount));
-        }
-
-        private void ShowConfirmCount()
-        {
-            _subtitle.Text = "Most LED boards can't report their LED count, but this one we know.";
-            _countValue = _expectedCount;
+            _title.Text = "What does it look like?";
+            _subtitle.Text = "Pick the kind of device and count the LEDs in each part. Next you'll show the app where each LED is, so count exactly: a board sent colours for LEDs it doesn't have can freeze until it's unplugged.";
             var body = new StackPanel();
-            body.Children.Add(new TextBlock { Text = _expectedCount + " LEDs", FontSize = 40, FontWeight = FontWeights.SemiBold, FontFamily = (FontFamily)FindResource("Font.Display") });
-            body.Children.Add(new TextBlock
+            var choices = new UniformGrid { Columns = 3, Margin = new Thickness(0, 0, 0, 18) };
+            choices.Children.Add(ShapeChoice(LedShapes.Screen, "Screen with LEDs", "LEDs down the sides of a wheel screen, across the top, or both."));
+            choices.Children.Add(ShapeChoice(LedShapes.Bars, "Light bars", "One bar or several side by side, like brow lights."));
+            choices.Children.Add(ShapeChoice(LedShapes.Strip, "LED strip", "A single straight strip of any length."));
+            body.Children.Add(choices);
+            _shapeFields = new StackPanel();
+            body.Children.Add(_shapeFields);
+            _shapeTotal = new TextBlock { Style = (Style)FindResource("T.Label"), Margin = new Thickness(0, 18, 0, 8) };
+            body.Children.Add(_shapeTotal);
+            _shapeDrawing = new ContentControl { HorizontalAlignment = HorizontalAlignment.Left };
+            body.Children.Add(new Border
             {
-                Text = "They're all lit now. Count them on the device, then continue if that's right.",
-                Style = (Style)FindResource("T.Secondary"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 18)
+                Background = new SolidColorBrush(Color.FromRgb(5, 7, 10)), BorderBrush = (Brush)FindResource("Brush.Border"), BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(12), Padding = new Thickness(20), Child = _shapeDrawing, MinHeight = 80
             });
-            var no = new Button { Content = "No, let me count", HorizontalAlignment = HorizontalAlignment.Left };
-            no.Click += (s, e) => ShowGuidedCount(_expectedCount);
-            body.Children.Add(no);
             _body.Content = body;
-            _next.IsEnabled = true;
-            // A soft colour, not white: every LED lit white at once can draw more than a USB-powered device can supply.
-            _preview.Show(Enumerable.Repeat(DrawingColor.FromArgb(0, 70, 60), _expectedCount).ToArray());
+            RenderShapeFields();
         }
 
-        private void ShowGuidedCount(int start)
+        private Border ShapeChoice(string shape, string title, string text)
         {
-            _subtitle.Text = "Most LED boards can't report how many LEDs they have, so count them together: only one LED is lit. Move it until it's the very last LED on your device.";
-            int max = _preview.Limit;
-            // A board on the sim-racing LED protocol can't be told LEDs it doesn't have: writing past its
-            // last LED can freeze it until it's power-cycled. So only LEDs up to the furthest one counted
-            // to are ever sent, and the count moves one LED at a time (no slider to jump ahead).
-            bool careful = _device.Kind == LedDeviceKinds.Arduino;
-            int reach = Math.Max(1, Math.Min(max, start));
-            var body = new StackPanel();
-            var number = new TextBlock { FontSize = 40, FontWeight = FontWeights.SemiBold, FontFamily = (FontFamily)FindResource("Font.Display") };
-            var slider = new Slider { Minimum = 1, Maximum = max, IsSnapToTickEnabled = true, TickFrequency = 1, Width = 460, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 12, 0, 0) };
-            void Update(int n)
+            var card = Card();
+            card.Margin = new Thickness(0, 0, 10, 0);
+            card.Cursor = Cursors.Hand;
+            card.BorderThickness = new Thickness(1.5);
+            card.BorderBrush = (Brush)FindResource(_layout.Shape == shape ? "Brush.Accent" : "Brush.Border");
+            var stack = new StackPanel();
+            stack.Children.Add(new TextBlock { Text = title, Style = (Style)FindResource("T.Label") });
+            stack.Children.Add(new TextBlock { Text = text, Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) });
+            card.Child = stack;
+            card.MouseLeftButtonUp += (s, e) =>
             {
-                _countValue = Math.Max(1, Math.Min(max, n));
-                number.Text = _countValue + (_countValue == 1 ? " LED" : " LEDs");
-                if ((int)slider.Value != _countValue) slider.Value = _countValue;
-                // The lit LED is the count; the ones before it glow faintly so the strip is easy to follow.
-                reach = Math.Max(reach, _countValue);
-                _preview.Show(Enumerable.Range(0, reach).Select(i => i == _countValue - 1 ? DrawingColor.White : i < _countValue - 1 ? DrawingColor.FromArgb(0, 0, 40) : DrawingColor.Black).ToArray());
+                if (_layout.Shape == shape) return;
+                _layout = new LedLayout { Shape = shape };
+                _mapper = null;
+                ShowShape();
+            };
+            return card;
+        }
+
+        private void RenderShapeFields()
+        {
+            _shapeFields.Children.Clear();
+            var row = new WrapPanel();
+            switch (_layout.Shape)
+            {
+                case LedShapes.Screen:
+                    row.Children.Add(CountField("Left side", _layout.Left, v => _layout.Left = v));
+                    row.Children.Add(CountField("Across the top", _layout.Top, v => _layout.Top = v));
+                    row.Children.Add(CountField("Right side", _layout.Right, v => _layout.Right = v));
+                    row.Children.Add(CountField("Along the bottom", _layout.Bottom, v => _layout.Bottom = v));
+                    break;
+                case LedShapes.Bars:
+                    row.Children.Add(CountField("How many bars", _layout.Bars, v => { _layout.Bars = v; RenderShapeFields(); }, 1, 8));
+                    row.Children.Add(CountField("LEDs on each bar", _layout.PerBar, v => _layout.PerBar = v));
+                    break;
+                case LedShapes.Strip:
+                    row.Children.Add(CountField("LEDs on the strip", _layout.Length, v => _layout.Length = v));
+                    break;
+                default:
+                    _shapeFields.Children.Add(new TextBlock { Text = "Pick one of the three above.", Style = (Style)FindResource("T.Secondary") });
+                    UpdateShape();
+                    return;
             }
-            var stepper = new StackPanel { Orientation = Orientation.Horizontal };
-            var less = new Button { Content = "−", Width = 44, FontSize = 18 };
-            var more = new Button { Content = "+", Width = 44, FontSize = 18, Margin = new Thickness(8, 0, 20, 0) };
-            less.Click += (s, e) => Update(_countValue - 1);
-            more.Click += (s, e) => Update(_countValue + 1);
-            stepper.Children.Add(less);
-            stepper.Children.Add(more);
-            stepper.Children.Add(number);
-            body.Children.Add(stepper);
-            slider.ValueChanged += (s, e) => { if ((int)slider.Value != _countValue) Update((int)slider.Value); };
-            if (!careful) body.Children.Add(slider);
-            body.Children.Add(new TextBlock
+            _shapeFields.Children.Add(row);
+            if (_layout.Shape == LedShapes.Bars && _layout.Bars > 1)
             {
-                Text = "The bright white LED is the one you're counting to; the faint blue ones come before it. When the white one is the last LED on the device, that's the count." +
-                    (careful ? " Go up one at a time and stop at the last LED: going well past it can make some boards freeze until they're unplugged." : ""),
-                Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 14, 0, 0), MaxWidth = 560, HorizontalAlignment = HorizontalAlignment.Left
-            });
-            _body.Content = body;
-            _next.IsEnabled = true;
-            Update(start);
+                var joined = new CheckBox { Style = (Style)FindResource("Switch"), Content = "Joined end to end into one long bar", IsChecked = _layout.Connected, Margin = new Thickness(0, 14, 0, 2) };
+                joined.Click += (s, e) => { _layout.Connected = joined.IsChecked == true; _layout.Map = null; _mapper = null; UpdateShape(); RenderRoles(); };
+                _shapeFields.Children.Add(joined);
+                _shapeFields.Children.Add(new TextBlock
+                {
+                    Text = "Joined bars work as one bar: a fill can run from both outer ends to the middle, and \"split down the middle\" gives a left and a right half. Separate bars each work on their own.",
+                    Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap, MaxWidth = 640, HorizontalAlignment = HorizontalAlignment.Left
+                });
+            }
+            _shapeFields.Children.Add(_roles = new StackPanel { Margin = new Thickness(0, 14, 0, 0) });
+            RenderRoles();
+            UpdateShape();
         }
 
-        /// <summary>Opens the device for showing LEDs; false (with a message and Retry) when it can't be reached.</summary>
-        private async Task<bool> EnsurePreview()
+        private StackPanel _roles;
+
+        /// <summary>What each part of the shape is for, which decides which light layers use it.</summary>
+        private void RenderRoles()
+        {
+            if (_roles == null) return;
+            _roles.Children.Clear();
+            List<LayoutPiece> pieces = _layout.Total > 0 ? _layout.Pieces() : new List<LayoutPiece>();
+            if (pieces.Count == 0) return;
+            _roles.Children.Add(new TextBlock { Text = "WHAT EACH PART IS FOR", Style = (Style)FindResource("T.Overline"), Margin = new Thickness(0, 0, 0, 8) });
+            foreach (LayoutPiece piece in pieces)
+            {
+                LayoutPiece p = piece;
+                var grid = new Grid { Margin = new Thickness(0, 0, 0, 6) };
+                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(160) });
+                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(200) });
+                grid.ColumnDefinitions.Add(new ColumnDefinition());
+                grid.Children.Add(new TextBlock { Text = p.Name + " · " + p.Slots.Length, VerticalAlignment = VerticalAlignment.Center });
+                var role = new ComboBox { ItemsSource = LedPurposes.All, SelectedItem = _layout.RoleOf(p), MinWidth = 0 };
+                var help = new TextBlock { Text = LedPurposes.Describe(_layout.RoleOf(p)), Style = (Style)FindResource("T.Caption"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 0, 0, 0), TextWrapping = TextWrapping.Wrap };
+                role.SelectionChanged += (s, e) =>
+                {
+                    string chosen = (string)role.SelectedItem;
+                    if (chosen == p.DefaultRole) _layout.Roles.Remove(p.Id); else _layout.Roles[p.Id] = chosen;
+                    help.Text = LedPurposes.Describe(chosen);
+                };
+                Grid.SetColumn(role, 1);
+                Grid.SetColumn(help, 2);
+                grid.Children.Add(role);
+                grid.Children.Add(help);
+                _roles.Children.Add(grid);
+            }
+        }
+
+        private FrameworkElement CountField(string label, int value, Action<int> set, int min = 0, int max = 250)
+        {
+            var stack = new StackPanel { Margin = new Thickness(0, 0, 18, 0) };
+            stack.Children.Add(new TextBlock { Text = label, Style = (Style)FindResource("T.Caption"), Margin = new Thickness(0, 0, 0, 6) });
+            var box = new TextBox { Text = value > 0 ? value.ToString() : "", Width = 96, HorizontalAlignment = HorizontalAlignment.Left };
+            box.TextChanged += (s, e) =>
+            {
+                int n = int.TryParse(box.Text.Trim(), out int parsed) ? Math.Max(min, Math.Min(max, parsed)) : min;
+                set(n);
+                _layout.Map = null;
+                _mapper = null;
+                UpdateShape();
+                RenderRoles();
+            };
+            stack.Children.Add(box);
+            return stack;
+        }
+
+        private void UpdateShape()
+        {
+            int total = _layout.Total;
+            _shapeTotal.Text = total == 0 ? "" : total + (total == 1 ? " LED" : " LEDs") + " in all";
+            _status.Text = total > Limit ? "That's more LEDs than this kind of board can drive (" + Limit + ")." : "";
+            List<LayoutSlot> slots = total > 0 && total <= Limit ? _layout.Slots() : new List<LayoutSlot>();
+            var dots = slots.Select(s => (FrameworkElement)new Ellipse
+            {
+                Width = 14, Height = 14, Fill = (Brush)FindResource("Brush.LedOff"), Stroke = new SolidColorBrush(Color.FromArgb(70, 255, 255, 255)), StrokeThickness = 1
+            }).ToList();
+            _shapeDrawing.Content = slots.Count == 0
+                ? (object)new TextBlock { Text = "The shape appears here as you fill it in.", Style = (Style)FindResource("T.Caption") }
+                : LedDrawing.Arrange(slots.Select(s => (Point?)new Point(s.X, s.Y)).ToList(), dots, 14);
+            _next.IsEnabled = ShapeReady();
+        }
+
+        // ------------------------------------------------------------------ 4. map
+
+        private LayoutMapper _mapper;
+        private DispatcherTimer _chase;
+        private int _chaseLed = -1;
+        private TextBlock _mapPrompt, _mapHint;
+        private ContentControl _mapDrawing;
+        private Button _undo, _replay;
+
+        private static readonly DrawingColor Asking = DrawingColor.FromArgb(220, 220, 220), Placed = DrawingColor.FromArgb(0, 45, 40);
+
+        /// <summary>Opens the device for showing LEDs; false (with a message and Try again) when it can't be reached.</summary>
+        private async Task<bool> EnsurePreview(Action retry)
         {
             if (_preview != null && _preview.Matches(_device)) return true;
             _preview?.Dispose();
@@ -474,7 +555,7 @@ namespace AlmostFastOverlays
                 var holder = new StackPanel();
                 _foundList = holder;
                 _body.Content = holder;
-                ShowNeedsStop(async () => { if (await EnsurePreview()) ShowCount(); });
+                ShowNeedsStop(async () => { if (await EnsurePreview(retry)) retry(); });
                 return false;
             }
             try
@@ -488,174 +569,137 @@ namespace AlmostFastOverlays
                 var body = new StackPanel();
                 body.Children.Add(new TextBlock { Text = "Couldn't reach " + _device.Name + " on " + _device.Connection + ".", Style = (Style)FindResource("T.Label") });
                 body.Children.Add(new TextBlock { Text = exception.Message, Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 12) });
-                var retry = new Button { Content = "Try again", HorizontalAlignment = HorizontalAlignment.Left };
-                retry.Click += (s, e) => ShowCount();
-                body.Children.Add(retry);
+                var again = new Button { Content = "Try again", HorizontalAlignment = HorizontalAlignment.Left };
+                again.Click += (s, e) => retry();
+                body.Children.Add(again);
                 _body.Content = body;
                 return false;
             }
         }
 
-        // ------------------------------------------------------------------ 4. map
-
-        private static readonly DrawingColor[] Palette =
-        {
-            DrawingColor.FromArgb(0, 200, 255), DrawingColor.FromArgb(0, 220, 90), DrawingColor.FromArgb(255, 170, 0),
-            DrawingColor.FromArgb(220, 60, 255), DrawingColor.FromArgb(255, 60, 80), DrawingColor.FromArgb(255, 255, 255)
-        };
-
-        private DispatcherTimer _chase;
-        private LedGroup _focused;
-        private TextBlock _chaseNumber;
-
         private async void ShowMap()
         {
-            _title.Text = "Which LEDs are which?";
-            _subtitle.Text = "Split the LEDs into groups and say what each is for. Light layers aimed at Shift lights, Left side and so on use the groups with that purpose. Watch the order first if you're not sure where the LEDs run.";
-            if (!await EnsurePreview()) return;
-            if (_groups == null || _groups.Count == 0)
-                _groups = _profile != null ? _profile.Groups(_device.LedCount) : new List<LedGroup> { LedGroup.Of("All LEDs", LedPurposes.Bar, 1, _device.LedCount) };
-            foreach (LedGroup group in _groups) group.Normalize(_device.LedCount);
+            _title.Text = "Where is each LED?";
+            _subtitle.Text = "One LED at a time lights on your device. Click where it is on the drawing. After two neighbours the app follows the chain on its own, so most devices take two clicks.";
+            _next.IsEnabled = false;
+            _body.Content = new TextBlock { Text = "Connecting to " + _device.Name + "…", Style = (Style)FindResource("T.Secondary") };
+            if (!await EnsurePreview(ShowMap)) return;
+            if (_mapper == null || _mapper.Total != _layout.Total)
+            {
+                _mapper = new LayoutMapper(_layout);
+                // A shape mapped before is shown done, ready to check or map again.
+                if (_layout.IsMapped) _mapper.Load(_layout.Map);
+            }
+
+            var body = new StackPanel();
+            _mapPrompt = new TextBlock { FontSize = 22, FontWeight = FontWeights.SemiBold, FontFamily = (FontFamily)FindResource("Font.Display"), TextWrapping = TextWrapping.Wrap };
+            _mapHint = new TextBlock { Style = (Style)FindResource("T.Secondary"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 16), MaxWidth = 680, HorizontalAlignment = HorizontalAlignment.Left };
+            body.Children.Add(_mapPrompt);
+            body.Children.Add(_mapHint);
+            _mapDrawing = new ContentControl { HorizontalAlignment = HorizontalAlignment.Center };
+            body.Children.Add(new Border
+            {
+                Background = new SolidColorBrush(Color.FromRgb(5, 7, 10)), BorderBrush = (Brush)FindResource("Brush.Border"), BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(12), Padding = new Thickness(24), Child = _mapDrawing
+            });
+            var actions = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 14, 0, 0) };
+            _undo = new Button { Content = "Undo", Margin = new Thickness(0, 0, 8, 0) };
+            _undo.Click += (s, e) => { StopChase(); _mapper.Undo(); RenderMap(); };
+            var restart = new Button { Content = "Start over", Margin = new Thickness(0, 0, 8, 0) };
+            restart.Click += (s, e) => { StopChase(); _mapper = new LayoutMapper(_layout); RenderMap(); };
+            var replay = _replay = new Button { Content = "Play the order again" };
+            replay.Click += (s, e) => StartChase();
+            actions.Children.Add(_undo);
+            actions.Children.Add(restart);
+            actions.Children.Add(replay);
+            body.Children.Add(actions);
+            _body.Content = body;
             RenderMap();
+            if (_mapper.Done) StartChase();
         }
 
         private void RenderMap()
         {
-            var body = new StackPanel();
-
-            var order = Card();
-            var orderRow = new Grid();
-            orderRow.ColumnDefinitions.Add(new ColumnDefinition());
-            orderRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            var orderText = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-            orderText.Children.Add(new TextBlock { Text = "Watch the order", Style = (Style)FindResource("T.Label") });
-            orderText.Children.Add(new TextBlock { Text = "Each LED lights in turn, with its number here.", Style = (Style)FindResource("T.Caption"), Margin = new Thickness(0, 3, 0, 0) });
-            orderRow.Children.Add(orderText);
-            var chaseControls = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
-            _chaseNumber = new TextBlock { FontSize = 28, FontWeight = FontWeights.SemiBold, FontFamily = (FontFamily)FindResource("Font.Display"), MinWidth = 90, TextAlignment = TextAlignment.Right, Margin = new Thickness(0, 0, 16, 0), VerticalAlignment = VerticalAlignment.Center };
-            var play = new Button { Content = "Show the order" };
-            play.Click += (s, e) => { if (_chase != null) StopChase(); else StartChase(); play.Content = _chase != null ? "Stop" : "Show the order"; };
-            chaseControls.Children.Add(_chaseNumber);
-            chaseControls.Children.Add(play);
-            Grid.SetColumn(chaseControls, 1);
-            orderRow.Children.Add(chaseControls);
-            order.Child = orderRow;
-            body.Children.Add(order);
-
-            body.Children.Add(new TextBlock { Text = "GROUPS", Style = (Style)FindResource("T.Overline"), Margin = new Thickness(0, 18, 0, 8) });
-            var header = GroupGrid();
-            string[] heads = { "Name", "Purpose", "From LED", "To LED", "" };
-            for (int i = 0; i < heads.Length; i++)
+            if (_mapDrawing == null) return;
+            int asking = _mapper.Next;
+            List<LayoutSlot> slots = _layout.Slots();
+            double size = Math.Max(22, Math.Min(34, 640 / (slots.Select(s => s.X).DefaultIfEmpty(0).Max() + 1) / 1.6));
+            var dots = new List<FrameworkElement>();
+            foreach (LayoutSlot slot in slots)
             {
-                var h = new TextBlock { Text = heads[i], Style = (Style)FindResource("T.Caption") };
-                Grid.SetColumn(h, i);
-                header.Children.Add(h);
-            }
-            body.Children.Add(header);
-            for (int g = 0; g < _groups.Count; g++) body.Children.Add(GroupRow(_groups[g], Palette[g % Palette.Length]));
-
-            var add = new Button { Content = "Add group", HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 10, 0, 0) };
-            add.Click += (s, e) =>
-            {
-                int next = _groups.Count == 0 ? 1 : Math.Min(_device.LedCount, _groups.Max(x => Math.Max(x.From, x.To)) + 1);
-                _groups.Add(new LedGroup { Name = "Group " + (_groups.Count + 1), Purpose = LedPurposes.Other, From = next, To = _device.LedCount });
-                RenderMap();
-            };
-            body.Children.Add(add);
-            body.Children.Add(new TextBlock
-            {
-                Text = "Reverse runs a group from its last LED to its first, for fills that should grow the other way (a right side that fills bottom to top, say). While you edit a group it lights on the device, brightest at its start.",
-                Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 14, 0, 0), MaxWidth = 640, HorizontalAlignment = HorizontalAlignment.Left
-            });
-            _body.Content = body;
-            ShowGroupsOnDevice();
-        }
-
-        private static Grid GroupGrid()
-        {
-            var grid = new Grid { Margin = new Thickness(0, 0, 0, 6) };
-            foreach (double width in new[] { 200.0, 150, 90, 90, 1 })
-                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = width == 1 ? new GridLength(1, GridUnitType.Star) : new GridLength(width) });
-            return grid;
-        }
-
-        private Grid GroupRow(LedGroup group, DrawingColor colour)
-        {
-            var grid = GroupGrid();
-            var name = new TextBox { Text = group.Name, Margin = new Thickness(0, 0, 10, 0), MaxLength = 30 };
-            name.TextChanged += (s, e) => group.Name = name.Text;
-            var purpose = new ComboBox { ItemsSource = LedPurposes.All, SelectedItem = group.Purpose, MinWidth = 0, Margin = new Thickness(0, 0, 10, 0), ToolTip = LedPurposes.Describe(group.Purpose) };
-            purpose.SelectionChanged += (s, e) => { group.Purpose = (string)purpose.SelectedItem; purpose.ToolTip = LedPurposes.Describe(group.Purpose); };
-            TextBox Number(int value, Action<int> set)
-            {
-                var box = new TextBox { Text = value.ToString(), Margin = new Thickness(0, 0, 10, 0) };
-                box.TextChanged += (s, e) =>
+                int led = _mapper.LedAt(slot.Index);
+                bool chasing = _chaseLed >= 0 && led == _chaseLed;
+                var circle = new Ellipse
                 {
-                    if (int.TryParse(box.Text.Trim(), out int n) && n >= 1 && n <= _device.LedCount) { set(n); ShowGroupsOnDevice(); }
+                    Width = size, Height = size, StrokeThickness = 1.5,
+                    Fill = chasing ? Brushes.White : led >= 0 ? (Brush)FindResource("Brush.AccentSubtle") : (Brush)FindResource("Brush.LedOff"),
+                    Stroke = led >= 0 ? (Brush)FindResource("Brush.Accent") : new SolidColorBrush(Color.FromArgb(90, 255, 255, 255))
                 };
-                return box;
-            }
-            var from = Number(group.From, n => group.From = n);
-            var to = Number(group.To, n => group.To = n);
-            var tail = new StackPanel { Orientation = Orientation.Horizontal };
-            var reverse = new CheckBox { Style = (Style)FindResource("Switch"), Content = "Reverse", IsChecked = group.Reverse, VerticalAlignment = VerticalAlignment.Center };
-            reverse.Click += (s, e) => { group.Reverse = reverse.IsChecked == true; ShowGroupsOnDevice(); };
-            var swatch = new Border { Width = 10, Height = 10, CornerRadius = new CornerRadius(5), Margin = new Thickness(14, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center,
-                Background = new SolidColorBrush(Color.FromRgb(colour.R, colour.G, colour.B)), ToolTip = "This group's colour on the device" };
-            var remove = new Button { Style = (Style)FindResource("Btn.Icon"), Content = "", ToolTip = "Remove this group" };
-            remove.Click += (s, e) => { _groups.Remove(group); _focused = null; RenderMap(); };
-            tail.Children.Add(reverse);
-            tail.Children.Add(swatch);
-            tail.Children.Add(remove);
-            UIElement[] cells = { name, purpose, from, to, tail };
-            for (int i = 0; i < cells.Length; i++)
-            {
-                Grid.SetColumn(cells[i], i);
-                grid.Children.Add(cells[i]);
-            }
-            // While a group is being edited, only it lights, brightest at its start.
-            grid.IsKeyboardFocusWithinChanged += (s, e) => { _focused = grid.IsKeyboardFocusWithin ? group : (_focused == group ? null : _focused); ShowGroupsOnDevice(); };
-            grid.MouseEnter += (s, e) => { if (_focused == null) ShowGroupsOnDevice(group); };
-            grid.MouseLeave += (s, e) => ShowGroupsOnDevice();
-            return grid;
-        }
-
-        /// <summary>Every group in its colour, or just one group with its direction shown when one is picked.</summary>
-        private void ShowGroupsOnDevice(LedGroup only = null)
-        {
-            if (_preview == null || _chase != null) return;
-            only = only ?? _focused;
-            var frame = new DrawingColor[_device.LedCount];
-            for (int g = 0; g < _groups.Count; g++)
-            {
-                LedGroup group = _groups[g];
-                if (only != null && group != only) continue;
-                var probe = SettingsStore.Clone(group);
-                probe.Normalize(_device.LedCount);
-                int[] leds = probe.Indexes();
-                DrawingColor colour = only != null ? DrawingColor.FromArgb(0, 230, 120) : Palette[g % Palette.Length];
-                for (int k = 0; k < leds.Length; k++)
+                var label = new TextBlock
                 {
-                    // A single group fades along its fill order, so you can see which way it runs.
-                    double level = only != null && leds.Length > 1 ? 1 - 0.85 * k / (leds.Length - 1) : 0.6;
-                    if (leds[k] < frame.Length) frame[leds[k]] = DrawingColor.FromArgb((int)(colour.R * level), (int)(colour.G * level), (int)(colour.B * level));
+                    Text = led >= 0 ? (led + 1).ToString() : "", FontSize = size * 0.38, FontWeight = FontWeights.SemiBold,
+                    Foreground = chasing ? Brushes.Black : (Brush)FindResource("Brush.Text"), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
+                };
+                var cell = new Grid { Width = size, Height = size, Background = Brushes.Transparent, ToolTip = led >= 0 ? "LED " + (led + 1) : "Click if LED " + (asking + 1) + " is here" };
+                cell.Children.Add(circle);
+                cell.Children.Add(label);
+                if (led < 0 && asking >= 0)
+                {
+                    int index = slot.Index;
+                    cell.Cursor = Cursors.Hand;
+                    cell.MouseEnter += (s, e) => circle.Stroke = (Brush)FindResource("Brush.Accent");
+                    cell.MouseLeave += (s, e) => circle.Stroke = new SolidColorBrush(Color.FromArgb(90, 255, 255, 255));
+                    cell.MouseLeftButtonUp += (s, e) => { _mapper.Place(index); RenderMap(); };
                 }
+                dots.Add(cell);
             }
-            _preview.Show(frame);
+            _mapDrawing.Content = LedDrawing.Arrange(slots.Select(s => (Point?)new Point(s.X, s.Y)).ToList(), dots, size);
+            _undo.IsEnabled = _mapper.CanUndo;
+            _replay.Visibility = _mapper.Done ? Visibility.Visible : Visibility.Collapsed;
+
+            if (_mapper.Done)
+            {
+                _mapPrompt.Text = "Every LED is placed";
+                _mapHint.Text = "Watch them run in order, on the drawing and on your device together. If they don't match, Undo or Start over.";
+                _next.IsEnabled = true;
+            }
+            else
+            {
+                _mapPrompt.Text = "LED #" + (asking + 1) + " is lit on your device. Click where it is.";
+                _mapHint.Text = _mapper.Pending
+                    ? "The one after LED #" + asking + ". That shows the app which way the chain runs."
+                    : asking == 0 ? "It's the bright white LED. Placed LEDs glow faintly so you can keep your bearings."
+                    : "The chain jumped or reached the end of a part, so the app needs LED #" + (asking + 1) + " too.";
+                _next.IsEnabled = false;
+                ShowAsking(asking);
+            }
         }
 
+        /// <summary>Lights the LED being asked for brightly and the placed ones faintly; nothing past the furthest LED involved.</summary>
+        private void ShowAsking(int asking)
+        {
+            var frame = new DrawingColor[asking + 1];
+            for (int led = 0; led < asking; led++) if (_mapper.SlotOf(led) >= 0) frame[led] = Placed;
+            frame[asking] = Asking;
+            _preview?.Show(frame);
+        }
+
+        /// <summary>Runs every LED in order on the device and the drawing at once, to check the mapping.</summary>
         private void StartChase()
         {
-            int n = _device.LedCount, index = 0;
-            _chase = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(Math.Max(70, Math.Min(400, 7000 / n))) };
+            StopChase();
+            if (_mapper == null || !_mapper.Done) return;
+            int n = _mapper.Total;
+            _chaseLed = 0;
+            _chase = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(Math.Max(80, Math.Min(350, 6000 / Math.Max(1, n)))) };
             _chase.Tick += (s, e) =>
             {
-                if (index >= n) { StopChase(); RenderMap(); return; }
+                if (_chaseLed >= n) { StopChase(); RenderMap(); _preview?.Show(new DrawingColor[n]); return; }
                 var frame = new DrawingColor[n];
-                frame[index] = DrawingColor.White;
-                _preview.Show(frame);
-                _chaseNumber.Text = "LED " + (index + 1);
-                index++;
+                frame[_chaseLed] = Asking;
+                _preview?.Show(frame);
+                RenderMap();
+                _chaseLed++;
             };
             _chase.Start();
         }
@@ -664,8 +708,7 @@ namespace AlmostFastOverlays
         {
             _chase?.Stop();
             _chase = null;
-            if (_chaseNumber != null) _chaseNumber.Text = "";
-            ShowGroupsOnDevice();
+            _chaseLed = -1;
         }
 
         // ------------------------------------------------------------------ 5. done
@@ -674,15 +717,12 @@ namespace AlmostFastOverlays
         {
             StopChase();
             _title.Text = _device.Name + " is ready";
-            var purposes = _groups.Select(g => g.Purpose).Where(p => p != LedPurposes.Other).Distinct().ToList();
-            _subtitle.Text = _device.LedCount + " LEDs in " + _groups.Count + (_groups.Count == 1 ? " group" : " groups") + "." +
-                (purposes.Count > 0 ? " Light layers aimed at " + string.Join(", ", purposes) + " will use it." : " Aim light layers at its groups in the light designer.");
+            _subtitle.Text = _layout.Describe() + ". Light layers aimed at a part's role use it, filling the way the part runs: sides bottom to top, rows and bars left to right.";
             var body = new StackPanel();
-            foreach (LedGroup group in _groups)
+            foreach (LayoutPiece piece in _layout.Pieces())
                 body.Children.Add(new TextBlock
                 {
-                    Text = group.Name + (string.Equals(group.Name, group.Purpose, StringComparison.OrdinalIgnoreCase) ? "" : " · " + group.Purpose) +
-                        " · LEDs " + group.From + "–" + group.To + (group.Reverse ? ", reversed" : ""),
+                    Text = piece.Name + " · " + piece.Slots.Length + (piece.Slots.Length == 1 ? " LED" : " LEDs") + " · " + _layout.RoleOf(piece),
                     Style = (Style)FindResource("T.Secondary"), Margin = new Thickness(0, 0, 0, 6)
                 });
             if (_device.Kind == LedDeviceKinds.Arduino)
@@ -694,10 +734,10 @@ namespace AlmostFastOverlays
                 };
                 fast.Click += (s, e) => _device.FastUpdates = fast.IsChecked == true;
                 body.Children.Add(fast);
-                body.Children.Add(new TextBlock { Text = "Sends each light frame in one message, for smoother lights. If the lights look wrong with it on, turn it off.", Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap });
+                body.Children.Add(new TextBlock { Text = "Sends each light frame in one message, for the smoothest lights. If the lights look wrong with it on, turn it off.", Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap });
             }
             _body.Content = body;
-            _preview?.Show(new DrawingColor[_device.LedCount]);
+            _preview?.Show(new DrawingColor[Math.Max(1, _layout.Total)]);
         }
 
         private Border Card() => new Border

@@ -40,10 +40,10 @@ namespace AlmostFastOverlays
 
             var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 16, 0) };
             text.Children.Add(new TextBlock { Text = device.Name, Style = (Style)FindResource("T.Label"), TextTrimming = TextTrimming.CharacterEllipsis });
-            string groups = device.Groups.Count == 0 ? "no groups yet" : string.Join(", ", device.Groups.Select(g => g.Name));
+            string groups = device.Mapped ? device.Layout.Describe() : "LED positions not mapped yet: click Set up";
             text.Children.Add(new TextBlock
             {
-                Text = device.Kind + " · " + (device.Connection ?? "not connected") + " · " + device.LedCount + " LEDs · " + groups,
+                Text = device.Kind + " · " + (device.Connection ?? "not connected") + " · " + groups,
                 Style = (Style)FindResource("T.Caption"), Margin = new Thickness(0, 3, 0, 0), TextTrimming = TextTrimming.CharacterEllipsis
             });
             grid.Children.Add(text);

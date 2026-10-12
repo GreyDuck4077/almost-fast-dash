@@ -47,7 +47,8 @@ namespace AlmostFastOverlays
     }
 
     /// <summary>
-    /// A named run of LEDs on a device, in the order fills grow: LEDs From to To
+    /// A named run of LEDs on a device, in the order fills grow: the LEDs listed in Leds
+    /// (made from a device's mapped layout, in physical order), or else LEDs From to To
     /// (counting from 1), or To down to From when reversed.
     /// </summary>
     internal sealed class LedGroup
@@ -58,10 +59,13 @@ namespace AlmostFastOverlays
         public int From { get; set; } = 1;
         public int To { get; set; } = 1;
         public bool Reverse { get; set; }
+        /// <summary>The LEDs (counting from 1) in fill order, when the group comes from a mapped layout; From, To and Reverse are then only for display.</summary>
+        public List<int> Leds { get; set; }
 
         /// <summary>The LED indexes (from 0) in fill order.</summary>
         public int[] Indexes()
         {
+            if (Leds != null && Leds.Count > 0) return Leds.Select(n => n - 1).ToArray();
             int low = Math.Min(From, To), high = Math.Max(From, To);
             IEnumerable<int> range = Enumerable.Range(low - 1, high - low + 1);
             return (Reverse ? range.Reverse() : range).ToArray();
@@ -75,6 +79,11 @@ namespace AlmostFastOverlays
             From = Math.Max(1, Math.Min(Math.Max(1, ledCount), From));
             To = Math.Max(1, Math.Min(Math.Max(1, ledCount), To));
             if (To < From) { int swap = From; From = To; To = swap; }
+            if (Leds != null)
+            {
+                Leds = Leds.Where(n => n >= 1 && n <= ledCount).Distinct().ToList();
+                if (Leds.Count == 0) Leds = null;
+            }
         }
 
         public static LedGroup Of(string name, string purpose, int from, int to, bool reverse = false) =>
@@ -108,6 +117,12 @@ namespace AlmostFastOverlays
         /// at once, which drops it (and anything sharing the hub) off USB with its LEDs stuck on.
         /// </summary>
         public int MaxMilliamps { get; set; } = LedPower.DefaultMilliamps;
+        /// <summary>The device's physical shape and where each LED sits on it; null for a device set up before layouts.</summary>
+        public LedLayout Layout { get; set; }
+
+        /// <summary>True once every LED's place on the device is known.</summary>
+        [ScriptIgnore]
+        public bool Mapped => Layout != null && Layout.IsMapped;
 
         public void Normalize()
         {

@@ -193,16 +193,14 @@ namespace AlmostFastOverlays
                 _deviceLeds.Add(leds);
                 _deviceGlows.Add(glows);
                 if (!device.Enabled) continue;
-                // Sized so a device's LEDs fit on one row where they can (a 20-LED bar included).
-                double size = Math.Max(8, Math.Min(20, 600 / (device.LedCount * 1.6)));
-                var row = new WrapPanel { HorizontalAlignment = HorizontalAlignment.Center };
+                // Drawn the way the LEDs sit on the device, sized to fit the stage.
+                double size = LedDrawing.FitSize(device, 600, 20);
                 for (int i = 0; i < device.LedCount; i++)
                 {
                     glows[i] = new DropShadowEffect { ShadowDepth = 0, BlurRadius = 16, Opacity = 0 };
                     leds[i] = MakeLed(size, glows[i], new LedRef(d, i));
-                    leds[i].Margin = new Thickness(size * 0.3);
-                    row.Children.Add(leds[i]);
                 }
+                FrameworkElement row = LedDrawing.Arrange(device, leds, size);
                 var panel = new StackPanel();
                 panel.Children.Add(new TextBlock { Text = device.Name.ToUpperInvariant(), Style = (Style)FindResource("T.Overline"), Margin = new Thickness(2, 0, 0, 8) });
                 panel.Children.Add(row);

@@ -54,7 +54,7 @@ namespace AlmostFastOverlays
 
         public static string DeviceSignature(IEnumerable<DeviceSettings> devices) =>
             string.Join(";", (devices ?? Enumerable.Empty<DeviceSettings>()).Select(d => d == null ? "" :
-                d.Id + ":" + d.LedCount + ":" + d.Enabled + ":" + string.Join(",", d.Groups.Select(g => g.Id + g.Purpose + g.From + "-" + g.To + g.Reverse))));
+                d.Id + ":" + d.LedCount + ":" + d.Enabled + ":" + string.Join(",", d.Groups.Select(g => g.Id + g.Purpose + g.From + "-" + g.To + g.Reverse + (g.Leds == null ? "" : "[" + string.Join(".", g.Leds) + "]")))));
 
         /// <summary>Layer ids whose condition or properties failed on the last frame, with the reason.</summary>
         public Dictionary<string, string> Errors { get; } = new Dictionary<string, string>();

@@ -146,6 +146,53 @@ namespace AlmostFastOverlays
             Check("a frame of many colours sends only what changed", fullRuns.Count == 20 && changedRuns.Count == 1 && changedRuns[0].Item1 == 9 && changedRuns[0].Item2 == 2,
                 fullRuns.Count + " runs for the first frame, " + changedRuns.Count + " for the next");
 
+            // ---------------- device layouts: describe the shape, then click where LEDs are
+            var screen = new LedLayout { Shape = LedShapes.Screen, Left = 4, Top = 8, Right = 4 };
+            var screenMap = new LayoutMapper(screen);
+            screenMap.Place(0);
+            int followed = screenMap.Place(1);
+            screen.Map = screenMap.Map();
+            List<LedGroup> screenGroups = screen.Groups();
+            Check("two clicks map a screen's LEDs all the way round", screenMap.Done && followed == 15 && screen.IsMapped
+                && screenGroups.Single(g => g.Purpose == LedPurposes.Left).Indexes().SequenceEqual(new[] { 0, 1, 2, 3 })
+                && screenGroups.Single(g => g.Purpose == LedPurposes.Shift).Indexes().SequenceEqual(Enumerable.Range(4, 8))
+                && screenGroups.Single(g => g.Purpose == LedPurposes.Right).Indexes().SequenceEqual(new[] { 15, 14, 13, 12 }),
+                string.Join(" | ", screenGroups.Select(g => g.Name + ": " + string.Join(",", g.Indexes()))));
+
+            var bars = new LedLayout { Shape = LedShapes.Bars, Bars = 2, PerBar = 10, Connected = true };
+            var barMap = new LayoutMapper(bars);
+            barMap.Place(0); barMap.Place(1);
+            bool askedForSecondBar = barMap.Next == 10;
+            barMap.Place(10); barMap.Place(11);
+            bars.Map = barMap.Map();
+            List<LedGroup> barGroups = bars.Groups();
+            Check("joined bars map in four clicks and work as one long bar", askedForSecondBar && barMap.Done && barGroups.Count == 1 && barGroups[0].Purpose == LedPurposes.Bar
+                && barGroups[0].Indexes().SequenceEqual(Enumerable.Range(0, 20))
+                && LedTargets.Find("brow-mirror", new List<DeviceSettings> { new DeviceSettings { Id = "b", LedCount = 20, Layout = bars, Groups = barGroups } }).Strips.Select(s => s.Length).SequenceEqual(new[] { 10, 10 }));
+            bars.Connected = false;
+            Check("separate bars become a group each", bars.Groups().Count == 2 && bars.Groups()[1].Indexes().SequenceEqual(Enumerable.Range(10, 10)));
+
+            var odd = new LedLayout { Shape = LedShapes.Strip, Length = 3 };
+            var oddMap = new LayoutMapper(odd);
+            oddMap.Place(2); oddMap.Place(0);
+            bool stillAsking = !oddMap.Done;
+            oddMap.Place(1);
+            Check("wiring that jumps is mapped one LED at a time", stillAsking && oddMap.Done && oddMap.Map().SequenceEqual(new[] { 1, 2, 0 }));
+
+            var loop = new LedLayout { Shape = LedShapes.Screen, Left = 2, Top = 2, Right = 2, Bottom = 2 };
+            var loopMap = new LayoutMapper(loop);
+            loopMap.Place(7); loopMap.Place(0);
+            var undoMap = new LayoutMapper(loop);
+            undoMap.Place(7); undoMap.Place(0); undoMap.Undo();
+            Check("a loop all the way round wraps, and Undo takes back a click", loopMap.Done && loopMap.LedAt(7) == 0 && loopMap.LedAt(6) == 7 && undoMap.Next == 1 && undoMap.LedAt(0) == -1);
+
+            var stored = new DeviceSettings { Name = "Wheel", LedCount = 16, Layout = screen, Groups = screenGroups };
+            stored.Layout.Roles["top"] = LedPurposes.Bar;
+            DeviceSettings storedAgain = SettingsStore.Clone(stored);
+            Check("a device's layout saves and loads", storedAgain.Mapped && storedAgain.Layout.Left == 4 && storedAgain.Layout.Map.SequenceEqual(screen.Map) && storedAgain.Layout.Roles["top"] == LedPurposes.Bar
+                && storedAgain.Groups.All(g => g.Leds != null));
+            stored.Layout.Roles.Clear();
+
             // ---------------- power limit
             Color[] allWhite = Enumerable.Repeat(Color.White, 16).ToArray();
             Color[] limited = LedPower.Limit(allWhite, LedPower.DefaultMilliamps);

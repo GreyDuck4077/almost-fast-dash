@@ -122,7 +122,7 @@ namespace AlmostFastOverlays
             new Purpose { Id = "sides", Name = "Left and right sides", Description = "The left and right side groups, filled alike.", Strips = d => Groups(d, LedPurposes.Left).Concat(Groups(d, LedPurposes.Right)) },
             new Purpose { Id = "dv5", Name = "Every LED on shift-light devices", Description = "Every LED on each device that has shift lights, in the device's own wiring order.",
                 Strips = d => Devices(d).Where(x => x.Item2.Groups.Any(g => g.Purpose == LedPurposes.Shift)).Select(x => new Part(All(x.Item1, x.Item2), false)) },
-            new Purpose { Id = "brow", Name = "Light bar", Description = "Every group set up as a light bar, each filled on its own. To treat several bars as one long bar, pick the device's All LEDs instead.", Strips = d => Groups(d, LedPurposes.Bar) },
+            new Purpose { Id = "brow", Name = "Light bar", Description = "Every light bar, left to right. Bars joined end to end in device setup work as one long bar; separate bars each fill on their own.", Strips = d => Groups(d, LedPurposes.Bar) },
             new Purpose { Id = "brow-mirror", Name = "Light bar, split down the middle", Description = "Both halves of every light bar, each from the middle outward: a car on the left lights the left half. A bar made of several groups (two bars side by side) is split between its groups.", FrontAtEnd = false,
                 Strips = d => BarHalves(d).SelectMany(h => new[] { new Part(h.Item1, false), new Part(h.Item2, true) }) },
             new Purpose { Id = "brow-left", Name = "Light bar, left half", Description = "The left half of every light bar, from the middle outward.", FrontAtEnd = false,
