@@ -41,7 +41,7 @@ namespace AlmostFastOverlays
 
     internal sealed class AppSettings
     {
-        private const int CurrentSchema = 5;
+        private const int CurrentSchema = 6;
 
         public int SchemaVersion { get; set; }
         public string DefaultDashboardId { get; set; } = "dashboard-halo";
@@ -78,18 +78,19 @@ namespace AlmostFastOverlays
         {
             if (Dashboards == null) Dashboards = new List<DashboardSettings>();
             if (General == null) General = new GeneralSettings();
-            if (General.LedDevices == null) General.LedDevices = new List<LedDeviceSettings>();
-            General.LedDevices.RemoveAll(d => d == null);
-            foreach (LedDeviceSettings device in General.LedDevices) device.Normalize();
+            if (General.Devices == null) General.Devices = new List<DeviceSettings>();
+            General.Devices.RemoveAll(d => d == null);
             Dashboards.RemoveAll(d => d == null);
 
             if (SchemaVersion < CurrentSchema)
             {
                 // Two LB-10 bars daisy-chain on one controller, 10 LEDs each.
                 if (SchemaVersion < 4 && General.BrowLedCount == 10) General.BrowLedCount = 20;
-                if (SchemaVersion > 0) ReplaceCodeLayouts();
+                if (SchemaVersion > 0 && SchemaVersion < 5) ReplaceCodeLayouts();
+                if (SchemaVersion > 0 && SchemaVersion < 6) DevicesFromFixedSettings();
                 SchemaVersion = CurrentSchema;
             }
+            foreach (DeviceSettings device in General.Devices) device.Normalize();
 
             if (Dashboards.Count == 0)
             {
@@ -141,6 +142,19 @@ namespace AlmostFastOverlays
             if (defaultRetired) DefaultDashboardId = (Dashboards.FirstOrDefault(d => d.Name == "Halo") ?? Dashboards[0]).Id;
         }
 
+        /// <summary>
+        /// Schema 6: the fixed DV-5 and LB-10 settings become set-up devices with their
+        /// LED groups, so they work exactly as before and can be renamed or re-mapped.
+        /// </summary>
+        private void DevicesFromFixedSettings()
+        {
+            if (General.Devices.Count > 0) return;
+            General.Devices.Add(KnownDevices.Create(KnownDevices.Dv5, General.LedPort, KnownDevices.Dv5.LedCount, true, General.FastLedUpdates));
+            General.Devices.Add(KnownDevices.Create(KnownDevices.Lb10, General.BrowPort, Math.Max(1, General.BrowLedCount), General.BrowEnabled, General.FastLedUpdates));
+            General.LedPort = null;
+            General.BrowPort = null;
+        }
+
         /// <summary>Adds a copy of a dashboard, or a new one from a template.</summary>
         public DashboardSettings AddDashboard(DashboardSettings copyFrom)
         {
@@ -163,14 +177,11 @@ namespace AlmostFastOverlays
             return created;
         }
 
-        /// <summary>Puts a dashboard's classic light settings back to their defaults.</summary>
+        /// <summary>Puts a dashboard's lights and flag alerts back to their defaults.</summary>
         public void ResetDashboard(DashboardSettings dashboard)
         {
             DashboardSettings factory = dashboard.Name == "Oval" ? DashboardSettings.CreateOval() : DashboardSettings.CreateHalo();
-            dashboard.CenterLeds = factory.CenterLeds;
-            dashboard.LeftLeds = factory.LeftLeds;
-            dashboard.RightLeds = factory.RightLeds;
-            dashboard.BrowLeds = factory.BrowLeds;
+            dashboard.Lights = factory.Lights;
             dashboard.Alerts = factory.Alerts;
         }
 
@@ -200,25 +211,22 @@ namespace AlmostFastOverlays
 
     internal sealed class GeneralSettings
     {
-        public string LedPort { get; set; } = "COM7";
+        /// <summary>Every LED device that has been set up: the LEDs on a wheel screen, light bars, strips.</summary>
+        public List<DeviceSettings> Devices { get; set; } = new List<DeviceSettings>();
+
         public int ScreenBrightness { get; set; } = 100;
         public string SpeedUnit { get; set; } = "MPH";
         public string FuelUnit { get; set; } = "Liters";
         public bool AutoSwitchByDiscipline { get; set; } = true;
         public bool DiagnosticsEnabled { get; set; } = true;
-        /// <summary>SSG LB-10 brow light bar.</summary>
-        public bool BrowEnabled { get; set; } = true;
-        public string BrowPort { get; set; } = "COM6";
-        /// <summary>Total LEDs across all chained bars; two LB-10s make 20 (left bar first).</summary>
-        public int BrowLedCount { get; set; } = 20;
-        /// <summary>
-        /// Sends each LED frame as one packet instead of one packet per colour run.
-        /// Much faster, but off until confirmed on the hardware with the LED test.
-        /// </summary>
-        public bool FastLedUpdates { get; set; }
 
-        /// <summary>LED devices besides the DV-5 and LB-10: Arduino boards, Adalight strips, WLED controllers.</summary>
-        public List<LedDeviceSettings> LedDevices { get; set; } = new List<LedDeviceSettings>();
+        // Before schema 6 the DV-5 and LB-10 were fixed settings. They are read once to
+        // build Devices and then cleared; nothing else uses them.
+        public string LedPort { get; set; }
+        public bool BrowEnabled { get; set; } = true;
+        public string BrowPort { get; set; }
+        public int BrowLedCount { get; set; } = 20;
+        public bool FastLedUpdates { get; set; }
     }
 
     internal sealed class DashboardSettings
@@ -243,6 +251,7 @@ namespace AlmostFastOverlays
         {
             DashboardSettings created = Create("dashboard-new", template.Name, template.Accent, "Edges to center", BrowFunctions.Shift);
             created.Design = template.Create();
+            created.Lights = template.Id == "oval" ? LightPresets.SpotterFocus() : LightPresets.Refined();
             return created;
         }
 

@@ -40,13 +40,7 @@ namespace AlmostFastOverlays
         private readonly DispatcherTimer _ledTimer;
         private readonly DispatcherTimer _confirmTimer;
         private bool _savePending;
-        private double _ledPhase;
-        private readonly Ellipse[] _ledDots = new Ellipse[LedFrame.Count];
-        private readonly DropShadowEffect[] _ledGlows = new DropShadowEffect[LedFrame.Count];
         private readonly List<Border> _galleryCards = new List<Border>();
-        private BankEditor _center, _left, _right, _brow;
-        private readonly List<Ellipse> _browDots = new List<Ellipse>();
-        private readonly List<DropShadowEffect> _browGlows = new List<DropShadowEffect>();
         private Button _armedButton;
 
         public SettingsWindow()
@@ -59,12 +53,10 @@ namespace AlmostFastOverlays
             _saveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(350) };
             _saveTimer.Tick += (s, e) => FlushSave();
             _ledTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
-            _ledTimer.Tick += (s, e) => { if (AnimateLeds.IsChecked == true) _ledPhase += 0.05; UpdateLedPreview(); };
+            _ledTimer.Tick += (s, e) => UpdateLedPreview();
             _confirmTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(4) };
             _confirmTimer.Tick += (s, e) => DisarmConfirm();
 
-            BuildBankEditors();
-            BuildLedRig();
             PopulateChoices();
             BuildAccentPresets();
             HookEvents();
@@ -88,95 +80,17 @@ namespace AlmostFastOverlays
         // Setup
         // ------------------------------------------------------------------
 
-        private sealed class BankEditor
-        {
-            public ComboBox Function, Pattern, Profile;
-            public Button Low, Mid, High;
-            public Slider Brightness;
-            public TextBlock BrightnessValue, FunctionHelp;
-            public Func<LedBankSettings> Bank;
-            public Action<LedBankSettings> Replace;
-        }
-
-        private void BuildBankEditors()
-        {
-            _center = new BankEditor
-            {
-                Function = CenterFunction, Pattern = CenterPattern, Profile = CenterProfile,
-                Low = CenterLow, Mid = CenterMid, High = CenterHigh,
-                Brightness = CenterBrightness, BrightnessValue = CenterBrightnessValue,
-                Bank = () => _dashboard.CenterLeds
-            };
-            _left = new BankEditor
-            {
-                Function = LeftFunction, Profile = LeftProfile, Low = LeftLow, Mid = LeftMid, High = LeftHigh,
-                Brightness = LeftBrightness, BrightnessValue = LeftBrightnessValue, FunctionHelp = LeftFunctionHelp,
-                Bank = () => _dashboard.LeftLeds,
-                Replace = bank => _dashboard.LeftLeds = SettingsStore.Clone((SideLedSettings)bank)
-            };
-            _right = new BankEditor
-            {
-                Function = RightFunction, Profile = RightProfile, Low = RightLow, Mid = RightMid, High = RightHigh,
-                Brightness = RightBrightness, BrightnessValue = RightBrightnessValue, FunctionHelp = RightFunctionHelp,
-                Bank = () => _dashboard.RightLeds,
-                Replace = bank => _dashboard.RightLeds = SettingsStore.Clone((SideLedSettings)bank)
-            };
-            _brow = new BankEditor
-            {
-                Function = BrowFunction, Profile = BrowProfile, Low = BrowLow, Mid = BrowMid, High = BrowHigh,
-                Brightness = BrowBrightness, BrightnessValue = BrowBrightnessValue, FunctionHelp = BrowFunctionHelp,
-                Bank = () => _dashboard.BrowLeds
-            };
-        }
-
         private void PopulateChoices()
         {
-            CenterFunction.ItemsSource = new[] { "RPM and shift point", "Nothing (lights off)" };
-            CenterPattern.ItemsSource = LedPatterns.Center;
-            foreach (BankEditor editor in Editors()) editor.Profile.ItemsSource = LedProfiles.All;
-            LeftFunction.ItemsSource = LedFunctions.Side;
-            RightFunction.ItemsSource = LedFunctions.Side;
-            BrowFunction.ItemsSource = BrowFunctions.All;
             PreviewState.ItemsSource = PreviewStates;
             PreviewState.SelectedIndex = 0;
         }
 
-        private IEnumerable<BankEditor> Editors() => new[] { _center, _left, _right, _brow };
-
         private void HookEvents()
         {
-            foreach (BankEditor editor in Editors())
-            {
-                BankEditor e = editor;
-                e.Function.SelectionChanged += (s, a) => OnBankEdited(e, bank =>
-                {
-                    if (e == _center) bank.Function = e.Function.SelectedIndex == 1 ? LedFunctions.Disabled : LedFunctions.Rpm;
-                    else bank.Function = (string)e.Function.SelectedItem ?? bank.Function;
-                });
-                if (e.Pattern != null)
-                    e.Pattern.SelectionChanged += (s, a) => OnBankEdited(e, bank => bank.Pattern = (string)e.Pattern.SelectedItem ?? bank.Pattern);
-                e.Profile.SelectionChanged += (s, a) => OnBankEdited(e, bank => ApplyProfile(bank, (string)e.Profile.SelectedItem));
-                e.Brightness.ValueChanged += (s, a) =>
-                {
-                    e.BrightnessValue.Text = (int)e.Brightness.Value + "%";
-                    OnBankEdited(e, bank => bank.Brightness = (int)e.Brightness.Value);
-                };
-                e.Low.Click += (s, a) => PickStageColor(e, 0);
-                e.Mid.Click += (s, a) => PickStageColor(e, 1);
-                e.High.Click += (s, a) => PickStageColor(e, 2);
-            }
-
             BlinkCountSlider.ValueChanged += (s, e) => OnAlertsEdited();
             BlinkLengthSlider.ValueChanged += (s, e) => OnAlertsEdited();
             HoldSlider.ValueChanged += (s, e) => OnAlertsEdited();
-            BrowCountSlider.ValueChanged += (s, e) =>
-            {
-                BrowCountValue.Text = (int)BrowCountSlider.Value + " LEDs";
-                if (_loading) return;
-                _settings.General.BrowLedCount = (int)BrowCountSlider.Value;
-                BuildBrowPreview();
-                Save();
-            };
             ScreenBrightness.ValueChanged += (s, e) =>
             {
                 ScreenBrightnessValue.Text = (int)ScreenBrightness.Value + "%";
@@ -184,48 +98,6 @@ namespace AlmostFastOverlays
                 _settings.General.ScreenBrightness = (int)ScreenBrightness.Value;
                 Save();
             };
-        }
-
-        private void BuildLedRig()
-        {
-            for (int i = 0; i < LedFrame.Count; i++)
-            {
-                _ledGlows[i] = new DropShadowEffect { ShadowDepth = 0, BlurRadius = 14, Opacity = 0 };
-                _ledDots[i] = new Ellipse
-                {
-                    Width = 12, Height = 12,
-                    HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
-                    Fill = (Brush)FindResource("Brush.LedOff"),
-                    Stroke = new SolidColorBrush(Color.FromArgb(40, 255, 255, 255)), StrokeThickness = 1,
-                    Effect = _ledGlows[i]
-                };
-            }
-            for (int i = 4; i < 12; i++) TopLeds.Children.Add(_ledDots[i]);
-            for (int i = 3; i >= 0; i--) LeftLeds.Children.Add(_ledDots[i]);
-            for (int i = 12; i < 16; i++) RightLeds.Children.Add(_ledDots[i]);
-        }
-
-        private void BuildBrowPreview()
-        {
-            BrowLedsPreview.Children.Clear();
-            _browDots.Clear();
-            _browGlows.Clear();
-            int count = Math.Max(1, _settings.General.BrowLedCount);
-            BrowLedsPreview.Columns = count;
-            for (int i = 0; i < count; i++)
-            {
-                var glow = new DropShadowEffect { ShadowDepth = 0, BlurRadius = 12, Opacity = 0 };
-                var dot = new Border
-                {
-                    Width = Math.Max(6, Math.Min(22, 300.0 / count)), Height = 8, CornerRadius = new CornerRadius(3),
-                    HorizontalAlignment = HorizontalAlignment.Center, Background = (Brush)FindResource("Brush.LedOff"), Effect = glow
-                };
-                _browGlows.Add(glow);
-                _browDots.Add(null);
-                BrowLedsPreview.Children.Add(dot);
-            }
-            BrowPreview.Visibility = _settings.General.BrowEnabled ? Visibility.Visible : Visibility.Collapsed;
-            UpdateLedPreview();
         }
 
         private void BuildAccentPresets()
@@ -300,7 +172,7 @@ namespace AlmostFastOverlays
             ShowSubNav(DashboardSubNav, dashboards);
             AnimatePageIn(page);
             if (page == GalleryPage) BuildGalleryCards();
-            if (page == SettingsPage) { RefreshPorts(); BuildLedDevices(); }
+            if (page == SettingsPage) BuildDeviceList();
             if (page == EditorPage) _ledTimer.Start(); else _ledTimer.Stop();
             page.ScrollToTop();
         }
@@ -500,7 +372,7 @@ namespace AlmostFastOverlays
             int widgets = _dashboard.Design?.AllWidgets().Count() ?? 0, screens = _dashboard.Design?.Screens.Count ?? 1;
             DesignCardTitle.Text = "Screen design";
             DesignCardText.Text = widgets + " widgets on " + screens + (screens == 1 ? " screen" : " screens") +
-                ". Open the designer to move, restyle or add anything on the DV-5 screen.";
+                ". Open the designer to move, restyle or add anything on the wheel screen.";
             DesignButtonLabel.Text = "Open designer";
             EditorDefaultBadge.Visibility = isDefault ? Visibility.Visible : Visibility.Collapsed;
             SetDefaultButton.Visibility = isDefault ? Visibility.Collapsed : Visibility.Visible;
@@ -511,11 +383,6 @@ namespace AlmostFastOverlays
             DirtOvalChip.IsChecked = _dashboard.RaceTypes.Contains(Disciplines.DirtOval);
             DirtRoadChip.IsChecked = _dashboard.RaceTypes.Contains(Disciplines.DirtRoad);
             UpdateAssignmentHelp();
-
-            foreach (BankEditor editor in Editors()) LoadBank(editor);
-            MirrorSides.IsChecked = SameJson(_dashboard.LeftLeds, _dashboard.RightLeds);
-            BrowFlagsToggle.IsChecked = _dashboard.BrowLeds.FlagOverride;
-            UpdateMirrorState();
 
             BlinkCountSlider.Value = _dashboard.Alerts.BlinkCount;
             BlinkLengthSlider.Value = _dashboard.Alerts.BlinkMilliseconds;
@@ -529,130 +396,6 @@ namespace AlmostFastOverlays
             UpdateLightsCard();
             RefreshAccent();
             RefreshPreview();
-        }
-
-        private void LoadBank(BankEditor editor)
-        {
-            bool was = _loading;
-            _loading = true;
-            LedBankSettings bank = editor.Bank();
-            if (editor == _center) editor.Function.SelectedIndex = bank.Function == LedFunctions.Disabled ? 1 : 0;
-            else if (editor == _brow) editor.Function.SelectedItem = BrowFunctions.All.Contains(bank.Function) ? bank.Function : BrowFunctions.Shift;
-            else editor.Function.SelectedItem = LedFunctions.Side.Contains(bank.Function) ? bank.Function : LedFunctions.BlindSpot;
-            if (editor.Pattern != null) editor.Pattern.SelectedItem = LedPatterns.Center.Contains(bank.Pattern) ? bank.Pattern : LedPatterns.Center[0];
-            editor.Profile.SelectedItem = LedProfiles.All.Contains(bank.ColorProfile) ? bank.ColorProfile : LedProfiles.Custom;
-            editor.Brightness.Value = bank.Brightness;
-            editor.BrightnessValue.Text = bank.Brightness + "%";
-            if (editor.FunctionHelp != null)
-                editor.FunctionHelp.Text = editor == _brow ? BrowFunctions.Describe(bank.Function) : DescribeSideFunction(bank.Function);
-
-            DrawingColor[] colors = LedFrame.GetProfile(bank);
-            editor.Low.Background = BrushFor(colors[0]);
-            editor.Mid.Background = BrushFor(colors[1]);
-            editor.High.Background = BrushFor(colors[2]);
-            bool single = bank.ColorProfile == LedProfiles.Single;
-            editor.Low.Visibility = single ? Visibility.Collapsed : Visibility.Visible;
-            editor.Mid.Visibility = single ? Visibility.Collapsed : Visibility.Visible;
-            string role = editor == _center ? "RPM" : "level";
-            editor.Low.ToolTip = "Low " + role + " · " + SettingsStore.ToHex(colors[0]);
-            editor.Mid.ToolTip = "Mid " + role + " · " + SettingsStore.ToHex(colors[1]);
-            editor.High.ToolTip = (single ? "Color" : "High " + role) + " · " + SettingsStore.ToHex(colors[2]);
-            bool off = bank.Function == LedFunctions.Disabled || bank.Function == BrowFunctions.Off;
-            foreach (UIElement control in new UIElement[] { editor.Profile, editor.Low, editor.Mid, editor.High, editor.Brightness })
-                control.IsEnabled = !off;
-            if (editor.Pattern != null) editor.Pattern.IsEnabled = !off;
-            _loading = was;
-        }
-
-        private static string DescribeSideFunction(string function)
-        {
-            switch (function)
-            {
-                case LedFunctions.BlindSpot: return "Lights when a car is alongside: top when it's ahead, middle beside you, bottom as it drops back.";
-                case LedFunctions.Rpm: return "Fills from the top as revs rise, together with the shift lights.";
-                case LedFunctions.Brake: return "Fills from the bottom with brake pedal pressure.";
-                case LedFunctions.Throttle: return "Fills from the bottom with throttle position.";
-                default: return "These lights stay off.";
-            }
-        }
-
-        private void OnBankEdited(BankEditor editor, Action<LedBankSettings> apply)
-        {
-            if (_loading) return;
-            apply(editor.Bank());
-            AfterBankChange(editor);
-        }
-
-        private void AfterBankChange(BankEditor editor)
-        {
-            if (editor == _left && MirrorSides.IsChecked == true)
-            {
-                _right.Replace(_dashboard.LeftLeds);
-                LoadBank(_right);
-            }
-            LoadBank(editor);
-            Changed();
-        }
-
-        private static void ApplyProfile(LedBankSettings bank, string profile)
-        {
-            if (profile == null || profile == bank.ColorProfile) return;
-            string[] preset = LedProfiles.PresetColors(profile);
-            if (preset != null)
-            {
-                bank.LowColor = preset[0];
-                bank.MidColor = preset[1];
-                bank.HighColor = preset[2];
-            }
-            else if (profile == LedProfiles.Single)
-            {
-                bank.LowColor = bank.HighColor;
-                bank.MidColor = bank.HighColor;
-            }
-            bank.ColorProfile = profile;
-        }
-
-        private void PickStageColor(BankEditor editor, int stage)
-        {
-            LedBankSettings bank = editor.Bank();
-            DrawingColor[] current = LedFrame.GetProfile(bank);
-            if (!WindowsColorPicker.TryChoose(SettingsStore.ToHex(current[stage]), out string chosen)) return;
-            // Keep the displayed colors, then switch to Custom so the choice sticks.
-            bank.LowColor = SettingsStore.ToHex(current[0]);
-            bank.MidColor = SettingsStore.ToHex(current[1]);
-            bank.HighColor = SettingsStore.ToHex(current[2]);
-            if (bank.ColorProfile == LedProfiles.Single)
-            {
-                bank.LowColor = bank.MidColor = bank.HighColor = chosen;
-            }
-            else
-            {
-                if (stage == 0) bank.LowColor = chosen;
-                else if (stage == 1) bank.MidColor = chosen;
-                else bank.HighColor = chosen;
-                bank.ColorProfile = LedProfiles.Custom;
-            }
-            AfterBankChange(editor);
-        }
-
-        private void MirrorSides_Click(object sender, RoutedEventArgs e)
-        {
-            if (_loading) return;
-            if (MirrorSides.IsChecked == true)
-            {
-                _right.Replace(_dashboard.LeftLeds);
-                LoadBank(_right);
-                Changed();
-            }
-            UpdateMirrorState();
-        }
-
-        private void UpdateMirrorState()
-        {
-            bool mirrored = MirrorSides.IsChecked == true;
-            RightPanel.IsEnabled = !mirrored;
-            RightPanel.Opacity = mirrored ? 0.45 : 1;
-            RightPanel.ToolTip = mirrored ? "Following the left side. Turn off “Same on both sides” to edit." : null;
         }
 
         private void OnAlertsEdited()
@@ -874,74 +617,7 @@ namespace AlmostFastOverlays
             }
         }
 
-        private void UpdateLedPreview()
-        {
-            if (_dashboard == null || _ledDots[0] == null) return;
-            if (_dashboard.Lights != null) { UpdateLayeredPreview(); return; }
-            double t = _ledPhase;
-            bool animate = AnimateLeds.IsChecked == true;
-            bool shiftState = PreviewState.SelectedIndex == 1;
-            BlindSpotZone[] cycle = { BlindSpotZone.None, BlindSpotZone.Front, BlindSpotZone.Beside, BlindSpotZone.Rear, BlindSpotZone.None };
-            double rpm = animate ? Math.Min(1, (t % 3.2) / 3.2 * 1.12) : shiftState ? 1 : 0.62;
-            var input = new LedInputs
-            {
-                ShiftPct = rpm,
-                ShiftFlashOn = rpm >= 0.98 && (!animate || ((int)(t * 7) & 1) == 0),
-                Left = animate ? cycle[(int)(t / 0.7) % cycle.Length] : BlindSpotZone.Beside,
-                Right = animate ? cycle[((int)(t / 0.7) + 2) % cycle.Length] : BlindSpotZone.None,
-                Brake = animate ? Math.Max(0, Math.Sin(t * 1.6)) : 0.55,
-                Throttle = animate ? Math.Max(0, -Math.Sin(t * 1.6)) : 0.8,
-                Delta = animate ? Math.Sin(t * 0.9) * 0.8 : 0.46,
-                FuelPct = animate ? 1 - (t % 8) / 8 : 0.41,
-                Flag = _previewFlag,
-                Clock = Environment.TickCount
-            };
-            if (PreviewState.SelectedIndex == 3) { input.Left = BlindSpotZone.Beside; input.Right = BlindSpotZone.Front; }
-            UpdateBrowPreview(input);
-            DrawingColor[] frame = LedFrame.Compose(_dashboard, input);
-            for (int i = 0; i < LedFrame.Count; i++)
-            {
-                DrawingColor c = frame[i];
-                if (c.R == 0 && c.G == 0 && c.B == 0)
-                {
-                    _ledDots[i].Fill = (Brush)FindResource("Brush.LedOff");
-                    _ledGlows[i].Opacity = 0;
-                    continue;
-                }
-                // Show the true hue at a visible level, and express brightness as intensity.
-                int brightness = Math.Max(1, (i < 4 ? _dashboard.LeftLeds : i < 12 ? _dashboard.CenterLeds : _dashboard.RightLeds).Brightness);
-                Color hue = Color.FromRgb(Boost(c.R, brightness), Boost(c.G, brightness), Boost(c.B, brightness));
-                double level = 0.45 + 0.55 * brightness / 100.0;
-                _ledDots[i].Fill = new SolidColorBrush(Color.FromArgb((byte)(255 * level), hue.R, hue.G, hue.B));
-                _ledGlows[i].Color = hue;
-                _ledGlows[i].Opacity = 0.9 * level;
-            }
-        }
-
-        private void UpdateBrowPreview(LedInputs input)
-        {
-            if (_browDots.Count == 0 || _dashboard?.BrowLeds == null) return;
-            DrawingColor[] frame = LedFrame.ComposeBrow(_dashboard.BrowLeds, _browDots.Count, input);
-            int brightness = Math.Max(1, _dashboard.BrowLeds.Brightness);
-            for (int i = 0; i < _browDots.Count && i < BrowLedsPreview.Children.Count; i++)
-            {
-                var dot = (Border)BrowLedsPreview.Children[i];
-                DrawingColor c = frame[i];
-                if (c.R == 0 && c.G == 0 && c.B == 0)
-                {
-                    dot.Background = (Brush)FindResource("Brush.LedOff");
-                    _browGlows[i].Opacity = 0;
-                    continue;
-                }
-                Color hue = Color.FromRgb(Boost(c.R, brightness), Boost(c.G, brightness), Boost(c.B, brightness));
-                double level = 0.45 + 0.55 * brightness / 100.0;
-                dot.Background = new SolidColorBrush(Color.FromArgb((byte)(255 * level), hue.R, hue.G, hue.B));
-                _browGlows[i].Color = hue;
-                _browGlows[i].Opacity = 0.9 * level;
-            }
-        }
-
-        private static byte Boost(int channel, int brightness) => (byte)Math.Min(255, channel * 100 / brightness);
+        private void UpdateLedPreview() => UpdateLayeredPreview();
 
         // ------------------------------------------------------------------
         // Device & app settings
@@ -959,181 +635,6 @@ namespace AlmostFastOverlays
             AutoSwitchToggle.IsChecked = general.AutoSwitchByDiscipline;
             DiagnosticsToggle.IsChecked = general.DiagnosticsEnabled;
             StartupToggle.IsChecked = File.Exists(StartupShortcutPath);
-            BrowEnabledToggle.IsChecked = general.BrowEnabled;
-            FastLedToggle.IsChecked = general.FastLedUpdates;
-            BrowCountSlider.Value = Math.Max(2, Math.Min(40, general.BrowLedCount));
-            BrowCountValue.Text = general.BrowLedCount + " LEDs";
-            RefreshPorts();
-            BuildBrowPreview();
-        }
-
-        private void RefreshPorts()
-        {
-            // Adopt the ports the devices are actually on; Windows can renumber them.
-            string dv5 = DevicePorts.Find(DevicePorts.Dv5), bar = DevicePorts.Find(DevicePorts.LightBar);
-            bool moved = (dv5 != null && dv5 != _settings.General.LedPort) || (bar != null && bar != _settings.General.BrowPort);
-            if (dv5 != null) _settings.General.LedPort = dv5;
-            if (bar != null) _settings.General.BrowPort = bar;
-            if (moved && !_loading) Save("Found your devices on " + (dv5 ?? "?") + " and " + (bar ?? "?"));
-            bool was = _loading;
-            _loading = true;
-            var ports = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
-            try { foreach (string port in SerialPort.GetPortNames()) ports.Add(port); } catch { }
-            if (!string.IsNullOrWhiteSpace(_settings.General.LedPort)) ports.Add(_settings.General.LedPort);
-            PortCombo.ItemsSource = ports.OrderBy(p => p.Length).ThenBy(p => p, StringComparer.OrdinalIgnoreCase).ToList();
-            PortCombo.SelectedItem = ports.FirstOrDefault(p => string.Equals(p, _settings.General.LedPort, StringComparison.OrdinalIgnoreCase));
-            if (!string.IsNullOrWhiteSpace(_settings.General.BrowPort)) ports.Add(_settings.General.BrowPort);
-            BrowPortCombo.ItemsSource = ports.OrderBy(p => p.Length).ThenBy(p => p, StringComparer.OrdinalIgnoreCase).ToList();
-            BrowPortCombo.SelectedItem = ports.FirstOrDefault(p => string.Equals(p, _settings.General.BrowPort, StringComparison.OrdinalIgnoreCase));
-            _loading = was;
-        }
-
-        private void RefreshPorts_Click(object sender, RoutedEventArgs e) => RefreshPorts();
-
-        private void PortCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (_loading || !(PortCombo.SelectedItem is string port)) return;
-            _settings.General.LedPort = port;
-            Save(IsDashboardRunning() ? "Saved · restart the dashboard to use " + port : "Saved");
-        }
-
-        private void BrowFlags_Changed(object sender, RoutedEventArgs e)
-        {
-            if (_loading) return;
-            _dashboard.BrowLeds.FlagOverride = BrowFlagsToggle.IsChecked == true;
-            Changed();
-        }
-
-        private void BrowEnabled_Changed(object sender, RoutedEventArgs e)
-        {
-            if (_loading) return;
-            _settings.General.BrowEnabled = BrowEnabledToggle.IsChecked == true;
-            BuildBrowPreview();
-            Save();
-        }
-
-        private void BrowPortCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (_loading || !(BrowPortCombo.SelectedItem is string port)) return;
-            _settings.General.BrowPort = port;
-            Save();
-        }
-
-        private async void TestBrow_Click(object sender, RoutedEventArgs e)
-        {
-            string port = DevicePorts.Resolve(_settings.General.BrowPort, DevicePorts.LightBar);
-            int count = _settings.General.BrowLedCount;
-            BrowTestStatus.Visibility = Visibility.Visible;
-            if (IsDashboardRunning())
-            {
-                BrowTestStatus.Text = "Stop the dashboard first so the light bar is free to test.";
-                BrowTestStatus.Foreground = (Brush)FindResource("Brush.Warning");
-                return;
-            }
-            TestBrowButton.IsEnabled = false;
-            BrowTestStatus.Text = "Testing the light bar on " + port + "…";
-            BrowTestStatus.Foreground = (Brush)FindResource("Brush.TextSecondary");
-            BrowLedSettings brow = SettingsStore.Clone((_dashboard ?? _settings.GetDefaultDashboard()).BrowLeds);
-            try
-            {
-                string device = await Task.Run(() => RunBrowTest(port, count, brow));
-                BrowTestStatus.Text = $"Found {device} on {port}. It lit each LED left to right, then ran a shift sweep. If some LEDs stayed dark or the sweep stopped short, adjust the LED count.";
-                BrowTestStatus.Foreground = (Brush)FindResource("Brush.Success");
-            }
-            catch (Exception ex)
-            {
-                BrowTestStatus.Text = $"Couldn't reach the light bar on {port}. {ex.Message}";
-                BrowTestStatus.Foreground = (Brush)FindResource("Brush.Danger");
-            }
-            finally
-            {
-                TestBrowButton.IsEnabled = true;
-            }
-        }
-
-        private static string RunBrowTest(string port, int count, BrowLedSettings brow)
-        {
-            using (var leds = new ArduinoLedController(port, 115200, count, "SSG LB-10"))
-            {
-                leds.Connect();
-                string name = leds.QueryDeviceName();
-                var frame = new DrawingColor[count];
-                for (int i = 0; i < count; i++)
-                {
-                    for (int j = 0; j < count; j++) frame[j] = j == i ? DrawingColor.FromArgb(180, 180, 180) : DrawingColor.Black;
-                    leds.SetFrame(frame);
-                    Thread.Sleep(220);
-                }
-                var shift = SettingsStore.Clone(brow);
-                shift.Function = BrowFunctions.Shift;
-                shift.FlagOverride = false;
-                for (int step = 0; step <= 10; step++)
-                {
-                    leds.SetFrame(LedFrame.ComposeBrow(shift, count, new LedInputs { ShiftPct = step / 10.0 }));
-                    Thread.Sleep(90);
-                }
-                leds.Clear();
-                return name;
-            }
-        }
-
-        private async void TestLeds_Click(object sender, RoutedEventArgs e)
-        {
-            string port = DevicePorts.Resolve(_settings.General.LedPort, DevicePorts.Dv5);
-            LedTestStatus.Visibility = Visibility.Visible;
-            if (IsDashboardRunning())
-            {
-                ShowTestStatus("Stop the dashboard first so the lights are free to test.", "Brush.Warning");
-                return;
-            }
-            TestLedsButton.IsEnabled = false;
-            ShowTestStatus("Testing lights on " + port + "…", "Brush.TextSecondary");
-            DashboardSettings dashboard = SettingsStore.Clone(_dashboard ?? _settings.GetDefaultDashboard());
-            try
-            {
-                string device = await Task.Run(() => RunLedTest(port, dashboard));
-                ShowTestStatus($"Found {device} on {port}. The lights just ran through a sweep.", "Brush.Success");
-            }
-            catch (Exception ex)
-            {
-                ShowTestStatus($"Couldn't reach the lights on {port}. {ex.Message}", "Brush.Danger");
-            }
-            finally
-            {
-                TestLedsButton.IsEnabled = true;
-            }
-        }
-
-        private static string RunLedTest(string port, DashboardSettings dashboard)
-        {
-            using (var leds = new ArduinoLedController(port, 115200, LedFrame.Count))
-            {
-                leds.Connect();
-                string name = leds.QueryDeviceName();
-                for (int step = 0; step <= 8; step++)
-                {
-                    leds.SetFrame(LedFrame.Compose(dashboard, new LedInputs { ShiftPct = step / 8.0 }));
-                    Thread.Sleep(110);
-                }
-                for (int flash = 0; flash < 6; flash++)
-                {
-                    leds.SetFrame(LedFrame.Compose(dashboard, new LedInputs { ShiftPct = 1, ShiftFlashOn = flash % 2 == 0 }));
-                    Thread.Sleep(120);
-                }
-                foreach (BlindSpotZone zone in new[] { BlindSpotZone.Front, BlindSpotZone.Beside, BlindSpotZone.Rear })
-                {
-                    leds.SetFrame(LedFrame.Compose(dashboard, new LedInputs { Left = zone, Right = zone }));
-                    Thread.Sleep(350);
-                }
-                leds.Clear();
-                return name;
-            }
-        }
-
-        private void ShowTestStatus(string text, string brushKey)
-        {
-            LedTestStatus.Text = text;
-            LedTestStatus.Foreground = (Brush)FindResource(brushKey);
         }
 
         private void Units_Changed(object sender, RoutedEventArgs e)
@@ -1269,7 +770,10 @@ namespace AlmostFastOverlays
         // Dashboard process control
         // ------------------------------------------------------------------
 
-        private async void StartDashboard_Click(object sender, RoutedEventArgs e)
+        private async void StartDashboard_Click(object sender, RoutedEventArgs e) => await StartDashboardAsync();
+
+        /// <summary>Starts the dashboard (restarting it if it's running) and updates the header.</summary>
+        private async Task StartDashboardAsync()
         {
             FlushSave();
             _dashboardOperationInProgress = true;
@@ -1289,7 +793,10 @@ namespace AlmostFastOverlays
             if (running) RefreshDashboardStatus(); else SetStopped("Couldn't start");
         }
 
-        private async void StopDashboard_Click(object sender, RoutedEventArgs e)
+        private async void StopDashboard_Click(object sender, RoutedEventArgs e) => await StopDashboardAsync();
+
+        /// <summary>Stops the dashboard and updates the header; true once it has stopped.</summary>
+        private async Task<bool> StopDashboardAsync()
         {
             _dashboardOperationInProgress = true;
             SetStatus("Stopping…", "Brush.Warning");
@@ -1297,6 +804,7 @@ namespace AlmostFastOverlays
             bool stopped = await WaitForDashboardState(false, 10000);
             _dashboardOperationInProgress = false;
             if (stopped) RefreshDashboardStatus(); else SetStatus("Didn't stop", "Brush.Danger");
+            return stopped;
         }
 
         private static Process Launch(string arguments) => Process.Start(new ProcessStartInfo

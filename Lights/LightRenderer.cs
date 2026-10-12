@@ -1,17 +1,17 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 
 namespace AlmostFastOverlays
 {
-    /// <summary>One composed set of LED colours, plus which layer lit each LED.</summary>
+    /// <summary>One composed set of LED colours for every device, plus which layer lit each LED.</summary>
     internal sealed class LightFrame
     {
-        public Color[] Dv5 = new Color[LedFrame.Count];
-        public Color[] Brow;
-        public string[] Dv5Owner = new string[LedFrame.Count];
-        public string[] BrowOwner;
+        /// <summary>Colours per device, in the same order as the device list.</summary>
+        public Color[][] Leds;
+        /// <summary>The name of the layer that lit each LED, or null.</summary>
+        public string[][] Owners;
     }
 
     /// <summary>
@@ -26,25 +26,35 @@ namespace AlmostFastOverlays
         private readonly LightProfile _profile;
         private readonly string _accent;
         private readonly UnitSystem _units;
-        private readonly int _browCount;
         private readonly LayoutTheme _theme = new LayoutTheme();
-        private readonly double[] _dv5State = new double[LedFrame.Count * 3];
-        private readonly double[] _browState;
+        private readonly int[] _counts;
+        private readonly Dictionary<string, LedTarget> _targets;
+        private readonly double[][] _state;
         private int _lastTick;
         private bool _started;
 
-        public LightRenderer(LightProfile profile, string accent, UnitSystem units, int browCount)
+        /// <param name="devices">The set-up devices; frames have one entry per device, in this order.</param>
+        public LightRenderer(LightProfile profile, string accent, UnitSystem units, IReadOnlyList<DeviceSettings> devices)
         {
             _profile = profile ?? new LightProfile();
             _profile.Normalize();
             _accent = accent ?? "#2DD4BF";
             _units = units ?? UnitSystem.Default;
-            _browCount = Math.Max(1, Math.Min(64, browCount));
-            _browState = new double[_browCount * 3];
+            devices = devices ?? new List<DeviceSettings>();
+            _counts = devices.Select(d => Math.Max(1, d?.LedCount ?? 1)).ToArray();
+            _state = _counts.Select(n => new double[n * 3]).ToArray();
+            _targets = LedTargets.For(devices).GroupBy(t => t.Id).ToDictionary(g => g.Key, g => g.First());
+            Signature = DeviceSignature(devices);
         }
 
         public LightProfile Profile => _profile;
-        public int BrowCount => _browCount;
+
+        /// <summary>Identifies the device layout the renderer was built for; a new one is needed when it changes.</summary>
+        public string Signature { get; }
+
+        public static string DeviceSignature(IEnumerable<DeviceSettings> devices) =>
+            string.Join(";", (devices ?? Enumerable.Empty<DeviceSettings>()).Select(d => d == null ? "" :
+                d.Id + ":" + d.LedCount + ":" + d.Enabled + ":" + string.Join(",", d.Groups.Select(g => g.Id + g.Purpose + g.From + "-" + g.To + g.Reverse))));
 
         /// <summary>Layer ids whose condition or properties failed on the last frame, with the reason.</summary>
         public Dictionary<string, string> Errors { get; } = new Dictionary<string, string>();
@@ -57,9 +67,8 @@ namespace AlmostFastOverlays
                 T = t, Units = _units, Theme = _theme, Accent = _accent, Now = DateTime.Now,
                 ShiftFlashOn = DataCatalog.AtShiftPoint(t) && ((now / 140) & 1) == 0
             };
-            var dv5 = new Color?[LedFrame.Count];
-            var brow = new Color?[_browCount];
-            var frame = new LightFrame { Brow = new Color[_browCount], BrowOwner = new string[_browCount] };
+            var composed = _counts.Select(n => new Color?[n]).ToArray();
+            var frame = new LightFrame { Leds = _counts.Select(n => new Color[n]).ToArray(), Owners = _counts.Select(n => new string[n]).ToArray() };
             Errors.Clear();
 
             // Bottom of the list first, so higher layers paint over it.
@@ -72,9 +81,8 @@ namespace AlmostFastOverlays
                     if (!string.IsNullOrWhiteSpace(layer.Condition) && !Expr.Bool(Expr.Evaluate(LayoutRenderer.Strip(layer.Condition), scope)))
                         continue;
                     LightEffect effect = LightEffects.Find(layer.Effect);
-                    LedTarget target = LedTargets.Find(layer.Target);
-                    if (effect == null || target == null) continue;
-                    List<LedRef[]> strips = target.Strips(_browCount);
+                    if (effect == null || !_targets.TryGetValue(layer.Target, out LedTarget target)) continue;
+                    List<LedRef[]> strips = target.Strips;
                     double level = layer.Brightness / 100.0;
                     bool replace = layer.Blend == "Replace";
                     for (int s = 0; s < strips.Count; s++)
@@ -89,8 +97,11 @@ namespace AlmostFastOverlays
                             if (!lit && !replace) continue;
                             Color value = lit ? LightEffects.Scale(c.Value, level) : Color.Black;
                             LedRef led = strip[i];
-                            if (led.Device == 0 && led.Index < dv5.Length) { dv5[led.Index] = value; frame.Dv5Owner[led.Index] = layer.Name; }
-                            else if (led.Device == 1 && led.Index < brow.Length) { brow[led.Index] = value; frame.BrowOwner[led.Index] = layer.Name; }
+                            if (led.Device < composed.Length && led.Index < composed[led.Device].Length)
+                            {
+                                composed[led.Device][led.Index] = value;
+                                frame.Owners[led.Device][led.Index] = layer.Name;
+                            }
                         }
                     }
                 }
@@ -103,8 +114,7 @@ namespace AlmostFastOverlays
             double dt = _started ? Math.Max(0, Math.Min(5000, (now - _lastTick) & int.MaxValue)) : 0;
             _started = true;
             _lastTick = now;
-            Output(dv5, _dv5State, frame.Dv5, dt);
-            Output(brow, _browState, frame.Brow, dt);
+            for (int d = 0; d < composed.Length; d++) Output(composed[d], _state[d], frame.Leds[d], dt);
             return frame;
         }
 

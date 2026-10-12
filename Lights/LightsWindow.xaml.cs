@@ -45,10 +45,9 @@ namespace AlmostFastOverlays
         private DateTime _lastCommitUtc;
         private readonly bool _wasClassic;
 
-        private readonly Ellipse[] _dv5Leds = new Ellipse[LedFrame.Count];
-        private readonly DropShadowEffect[] _dv5Glows = new DropShadowEffect[LedFrame.Count];
-        private readonly List<Ellipse> _browLeds = new List<Ellipse>();
-        private readonly List<DropShadowEffect> _browGlows = new List<DropShadowEffect>();
+        private readonly List<Ellipse[]> _deviceLeds = new List<Ellipse[]>();
+        private readonly List<DropShadowEffect[]> _deviceGlows = new List<DropShadowEffect[]>();
+        private List<DeviceSettings> Devices => _settings.General.Devices;
         private readonly List<FormulaBox> _formulas = new List<FormulaBox>();
         private bool _loading;
 
@@ -180,26 +179,44 @@ namespace AlmostFastOverlays
         // LED stage
         // ==================================================================
 
+        /// <summary>One panel per set-up device, its LEDs in order.</summary>
         private void BuildStage()
         {
-            for (int i = 0; i < LedFrame.Count; i++)
+            DeviceStages.Children.Clear();
+            _deviceLeds.Clear();
+            _deviceGlows.Clear();
+            if (!Devices.Any(d => d.Enabled))
+                DeviceStages.Children.Add(new TextBlock
+                {
+                    Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap, HorizontalAlignment = HorizontalAlignment.Center,
+                    Text = "No LED devices are set up yet. Add them on the Devices page; until then the layers have nothing to light."
+                });
+            for (int d = 0; d < Devices.Count; d++)
             {
-                _dv5Glows[i] = new DropShadowEffect { ShadowDepth = 0, BlurRadius = 18, Opacity = 0 };
-                _dv5Leds[i] = MakeLed(20, _dv5Glows[i], LedRef.Dv5(i));
-            }
-            for (int i = 4; i < 12; i++) ShiftStage.Children.Add(_dv5Leds[i]);
-            for (int i = 3; i >= 0; i--) LeftStage.Children.Add(_dv5Leds[i]);
-            for (int i = 12; i < 16; i++) RightStage.Children.Add(_dv5Leds[i]);
-
-            int count = Math.Max(1, Math.Min(64, _settings.General.BrowLedCount));
-            BrowStage.Columns = count;
-            for (int i = 0; i < count; i++)
-            {
-                var glow = new DropShadowEffect { ShadowDepth = 0, BlurRadius = 16, Opacity = 0 };
-                Ellipse led = MakeLed(Math.Max(10, Math.Min(22, 520.0 / count)), glow, LedRef.Brow(i));
-                _browGlows.Add(glow);
-                _browLeds.Add(led);
-                BrowStage.Children.Add(led);
+                DeviceSettings device = Devices[d];
+                var leds = new Ellipse[device.LedCount];
+                var glows = new DropShadowEffect[device.LedCount];
+                _deviceLeds.Add(leds);
+                _deviceGlows.Add(glows);
+                if (!device.Enabled) continue;
+                // Sized so a device's LEDs fit on one row where they can (a 20-LED bar included).
+                double size = Math.Max(8, Math.Min(20, 600 / (device.LedCount * 1.6)));
+                var row = new WrapPanel { HorizontalAlignment = HorizontalAlignment.Center };
+                for (int i = 0; i < device.LedCount; i++)
+                {
+                    glows[i] = new DropShadowEffect { ShadowDepth = 0, BlurRadius = 16, Opacity = 0 };
+                    leds[i] = MakeLed(size, glows[i], new LedRef(d, i));
+                    leds[i].Margin = new Thickness(size * 0.3);
+                    row.Children.Add(leds[i]);
+                }
+                var panel = new StackPanel();
+                panel.Children.Add(new TextBlock { Text = device.Name.ToUpperInvariant(), Style = (Style)FindResource("T.Overline"), Margin = new Thickness(2, 0, 0, 8) });
+                panel.Children.Add(row);
+                DeviceStages.Children.Add(new Border
+                {
+                    Background = new SolidColorBrush(Color.FromRgb(5, 7, 10)), BorderBrush = new SolidColorBrush(Color.FromRgb(29, 35, 45)), BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(12), Padding = new Thickness(16, 12, 16, 12), Margin = new Thickness(0, 0, 0, 12), Child = panel
+                });
             }
         }
 
@@ -218,11 +235,12 @@ namespace AlmostFastOverlays
 
         private void ExplainLed(LedRef led)
         {
-            string where = led.Device == 0
-                ? (led.Index < 4 ? "Left side LED " + (led.Index + 1) : led.Index < 12 ? "Shift light " + (led.Index - 3) : "Right side LED " + (16 - led.Index))
-                : "Light bar LED " + (led.Index + 1);
-            string owner = _lastFrame == null ? null : led.Device == 0 ? _lastFrame.Dv5Owner[led.Index] : led.Index < _lastFrame.BrowOwner.Length ? _lastFrame.BrowOwner[led.Index] : null;
-            DrawingColor c = _lastFrame == null ? DrawingColor.Black : led.Device == 0 ? _lastFrame.Dv5[led.Index] : _lastFrame.Brow[led.Index];
+            DeviceSettings device = led.Device < Devices.Count ? Devices[led.Device] : null;
+            string groups = device == null ? "" : string.Join(", ", device.Groups.Where(g => g.Indexes().Contains(led.Index)).Select(g => g.Name));
+            string where = (device?.Name ?? "Device") + " LED " + (led.Index + 1) + (groups.Length > 0 ? " · " + groups : "");
+            bool known = _lastFrame != null && led.Device < _lastFrame.Leds.Length && led.Index < _lastFrame.Leds[led.Device].Length;
+            string owner = known ? _lastFrame.Owners[led.Device][led.Index] : null;
+            DrawingColor c = known ? _lastFrame.Leds[led.Device][led.Index] : DrawingColor.Black;
             bool lit = (c.R | c.G | c.B) != 0;
             HoverText.Text = where + (owner == null ? (lit ? " · fading out" : " · off: no layer is lighting it right now")
                 : lit ? " · lit by \"" + owner + "\"" : " · held dark by \"" + owner + "\" (Replace)");
@@ -230,11 +248,13 @@ namespace AlmostFastOverlays
 
         private void RenderFrame()
         {
-            if (_renderer == null || _renderer.Profile != _profile) _renderer = new LightRenderer(_profile, _dashboard.AccentColor, _units, _browLeds.Count);
+            if (_renderer == null || _renderer.Profile != _profile || _renderer.Signature != LightRenderer.DeviceSignature(Devices))
+                _renderer = new LightRenderer(_profile, _dashboard.AccentColor, _units, Devices);
             _lastSnapshot = CurrentSnapshot();
             _lastFrame = _renderer.Compose(_lastSnapshot, Environment.TickCount);
-            for (int i = 0; i < LedFrame.Count; i++) Paint(_dv5Leds[i], _dv5Glows[i], _lastFrame.Dv5[i]);
-            for (int i = 0; i < _browLeds.Count && i < _lastFrame.Brow.Length; i++) Paint(_browLeds[i], _browGlows[i], _lastFrame.Brow[i]);
+            for (int d = 0; d < _deviceLeds.Count && d < _lastFrame.Leds.Length; d++)
+                for (int i = 0; i < _deviceLeds[d].Length && i < _lastFrame.Leds[d].Length; i++)
+                    if (_deviceLeds[d][i] != null) Paint(_deviceLeds[d][i], _deviceGlows[d][i], _lastFrame.Leds[d][i]);
             HighlightTarget();
             foreach (FormulaBox box in _formulas) box.ShowResult();
         }
@@ -265,12 +285,12 @@ namespace AlmostFastOverlays
             var ringed = new HashSet<LedRef>();
             if (_selected != null)
             {
-                LedTarget target = LedTargets.Find(_selected.Target);
-                if (target != null) foreach (LedRef[] strip in target.Strips(_browLeds.Count)) foreach (LedRef led in strip) ringed.Add(led);
+                LedTarget target = LedTargets.Find(_selected.Target, Devices);
+                if (target != null) foreach (LedRef[] strip in target.Strips) foreach (LedRef led in strip) ringed.Add(led);
             }
             var accent = (SolidColorBrush)FindResource("Brush.Accent");
             var normal = new SolidColorBrush(Color.FromArgb(40, 255, 255, 255));
-            foreach (Ellipse dot in _dv5Leds.Concat(_browLeds))
+            foreach (Ellipse dot in _deviceLeds.SelectMany(leds => leds).Where(dot => dot != null))
             {
                 bool on = ringed.Contains((LedRef)dot.Tag);
                 dot.Stroke = on ? accent : normal;
@@ -331,7 +351,7 @@ namespace AlmostFastOverlays
         {
             bool selected = layer == _selected;
             LightEffect effect = LightEffects.Find(layer.Effect);
-            LedTarget target = LedTargets.Find(layer.Target);
+            LedTarget target = LedTargets.Find(layer.Target, Devices);
 
             var grid = new Grid { Margin = new Thickness(10, 9, 10, 9) };
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -608,17 +628,18 @@ namespace AlmostFastOverlays
             };
             Inspector.Children.Add(Row("Effect", effectCombo));
             Inspector.Children.Add(Caption(effect.Description, 0));
-            var targetCombo = new ComboBox { ItemsSource = LedTargets.All.Select(x => x.Name).ToList(), SelectedItem = LedTargets.Find(layer.Target)?.Name };
+            List<LedTarget> targets = LedTargets.For(Devices);
+            var targetCombo = new ComboBox { ItemsSource = targets.Select(x => x.Name).ToList(), SelectedItem = targets.FirstOrDefault(x => x.Id == layer.Target)?.Name };
             targetCombo.SelectionChanged += (s, e) =>
             {
-                LedTarget chosen = LedTargets.All.FirstOrDefault(x => x.Name == (string)targetCombo.SelectedItem);
+                LedTarget chosen = targets.FirstOrDefault(x => x.Name == (string)targetCombo.SelectedItem);
                 if (chosen == null) return;
                 layer.Target = chosen.Id;
                 Commit("Target");
                 RefreshLayers();
             };
             Inspector.Children.Add(Row("LEDs", targetCombo));
-            Inspector.Children.Add(Caption(LedTargets.Find(layer.Target)?.Description ?? "", 0));
+            Inspector.Children.Add(Caption(targets.FirstOrDefault(x => x.Id == layer.Target)?.Description ?? "Aimed at a device or group that isn't set up right now.", 0));
 
             Inspector.Children.Add(Section("When and how"));
             Inspector.Children.Add(new TextBlock { Text = "Show when", Foreground = (Brush)FindResource("Brush.TextSecondary"), Margin = new Thickness(0, 0, 0, 4) });

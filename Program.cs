@@ -16,7 +16,6 @@ namespace AlmostFastOverlays
         private const int ReconnectDelayMilliseconds = 2000;
         private const int GearTransitionMilliseconds = 420;
         private const int GearTransitionFrames = 14;
-        private const string DefaultLedPort = "COM7";
         private static readonly ManualResetEventSlim StopRequested = new ManualResetEventSlim(false);
         private static readonly EventWaitHandle StopSignal = new EventWaitHandle(
             false, EventResetMode.AutoReset, @"Local\AlmostFastOverlays.StopRequested");
@@ -40,7 +39,6 @@ namespace AlmostFastOverlays
                 return 0;
             }
 
-            if (args.Contains("--brow-test")) return BrowTest(ParseRunSeconds(args) ?? 60, int.TryParse(ParseOption(args, "--leds"), out int testLeds) ? testLeds : 0);
 
             string previewDirectory = ParseOption(args, "--render-previews");
             if (previewDirectory != null) return RenderPreviews(previewDirectory);
@@ -105,7 +103,6 @@ namespace AlmostFastOverlays
 
             string captureDashboardId = ParseOption(args, "--capture-dashboard");
             var runtime = new DashboardRuntime(captureDashboardId);
-            string ledPort = ParseOption(args, "--led-port");
             bool logging = runtime.Settings.General.DiagnosticsEnabled && !args.Contains("--no-logging");
             using (runtime)
             using (var diagnostics = new DiagnosticLogger(logging))
@@ -152,7 +149,7 @@ namespace AlmostFastOverlays
                         ? DateTime.UtcNow.AddSeconds(runSeconds.Value)
                         : (DateTime?)null;
 
-                    RunDashboard(telemetry, runtime, finishAt, ledPort);
+                    RunDashboard(telemetry, runtime, finishAt);
 
                     Console.WriteLine("Dashboard stopped cleanly.");
                     return 0;
@@ -179,43 +176,6 @@ namespace AlmostFastOverlays
                     _instanceMutex.ReleaseMutex();
                     _instanceMutex.Dispose();
                 }
-            }
-        }
-
-        /// <summary>
-        /// Holds blocks of ten colors on the brow light bars (red, green, blue,
-        /// white) so the number of chained bars and their order can be read by eye.
-        /// </summary>
-        private static int BrowTest(int seconds, int ledCount)
-        {
-            GeneralSettings general = SettingsStore.Load().General;
-            string port = DevicePorts.Resolve(general.BrowPort, DevicePorts.LightBar);
-            System.Drawing.Color[] blocks = { System.Drawing.Color.Red, System.Drawing.Color.Lime, System.Drawing.Color.Blue, System.Drawing.Color.White };
-            var frame = new System.Drawing.Color[Math.Max(2, Math.Min(40, ledCount > 0 ? ledCount : general.BrowLedCount))];
-            for (int i = 0; i < frame.Length; i++)
-                frame[i] = System.Drawing.Color.FromArgb(blocks[i / 10].R * 6 / 10, blocks[i / 10].G * 6 / 10, blocks[i / 10].B * 6 / 10);
-            try
-            {
-                using (var leds = new ArduinoLedController(port, 115200, frame.Length, "SSG LB-10"))
-                {
-                    leds.Connect();
-                    Console.WriteLine("Connected: " + leds.QueryDeviceName() + " on " + port);
-                    DateTime until = DateTime.UtcNow.AddSeconds(seconds);
-                    // Resend periodically in case the bar resets or drops a packet.
-                    while (DateTime.UtcNow < until)
-                    {
-                        leds.SetFrame(frame);
-                        Thread.Sleep(2000);
-                    }
-                    leds.Clear();
-                }
-                Console.WriteLine("Done.");
-                return 0;
-            }
-            catch (Exception exception)
-            {
-                Console.Error.WriteLine("Light bar test failed on " + port + ": " + exception.Message);
-                return 1;
             }
         }
 
@@ -255,7 +215,15 @@ namespace AlmostFastOverlays
             var application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
             application.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("pack://application:,,,/AlmostFastOverlays;component/Theme.xaml") });
             Window window;
-            if (scenario.StartsWith("lights"))
+            if (scenario.StartsWith("wizard"))
+            {
+                AppSettings settings = SettingsStore.Load();
+                var wizard = new DeviceSetupWindow(settings, null, () => false, () => System.Threading.Tasks.Task.FromResult(true)) { Width = 820, Height = 680 };
+                wizard.Offline = true;
+                wizard.Loaded += (s, e) => wizard.JumpTo(scenario.Substring("wizard-".Length));
+                window = wizard;
+            }
+            else if (scenario.StartsWith("lights"))
             {
                 AppSettings settings = SettingsStore.Load();
                 DashboardSettings dashboard = SettingsStore.Clone(settings.GetDefaultDashboard());
@@ -389,11 +357,10 @@ namespace AlmostFastOverlays
         private static void RunDashboard(
             IRacingTelemetrySource telemetry,
             DashboardRuntime runtime,
-            DateTime? finishAt,
-            string ledPortOverride)
+            DateTime? finishAt)
         {
             // The LEDs run on their own loop, so they keep working while the screen reconnects.
-            using (new LightLoop(telemetry.GetSnapshot, () => runtime.Settings, () => runtime.Dashboard, ledPortOverride))
+            using (new LightLoop(telemetry.GetSnapshot, () => runtime.Settings, () => runtime.Dashboard))
             while (!ShouldStop(finishAt))
             {
                 try

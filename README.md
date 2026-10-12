@@ -48,7 +48,7 @@ start new ones from **New dashboard** (Halo, Oval or a blank canvas).
 ## App layout
 
 The app has three sections: **Dashboards** (the screen designs and their
-lights), **Devices** (DV-5 screen and LEDs, LB-10 light bar, fast LED updates)
+lights), **Devices** (LED devices and the wheel screen)
 and **Settings** (units, startup, diagnostics). On Windows 11 the windows use the
 acrylic glass backdrop.
 
@@ -62,26 +62,38 @@ While iRacing isn't running, the dashboard checks the screen 4 times a second an
 the lights run at 10 frames a second, instead of 20 and 60.
 ## Devices
 
-The **DV-5** (screen and 16 LEDs) and the **LB-10** light bar are found by their
-USB IDs, so they keep working when Windows renumbers COM ports.
+Every LED device is set up once, on the **Devices** page, with **Add device**:
 
-**Other LED devices** work too, each showing a *role*: the DV-5's shift lights,
-what the light bar shows, or the current flag, stretched to its own LED count
-(with reverse and brightness for strips mounted the other way round). They follow
-whichever dashboard is active and its light layers. Three kinds are supported:
+1. **Find**: the app asks each USB serial port whether it is an LED board (only
+   when you click; ports already set up and Bluetooth ports are left alone), or
+   looks up a WLED controller by its address.
+2. **Name**: the name the device reports is filled in; change it to anything.
+3. **Count**: a device the app knows (the DV-5 and LB-10, by USB ID or name, or
+   a WLED controller) has its count filled in and lit to confirm. Otherwise you
+   count together: only LED N is lit, and you move N until it's the last LED.
+4. **Map**: *Show the order* lights each LED in turn with its number. Then split
+   the LEDs into **groups** (name, purpose, LEDs from–to, reverse); the group you
+   are editing lights on the device, brightest where it starts.
 
-- **Arduino LED boards** that speak the common sim-racing LED serial protocol, the
-  same one the DV-5 and LB-10 use. Many commercial and DIY boards do.
+Each group has a **purpose**: Shift lights, Left side, Right side, Light bar or
+Other. Light layers aimed at a purpose light every group with it on every
+device, so light profiles work with whatever is plugged in; a layer can also
+aim at one device's group. The DV-5 is set up as Left side 1–4, Shift lights
+5–12 and Right side 13–16 (reversed, so it fills bottom to top), which is the
+same layout as before. Setup pauses a running dashboard while it uses the
+devices and starts it again afterwards.
+
+Supported devices:
+
+- **Arduino LED boards** that speak the common sim-racing LED serial protocol, as
+  the SSG DV-5 and LB-10 do.
 - **Adalight**: an Arduino driving a WS2812/NeoPixel strip with the open Adalight
   protocol. `Firmware\Adalight\Adalight.ino` is a ready-to-flash sketch.
-- **WLED** controllers (usually an ESP32) on your network, added by IP address and
-  driven with WLED's real-time UDP protocol; the LED count is read from WLED.
+- **WLED** controllers on your network, driven with WLED's real-time UDP protocol.
 
-**Scan USB** asks each serial port, only when you click it, whether it is an LED
-board. The DV-5, the LB-10 and Bluetooth serial ports are left alone, and a device
-that doesn't answer is sent nothing else. **Test** lights each LED in turn so you
-can count them and check the direction. Devices connect in the background, so one
-that's unplugged never makes the other lights stutter. Code: `LedDevices.cs`.
+Devices are found again by USB ID when Windows renumbers COM ports, and they
+connect in the background, so one that's unplugged never makes the others
+stutter. Code: `LedDevices.cs`, `DeviceSetupWindow.cs`.
 ## Light layers
 
 Each dashboard can use a layered light profile instead of the classic light

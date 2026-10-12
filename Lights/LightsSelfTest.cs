@@ -21,6 +21,12 @@ namespace AlmostFastOverlays
                 report.Add((ok ? "PASS  " : "FAIL  ") + name + (detail.Length > 0 ? "  (" + detail + ")" : ""));
             var units = new UnitSystem(settings.General);
             const int brow = 20;
+            // The DV-5 and a 20-LED LB-10 pair, as the schema-6 migration sets them up: device 0 and device 1.
+            var devices = new List<DeviceSettings>
+            {
+                KnownDevices.Create(KnownDevices.Dv5, "COM4", 16, true, false),
+                KnownDevices.Create(KnownDevices.Lb10, "COM3", brow, true, false)
+            };
 
             // ---------------- every preset in every scenario
             string[] scenarios = { "Racing", "Shift point", "Car left", "Car right", "Three wide", "Pit limiter", "Over pit limit", "Low fuel", "ABS working",
@@ -28,14 +34,14 @@ namespace AlmostFastOverlays
             foreach (LightPreset preset in LightPresets.All)
             {
                 LightProfile profile = preset.Create(DashboardSettings.CreateHalo());
-                var renderer = new LightRenderer(profile, "#2DD4BF", units, brow);
+                var renderer = new LightRenderer(profile, "#2DD4BF", units, devices);
                 var errors = new List<string>();
                 int now = 0;
                 foreach (string scenario in scenarios)
                 {
                     LightFrame frame = renderer.Compose(LightsWindow.Scenario(scenario), now += 33);
                     errors.AddRange(renderer.Errors.Values);
-                    if (frame.Dv5.Length != 16 || frame.Brow.Length != brow) errors.Add("bad frame size");
+                    if (frame.Leds.Length != 2 || frame.Leds[0].Length != 16 || frame.Leds[1].Length != brow) errors.Add("bad frame size");
                 }
                 Check("light preset runs in every scenario: " + preset.Name, errors.Count == 0, string.Join("; ", errors.Distinct().Take(3)));
             }
@@ -60,7 +66,7 @@ namespace AlmostFastOverlays
             foreach (DashboardSettings dashboard in dashboards)
             {
                 LightProfile converted = LightPresets.FromClassic(dashboard);
-                var renderer = new LightRenderer(converted, dashboard.AccentColor, units, brow);
+                var renderer = new LightRenderer(converted, dashboard.AccentColor, units, devices);
                 var mismatches = new List<string>();
                 foreach (var state in states)
                     foreach (int now in new[] { 0, 140, 250 })
@@ -73,35 +79,35 @@ namespace AlmostFastOverlays
                         Color[] classicBrow = LedFrame.ComposeBrow(dashboard.BrowLeds, brow, inputs);
                         LightFrame layered = renderer.Compose(t, now);
                         for (int i = 0; i < 16; i++)
-                            if (classicDv5[i].ToArgb() != layered.Dv5[i].ToArgb()) mismatches.Add(state.Item1 + " @" + now + " DV-5 LED " + i + " " + Hex(classicDv5[i]) + "≠" + Hex(layered.Dv5[i]));
+                            if (classicDv5[i].ToArgb() != layered.Leds[0][i].ToArgb()) mismatches.Add(state.Item1 + " @" + now + " DV-5 LED " + i + " " + Hex(classicDv5[i]) + "≠" + Hex(layered.Leds[0][i]));
                         for (int i = 0; i < brow; i++)
-                            if (classicBrow[i].ToArgb() != layered.Brow[i].ToArgb()) mismatches.Add(state.Item1 + " @" + now + " bar LED " + i + " " + Hex(classicBrow[i]) + "≠" + Hex(layered.Brow[i]));
+                            if (classicBrow[i].ToArgb() != layered.Leds[1][i].ToArgb()) mismatches.Add(state.Item1 + " @" + now + " bar LED " + i + " " + Hex(classicBrow[i]) + "≠" + Hex(layered.Leds[1][i]));
                     }
                 Check("converted lights match classic: " + dashboard.Name + " (" + dashboard.BrowLeds?.Function + " bar)", mismatches.Count == 0,
                     mismatches.Count + " differences" + (mismatches.Count > 0 ? ": " + string.Join("; ", mismatches.Take(3)) : ""));
             }
 
             // ---------------- priority and blending
-            var refined = new LightRenderer(LightPresets.Refined(), "#2DD4BF", units, brow);
+            var refined = new LightRenderer(LightPresets.Refined(), "#2DD4BF", units, devices);
             TelemetrySnapshot leftLowFuel = Snap(0.3, 5000, left: BlindSpotZone.Beside);
             leftLowFuel.FuelPerLapAverage = 13;
             LightFrame f1 = refined.Compose(leftLowFuel, 1000);
-            Check("higher layer wins: blind spot over low fuel", f1.Dv5Owner[1] == "Blind spot" && f1.Dv5Owner[13] == "Low fuel", f1.Dv5Owner[1] + " / " + f1.Dv5Owner[13]);
+            Check("higher layer wins: blind spot over low fuel", f1.Owners[0][1] == "Blind spot" && f1.Owners[0][13] == "Low fuel", f1.Owners[0][1] + " / " + f1.Owners[0][13]);
             LightFrame f2 = refined.Compose(LightsWindow.Scenario("Pit limiter"), 2000);
-            Check("replace takes the whole target: pit limiter", Enumerable.Range(4, 8).All(i => f2.Dv5Owner[i] == "Pit limiter"));
+            Check("replace takes the whole target: pit limiter", Enumerable.Range(4, 8).All(i => f2.Owners[0][i] == "Pit limiter"));
             LightFrame f3 = refined.Compose(LightsWindow.Scenario("Yellow flag"), 3000);
-            Check("flags take over the bar", f3.BrowOwner.All(o => o == "Flags") && f3.Brow.All(c => c.R > 0 && c.B == 0));
+            Check("flags take over the bar", f3.Owners[1].All(o => o == "Flags") && f3.Leds[1].All(c => c.R > 0 && c.B == 0));
 
             // ---------------- output stage
             var gamma = new LightProfile { Gamma = true, FadeMs = 0, Layers = { new LightLayer { Target = "shift", Effect = "solid", Props = { ["color"] = "#808080" } } } };
-            Color encoded = new LightRenderer(gamma, "#000000", units, brow).Compose(Snap(0, 3000), 0).Dv5[4];
+            Color encoded = new LightRenderer(gamma, "#000000", units, devices).Compose(Snap(0, 3000), 0).Leds[0][4];
             Check("gamma makes half level look half as bright", Math.Abs(encoded.R - 55) <= 1, "128 → " + encoded.R);
             var fade = new LightProfile { Gamma = false, FadeMs = 300, Layers = { new LightLayer { Target = "shift", Effect = "solid", Condition = "Gear = 4", Props = { ["color"] = "#FF0000" } } } };
-            var fader = new LightRenderer(fade, "#000000", units, brow);
+            var fader = new LightRenderer(fade, "#000000", units, devices);
             fader.Compose(Snap(0, 3000), 0);
             TelemetrySnapshot neutral = IRacingTelemetrySource.WithPreviewExtras(new TelemetrySnapshot(true, 0, 0, RacingFlag.None, BlindSpotZone.None, BlindSpotZone.None, 0,
                 SessionProgressMode.LapRace, 0, 0, 8, 18, 4, 2, 24.3, 58.104, 0.46, "", 0, "", 0, 22, false, 0, 0, 0, new bool[18], 0, 6, 900));
-            int during = fader.Compose(neutral, 100).Dv5[4].R, after = fader.Compose(neutral, 1100).Dv5[4].R;
+            int during = fader.Compose(neutral, 100).Leds[0][4].R, after = fader.Compose(neutral, 1100).Leds[0][4].R;
             Check("fade out eases off, then reaches dark", during > 10 && during < 255 && after == 0, "after 100 ms " + during + ", after 1.1 s " + after);
 
             TelemetrySnapshot car = Snap(0.2, 5800);
@@ -126,28 +132,61 @@ namespace AlmostFastOverlays
             List<byte[]> wledLong = WledOutput.Packets(new Color[1000], 2);
             Check("WLED over 490 LEDs: DNRGB chunks with start index", wledLong.Count == 3 && wledLong.All(p => p[0] == 4)
                 && wledLong[1][2] == (489 >> 8) && wledLong[1][3] == (489 & 0xFF) && wledLong[2][3] == (978 & 0xFF) && wledLong[2].Length == 4 + 22 * 3);
-            Color[] stretched = LedRoleMap.Stretch(new[] { Color.Red, Color.Blue }, 4);
-            Check("stretching a strip across more LEDs", stretched[0] == Color.Red && stretched[1] == Color.Red && stretched[2] == Color.Blue && stretched[3] == Color.Blue);
-            Color[] squeezed = LedRoleMap.Stretch(Enumerable.Range(0, 8).Select(i => Color.FromArgb(i, 0, 0)).ToArray(), 4);
-            Check("squeezing a strip onto fewer LEDs", squeezed.Select(c => (int)c.R).SequenceEqual(new[] { 1, 3, 5, 7 }), string.Join(",", squeezed.Select(c => c.R)));
-            var dv5Sample = Enumerable.Range(0, 16).Select(i => Color.FromArgb(i * 10, 0, 0)).ToArray();
-            var barSample = Enumerable.Range(0, 20).Select(i => Color.FromArgb(0, i * 10, 0)).ToArray();
-            var shiftDevice = new LedDeviceSettings { Role = LedRoles.Shift, LedCount = 8 };
-            Check("shift-lights role takes the DV-5 shift row", LedRoleMap.Frame(shiftDevice, dv5Sample, barSample, RacingFlag.None, 0).Select(c => (int)c.R).SequenceEqual(Enumerable.Range(4, 8).Select(i => i * 10)));
-            var barDevice = new LedDeviceSettings { Role = LedRoles.Bar, LedCount = 20, Reverse = true, Brightness = 50 };
-            Color[] bar = LedRoleMap.Frame(barDevice, dv5Sample, barSample, RacingFlag.None, 0);
-            Check("light-bar role, reversed and at half brightness", bar[0].G == 95 && bar[19].G == 0 && bar[1].G == 90, bar[0].G + "/" + bar[19].G);
-            var flagDevice = new LedDeviceSettings { Role = LedRoles.Flags, LedCount = 6 };
-            Check("flags role shows the flag and goes dark without one",
-                LedRoleMap.Frame(flagDevice, dv5Sample, barSample, RacingFlag.Green, 0).All(c => c.ToArgb() == Color.Lime.ToArgb())
-                && LedRoleMap.Frame(flagDevice, dv5Sample, barSample, RacingFlag.None, 0).All(c => c.ToArgb() == Color.Black.ToArgb() || c.A == 0));
-            var withDevices = new AppSettings();
-            withDevices.General.LedDevices.Add(new LedDeviceSettings { Kind = LedDeviceKinds.Wled, Address = "192.168.1.40", Name = "Desk strip", LedCount = 60, Role = LedRoles.Flags, Reverse = true });
+            // ---------------- devices and groups
+            int[] Leds(LedTarget target, int strip) => target.Strips[strip].Select(l => l.Index).ToArray();
+            LedTarget right = LedTargets.Find("right", devices), mirror = LedTargets.Find("brow-mirror", devices), shiftTarget = LedTargets.Find("shift", devices);
+            Check("DV-5 profile keeps the old LED order", Leds(shiftTarget, 0).SequenceEqual(Enumerable.Range(4, 8)) && Leds(LedTargets.Find("left", devices), 0).SequenceEqual(new[] { 0, 1, 2, 3 })
+                && Leds(right, 0).SequenceEqual(new[] { 15, 14, 13, 12 }) && right.IsRight(0));
+            Check("light bar mirrors from the middle outward", mirror.Strips.Count == 2 && Leds(mirror, 0).SequenceEqual(Enumerable.Range(0, 10).Reverse()) && Leds(mirror, 1).SequenceEqual(Enumerable.Range(10, 10))
+                && !mirror.IsRight(0) && mirror.IsRight(1) && mirror.Strips.All(s => s.All(l => l.Device == 1)));
+
+            var withExtra = devices.Select(SettingsStore.Clone).ToList();
+            withExtra.Add(new DeviceSettings
+            {
+                Id = "device-desk", Name = "Desk board", Kind = LedDeviceKinds.Arduino, Port = "COM9", LedCount = 12,
+                Groups = { LedGroup.Of("Revs", LedPurposes.Shift, 1, 8), LedGroup.Of("Left", LedPurposes.Left, 9, 10), LedGroup.Of("Right", LedPurposes.Right, 11, 12, true) }
+            });
+            LedTarget sharedShift = LedTargets.Find("shift", withExtra), sides = LedTargets.Find("sides", withExtra);
+            Check("a purpose covers every device with it", sharedShift.Strips.Count == 2 && sharedShift.Strips[1].All(l => l.Device == 2) && Leds(sharedShift, 1).SequenceEqual(Enumerable.Range(0, 8)));
+            Check("each side strip knows its side across devices", sides.Strips.Count == 4 && sides.RightStrips.SequenceEqual(new[] { false, false, true, true }) && Leds(sides, 3).SequenceEqual(new[] { 11, 10 }));
+            LedTarget deskRevs = LedTargets.Find("group:device-desk/group-revs", withExtra);
+            Check("a group target lights only its own device", deskRevs != null && deskRevs.Strips.Count == 1 && deskRevs.Strips[0].All(l => l.Device == 2));
+            LightFrame shared = new LightRenderer(LightPresets.Refined(), "#2DD4BF", units, withExtra).Compose(Snap(0.9, 7000), 500);
+            Check("rev lights reach every device with shift lights", shared.Leds.Length == 3 && shared.Leds[0].Skip(4).Take(8).Any(c => c.ToArgb() != Color.Black.ToArgb())
+                && shared.Leds[2].Take(8).Any(c => c.ToArgb() != Color.Black.ToArgb()));
+            var disabled = withExtra.Select(SettingsStore.Clone).ToList();
+            disabled[2].Enabled = false;
+            Check("a device that's off gets nothing", new LightRenderer(LightPresets.Refined(), "#2DD4BF", units, disabled).Compose(Snap(0.9, 7000), 500).Leds[2].All(c => c.ToArgb() == Color.Black.ToArgb() || c.A == 0));
+
+            var reversed = new LedGroup { From = 3, To = 6, Reverse = true };
+            Check("groups count from 1 and reverse", reversed.Indexes().SequenceEqual(new[] { 5, 4, 3, 2 }) && new LedGroup { From = 1, To = 3 }.Indexes().SequenceEqual(new[] { 0, 1, 2 }));
+            var clamped = new LedGroup { From = 0, To = 99 };
+            clamped.Normalize(16);
+            Check("groups stay inside the device", clamped.From == 1 && clamped.To == 16);
+
+            var old = new AppSettings { SchemaVersion = 5 };
+            old.General.LedPort = "COM4";
+            old.General.BrowPort = "COM3";
+            old.General.BrowLedCount = 20;
+            old.General.BrowEnabled = false;
+            old.General.FastLedUpdates = true;
+            old.EnsureBuiltInDashboards();
+            DeviceSettings dv5 = old.General.Devices.FirstOrDefault(), lb10 = old.General.Devices.Skip(1).FirstOrDefault();
+            Check("old DV-5 and LB-10 settings become set-up devices", old.General.Devices.Count == 2 && dv5.Port == "COM4" && dv5.UsbId == DevicePorts.Dv5 && dv5.Groups.Count == 3 && dv5.FastUpdates
+                && lb10.Port == "COM3" && lb10.LedCount == 20 && !lb10.Enabled && lb10.Groups.Single().To == 20 && old.General.LedPort == null && old.SchemaVersion == 6);
+            var fresh = new AppSettings();
+            fresh.EnsureBuiltInDashboards();
+            Check("a new install starts with no devices, for setup", fresh.General.Devices.Count == 0);
+
+            var withDevices = new AppSettings { SchemaVersion = 6 };
+            withDevices.General.Devices.Add(new DeviceSettings { Kind = LedDeviceKinds.Wled, Address = "192.168.1.40", Name = "Desk strip", LedCount = 60, Groups = { LedGroup.Of("Strip", LedPurposes.Bar, 1, 60, true) } });
             AppSettings reloaded = SettingsStore.Clone(withDevices);
             reloaded.EnsureBuiltInDashboards();
-            LedDeviceSettings again = reloaded.General.LedDevices.FirstOrDefault();
-            Check("LED devices save and load", again != null && again.Kind == LedDeviceKinds.Wled && again.Address == "192.168.1.40" && again.LedCount == 60 && again.Role == LedRoles.Flags && again.Reverse);
-
+            DeviceSettings again = reloaded.General.Devices.FirstOrDefault();
+            Check("LED devices save and load", again != null && again.Kind == LedDeviceKinds.Wled && again.Address == "192.168.1.40" && again.LedCount == 60
+                && again.Groups.Count == 1 && again.Groups[0].Reverse && again.Groups[0].To == 60);
+            Check("known devices are recognised by USB ID or name", KnownDevices.Find(DevicePorts.Dv5, null) == KnownDevices.Dv5 && KnownDevices.Find(null, "SSG LB-10 v2") == KnownDevices.Lb10
+                && KnownDevices.Find("VID_2341&PID_0043", "My LEDs") == null);
             // ---------------- persistence
             DashboardSettings saved = DashboardSettings.CreateHalo();
             saved.Lights = LightPresets.Refined();

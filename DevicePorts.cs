@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO.Ports;
 using System.Linq;
 using Microsoft.Win32;
@@ -32,6 +32,28 @@ namespace AlmostFastOverlays
                             if (port != null && present.Contains(port, StringComparer.OrdinalIgnoreCase)) return port;
                         }
                 }
+            }
+            catch { }
+            return null;
+        }
+
+        /// <summary>
+        /// The USB hardware ID (such as VID_2341&amp;PID_0043) of the device on a COM port right
+        /// now, or null for ports that aren't USB devices.
+        /// </summary>
+        public static string HardwareIdForPort(string port)
+        {
+            // Plug and Play lists only devices that are present, unlike the registry, which
+            // remembers every device that ever had this port number.
+            try
+            {
+                string name = (port ?? "").Replace("'", "");
+                using (var search = new System.Management.ManagementObjectSearcher("SELECT DeviceID FROM Win32_PnPEntity WHERE Name LIKE '%(" + name + ")%'"))
+                    foreach (System.Management.ManagementBaseObject device in search.Get())
+                    {
+                        string[] parts = ((device["DeviceID"] as string) ?? "").Split('\\');
+                        if (parts.Length >= 2 && parts[0].Equals("USB", StringComparison.OrdinalIgnoreCase)) return parts[1];
+                    }
             }
             catch { }
             return null;

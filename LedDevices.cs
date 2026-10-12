@@ -12,10 +12,10 @@ using Microsoft.Win32;
 
 namespace AlmostFastOverlays
 {
-    /// <summary>The kinds of LED device besides the DV-5 and LB-10.</summary>
+    /// <summary>How an LED device is connected and spoken to.</summary>
     internal static class LedDeviceKinds
     {
-        /// <summary>An Arduino board speaking the common sim-racing LED serial protocol (as the DV-5 and LB-10 do).</summary>
+        /// <summary>An Arduino board speaking the common sim-racing LED serial protocol (the SSG DV-5 and LB-10 among them).</summary>
         public const string Arduino = "Arduino";
         /// <summary>An Arduino running an Adalight sketch: the open "Ada" serial protocol for LED strips.</summary>
         public const string Adalight = "Adalight";
@@ -24,55 +24,153 @@ namespace AlmostFastOverlays
         public static readonly string[] All = { Arduino, Adalight, Wled };
     }
 
-    /// <summary>What a device's LEDs show, taken from the same lights the DV-5 and LB-10 use.</summary>
-    internal static class LedRoles
+    /// <summary>
+    /// What a group of LEDs is for. Light layers aimed at "Shift lights", "Left side" and
+    /// so on light every group with that purpose, on whichever devices are plugged in.
+    /// </summary>
+    internal static class LedPurposes
     {
-        public const string Shift = "Shift lights", Bar = "Light bar", Flags = "Flags";
-        public static readonly string[] All = { Shift, Bar, Flags };
+        public const string Shift = "Shift lights", Left = "Left side", Right = "Right side", Bar = "Light bar", Other = "Other";
+        public static readonly string[] All = { Shift, Left, Right, Bar, Other };
 
-        public static string Describe(string role)
+        public static string Describe(string purpose)
         {
-            switch (role)
+            switch (purpose)
             {
-                case Shift: return "The DV-5's shift lights, stretched across this device.";
-                case Flags: return "The current flag in its colours; dark when there is no flag.";
-                default: return "What the LB-10 light bar shows, stretched across this device.";
+                case Shift: return "Rev and shift lights: layers aimed at Shift lights use it.";
+                case Left: return "Lights down the left: blind spot and other side layers use it.";
+                case Right: return "Lights down the right: blind spot and other side layers use it.";
+                case Bar: return "A strip like a light bar: layers aimed at the Light bar use it.";
+                default: return "Only layers aimed at this group directly use it.";
             }
         }
     }
 
-    /// <summary>One extra LED device, as stored in settings.</summary>
-    internal sealed class LedDeviceSettings
+    /// <summary>
+    /// A named run of LEDs on a device, in the order fills grow: LEDs From to To
+    /// (counting from 1), or To down to From when reversed.
+    /// </summary>
+    internal sealed class LedGroup
     {
-        public string Id { get; set; } = "led-" + Guid.NewGuid().ToString("N").Substring(0, 8);
+        public string Id { get; set; } = "group-" + Guid.NewGuid().ToString("N").Substring(0, 6);
+        public string Name { get; set; } = "LEDs";
+        public string Purpose { get; set; } = LedPurposes.Bar;
+        public int From { get; set; } = 1;
+        public int To { get; set; } = 1;
+        public bool Reverse { get; set; }
+
+        /// <summary>The LED indexes (from 0) in fill order.</summary>
+        public int[] Indexes()
+        {
+            int low = Math.Min(From, To), high = Math.Max(From, To);
+            IEnumerable<int> range = Enumerable.Range(low - 1, high - low + 1);
+            return (Reverse ? range.Reverse() : range).ToArray();
+        }
+
+        public void Normalize(int ledCount)
+        {
+            if (string.IsNullOrWhiteSpace(Id)) Id = "group-" + Guid.NewGuid().ToString("N").Substring(0, 6);
+            if (string.IsNullOrWhiteSpace(Name)) Name = "LEDs";
+            if (!LedPurposes.All.Contains(Purpose)) Purpose = LedPurposes.Other;
+            From = Math.Max(1, Math.Min(Math.Max(1, ledCount), From));
+            To = Math.Max(1, Math.Min(Math.Max(1, ledCount), To));
+            if (To < From) { int swap = From; From = To; To = swap; }
+        }
+
+        public static LedGroup Of(string name, string purpose, int from, int to, bool reverse = false) =>
+            new LedGroup { Id = "group-" + name.ToLowerInvariant().Replace(" ", "-"), Name = name, Purpose = purpose, From = from, To = to, Reverse = reverse };
+    }
+
+    /// <summary>One LED device, as stored in settings and set up in the device wizard.</summary>
+    internal sealed class DeviceSettings
+    {
+        public string Id { get; set; } = "device-" + Guid.NewGuid().ToString("N").Substring(0, 8);
+        /// <summary>The name the user gave it.</summary>
         public string Name { get; set; } = "LED device";
+        /// <summary>What the device called itself when it was found.</summary>
+        public string DetectedName { get; set; }
         public string Kind { get; set; } = LedDeviceKinds.Arduino;
         /// <summary>COM port, for Arduino and Adalight devices.</summary>
         public string Port { get; set; }
+        /// <summary>USB hardware ID (such as VID_9999&amp;PID_09C7&amp;MI_00), so the device is found again when Windows renumbers ports.</summary>
+        public string UsbId { get; set; }
         /// <summary>IP address or host name, for WLED.</summary>
         public string Address { get; set; }
         public int Baud { get; set; } = 115200;
         public int LedCount { get; set; } = 8;
-        public string Role { get; set; } = LedRoles.Bar;
-        /// <summary>Runs the LEDs right to left, for strips mounted the other way round.</summary>
-        public bool Reverse { get; set; }
-        /// <summary>0-100.</summary>
-        public int Brightness { get; set; } = 100;
+        public List<LedGroup> Groups { get; set; } = new List<LedGroup>();
+        /// <summary>Send each frame in one message (Arduino boards that support it).</summary>
+        public bool FastUpdates { get; set; }
         public bool Enabled { get; set; } = true;
 
         public void Normalize()
         {
-            if (string.IsNullOrWhiteSpace(Id)) Id = "led-" + Guid.NewGuid().ToString("N").Substring(0, 8);
+            if (string.IsNullOrWhiteSpace(Id)) Id = "device-" + Guid.NewGuid().ToString("N").Substring(0, 8);
             if (!LedDeviceKinds.All.Contains(Kind)) Kind = LedDeviceKinds.Arduino;
-            if (!LedRoles.All.Contains(Role)) Role = LedRoles.Bar;
-            if (string.IsNullOrWhiteSpace(Name)) Name = Kind + " LEDs";
+            if (string.IsNullOrWhiteSpace(Name)) Name = DetectedName ?? Kind + " LEDs";
             LedCount = Math.Max(1, Math.Min(Kind == LedDeviceKinds.Wled ? 1500 : ArduinoLedController.MaxLeds, LedCount));
-            Brightness = Math.Max(0, Math.Min(100, Brightness));
             if (Baud <= 0) Baud = 115200;
+            if (Groups == null) Groups = new List<LedGroup>();
+            Groups.RemoveAll(g => g == null);
+            foreach (LedGroup group in Groups) group.Normalize(LedCount);
         }
 
         [ScriptIgnore]
         public string Connection => Kind == LedDeviceKinds.Wled ? Address : Port;
+
+        /// <summary>The port to open: where the device's USB ID is now, else the saved port.</summary>
+        public string ResolvePort() => string.IsNullOrEmpty(UsbId) ? Port : DevicePorts.Resolve(Port, UsbId);
+    }
+
+    /// <summary>
+    /// Devices the app knows by USB ID or by the name they report, so setup can fill in
+    /// the LED count and groups. Anything else is set up from scratch.
+    /// </summary>
+    internal static class KnownDevices
+    {
+        internal sealed class Profile
+        {
+            public string Name, Match, UsbId;
+            public int LedCount;
+            public Func<int, List<LedGroup>> Groups;
+        }
+
+        public static readonly Profile Dv5 = new Profile
+        {
+            Name = "DV-5", Match = "SSG DV 5", UsbId = DevicePorts.Dv5, LedCount = 16,
+            // The DV-5's chain runs up the left side, across the top, then down the right.
+            Groups = n => new List<LedGroup>
+            {
+                LedGroup.Of("Left side", LedPurposes.Left, 1, 4),
+                LedGroup.Of("Shift lights", LedPurposes.Shift, 5, 12),
+                LedGroup.Of("Right side", LedPurposes.Right, 13, 16, true)
+            }
+        };
+
+        public static readonly Profile Lb10 = new Profile
+        {
+            Name = "LB-10", Match = "SSG LB-10", UsbId = DevicePorts.LightBar, LedCount = 10,
+            Groups = n => new List<LedGroup> { LedGroup.Of("Light bar", LedPurposes.Bar, 1, n) }
+        };
+
+        public static readonly Profile[] All = { Dv5, Lb10 };
+
+        public static Profile Find(string usbId, string detectedName) =>
+            All.FirstOrDefault(p => (!string.IsNullOrEmpty(usbId) && string.Equals(p.UsbId, usbId, StringComparison.OrdinalIgnoreCase))
+                || (!string.IsNullOrEmpty(detectedName) && detectedName.IndexOf(p.Match, StringComparison.OrdinalIgnoreCase) >= 0));
+
+        /// <summary>A device built from a profile, as the old fixed DV-5 and LB-10 settings become.</summary>
+        public static DeviceSettings Create(Profile profile, string port, int ledCount, bool enabled, bool fast)
+        {
+            var device = new DeviceSettings
+            {
+                Id = "device-" + profile.Name.ToLowerInvariant().Replace(" ", "-"), Name = profile.Name, DetectedName = profile.Match,
+                Kind = LedDeviceKinds.Arduino, Port = port, UsbId = profile.UsbId, LedCount = ledCount, Enabled = enabled, FastUpdates = fast,
+                Groups = profile.Groups(ledCount)
+            };
+            device.Normalize();
+            return device;
+        }
     }
 
     /// <summary>Sends frames to one kind of device.</summary>
@@ -88,9 +186,9 @@ namespace AlmostFastOverlays
     {
         private readonly ArduinoLedController _controller;
 
-        public ArduinoOutput(LedDeviceSettings device, bool batched)
+        public ArduinoOutput(DeviceSettings device)
         {
-            _controller = new ArduinoLedController(device.Port, device.Baud, device.LedCount, null) { Batched = batched };
+            _controller = new ArduinoLedController(device.ResolvePort(), device.Baud, device.LedCount, null) { Batched = device.FastUpdates };
             try
             {
                 _controller.Connect();
@@ -117,9 +215,9 @@ namespace AlmostFastOverlays
     {
         private readonly SerialPort _port;
 
-        public AdalightOutput(LedDeviceSettings device)
+        public AdalightOutput(DeviceSettings device)
         {
-            _port = new SerialPort(device.Port, device.Baud) { DtrEnable = true, WriteTimeout = 500, ReadTimeout = 500 };
+            _port = new SerialPort(device.ResolvePort(), device.Baud) { DtrEnable = true, WriteTimeout = 500, ReadTimeout = 500 };
             _port.Open();
             // Opening the port resets most Arduinos; give the sketch time to start.
             Thread.Sleep(1600);
@@ -179,7 +277,7 @@ namespace AlmostFastOverlays
         private const byte TimeoutSeconds = 2;
         private readonly UdpClient _udp;
 
-        public WledOutput(LedDeviceSettings device)
+        public WledOutput(DeviceSettings device)
         {
             _udp = new UdpClient();
             _udp.Connect(device.Address, Port);
@@ -254,19 +352,20 @@ namespace AlmostFastOverlays
         private ILedOutput _output;
         private System.Threading.Tasks.Task<ILedOutput> _opening;
         private string _signature;
-        private bool _batched;
         private DateTime _nextAttemptUtc = DateTime.MinValue, _lastSendUtc = DateTime.MinValue;
         private Color[] _lastFrame;
 
-        public LedDeviceSettings Device { get; private set; }
+        public DeviceSettings Device { get; private set; }
 
-        public void Apply(LedDeviceSettings device, bool batched)
+        /// <summary>Forgets the last frame so the next one is sent even if it's the same.</summary>
+        public void Invalidate() => _lastFrame = null;
+
+        public void Apply(DeviceSettings device)
         {
-            string signature = device.Kind + "|" + device.Connection + "|" + device.Baud + "|" + device.LedCount + "|" + device.Enabled + "|" + batched;
+            string signature = device.Kind + "|" + device.Connection + "|" + device.UsbId + "|" + device.Baud + "|" + device.LedCount + "|" + device.Enabled + "|" + device.FastUpdates;
             Device = device;
             if (signature == _signature) return;
             _signature = signature;
-            _batched = batched;
             Close();
             _nextAttemptUtc = DateTime.MinValue;
         }
@@ -288,9 +387,8 @@ namespace AlmostFastOverlays
                 {
                     if (DateTime.UtcNow < _nextAttemptUtc) return;
                     _nextAttemptUtc = DateTime.UtcNow.AddSeconds(5);
-                    LedDeviceSettings device = Device;
-                    bool batched = _batched;
-                    _opening = System.Threading.Tasks.Task.Run(() => Open(device, batched));
+                    DeviceSettings device = Device;
+                    _opening = System.Threading.Tasks.Task.Run(() => Open(device));
                     return;
                 }
             }
@@ -309,13 +407,13 @@ namespace AlmostFastOverlays
             }
         }
 
-        public static ILedOutput Open(LedDeviceSettings device, bool batched)
+        public static ILedOutput Open(DeviceSettings device)
         {
             switch (device.Kind)
             {
                 case LedDeviceKinds.Adalight: return new AdalightOutput(device);
                 case LedDeviceKinds.Wled: return new WledOutput(device);
-                default: return new ArduinoOutput(device, batched);
+                default: return new ArduinoOutput(device);
             }
         }
 
@@ -333,52 +431,6 @@ namespace AlmostFastOverlays
         public void Dispose() => Close();
     }
 
-    /// <summary>Turns the lights of the moment into a frame for a device's role.</summary>
-    internal static class LedRoleMap
-    {
-        /// <param name="dv5">The 16 DV-5 LEDs: 0-3 up the left, 4-11 the shift row, 12-15 down the right.</param>
-        /// <param name="bar">The LB-10 light bar, left to right.</param>
-        public static Color[] Frame(LedDeviceSettings device, Color[] dv5, Color[] bar, RacingFlag flag, int now)
-        {
-            int n = device.LedCount;
-            Color[] frame;
-            switch (device.Role)
-            {
-                case LedRoles.Shift:
-                    frame = Stretch(dv5 != null && dv5.Length >= 12 ? dv5.Skip(4).Take(8).ToArray() : null, n);
-                    break;
-                case LedRoles.Flags:
-                    bool blink = ((now / 250) & 1) == 0;
-                    frame = new Color[n];
-                    if (flag != RacingFlag.None) for (int i = 0; i < n; i++) frame[i] = LightEffects.FlagColor(flag, i, blink, true);
-                    break;
-                default:
-                    frame = Stretch(bar, n);
-                    break;
-            }
-            if (device.Reverse) Array.Reverse(frame);
-            if (device.Brightness < 100)
-            {
-                double scale = device.Brightness / 100.0;
-                for (int i = 0; i < n; i++) frame[i] = Color.FromArgb((int)(frame[i].R * scale), (int)(frame[i].G * scale), (int)(frame[i].B * scale));
-            }
-            return frame;
-        }
-
-        /// <summary>Spreads a strip over n LEDs: each LED takes the colour of the source LED at the same position along the strip.</summary>
-        internal static Color[] Stretch(Color[] source, int n)
-        {
-            var result = new Color[n];
-            if (source == null || source.Length == 0) return result;
-            for (int i = 0; i < n; i++)
-            {
-                int from = (int)((i + 0.5) * source.Length / n);
-                result[i] = source[Math.Min(source.Length - 1, from)];
-            }
-            return result;
-        }
-    }
-
     /// <summary>
     /// Looks for LED boards on the computer's serial ports, only when asked. Each port is
     /// opened, given a moment to announce itself as Adalight ("Ada"), then asked its name
@@ -387,20 +439,24 @@ namespace AlmostFastOverlays
     /// </summary>
     internal static class LedDeviceScanner
     {
-        public static List<LedDeviceSettings> Scan(IEnumerable<string> skipPorts, Action<string> progress)
+        /// <summary>LED boards on serial ports other than <paramref name="skipPorts"/> (ports already in use by set-up devices).</summary>
+        public static List<DeviceSettings> Scan(IEnumerable<string> skipPorts, Action<string> progress)
         {
             var skip = new HashSet<string>(skipPorts.Where(p => p != null), StringComparer.OrdinalIgnoreCase);
-            var found = new List<LedDeviceSettings>();
+            var found = new List<DeviceSettings>();
             foreach (string port in SerialPorts().Where(p => !skip.Contains(p)))
             {
-                progress?.Invoke("Checking " + port + "…");
-                if (IsAdalight(port))
+                progress?.Invoke(port);
+                string usbId = DevicePorts.HardwareIdForPort(port);
+                // Known devices are asked first by name, which is quick and doesn't wait for an Adalight greeting.
+                KnownDevices.Profile known = KnownDevices.Find(usbId, null);
+                if (known == null && IsAdalight(port))
                 {
-                    found.Add(new LedDeviceSettings { Kind = LedDeviceKinds.Adalight, Port = port, Name = "Adalight on " + port, Role = LedRoles.Bar });
+                    found.Add(new DeviceSettings { Kind = LedDeviceKinds.Adalight, Port = port, UsbId = usbId, DetectedName = "Adalight LED strip", Name = "Adalight LED strip" });
                     continue;
                 }
                 string name = ArduinoName(port);
-                if (name != null) found.Add(new LedDeviceSettings { Kind = LedDeviceKinds.Arduino, Port = port, Name = name, Role = LedRoles.Bar });
+                if (name != null) found.Add(new DeviceSettings { Kind = LedDeviceKinds.Arduino, Port = port, UsbId = usbId, DetectedName = name, Name = name });
             }
             return found;
         }

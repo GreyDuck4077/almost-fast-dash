@@ -96,33 +96,15 @@
         <!-- ================= Centre: LED stage ================= -->
         <ScrollViewer Grid.Row="1" Grid.Column="1" VerticalScrollBarVisibility="Auto" Background="#07090C">
             <StackPanel HorizontalAlignment="Center" Margin="32,36,32,32">
-                <!-- LB-10 brow bar -->
-                <Border Background="#05070A" BorderBrush="#1D232D" BorderThickness="1" CornerRadius="12" Padding="18,12" Margin="60,0,60,18">
-                    <UniformGrid x:Name="BrowStage" Rows="1"/>
+                <!-- The wheel screen, then the LEDs of every set-up device -->
+                <Border Background="#05070A" BorderBrush="#1D232D" BorderThickness="1" CornerRadius="16" Padding="12" HorizontalAlignment="Center">
+                    <Border Width="560" Height="315" CornerRadius="8" BorderBrush="#232A35" BorderThickness="1" ClipToBounds="True">
+                        <Border.Background>
+                            <ImageBrush x:Name="ScreenImage" Stretch="Uniform" Opacity="0.55"/>
+                        </Border.Background>
+                    </Border>
                 </Border>
-                <!-- DV-5 -->
-                <Border Background="#05070A" BorderBrush="#1D232D" BorderThickness="1" CornerRadius="22" Padding="18,14,18,20">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="40"/>
-                            <ColumnDefinition Width="560"/>
-                            <ColumnDefinition Width="40"/>
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="40"/>
-                            <RowDefinition Height="315"/>
-                        </Grid.RowDefinitions>
-                        <UniformGrid x:Name="ShiftStage" Grid.Column="1" Columns="8" Margin="70,0,70,10"/>
-                        <UniformGrid x:Name="LeftStage" Grid.Row="1" Rows="4" Margin="0,30,10,30"/>
-                        <UniformGrid x:Name="RightStage" Grid.Row="1" Grid.Column="2" Rows="4" Margin="10,30,0,30"/>
-                        <Border Grid.Row="1" Grid.Column="1" CornerRadius="8" BorderBrush="#232A35" BorderThickness="1" ClipToBounds="True">
-                            <Border.Background>
-                                <ImageBrush x:Name="ScreenImage" Stretch="Uniform" Opacity="0.55"/>
-                            </Border.Background>
-                        </Border>
-                    </Grid>
-                </Border>
-                <TextBlock x:Name="HoverText" Style="{StaticResource T.Caption}" HorizontalAlignment="Center" Margin="0,14,0,0"
+                <StackPanel x:Name="DeviceStages" Margin="0,18,0,0" MaxWidth="720"/>                <TextBlock x:Name="HoverText" Style="{StaticResource T.Caption}" HorizontalAlignment="Center" Margin="0,14,0,0"
                            Text="Hover an LED to see which layer lit it. The selected layer's LEDs are ringed."/>
 
                 <!-- Profile-wide output settings -->

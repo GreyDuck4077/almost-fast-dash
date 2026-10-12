@@ -317,7 +317,7 @@ namespace AlmostFastOverlays
         {
             var result = c.Empty();
             string side = c.Text("side");
-            bool left = side == "Left" || (side == "Auto" && (c.StripCount == 2 ? c.Strip == 0 : c.Target.Id != "right" && c.Target.Id != "brow-right"));
+            bool left = side == "Left" || (side == "Auto" && !c.Target.IsRight(c.Strip));
             BlindSpotZone zone = left ? c.T.LeftBlindSpot : c.T.RightBlindSpot;
             if (zone == BlindSpotZone.None) return result;
             Color color = c.Color("color");
