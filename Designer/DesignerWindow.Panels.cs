@@ -63,14 +63,21 @@ namespace AlmostFastOverlays
             bool Match(string name, string description) =>
                 filter.Length == 0 || name.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0 || (description ?? "").IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0;
 
-            // Blocks sit in folders; a search opens every folder with a match.
+            // Quick values and blocks sit in folders; a search opens every folder with a match.
+            List<DesignBlock> quick = QuickValues.All().Where(b => Match(b.Name, b.Description) || Match(b.Folder, null)).ToList();
+            if (quick.Count > 0)
+            {
+                host.Children.Add(SectionTitle(QuickValues.Section));
+                foreach (IGrouping<string, DesignBlock> folder in quick.GroupBy(b => b.Folder).OrderBy(f => Array.IndexOf(QuickValues.Folders, f.Key)))
+                    host.Children.Add(BlockFolder(folder.Key, folder.ToList(), filter.Length > 0, QuickValues.Section));
+            }
             List<DesignBlock> blocks = DesignBlocks.BuiltIn().Concat(DesignBlocks.UserMade().Select(b => { b.Folder = "My blocks"; return b; }))
                 .Where(b => Match(b.Name, b.Description) || Match(b.Folder, null)).ToList();
             if (blocks.Count > 0)
             {
                 host.Children.Add(SectionTitle("Ready-made blocks"));
                 foreach (IGrouping<string, DesignBlock> folder in blocks.GroupBy(b => b.Folder).OrderBy(f => FolderOrder(f.Key)))
-                    host.Children.Add(BlockFolder(folder.Key, folder.ToList(), filter.Length > 0));
+                    host.Children.Add(BlockFolder(folder.Key, folder.ToList(), filter.Length > 0, "Ready-made blocks"));
             }
 
             foreach (string category in WidgetCatalog.Categories)
@@ -109,10 +116,11 @@ namespace AlmostFastOverlays
         }
 
         /// <summary>A folder of blocks that opens and closes with a click; it remembers being open while the designer runs.</summary>
-        private StackPanel BlockFolder(string name, List<DesignBlock> blocks, bool searching)
+        private StackPanel BlockFolder(string name, List<DesignBlock> blocks, bool searching, string section)
         {
             var panel = new StackPanel { Margin = new Thickness(0, 0, 0, 4) };
-            bool open = searching || OpenFolders.Contains(name);
+            string key = section + "/" + name;
+            bool open = searching || OpenFolders.Contains(key);
             var content = new StackPanel { Visibility = open ? Visibility.Visible : Visibility.Collapsed, Margin = new Thickness(10, 0, 0, 4) };
             foreach (DesignBlock block in blocks) content.Children.Add(BlockRow(block));
 
@@ -145,7 +153,7 @@ namespace AlmostFastOverlays
                 content.Visibility = nowOpen ? Visibility.Visible : Visibility.Collapsed;
                 chevron.Text = nowOpen ? "" : "";
                 if (searching) return;
-                if (nowOpen) OpenFolders.Add(name); else OpenFolders.Remove(name);
+                if (nowOpen) OpenFolders.Add(key); else OpenFolders.Remove(key);
             };
             panel.Children.Add(row);
             panel.Children.Add(content);

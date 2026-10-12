@@ -226,6 +226,38 @@ namespace AlmostFastOverlays
         /// <summary>Lap delta history (seconds, positive = faster), oldest first, sampled every 250 ms.</summary>
         public float[] DeltaTrace { get; set; } = new float[0];
 
+        // Engine. Temperatures in °C and pressures in bar; NaN when the car doesn't report them.
+        public double OilTempC { get; set; } = double.NaN;
+        public double OilPressureBar { get; set; } = double.NaN;
+        public double WaterTempC { get; set; } = double.NaN;
+        public double FuelPressureBar { get; set; } = double.NaN;
+        public double Voltage { get; set; } = double.NaN;
+        /// <summary>DRS: -1 when the car has none, 0 off, 1 available soon, 2 available now, 3 open.</summary>
+        public int DrsState { get; set; } = -1;
+        public double FuelCapacityLiters { get; set; }
+
+        // Timing against the whole field, and sectors. Times are seconds, 0 when unknown.
+        public double SessionBestLapSeconds { get; set; }
+        public double ClassBestLapSeconds { get; set; }
+        /// <summary>The sector you are in, from 1; 0 when the track's sectors are unknown.</summary>
+        public int Sector { get; set; }
+        public int SectorCount { get; set; }
+        public double SectorRunningSeconds { get; set; }
+        public double LastSectorSeconds { get; set; }
+        /// <summary>Sector times of the lap in progress, of the last lap and your best for each sector.</summary>
+        public double[] SectorTimes { get; set; } = new double[0];
+        public double[] LastLapSectorTimes { get; set; } = new double[0];
+        public double[] BestSectorTimes { get; set; } = new double[0];
+
+        /// <summary>Front left, front right, rear left, rear right.</summary>
+        public TyreCorner[] Tyres { get; set; } = new TyreCorner[0];
+        /// <summary>Every car in race order.</summary>
+        public StandingsEntry[] Standings { get; set; } = new StandingsEntry[0];
+        /// <summary>A short race message (flags, penalties, a personal best), empty when there is none.</summary>
+        public string Notice { get; set; } = "";
+        /// <summary>The kind of notice: Info, Good, Warning or Danger, for colouring it.</summary>
+        public string NoticeKind { get; set; } = "";
+
         public double ReferenceLapSeconds =>
             AverageLapSeconds > 0 ? AverageLapSeconds : BestLapSeconds > 0 ? BestLapSeconds : LastLapSeconds;
 
@@ -257,7 +289,7 @@ namespace AlmostFastOverlays
         }
     }
 
-    internal sealed class IRacingTelemetrySource : IDisposable
+    internal sealed partial class IRacingTelemetrySource : IDisposable
     {
         private const double MetersPerSecondToMph = 2.2369362920544;
         private readonly object _sync = new object();
@@ -450,6 +482,7 @@ namespace AlmostFastOverlays
             };
             snapshot.ThrottleTrace = throttle;
             snapshot.BrakeTrace = brake;
+            PreviewRaceData(snapshot);
             return snapshot;
         }
 
@@ -701,6 +734,7 @@ namespace AlmostFastOverlays
                 _latest.ThrottleTrace = _throttleTraceCopy;
                 _latest.BrakeTrace = _brakeTraceCopy;
                 _latest.TraceVersion = _traceVersion;
+                UpdateRaceData(sample.Telemetry, _latest, sessionFlags, _suppressHeldBlackFlag);
             }
         }
 

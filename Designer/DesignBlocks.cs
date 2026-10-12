@@ -14,6 +14,8 @@ namespace AlmostFastOverlays
         public string Name, Description, Icon;
         /// <summary>The folder it is listed under in the designer's Add panel.</summary>
         public string Folder = "Other";
+        /// <summary>The Add panel section: ready-made blocks, or quick values.</summary>
+        public string Section = "Ready-made blocks";
         public bool UserMade;
         public string FilePath;
         public Func<List<DashWidget>> Create;

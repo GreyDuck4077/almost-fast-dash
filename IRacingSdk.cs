@@ -401,7 +401,23 @@ namespace AlmostFastOverlays
             ShiftLastRpm = Yaml.Number(Yaml.Text(driverInfo, "DriverCarSLLastRPM"));
             ShiftBlinkRpm = Yaml.Number(Yaml.Text(driverInfo, "DriverCarSLBlinkRPM"));
             RedlineRpm = Yaml.Number(Yaml.Text(driverInfo, "DriverCarRedLine"));
+
+            // The usable tank: the car's capacity times the series' fuel limit (1.0 when there is none).
+            double maxFuel = Yaml.Number(Yaml.Text(driverInfo, "DriverCarFuelMaxLtr"));
+            double maxPct = Yaml.Number(Yaml.Text(driverInfo, "DriverCarMaxFuelPct"));
+            FuelCapacityLiters = maxFuel * (maxPct > 0 && maxPct <= 1 ? maxPct : 1);
+
+            // Where each timing sector starts, as a fraction of the lap.
+            var starts = new List<double>();
+            foreach (Dictionary<string, object> sector in Yaml.Maps(Yaml.Map(_root, "SplitTimeInfo"), "Sectors"))
+                starts.Add(Yaml.Number(Yaml.Text(sector, "SectorStartPct")));
+            starts.Sort();
+            SectorStarts = starts.ToArray();
         }
+
+        public double FuelCapacityLiters { get; }
+        /// <summary>Lap fractions where the track's timing sectors start; the first is 0.</summary>
+        public double[] SectorStarts { get; }
 
         public WeekendInfo WeekendInfo { get; }
         public CarDetails[] Cars { get; }

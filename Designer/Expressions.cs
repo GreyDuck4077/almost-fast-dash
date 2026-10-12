@@ -476,6 +476,19 @@ namespace AlmostFastOverlays
                 });
             Add("deltacolor", "deltacolor(seconds)", "Green when gaining, red when losing, text color when even.", 1, 1,
                 (s, a) => { double d = Expr.Num(a[0]); return Expr.Color(d > 0.005 ? "good" : d < -0.005 ? "bad" : "text", s); });
+            Add("seconds", "seconds(value)", "Formats a short time such as a sector: 29.904; shows --.--- when unknown.", 1, 1,
+                (s, a) => { double v = Expr.Num(a[0]); return v <= 0 || double.IsNaN(v) ? "--.---" : v < 60 ? v.ToString("0.000", CultureInfo.InvariantCulture) : Fmt.LapTime(v); });
+
+            // Leaderboard, sectors and tyres.
+            Add("standing", "standing(position, \"Name\")", "A detail of the car in a race position: " + string.Join(", ", RaceFields.StandingFields) + ".", 2, 2,
+                (s, a) => RaceFields.Standing(s, RaceFields.AtPosition(s.T, (int)Expr.Num(a[0]), false), Expr.Text(a[1])));
+            Add("classstanding", "classstanding(position, \"Name\")", "Like standing(), counting only your class.", 2, 2,
+                (s, a) => RaceFields.Standing(s, RaceFields.AtPosition(s.T, (int)Expr.Num(a[0]), true), Expr.Text(a[1])));
+            Add("sectortime", "sectortime(sector)", "Your time in a sector of the lap in progress, 0 until you finish it.", 1, 1, (s, a) => RaceFields.Sector(s.T.SectorTimes, a[0]));
+            Add("lastsectortime", "lastsectortime(sector)", "Your time in a sector on your last lap.", 1, 1, (s, a) => RaceFields.Sector(s.T.LastLapSectorTimes, a[0]));
+            Add("bestsectortime", "bestsectortime(sector)", "Your best time in a sector this session.", 1, 1, (s, a) => RaceFields.Sector(s.T.BestSectorTimes, a[0]));
+            Add("tyre", "tyre(\"LF\", \"Temp\")", "A tyre reading in your units. Corner: LF, RF, LR or RR. Reading: " + string.Join(", ", RaceFields.TyreFields) + ". iRacing updates these in the pits.", 2, 2,
+                (s, a) => RaceFields.Tyre(s, Expr.Text(a[0]), Expr.Text(a[1])));
         }
 
         private static int Byte(object value) => (int)Math.Max(0, Math.Min(255, Expr.Num(value)));

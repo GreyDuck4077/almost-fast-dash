@@ -287,6 +287,23 @@ namespace AlmostFastOverlays
                 Type = "bar", Name = "Pinched", X = 750, Y = 190, W = 90, H = 280,
                 Props = { ["value"] = "=RevPct", ["orientation"] = "Vertical", ["bulge"] = "-70", ["skew"] = "-10", ["colorMode"] = "Shift colors" }
             });
+            // And one of the race-data quick values: leaderboard, tyres, sectors, an opponent card and a notice.
+            DashLayout race = DesignTemplates.Blank();
+            void Quick(string name, double x, double y, Action<DashWidget> adjust = null)
+            {
+                foreach (DashWidget w in QuickValues.All().First(b => b.Name == name).Create()) { w.X += x; w.Y += y; adjust?.Invoke(w); race.Screens[0].Widgets.Add(w); }
+            }
+            Quick("Leaderboard", 10, 10, w => { w.H = 330; w.Set("showIRating", "true"); });
+            Quick("Tyres: all readings", 340, 10);
+            Quick("Car ahead in the race", 340, 240);
+            Quick("Best sector times", 10, 350, w => { if (w.Name == "Ideal lap") { w.X = 10 + 360; } });
+            Quick("Oil temperature", 610, 10, w => w.W = 230);
+            Quick("Oil pressure", 610, 90, w => w.W = 230);
+            Quick("CPU load", 610, 170, w => w.W = 230);
+            Quick("Race notices", 420, 410, w => { w.Set("visible", ""); if (w.Type == "text") w.Set("text", "PERSONAL BEST 1:27.521"); else w.Set("tint", "good"); if (w.Type == "text") w.Set("color", "good"); });
+            using (var frame = DashboardRendererFactory.RenderPreview(new DashboardSettings { Layout = Layouts.Custom, Design = race, AccentColor = "#22D3EE" }, units, IRacingTelemetrySource.CreatePreviewSnapshot()))
+                frame.Save(Path.Combine(directory, "Race data.png"), System.Drawing.Imaging.ImageFormat.Png);
+
             var gauges = new DashboardSettings { Layout = Layouts.Custom, Design = sheet, AccentColor = "#22D3EE" };
             foreach (var state in new[] { Tuple.Create("", IRacingTelemetrySource.CreatePreviewSnapshot()), Tuple.Create(" - Shift point", LightsWindow.Scenario("Shift point")) })
                 using (var frame = DashboardRendererFactory.RenderPreview(gauges, units, state.Item2))

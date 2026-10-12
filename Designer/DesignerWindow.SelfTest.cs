@@ -171,6 +171,27 @@ namespace AlmostFastOverlays
             }
             Check("every built-in block is in a folder", DesignBlocks.BuiltIn().All(b => b.Folder != "Other"));
 
+            // ---------------- quick values and race data
+            var quickErrors = new List<string>();
+            foreach (DesignBlock quick in QuickValues.All())
+            {
+                var layout = DesignTemplates.Blank();
+                foreach (DashWidget w in quick.Create()) { w.X += 100; w.Y += 60; layout.Screens[0].Widgets.Add(w); }
+                using (var renderer = new LayoutRenderer(854, 480, new DashboardSettings { Layout = Layouts.Custom, Design = layout }, _units))
+                    foreach (TelemetrySnapshot snapshot in new[] { IRacingTelemetrySource.CreatePreviewSnapshot(), TelemetrySnapshot.Disconnected })
+                        using (renderer.Render(snapshot, false, 4, 1, layout.Screens[0]))
+                            quickErrors.AddRange(renderer.Errors.Values.Select(e => quick.Name + ": " + e));
+                if (!QuickValues.Folders.Contains(quick.Folder)) quickErrors.Add(quick.Name + " is in an unknown folder");
+            }
+            Check("every quick value draws (" + QuickValues.All().Count() + ")", quickErrors.Count == 0, string.Join("; ", quickErrors.Take(3)));
+            string Eval(string formula) => Expr.Text(Expr.Evaluate(formula, scope));
+            Check("leaderboard formulas", Eval("standing(1, \"Name\")") == "L. HARTMANN" && Eval("standing(Position - 1, \"Number\")") == "05" &&
+                Eval("standing(99, \"Exists\")") == "false" && Eval("standing(8, \"GapText\")") == "+1 LAP" && Eval("GapToLeader") == "+5.94", Eval("standing(8, \"GapText\")"));
+            Check("sector formulas", Eval("seconds(sectortime(1))") == "29.904" && Eval("seconds(sectortime(2))") == "--.---" && Eval("laptime(IdealLap)") == "1:27.373" && Eval("Sector") == "2");
+            Check("engine, tyre and system values", Eval("format(OilTemp, \"0\")") == (_units.Celsius ? "104" : "219") && Eval("format(tyre(\"RF\", \"Wear\"), \"0\")") == "88" &&
+                Eval("DrsText") == "OFF" && Expr.Num(Expr.Evaluate("CpuLoad", scope)) >= 0 && Expr.Num(Expr.Evaluate("MemoryLoad", scope)) > 0, Eval("format(OilTemp, \"0\")"));
+            Check("unknown engine values show as --", Expr.Text(Expr.Evaluate("format(OilTemp, \"0\")", new EvalScope { T = TelemetrySnapshot.Disconnected, Units = _units, Theme = _layout.Theme })) == "--");
+
             // ---------------- flip and rotate
             System.Drawing.Color Sample(DashWidget w, int x, int y, bool cache = true)
             {

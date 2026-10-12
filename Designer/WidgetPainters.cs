@@ -739,6 +739,163 @@ namespace AlmostFastOverlays
                     new RectangleF(b.Right - gapW, b.Y, gapW - 8, b.Height), StringAlignment.Far, "Middle", true, 0, Color.Empty, false);
         }
 
+        public static void Standings(WidgetContext c)
+        {
+            Graphics g = c.G;
+            RectangleF b = c.B;
+            float size = (float)c.Num("size");
+            StandingsEntry[] all = c.T.Standings ?? new StandingsEntry[0];
+            bool classOnly = c.Bool("classOnly");
+            StandingsEntry me = all.FirstOrDefault(r => r.IsPlayer);
+            StandingsEntry[] field = classOnly && me != null ? all.Where(r => r.ClassName == me.ClassName).OrderBy(r => r.ClassPosition).ToArray() : all;
+            if (field.Length == 0)
+            {
+                Paint.Text(g, c, "Waiting for the leaderboard", size * 0.85f, false, c.Theme("muted"), b, StringAlignment.Center, "Middle", true, 0, Color.Empty, false);
+                return;
+            }
+
+            // Which cars to show: the top of the field, a window around you, or the top with your row kept in view.
+            int rows = Math.Max(1, Math.Min(30, (int)c.Num("rows")));
+            int mine = Array.IndexOf(field, me);
+            List<StandingsEntry> shown;
+            switch (c.Choice("focus"))
+            {
+                case "Around me":
+                    int first = mine < 0 ? 0 : Math.Max(0, Math.Min(field.Length - rows, mine - rows / 2));
+                    shown = field.Skip(first).Take(rows).ToList();
+                    break;
+                case "Top of the field":
+                    shown = field.Take(rows).ToList();
+                    break;
+                default:
+                    shown = field.Take(rows).ToList();
+                    if (mine >= rows && rows >= 2) shown[rows - 1] = me;
+                    break;
+            }
+
+            float gap = (float)c.Num("gap"), rowH = (b.Height - gap * (rows - 1)) / rows;
+            for (int i = 0; i < shown.Count; i++)
+                StandingsRow(c, shown[i], new RectangleF(b.X, b.Y + i * (rowH + gap), b.Width, rowH), size, i, classOnly);
+        }
+
+        private static void StandingsRow(WidgetContext c, StandingsEntry r, RectangleF b, float size, int index, bool classOnly)
+        {
+            Graphics g = c.G;
+            float radius = (float)c.Num("radius");
+            Color text = c.Color("textColor"), accent = c.Color("highlight");
+            Color background = index % 2 == 1 ? c.OptionalColor("altRowColor") ?? c.Color("rowColor") : c.Color("rowColor");
+            if (r.IsPlayer)
+            {
+                DashKit.Fill(g, b, Color.FromArgb(55, accent), radius);
+                DashKit.Fill(g, new RectangleF(b.X, b.Y + b.Height * 0.2f, 3, b.Height * 0.6f), accent, 1.5f);
+            }
+            else if (background.A > 0) DashKit.Fill(g, b, background, radius);
+            Color nameColor = r.InPits ? c.Color("pitColor") : text;
+            float boxH = Math.Min(size * 1.6f, b.Height - 4), boxY = b.Y + (b.Height - boxH) / 2, x = b.X + 8;
+
+            if (c.Bool("showPosition"))
+            {
+                var pos = new RectangleF(x, boxY, boxH * 1.2f, boxH);
+                Paint.Text(c.G, c, (classOnly ? r.ClassPosition : r.Position).ToString(), size, true, r.IsPlayer ? accent : text, pos, StringAlignment.Center, "Middle", true, 0, Color.Empty, false);
+                x = pos.Right + 4;
+            }
+            if (c.Bool("showClass"))
+            {
+                DashKit.Fill(g, new RectangleF(x, boxY + 2, 4, boxH - 4), r.ClassColor, 2);
+                x += 10;
+            }
+            if (c.Bool("showNumber"))
+            {
+                var number = new RectangleF(x, boxY, boxH * 1.4f, boxH);
+                DashKit.Fill(g, number, Color.FromArgb(226, 232, 240), 5);
+                Paint.Text(g, c, r.CarNumber ?? "", boxH * 0.55f, true, c.Theme("background"), number, StringAlignment.Center, "Middle", true, 0, Color.Empty, false);
+                x = number.Right + 8;
+            }
+
+            // The right-hand value, then iRating, then the name takes what is left.
+            string column = c.Choice("column");
+            string value;
+            Color valueColor = text;
+            switch (column)
+            {
+                case "Interval": value = r.Position == 1 ? "" : r.LapsBehind > 0 && r.Interval <= 0 ? RaceFields.GapText(r) : "+" + r.Interval.ToString("0.00"); break;
+                case "Delta to me": value = r.IsPlayer ? "" : (r.DeltaToPlayer > 0 ? "+" : "") + r.DeltaToPlayer.ToString("0.00"); valueColor = r.IsPlayer ? text : r.DeltaToPlayer < 0 ? c.Theme("good") : c.Theme("warn"); break;
+                case "Last lap": value = Fmt.LapTime(r.LastLap); break;
+                case "Best lap":
+                    value = Fmt.LapTime(r.BestLap);
+                    if (r.BestLap > 0 && Math.Abs(r.BestLap - c.T.SessionBestLapSeconds) < 0.0005) valueColor = c.Color("bestColor");
+                    break;
+                case "Laps": value = r.Laps.ToString(); break;
+                default: value = RaceFields.GapText(r); break;
+            }
+            float valueW = size * 4.6f, right = b.Right - 8;
+            Paint.Text(g, c, value, size, true, valueColor, new RectangleF(right - valueW, b.Y, valueW, b.Height), StringAlignment.Far, "Middle", true, 0, Color.Empty, false);
+            right -= valueW + 6;
+            if (c.Bool("showIRating"))
+            {
+                float w = size * 2.6f;
+                Paint.Text(g, c, DashKit.IRating(r.IRating), size * 0.8f, false, c.Theme("muted"), new RectangleF(right - w, b.Y, w, b.Height), StringAlignment.Far, "Middle", true, 0, Color.Empty, false);
+                right -= w + 6;
+            }
+            bool car = c.Bool("showCar") && !string.IsNullOrEmpty(r.CarName);
+            var nameBox = new RectangleF(x, b.Y, Math.Max(10, right - x), car ? b.Height * 0.6f : b.Height);
+            Paint.Text(g, c, r.IsPlayer ? (r.Name ?? "YOU") : r.Name, size, true, nameColor, nameBox, StringAlignment.Near, car ? "Bottom" : "Middle", true, 0, Color.Empty, false);
+            if (car)
+                Paint.Text(g, c, r.CarName, size * 0.65f, false, c.Theme("muted"), new RectangleF(x, b.Y + b.Height * 0.6f, nameBox.Width, b.Height * 0.38f), StringAlignment.Near, "Top", true, 0, Color.Empty, false);
+        }
+
+        public static void Tyres(WidgetContext c)
+        {
+            Graphics g = c.G;
+            RectangleF b = c.B;
+            TyreCorner[] tyres = c.T.Tyres ?? new TyreCorner[0];
+            float gap = Math.Max(4, Math.Min(b.Width, b.Height) * 0.04f);
+            float w = (b.Width - gap) / 2, h = (b.Height - gap) / 2;
+            string[] corners = { "LF", "RF", "LR", "RR" };
+            for (int i = 0; i < 4; i++)
+            {
+                var cell = new RectangleF(b.X + (i % 2) * (w + gap), b.Y + (i / 2) * (h + gap), w, h);
+                TyreCell(c, tyres.FirstOrDefault(t => t.Name == corners[i]), corners[i], cell);
+            }
+        }
+
+        private static void TyreCell(WidgetContext c, TyreCorner tyre, string name, RectangleF b)
+        {
+            Graphics g = c.G;
+            float radius = (float)c.Num("radius"), size = (float)c.Num("size");
+            Color text = c.Color("textColor"), label = c.Color("labelColor");
+            DashKit.Fill(g, b, c.Color("panelColor"), radius);
+            double cool = c.Num("coolBelow"), hot = c.Num("hotAbove");
+            Color Heat(double celsius) => double.IsNaN(celsius) ? c.Theme("track") : celsius < cool ? c.Color("coolColor") : celsius > hot ? c.Color("hotColor") : c.Color("okColor");
+            string Temp(double celsius) => double.IsNaN(celsius) ? "--" : c.Scope.Units.Temperature(celsius).ToString("0") + "°";
+
+            float pad = Math.Max(6, b.Height * 0.06f), y = b.Y + pad;
+            Paint.Text(g, c, name, size * 0.5f, false, label, new RectangleF(b.X + pad, y, b.Width - pad * 2, size * 0.6f), StringAlignment.Near, "Top", true, 0, Color.Empty, false);
+            if (c.Bool("showTemps"))
+            {
+                double avg = tyre?.Temp ?? double.NaN;
+                Paint.Text(g, c, Temp(avg), size, true, double.IsNaN(avg) ? label : Heat(avg), new RectangleF(b.X + pad, y, b.Width - pad * 2, size * 1.3f), StringAlignment.Far, "Top", true, 0, Color.Empty, false);
+                y += size * 1.4f;
+                // The tread from left to right as seen from behind the car: outer edge first on the left-hand tyres.
+                bool left = name[0] == 'L';
+                double[] across = tyre == null ? new[] { double.NaN, double.NaN, double.NaN }
+                    : left ? new[] { tyre.TempOuter, tyre.TempMiddle, tyre.TempInner } : new[] { tyre.TempInner, tyre.TempMiddle, tyre.TempOuter };
+                float stripH = Math.Max(4, Math.Min(size * 0.45f, b.Bottom - y - pad - size * 0.8f)), seg = (b.Width - pad * 2 - 8) / 3;
+                for (int k = 0; k < 3; k++)
+                    DashKit.Fill(g, new RectangleF(b.X + pad + k * (seg + 4), y, seg, stripH), Heat(across[k]), Math.Min(3, stripH / 2));
+                y += stripH + 4;
+            }
+            var lines = new List<string>();
+            if (c.Bool("showWear")) lines.Add(tyre == null || double.IsNaN(tyre.Wear) ? "--%" : (tyre.Wear * 100).ToString("0") + "%");
+            if (c.Bool("showPressure"))
+            {
+                double p = tyre == null ? double.NaN : RaceFields.Pressure(c.Scope.Units, tyre.PressureKpa / 100);
+                lines.Add(double.IsNaN(p) ? "--" : p.ToString(c.Scope.Units.Metric ? "0.00" : "0.0") + " " + RaceFields.PressureLabel(c.Scope.Units).ToLowerInvariant());
+            }
+            if (lines.Count > 0)
+                Paint.Text(g, c, string.Join("   ", lines), size * 0.55f, false, label, new RectangleF(b.X + pad, y, b.Width - pad * 2, Math.Max(size * 0.7f, b.Bottom - pad - y)), StringAlignment.Near, "Middle", true, 0, Color.Empty, false);
+        }
+
         public static void BlindSpot(WidgetContext c)
         {
             Graphics g = c.G;

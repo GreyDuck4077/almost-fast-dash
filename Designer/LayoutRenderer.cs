@@ -139,7 +139,7 @@ namespace AlmostFastOverlays
         private string _backgroundKey;
 
         /// <summary>Widget types that read telemetry directly, whatever their properties say.</summary>
-        private static readonly HashSet<string> LiveTypes = new HashSet<string> { "gear", "relative", "blindspot", "flag", "progress", "trace", "deltatrace", "laphistory" };
+        private static readonly HashSet<string> LiveTypes = new HashSet<string> { "gear", "relative", "blindspot", "flag", "progress", "trace", "deltatrace", "laphistory", "standings", "tyres" };
 
         private static bool IsStatic(DashWidget widget)
         {
@@ -249,7 +249,31 @@ namespace AlmostFastOverlays
                     if (widget.Type == "progress") hash = hash * 31 + scope.T.LapsCompleted * 13 + scope.T.LapColorVersion + (int)scope.T.SessionSecondsRemaining;
                     if (widget.Type == "blindspot") hash = hash * 31 + (int)scope.T.LeftBlindSpot * 5 + (int)scope.T.RightBlindSpot;
                     if (widget.Type == "flag") hash = hash * 31 + (int)scope.T.Flag;
+                    if (widget.Type == "standings") hash = hash * 31 + StandingsHash(scope.T);
+                    if (widget.Type == "tyres") hash = hash * 31 + TyresHash(scope.T);
                 }
+                return hash;
+            }
+        }
+
+        private static int StandingsHash(TelemetrySnapshot t)
+        {
+            unchecked
+            {
+                int hash = 0;
+                foreach (StandingsEntry r in t.Standings ?? new StandingsEntry[0])
+                    hash = hash * 31 + r.CarIdx * 7 + r.Position + (int)Math.Round(r.GapToLeader * 10) * 13 + (int)(r.LastLap * 1000) + (int)(r.BestLap * 1000) + (r.InPits ? 1 : 0);
+                return hash;
+            }
+        }
+
+        private static int TyresHash(TelemetrySnapshot t)
+        {
+            unchecked
+            {
+                int hash = 0;
+                foreach (TyreCorner c in t.Tyres ?? new TyreCorner[0])
+                    hash = hash * 31 + (c.Temp + c.TempInner * 3 + c.TempOuter * 7 + c.Wear * 1000 + c.PressureKpa * 11).GetHashCode();
                 return hash;
             }
         }

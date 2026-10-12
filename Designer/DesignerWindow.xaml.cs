@@ -1248,7 +1248,7 @@ namespace AlmostFastOverlays
                     half.Y = 380;
                     _screen.Widgets.Add(half);
                 }
-                OpenFolders.Add("Rev gauges");
+                OpenFolders.Add("Ready-made blocks/Rev gauges");
                 BuildToolbox();
                 CollapsedGroups.Add("Value");
                 CollapsedGroups.Add("Look");

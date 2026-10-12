@@ -21,7 +21,7 @@ namespace AlmostFastOverlays
         public static readonly List<DataField> All = new List<DataField>();
         private static readonly Dictionary<string, DataField> ByName = new Dictionary<string, DataField>(StringComparer.OrdinalIgnoreCase);
 
-        public static readonly string[] Categories = { "Car", "Timing", "Session", "Fuel", "Position", "Nearby cars", "Flags", "Pit", "Conditions" };
+        public static readonly string[] Categories = { "Car", "Engine", "Timing", "Session", "Fuel", "Tyres", "Position", "Leaderboard", "Nearby cars", "Flags", "Pit", "Conditions", "System" };
 
         static DataCatalog()
         {
@@ -130,6 +130,52 @@ namespace AlmostFastOverlays
             Add("Conditions", "TempUnit", "\"°C\" or \"°F\".", s => s.Units.TemperatureLabel);
             Add("Conditions", "TrackTemp", "Track temperature in your temperature unit (°C or °F).", s => Temp(s, s.T.TrackTempC), "format(TrackTemp, \"0\") + \"°\"");
             Add("Conditions", "TrackLength", "Track length in miles or km to match your speed unit.", s => s.Units.Metric ? s.T.TrackLengthMiles * 1.609344 : s.T.TrackLengthMiles, "format(TrackLength, \"0.00\")");
+
+            // ---------------- Engine
+            Add("Engine", "OilTemp", "Oil temperature in your temperature unit; unknown (--) when the car doesn't report it.", s => Temp(s, s.T.OilTempC), "format(OilTemp, \"0\") + \"°\"");
+            Add("Engine", "OilPressure", "Oil pressure in BAR or PSI.", s => RaceFields.Pressure(s.Units, s.T.OilPressureBar), "format(OilPressure, \"0.0\")");
+            Add("Engine", "WaterTemp", "Water temperature in your temperature unit.", s => Temp(s, s.T.WaterTempC), "format(WaterTemp, \"0\") + \"°\"");
+            Add("Engine", "FuelPressure", "Fuel pressure in BAR or PSI.", s => RaceFields.Pressure(s.Units, s.T.FuelPressureBar), "format(FuelPressure, \"0.0\")");
+            Add("Engine", "Voltage", "Battery voltage.", s => s.T.Voltage, "format(Voltage, \"0.0\")");
+            Add("Engine", "PressureUnit", "\"BAR\" or \"PSI\".", s => RaceFields.PressureLabel(s.Units));
+            Add("Engine", "Drs", "DRS: -1 when the car has none, 0 off, 1 available soon, 2 ready, 3 open.", s => (double)s.T.DrsState);
+            Add("Engine", "DrsText", "DRS as OFF, SOON, READY or OPEN; empty when the car has none.", s => RaceFields.DrsText(s.T.DrsState));
+            Add("Engine", "RevLimiter", "True while the rev limiter is cutting in.", s => s.T.Connected && s.T.RedlineRpm > 0 && s.T.EngineRpm >= s.T.RedlineRpm);
+
+            // ---------------- More timing
+            Add("Timing", "SessionBestLap", "The fastest lap anyone has done this session.", s => s.T.SessionBestLapSeconds, "laptime(SessionBestLap)");
+            Add("Timing", "ClassBestLap", "The fastest lap in your class this session.", s => s.T.ClassBestLapSeconds, "laptime(ClassBestLap)");
+            Add("Timing", "Sector", "The sector you are in, from 1; 0 when unknown.", s => (double)s.T.Sector);
+            Add("Timing", "SectorCount", "How many timing sectors the track has.", s => (double)s.T.SectorCount);
+            Add("Timing", "SectorTime", "Time so far in the sector you are in.", s => s.T.SectorRunningSeconds, "seconds(SectorTime)");
+            Add("Timing", "LastSectorTime", "Your time in the sector you just finished.", s => s.T.LastSectorSeconds, "seconds(LastSectorTime)");
+            Add("Timing", "IdealLap", "Your best sectors added up: the lap you could do. 0 until every sector has a time.", s =>
+                s.T.BestSectorTimes != null && s.T.BestSectorTimes.Length > 0 && s.T.BestSectorTimes.All(v => v > 0) ? s.T.BestSectorTimes.Sum() : 0.0, "laptime(IdealLap)");
+
+            // ---------------- More fuel
+            Add("Fuel", "FuelCapacity", "Usable tank size in your unit, including any series fuel limit.", s => s.Units.Fuel(s.T.FuelCapacityLiters), "fuel(FuelCapacity)");
+
+            // ---------------- Tyres
+            foreach (string corner in new[] { "LF", "RF", "LR", "RR" })
+            {
+                string c = corner;
+                Add("Tyres", c + "Temp", "Average " + c + " tyre temperature from the pit crew (updates in the pits).", s => RaceFields.Tyre(s, c, "Temp"), "format(" + c + "Temp, \"0\") + \"°\"");
+                Add("Tyres", c + "Wear", c + " tread left, 0 to 100% (updates in the pits).", s => RaceFields.Tyre(s, c, "Wear"), "format(" + c + "Wear, \"0\") + \"%\"");
+                Add("Tyres", c + "Pressure", c + " pressure in BAR or PSI (the pit crew's cold reading).", s => RaceFields.Tyre(s, c, "Pressure"), "format(" + c + "Pressure, \"0.0\")");
+            }
+
+            // ---------------- Leaderboard
+            Add("Leaderboard", "StandingsCount", "Cars on the leaderboard.", s => (double)(s.T.Standings?.Length ?? 0));
+            Add("Leaderboard", "LeaderName", "The race leader.", s => RaceFields.Standing(s, RaceFields.AtPosition(s.T, 1, false), "Name"));
+            Add("Leaderboard", "GapToLeader", "Your gap to the leader: seconds, or how many laps down.", s => RaceFields.GapText(s.T.Standings?.FirstOrDefault(r => r.IsPlayer)));
+            Add("Leaderboard", "ClassName", "Your class.", s => s.T.Standings?.FirstOrDefault(r => r.IsPlayer)?.ClassName ?? "");
+
+            // ---------------- Notices and system
+            Add("Flags", "Notice", "A short race message for a few seconds: flags, penalties, a personal best, low fuel. Empty otherwise.", s => s.T.Notice ?? "");
+            Add("Flags", "NoticeKind", "What sort of notice is showing: Info, Good, Warning or Danger.", s => s.T.NoticeKind ?? "");
+            Add("System", "CpuLoad", "The PC's CPU use, 0 to 100.", s => SystemLoad.Cpu, "format(CpuLoad, \"0\") + \"%\"");
+            Add("System", "MemoryLoad", "The PC's memory use, 0 to 100.", s => SystemLoad.Memory, "format(MemoryLoad, \"0\") + \"%\"");
+            Add("System", "Clock", "The PC's time, such as 18:04.", s => s.Now.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture));
         }
 
         /// <summary>

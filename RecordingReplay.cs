@@ -32,6 +32,10 @@ namespace AlmostFastOverlays
             uint lastRawFlags = 0;
             bool lastOut = false;
             double first = double.NaN, last = 0;
+            var race = new List<string>();
+            string lastNotice = "";
+            int lastLaps = -1;
+            TelemetrySnapshot final = null;
 
             foreach (Telemetry telemetry in Telemetry.ReadRecording(recording))
             {
@@ -63,6 +67,20 @@ namespace AlmostFastOverlays
                     lastOut = snapshot.OutOfCar;
                 }
 
+                if (snapshot.Notice != lastNotice)
+                {
+                    if (snapshot.Notice.Length > 0) race.Add(Clock(sessionTime) + "  notice: " + snapshot.Notice + " (" + snapshot.NoticeKind + ")");
+                    lastNotice = snapshot.Notice;
+                }
+                if (snapshot.LapsCompleted != lastLaps)
+                {
+                    lastLaps = snapshot.LapsCompleted;
+                    race.Add(Clock(sessionTime) + string.Format(CultureInfo.InvariantCulture, "  lap {0} done: last {1}, sectors {2} | best sectors {3} | session best {4}, P{5} of {6} on the leaderboard",
+                        snapshot.LapsCompleted, Fmt.LapTime(snapshot.LastLapSeconds), Times(snapshot.LastLapSectorTimes), Times(snapshot.BestSectorTimes),
+                        Fmt.LapTime(snapshot.SessionBestLapSeconds), snapshot.Standings.FirstOrDefault(r => r.IsPlayer)?.Position ?? 0, snapshot.Standings.Length));
+                }
+                final = snapshot;
+
                 LightFrame frame = renderer.Compose(snapshot.ForLights(), (int)(sessionTime * 1000));
                 spans.AddRange(activity.Observe(frame, devices, sessionTime, null, renderer.Profile.Gamma));
             }
@@ -75,6 +93,18 @@ namespace AlmostFastOverlays
             report.AppendLine();
             report.AppendLine("FLAGS AND STATE");
             foreach (string line in flags) report.AppendLine("  " + line);
+            report.AppendLine();
+            report.AppendLine("RACE DATA");
+            foreach (string line in race) report.AppendLine("  " + line);
+            if (final != null)
+            {
+                report.AppendLine(string.Format(CultureInfo.InvariantCulture, "  at the end: oil {0:0.0} C {1:0.00} bar, water {2:0.0} C, fuel pressure {3:0.00} bar, {4:0.0} V, DRS {5}, tank {6:0.0} L, {7} sectors",
+                    final.OilTempC, final.OilPressureBar, final.WaterTempC, final.FuelPressureBar, final.Voltage, final.DrsState, final.FuelCapacityLiters, final.SectorCount));
+                foreach (TyreCorner t in final.Tyres)
+                    report.AppendLine(string.Format(CultureInfo.InvariantCulture, "  tyre {0}: {1:0}/{2:0}/{3:0} C (outer/middle/inner), wear {4:0.00}, {5:0} kPa", t.Name, t.TempOuter, t.TempMiddle, t.TempInner, t.Wear, t.PressureKpa));
+                foreach (StandingsEntry r in final.Standings.Take(6))
+                    report.AppendLine(string.Format(CultureInfo.InvariantCulture, "  P{0} #{1} {2} ({3}) best {4} last {5} gap {6}", r.Position, r.CarNumber, r.Name, r.ClassName, Fmt.LapTime(r.BestLap), Fmt.LapTime(r.LastLap), RaceFields.GapText(r)));
+            }
             report.AppendLine();
             report.AppendLine("LIGHTS LONGER THAN 1 SECOND (rev lights left out)");
             foreach (LightSpan span in spans.Where(s => s.Seconds >= 1 && !revs.Contains(s.Layer)).OrderBy(s => s.From))
@@ -89,6 +119,8 @@ namespace AlmostFastOverlays
             Console.WriteLine(report.ToString());
             return 0;
         }
+
+        private static string Times(double[] times) => times == null || times.Length == 0 ? "none" : string.Join(" ", times.Select(t => t > 0 ? t.ToString("0.000", CultureInfo.InvariantCulture) : "-"));
 
         private static string Clock(double seconds) =>
             ((int)(seconds / 60)).ToString(CultureInfo.InvariantCulture) + ":" + (seconds % 60).ToString("00.0", CultureInfo.InvariantCulture);
