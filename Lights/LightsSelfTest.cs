@@ -109,11 +109,44 @@ namespace AlmostFastOverlays
             Check("shift point from the car's blink RPM", DataCatalog.AtShiftPoint(Snap(0.5, 7960)) && !DataCatalog.AtShiftPoint(Snap(0.99, 7900)));
 
             var rainbow = Enumerable.Range(0, 16).Select(i => Color.FromArgb(i * 10, 255 - i * 10, i)).ToArray();
-            List<byte[]> packets = Dv5LedController.BatchedPayloads(rainbow, 16);
+            List<byte[]> packets = ArduinoLedController.BatchedPayloads(rainbow, 16);
             Check("fast updates send a 16-colour frame as one packet", packets.Count == 1 && packets[0].Length == 99 && packets[0][1] == (byte)'6' && packets[0][2] == 3 && packets[0][98] == 0,
                 packets.Count + " packets, " + packets[0].Length + " bytes");
-            List<byte[]> solid = Dv5LedController.BatchedPayloads(Enumerable.Repeat(Color.Red, 16).ToArray(), 16);
+            List<byte[]> solid = ArduinoLedController.BatchedPayloads(Enumerable.Repeat(Color.Red, 16).ToArray(), 16);
             Check("fast updates merge a single colour into one run", solid.Count == 1 && solid[0].Length == 9 && solid[0][4] == 16);
+
+            // ---------------- other LED devices
+            byte[] ada = AdalightOutput.Packet(new[] { Color.Red, Color.Lime, Color.Blue });
+            Check("Adalight packet: header, count and checksum", ada.Length == 15 && ada[0] == (byte)'A' && ada[1] == (byte)'d' && ada[2] == (byte)'a' && ada[3] == 0 && ada[4] == 2 && ada[5] == (0 ^ 2 ^ 0x55)
+                && ada[6] == 255 && ada[7] == 0 && ada[10] == 255 && ada[14] == 255, string.Join(" ", ada.Take(6)));
+            byte[] adaLong = AdalightOutput.Packet(new Color[300]);
+            Check("Adalight packet over 255 LEDs", adaLong[3] == 1 && adaLong[4] == 43 && adaLong[5] == (1 ^ 43 ^ 0x55) && adaLong.Length == 6 + 900);
+            List<byte[]> wled = WledOutput.Packets(Enumerable.Repeat(Color.FromArgb(1, 2, 3), 10).ToArray(), 2);
+            Check("WLED packet: DRGB with timeout", wled.Count == 1 && wled[0].Length == 32 && wled[0][0] == 2 && wled[0][1] == 2 && wled[0][2] == 1 && wled[0][4] == 3);
+            List<byte[]> wledLong = WledOutput.Packets(new Color[1000], 2);
+            Check("WLED over 490 LEDs: DNRGB chunks with start index", wledLong.Count == 3 && wledLong.All(p => p[0] == 4)
+                && wledLong[1][2] == (489 >> 8) && wledLong[1][3] == (489 & 0xFF) && wledLong[2][3] == (978 & 0xFF) && wledLong[2].Length == 4 + 22 * 3);
+            Color[] stretched = LedRoleMap.Stretch(new[] { Color.Red, Color.Blue }, 4);
+            Check("stretching a strip across more LEDs", stretched[0] == Color.Red && stretched[1] == Color.Red && stretched[2] == Color.Blue && stretched[3] == Color.Blue);
+            Color[] squeezed = LedRoleMap.Stretch(Enumerable.Range(0, 8).Select(i => Color.FromArgb(i, 0, 0)).ToArray(), 4);
+            Check("squeezing a strip onto fewer LEDs", squeezed.Select(c => (int)c.R).SequenceEqual(new[] { 1, 3, 5, 7 }), string.Join(",", squeezed.Select(c => c.R)));
+            var dv5Sample = Enumerable.Range(0, 16).Select(i => Color.FromArgb(i * 10, 0, 0)).ToArray();
+            var barSample = Enumerable.Range(0, 20).Select(i => Color.FromArgb(0, i * 10, 0)).ToArray();
+            var shiftDevice = new LedDeviceSettings { Role = LedRoles.Shift, LedCount = 8 };
+            Check("shift-lights role takes the DV-5 shift row", LedRoleMap.Frame(shiftDevice, dv5Sample, barSample, RacingFlag.None, 0).Select(c => (int)c.R).SequenceEqual(Enumerable.Range(4, 8).Select(i => i * 10)));
+            var barDevice = new LedDeviceSettings { Role = LedRoles.Bar, LedCount = 20, Reverse = true, Brightness = 50 };
+            Color[] bar = LedRoleMap.Frame(barDevice, dv5Sample, barSample, RacingFlag.None, 0);
+            Check("light-bar role, reversed and at half brightness", bar[0].G == 95 && bar[19].G == 0 && bar[1].G == 90, bar[0].G + "/" + bar[19].G);
+            var flagDevice = new LedDeviceSettings { Role = LedRoles.Flags, LedCount = 6 };
+            Check("flags role shows the flag and goes dark without one",
+                LedRoleMap.Frame(flagDevice, dv5Sample, barSample, RacingFlag.Green, 0).All(c => c.ToArgb() == Color.Lime.ToArgb())
+                && LedRoleMap.Frame(flagDevice, dv5Sample, barSample, RacingFlag.None, 0).All(c => c.ToArgb() == Color.Black.ToArgb() || c.A == 0));
+            var withDevices = new AppSettings();
+            withDevices.General.LedDevices.Add(new LedDeviceSettings { Kind = LedDeviceKinds.Wled, Address = "192.168.1.40", Name = "Desk strip", LedCount = 60, Role = LedRoles.Flags, Reverse = true });
+            AppSettings reloaded = SettingsStore.Clone(withDevices);
+            reloaded.EnsureBuiltInDashboards();
+            LedDeviceSettings again = reloaded.General.LedDevices.FirstOrDefault();
+            Check("LED devices save and load", again != null && again.Kind == LedDeviceKinds.Wled && again.Address == "192.168.1.40" && again.LedCount == 60 && again.Role == LedRoles.Flags && again.Reverse);
 
             // ---------------- persistence
             DashboardSettings saved = DashboardSettings.CreateHalo();

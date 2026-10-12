@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
@@ -287,25 +287,30 @@ namespace AlmostFastOverlays
             if (flag == RacingFlag.None) return result;
             bool blink = ((c.Now / 250) & 1) == 0;
             bool pattern = c.Bool("pattern");
-            for (int i = 0; i < result.Length; i++)
-            {
-                Color color;
-                switch (flag)
-                {
-                    case RacingFlag.Green: color = System.Drawing.Color.Lime; break;
-                    case RacingFlag.Yellow: case RacingFlag.SafetyCar: color = System.Drawing.Color.FromArgb(255, 190, 0); break;
-                    case RacingFlag.White: color = System.Drawing.Color.White; break;
-                    case RacingFlag.Red: color = System.Drawing.Color.Red; break;
-                    case RacingFlag.BlueYellowStripe: color = !pattern || blink ? System.Drawing.Color.FromArgb(0, 90, 255) : System.Drawing.Color.FromArgb(255, 190, 0); break;
-                    case RacingFlag.Black: color = !pattern || blink ? System.Drawing.Color.White : System.Drawing.Color.Black; break;
-                    case RacingFlag.Meatball: color = !pattern || blink ? System.Drawing.Color.FromArgb(255, 90, 0) : System.Drawing.Color.Black; break;
-                    case RacingFlag.Surface: color = (!pattern || (i % 2 == 0) == blink) ? System.Drawing.Color.FromArgb(255, 190, 0) : System.Drawing.Color.Red; break;
-                    case RacingFlag.Checkered: color = (!pattern || (i % 2 == 0) == blink) ? System.Drawing.Color.White : System.Drawing.Color.Black; break;
-                    default: color = System.Drawing.Color.Black; break;
-                }
-                result[i] = color;
-            }
+            for (int i = 0; i < result.Length; i++) result[i] = FlagColor(flag, i, blink, pattern);
             return result;
+        }
+
+        /// <summary>
+        /// The colour of LED <paramref name="index"/> for a flag. With patterns, two-colour
+        /// flags alternate on <paramref name="blink"/> and the checkered flag alternates LEDs.
+        /// Shared by the flag light layer and LED devices with the Flags role.
+        /// </summary>
+        internal static Color FlagColor(RacingFlag flag, int index, bool blink, bool pattern)
+        {
+            switch (flag)
+            {
+                case RacingFlag.Green: return System.Drawing.Color.Lime;
+                case RacingFlag.Yellow: case RacingFlag.SafetyCar: return System.Drawing.Color.FromArgb(255, 190, 0);
+                case RacingFlag.White: return System.Drawing.Color.White;
+                case RacingFlag.Red: return System.Drawing.Color.Red;
+                case RacingFlag.BlueYellowStripe: return !pattern || blink ? System.Drawing.Color.FromArgb(0, 90, 255) : System.Drawing.Color.FromArgb(255, 190, 0);
+                case RacingFlag.Black: return !pattern || blink ? System.Drawing.Color.White : System.Drawing.Color.Black;
+                case RacingFlag.Meatball: return !pattern || blink ? System.Drawing.Color.FromArgb(255, 90, 0) : System.Drawing.Color.Black;
+                case RacingFlag.Surface: return (!pattern || (index % 2 == 0) == blink) ? System.Drawing.Color.FromArgb(255, 190, 0) : System.Drawing.Color.Red;
+                case RacingFlag.Checkered: return (!pattern || (index % 2 == 0) == blink) ? System.Drawing.Color.White : System.Drawing.Color.Black;
+                default: return System.Drawing.Color.Black;
+            }
         }
 
         private static Color?[] Spotter(LightContext c)

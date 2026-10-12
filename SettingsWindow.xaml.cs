@@ -300,7 +300,7 @@ namespace AlmostFastOverlays
             ShowSubNav(DashboardSubNav, dashboards);
             AnimatePageIn(page);
             if (page == GalleryPage) BuildGalleryCards();
-            if (page == SettingsPage) RefreshPorts();
+            if (page == SettingsPage) { RefreshPorts(); BuildLedDevices(); }
             if (page == EditorPage) _ledTimer.Start(); else _ledTimer.Stop();
             page.ScrollToTop();
         }
@@ -1053,7 +1053,7 @@ namespace AlmostFastOverlays
 
         private static string RunBrowTest(string port, int count, BrowLedSettings brow)
         {
-            using (var leds = new Dv5LedController(port, 115200, count, "SSG LB-10"))
+            using (var leds = new ArduinoLedController(port, 115200, count, "SSG LB-10"))
             {
                 leds.Connect();
                 string name = leds.QueryDeviceName();
@@ -1106,7 +1106,7 @@ namespace AlmostFastOverlays
 
         private static string RunLedTest(string port, DashboardSettings dashboard)
         {
-            using (var leds = new Dv5LedController(port, 115200, LedFrame.Count))
+            using (var leds = new ArduinoLedController(port, 115200, LedFrame.Count))
             {
                 leds.Connect();
                 string name = leds.QueryDeviceName();

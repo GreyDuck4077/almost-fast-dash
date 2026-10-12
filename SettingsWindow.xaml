@@ -642,6 +642,43 @@
                         </StackPanel>
                     </Border>
 
+                    <!-- Other LED devices: Arduino boards, Adalight strips, WLED controllers -->
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <StackPanel Margin="0,0,24,0">
+                                    <TextBlock Text="Other LED devices" Style="{StaticResource T.Title}"/>
+                                    <TextBlock Style="{StaticResource T.Caption}" Margin="0,4,0,18" TextWrapping="Wrap" MaxWidth="560" HorizontalAlignment="Left"
+                                               Text="Arduino LED boards and Adalight strips on USB, and WLED controllers on your network. Each one shows a role: the shift lights, the light bar or flags, stretched to its LEDs."/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+                                    <Button x:Name="ScanLedDevicesButton" Margin="0,0,8,0" Click="ScanLedDevices_Click"
+                                            ToolTip="Asks each USB serial port whether it is an LED board. Only runs when you click it.">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Style="{StaticResource T.Icon}" Text="&#xE721;" FontSize="12" Margin="0,0,8,0"/>
+                                            <TextBlock Text="Scan USB" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Click="AddWled_Click" ToolTip="Add a WLED controller by its IP address">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Style="{StaticResource T.Icon}" Text="&#xE710;" FontSize="12" Margin="0,0,8,0"/>
+                                            <TextBlock Text="Add WLED" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
+                            <Grid x:Name="WledEntry" Visibility="Collapsed" Margin="0,0,0,14">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <TextBox x:Name="WledAddress" Width="220" VerticalAlignment="Center" KeyDown="WledAddress_KeyDown" ToolTip="The controller's IP address, such as 192.168.1.40, or its name"/>
+                                <Button Grid.Column="1" Style="{StaticResource Btn.Primary}" Content="Add" Margin="8,0,0,0" Click="AddWledConfirm_Click"/>
+                                <Button Grid.Column="2" Style="{StaticResource Btn.Ghost}" Content="Cancel" Margin="4,0,0,0" Click="AddWledCancel_Click"/>
+                            </Grid>
+                            <TextBlock x:Name="LedDevicesStatus" Style="{StaticResource T.Caption}" Margin="0,0,0,12" TextWrapping="Wrap" Visibility="Collapsed"/>
+                            <StackPanel x:Name="LedDevicesHost"/>
+                        </StackPanel>
+                    </Border>
+
                 </StackPanel>
             </ScrollViewer>
 

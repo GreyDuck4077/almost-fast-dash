@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO.Ports;
 using System.Text;
 using System.Threading;
@@ -6,14 +6,24 @@ using System.Drawing;
 
 namespace AlmostFastOverlays
 {
-    internal sealed class Dv5LedController : IDisposable
+    /// <summary>
+    /// LEDs on an Arduino-based board that speaks the common sim-racing LED serial
+    /// protocol: the SSG DV-5 and LB-10, and boards flashed with the same widely used
+    /// firmware. Packets are 01 01 FF length payload CRC-8; payload 03 'N' asks the
+    /// board its name, 03 '6' sets colour runs.
+    /// </summary>
+    internal sealed class ArduinoLedController : IDisposable
     {
+        /// <summary>The most LEDs one board can address (start and count are single bytes).</summary>
+        public const int MaxLeds = 250;
+
         private const byte MessageHeader = 0x03;
         private readonly SerialPort _port;
         private readonly int _ledCount;
         private readonly string _expectedName;
 
-        public Dv5LedController(string portName, int baudRate, int ledCount, string expectedName = "SSG DV 5")
+        /// <param name="expectedName">The name the board must report, or null to accept any board.</param>
+        public ArduinoLedController(string portName, int baudRate, int ledCount, string expectedName = "SSG DV 5")
         {
             _ledCount = ledCount;
             _expectedName = expectedName;
@@ -39,6 +49,11 @@ namespace AlmostFastOverlays
             Thread.Sleep(150);
             byte[] response = ReadAvailable();
             string text = ExtractProtocolText(response);
+            if (_expectedName == null)
+            {
+                if (text.Trim().Length == 0) throw new InvalidOperationException(_port.PortName + " did not answer as an LED board.");
+                return text.Trim();
+            }
             if (!text.Contains(_expectedName))
             {
                 throw new InvalidOperationException(_port.PortName + " did not identify itself as " + _expectedName + ". Response: " + text);
@@ -203,11 +218,14 @@ namespace AlmostFastOverlays
             return crc;
         }
 
+        /// <summary>Turn the LEDs off when closing. Off while probing a port that may not be an LED board.</summary>
+        public bool ClearOnClose { get; set; } = true;
+
         public void Dispose()
         {
             if (_port.IsOpen)
             {
-                try { Clear(); } catch { }
+                if (ClearOnClose) try { Clear(); } catch { }
                 _port.Close();
             }
             _port.Dispose();

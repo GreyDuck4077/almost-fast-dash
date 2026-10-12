@@ -78,6 +78,9 @@ namespace AlmostFastOverlays
         {
             if (Dashboards == null) Dashboards = new List<DashboardSettings>();
             if (General == null) General = new GeneralSettings();
+            if (General.LedDevices == null) General.LedDevices = new List<LedDeviceSettings>();
+            General.LedDevices.RemoveAll(d => d == null);
+            foreach (LedDeviceSettings device in General.LedDevices) device.Normalize();
             Dashboards.RemoveAll(d => d == null);
 
             if (SchemaVersion < CurrentSchema)
@@ -213,6 +216,9 @@ namespace AlmostFastOverlays
         /// Much faster, but off until confirmed on the hardware with the LED test.
         /// </summary>
         public bool FastLedUpdates { get; set; }
+
+        /// <summary>LED devices besides the DV-5 and LB-10: Arduino boards, Adalight strips, WLED controllers.</summary>
+        public List<LedDeviceSettings> LedDevices { get; set; } = new List<LedDeviceSettings>();
     }
 
     internal sealed class DashboardSettings

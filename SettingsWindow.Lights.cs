@@ -104,7 +104,7 @@ namespace AlmostFastOverlays
 
         private static void RunFastTest(string port)
         {
-            using (var leds = new Dv5LedController(port, 115200, LedFrame.Count) { Batched = true })
+            using (var leds = new ArduinoLedController(port, 115200, LedFrame.Count) { Batched = true })
             {
                 leds.Connect();
                 leds.QueryDeviceName();

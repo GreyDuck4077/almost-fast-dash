@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -22,7 +22,12 @@ namespace AlmostFastOverlays
         internal void PrepareSnapshot(string scenario)
         {
             if (scenario.Contains("editor")) ShowEditor(_settings.GetDefaultDashboard());
-            else if (scenario.Contains("devices")) NavSettings.IsChecked = true;
+            else if (scenario.Contains("devices"))
+            {
+                NavSettings.IsChecked = true;
+                if (scenario.Contains("bottom"))
+                    Dispatcher.BeginInvoke(new Action(() => SettingsPage.ScrollToEnd()), System.Windows.Threading.DispatcherPriority.Loaded);
+            }
             else if (scenario.Contains("app")) NavApp.IsChecked = true;
         }
 

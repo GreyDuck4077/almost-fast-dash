@@ -1,13 +1,15 @@
-using System;
+﻿using System;
 using System.Drawing;
+using System.Linq;
 using System.Threading;
 
 namespace AlmostFastOverlays
 {
     /// <summary>
-    /// Drives the DV-5 and LB-10 LEDs on their own thread at up to 60 frames a
-    /// second, independent of the screen. Dashboards with a light profile use the
-    /// layer renderer; the rest keep their classic light settings.
+    /// Drives the LEDs on their own thread at up to 60 frames a second, independent of
+    /// the screen: the DV-5 and LB-10, and any other LED devices, each showing its role.
+    /// Dashboards with a light profile use the layer renderer; the rest keep their
+    /// classic light settings.
     /// </summary>
     internal sealed class LightLoop : IDisposable
     {
@@ -34,6 +36,7 @@ namespace AlmostFastOverlays
             GeneralSettings general = _settings().General;
             var dv5 = new LedLink(_ledPortOverride ?? general.LedPort ?? "COM7", LedFrame.Count, "SSG DV 5", DevicePorts.Dv5);
             var brow = new LedLink(general.BrowPort, general.BrowLedCount, "SSG LB-10", DevicePorts.LightBar) { Enabled = general.BrowEnabled };
+            var extras = new System.Collections.Generic.Dictionary<string, LedDeviceLink>();
             LightRenderer renderer = null;
             DashboardSettings lastDashboard = null;
             UnitSystem units = new UnitSystem(general);
@@ -60,22 +63,25 @@ namespace AlmostFastOverlays
                             brow.Invalidate();
                         }
 
+                        Color[] dv5Frame, barFrame;
                         if (dashboard?.Lights != null)
                         {
                             if (renderer == null || renderer.BrowCount != Math.Max(1, Math.Min(64, brow.Count)))
                                 renderer = new LightRenderer(dashboard.Lights, dashboard.AccentColor, units, brow.Count);
                             LightFrame frame = renderer.Compose(snapshot, Environment.TickCount);
-                            dv5.Send(frame.Dv5);
-                            if (brow.Enabled) brow.Send(frame.Brow);
+                            dv5Frame = frame.Dv5;
+                            barFrame = frame.Brow;
                         }
                         else
                         {
                             bool shiftFlashOn = snapshot.ShiftAlert && ((Environment.TickCount / 140) & 1) == 0;
                             LedInputs inputs = LedInputs.From(snapshot, shiftFlashOn);
-                            dv5.Send(LedFrame.Compose(dashboard, inputs));
-                            if (brow.Enabled && dashboard != null)
-                                brow.Send(LedFrame.ComposeBrow(dashboard.BrowLeds, brow.Count, inputs));
+                            dv5Frame = LedFrame.Compose(dashboard, inputs);
+                            barFrame = dashboard != null ? LedFrame.ComposeBrow(dashboard.BrowLeds, brow.Count, inputs) : new Color[brow.Count];
                         }
+                        dv5.Send(dv5Frame);
+                        if (brow.Enabled) brow.Send(barFrame);
+                        SendToExtras(extras, general, dv5Frame, barFrame, snapshot.Flag);
                     }
                     catch (Exception exception)
                     {
@@ -92,6 +98,26 @@ namespace AlmostFastOverlays
             {
                 dv5.Dispose();
                 brow.Dispose();
+                foreach (LedDeviceLink link in extras.Values) link.Dispose();
+            }
+        }
+
+        /// <summary>Gives every other LED device the frame for its role, following settings changes as they happen.</summary>
+        private static void SendToExtras(System.Collections.Generic.Dictionary<string, LedDeviceLink> links, GeneralSettings general,
+            Color[] dv5Frame, Color[] barFrame, RacingFlag flag)
+        {
+            var devices = general.LedDevices ?? new System.Collections.Generic.List<LedDeviceSettings>();
+            foreach (string gone in links.Keys.Where(id => devices.All(d => d.Id != id)).ToList())
+            {
+                links[gone].Dispose();
+                links.Remove(gone);
+            }
+            int now = Environment.TickCount;
+            foreach (LedDeviceSettings device in devices)
+            {
+                if (!links.TryGetValue(device.Id, out LedDeviceLink link)) links[device.Id] = link = new LedDeviceLink();
+                link.Apply(device, general.FastLedUpdates);
+                if (device.Enabled) link.Send(LedRoleMap.Frame(device, dv5Frame, barFrame, flag, now));
             }
         }
 
@@ -112,7 +138,7 @@ namespace AlmostFastOverlays
     {
         private readonly string _expectedName;
         private readonly string _hardwareId;
-        private Dv5LedController _controller;
+        private ArduinoLedController _controller;
         private DateTime _nextAttemptUtc = DateTime.MinValue;
         private Color[] _lastFrame;
         private bool _batched;
@@ -159,7 +185,7 @@ namespace AlmostFastOverlays
                 if (DateTime.UtcNow < _nextAttemptUtc) return;
                 _nextAttemptUtc = DateTime.UtcNow.AddSeconds(5);
                 string port = DevicePorts.Resolve(Port, _hardwareId);
-                var controller = new Dv5LedController(port, 115200, Count, _expectedName) { Batched = _batched };
+                var controller = new ArduinoLedController(port, 115200, Count, _expectedName) { Batched = _batched };
                 try
                 {
                     controller.Connect();

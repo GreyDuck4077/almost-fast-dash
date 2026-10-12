@@ -60,6 +60,28 @@ screen and light designers; there is no Save button anywhere.
 
 While iRacing isn't running, the dashboard checks the screen 4 times a second and
 the lights run at 10 frames a second, instead of 20 and 60.
+## Devices
+
+The **DV-5** (screen and 16 LEDs) and the **LB-10** light bar are found by their
+USB IDs, so they keep working when Windows renumbers COM ports.
+
+**Other LED devices** work too, each showing a *role*: the DV-5's shift lights,
+what the light bar shows, or the current flag, stretched to its own LED count
+(with reverse and brightness for strips mounted the other way round). They follow
+whichever dashboard is active and its light layers. Three kinds are supported:
+
+- **Arduino LED boards** that speak the common sim-racing LED serial protocol, the
+  same one the DV-5 and LB-10 use. Many commercial and DIY boards do.
+- **Adalight**: an Arduino driving a WS2812/NeoPixel strip with the open Adalight
+  protocol. `Firmware\Adalight\Adalight.ino` is a ready-to-flash sketch.
+- **WLED** controllers (usually an ESP32) on your network, added by IP address and
+  driven with WLED's real-time UDP protocol; the LED count is read from WLED.
+
+**Scan USB** asks each serial port, only when you click it, whether it is an LED
+board. The DV-5, the LB-10 and Bluetooth serial ports are left alone, and a device
+that doesn't answer is sent nothing else. **Test** lights each LED in turn so you
+can count them and check the direction. Devices connect in the background, so one
+that's unplugged never makes the other lights stutter. Code: `LedDevices.cs`.
 ## Light layers
 
 Each dashboard can use a layered light profile instead of the classic light
@@ -214,7 +236,7 @@ which is part of Windows 10 and 11, and references only Windows' own assemblies.
   WinUSB driver (`Dv5Screen.cs`).
 - iRacing telemetry is read straight from iRacing's shared memory, including its
   session YAML (`IRacingSdk.cs`).
-- The DV-5 and LB-10 LEDs use serial ports (`Dv5LedController.cs`).
+- The DV-5 and LB-10 LEDs, and other Arduino LED boards, use serial ports (`ArduinoLedController.cs`); Adalight and WLED devices are in `LedDevices.cs`.
 - Settings use Windows' built-in JSON serializer.
 
 Copy the exe to any folder and run it; `settings.json` and `Logs` are created

@@ -196,7 +196,7 @@ namespace AlmostFastOverlays
                 frame[i] = System.Drawing.Color.FromArgb(blocks[i / 10].R * 6 / 10, blocks[i / 10].G * 6 / 10, blocks[i / 10].B * 6 / 10);
             try
             {
-                using (var leds = new Dv5LedController(port, 115200, frame.Length, "SSG LB-10"))
+                using (var leds = new ArduinoLedController(port, 115200, frame.Length, "SSG LB-10"))
                 {
                     leds.Connect();
                     Console.WriteLine("Connected: " + leds.QueryDeviceName() + " on " + port);
