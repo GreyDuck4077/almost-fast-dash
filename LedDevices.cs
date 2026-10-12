@@ -470,7 +470,9 @@ namespace AlmostFastOverlays
     /// Keeps one extra device connected: opens it in the background (an Arduino takes a
     /// second or two to start, and the light loop must never wait for that), retries every
     /// five seconds while it's missing, sends only frames that changed (plus a keep-alive
-    /// where the device needs one), and reopens when its settings change.
+    /// where the device needs one), and reopens when its settings change. A device that keeps
+    /// dropping soon after it connects (a USB supply that can't hold it) is retried less and less
+    /// often, up to a minute apart, so the app doesn't keep knocking it over.
     /// </summary>
     internal sealed class LedDeviceLink : IDisposable
     {
@@ -479,6 +481,8 @@ namespace AlmostFastOverlays
         private string _signature;
         private DateTime _nextAttemptUtc = DateTime.MinValue, _lastSendUtc = DateTime.MinValue;
         private Color[] _lastFrame;
+        private DateTime _connectedUtc;
+        private int _drops;
 
         public DeviceSettings Device { get; private set; }
 
@@ -493,6 +497,7 @@ namespace AlmostFastOverlays
             _signature = signature;
             Close();
             _nextAttemptUtc = DateTime.MinValue;
+            _drops = 0;
         }
 
         public void Send(Color[] frame)
@@ -508,6 +513,7 @@ namespace AlmostFastOverlays
                     else Console.Error.WriteLine(Device.Name + " unavailable on " + Device.Connection + ": " + _opening.Exception?.GetBaseException().Message);
                     _opening = null;
                     if (_output == null) return;
+                    _connectedUtc = DateTime.UtcNow;
                 }
                 else
                 {
@@ -525,11 +531,15 @@ namespace AlmostFastOverlays
                 _output.Send(frame);
                 _lastFrame = frame;
                 _lastSendUtc = DateTime.UtcNow;
+                if (_drops > 0 && (_lastSendUtc - _connectedUtc).TotalSeconds > 30) _drops = 0;
             }
             catch (Exception exception)
             {
                 Console.Error.WriteLine(Device.Name + " lost: " + exception.Message);
                 Close();
+                // Lost again soon after connecting: back off 5, 10, 20, 40 then 60 seconds.
+                _drops = (DateTime.UtcNow - _connectedUtc).TotalSeconds < 30 ? _drops + 1 : 1;
+                _nextAttemptUtc = DateTime.UtcNow.AddSeconds(Math.Min(60, 5 * Math.Pow(2, _drops - 1)));
             }
         }
 
