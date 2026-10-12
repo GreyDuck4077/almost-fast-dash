@@ -154,6 +154,7 @@ namespace AlmostFastOverlays
                 bool nowOpen = content.Visibility != Visibility.Visible;
                 if (nowOpen) Fill();
                 content.Visibility = nowOpen ? Visibility.Visible : Visibility.Collapsed;
+                if (nowOpen) Motion.Stagger(content.Children, 22, 180);
                 chevron.Text = nowOpen ? "" : "";
                 if (searching) return;
                 if (nowOpen) OpenFolders.Add(key); else OpenFolders.Remove(key);

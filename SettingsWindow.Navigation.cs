@@ -8,14 +8,11 @@ namespace AlmostFastOverlays
 {
     public partial class SettingsWindow
     {
-        /// <summary>Slides and fades a page in, iOS style.</summary>
-        private static void AnimatePageIn(FrameworkElement page)
+        /// <summary>Slides and fades a page in: sideways when drilling in (1) or going back (-1), rising otherwise.</summary>
+        private static void AnimatePageIn(FrameworkElement page, int direction)
         {
-            var shift = new TranslateTransform(0, 14);
-            page.RenderTransform = shift;
-            var ease = new QuinticEase { EasingMode = EasingMode.EaseOut };
-            shift.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(14, 0, new Duration(TimeSpan.FromMilliseconds(340))) { EasingFunction = ease });
-            page.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, new Duration(TimeSpan.FromMilliseconds(260))));
+            page.RenderTransform = new TranslateTransform();
+            Motion.Enter(page, direction * 28, direction == 0 ? 14 : 0, 0, 340);
         }
 
         /// <summary>Opens a page for the --ui-snapshot self-check.</summary>
@@ -57,7 +54,7 @@ namespace AlmostFastOverlays
         {
             if (show == (list.Visibility == Visibility.Visible)) return;
             list.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
-            if (show) list.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, new Duration(TimeSpan.FromMilliseconds(220))));
+            if (show) Motion.Stagger(list.Children, 30, 200);
         }
     }
 }

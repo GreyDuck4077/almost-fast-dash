@@ -283,6 +283,7 @@ namespace AlmostFastOverlays
                 {
                     bool nowCollapsed = content.Visibility == Visibility.Visible;
                     content.Visibility = nowCollapsed ? Visibility.Collapsed : Visibility.Visible;
+                    if (!nowCollapsed) Motion.FadeIn(content);
                     chevron.Text = nowCollapsed ? "" : "";
                     if (nowCollapsed) CollapsedGroups.Add(groupName); else CollapsedGroups.Remove(groupName);
                 };

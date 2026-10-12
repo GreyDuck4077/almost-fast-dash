@@ -171,6 +171,9 @@ namespace AlmostFastOverlays
         private void ShowPage(ScrollViewer page)
         {
             DisarmConfirm();
+            // Drilling into a dashboard comes in from the right, going back from the left; other pages rise into place.
+            ScrollViewer from = new[] { GalleryPage, EditorPage, SettingsPage, AppPage }.FirstOrDefault(p => p.Visibility == Visibility.Visible);
+            int direction = page == EditorPage && from == GalleryPage ? 1 : page == GalleryPage && from == EditorPage ? -1 : 0;
             GalleryPage.Visibility = page == GalleryPage ? Visibility.Visible : Visibility.Collapsed;
             EditorPage.Visibility = page == EditorPage ? Visibility.Visible : Visibility.Collapsed;
             SettingsPage.Visibility = page == SettingsPage ? Visibility.Visible : Visibility.Collapsed;
@@ -178,9 +181,17 @@ namespace AlmostFastOverlays
             bool dashboards = page == GalleryPage || page == EditorPage;
             if (dashboards) BuildDashboardSubNav();
             ShowSubNav(DashboardSubNav, dashboards);
-            AnimatePageIn(page);
-            if (page == GalleryPage) BuildGalleryCards();
-            if (page == SettingsPage) BuildDeviceList();
+            if (page != from) AnimatePageIn(page, direction);
+            if (page == GalleryPage)
+            {
+                BuildGalleryCards();
+                if (page != from) Motion.Stagger(DashboardCards.Children);
+            }
+            if (page == SettingsPage)
+            {
+                BuildDeviceList();
+                if (page != from) Motion.Stagger(DevicesHost.Children, 45);
+            }
             if (page == EditorPage) _ledTimer.Start(); else { _ledTimer.Stop(); ReleaseDevices(); }
             page.ScrollToTop();
         }
@@ -258,6 +269,7 @@ namespace AlmostFastOverlays
                 card.Child = stack;
                 card.Tag = thumbnail;
                 _galleryCards.Add(card);
+                Motion.Lift(card);
                 DashboardCards.Children.Add(card);
             }
             LayoutCards(DashboardCards, _galleryCards);
