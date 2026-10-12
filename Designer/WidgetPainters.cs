@@ -223,11 +223,44 @@ namespace AlmostFastOverlays
             return Math.Max(0, Math.Min(1, (value - min) / (max - min)));
         }
 
+        /// <summary>
+        /// A colour along a gauge (0 at its start, 1 at its end): one colour, stepped shift colours,
+        /// or a blend through them.
+        /// </summary>
+        private static Color Tone(string mode, double at, Color low, Color warn, Color danger, double warnAt, double dangerAt)
+        {
+            switch (mode)
+            {
+                case "Shift colors":
+                    return at >= dangerAt ? danger : at >= warnAt ? warn : low;
+                case "Gradient":
+                    if (at >= dangerAt) return danger;
+                    if (at >= warnAt) return Mix(warn, danger, dangerAt - warnAt < 1e-6 ? 1 : (at - warnAt) / (dangerAt - warnAt));
+                    return Mix(low, warn, warnAt < 1e-6 ? 1 : Math.Max(0, at) / warnAt);
+                default:
+                    return low;
+            }
+        }
+
+        private static Color Mix(Color a, Color b, double t)
+        {
+            t = Math.Max(0, Math.Min(1, t));
+            int Ch(int x, int y) => (int)Math.Round(x + (y - x) * t);
+            return Color.FromArgb(Ch(a.A, b.A), Ch(a.R, b.R), Ch(a.G, b.G), Ch(a.B, b.B));
+        }
+
         public static void Bar(WidgetContext c)
         {
             Graphics g = c.G;
             RectangleF b = c.B;
             bool vertical = c.Choice("orientation") == "Vertical", reverse = c.Bool("reverse");
+            var warp = new BarWarp(b, vertical, c.Num("bend") / 100, c.Num("peak") / 100, c.Num("taper") / 100, c.Num("bulge") / 100,
+                c.Num("skew"), c.Num("thickness") / 100, c.Choice("grow"));
+            if (!warp.IsStraight || c.Choice("colorMode") != "Solid" || !string.IsNullOrWhiteSpace(c.Raw("flash")))
+            {
+                ShapedBar(c, warp);
+                return;
+            }
             string mode = c.Choice("mode");
             double value = c.Num("value");
             float radius = (float)c.Num("radius");
@@ -322,6 +355,109 @@ namespace AlmostFastOverlays
             }
         }
 
+        /// <summary>
+        /// A bar drawn straight in the warp's flat space and carried onto its bent, tapered or slanted
+        /// shape; also used for straight bars with shift colors, a gradient or a flash.
+        /// </summary>
+        private static void ShapedBar(WidgetContext c, BarWarp warp)
+        {
+            Graphics g = c.G;
+            float length = warp.Length, thick = warp.Thickness;
+            var flat = new RectangleF(0, 0, length, thick);
+            bool reverse = c.Bool("reverse");
+            string mode = c.Choice("mode"), colorMode = c.Choice("colorMode");
+            double value = c.Num("value");
+            float radius = (float)c.Num("radius");
+            if (radius < 0) radius = Math.Min(length, thick) / 2;
+            Color color = c.Color("color"), track = c.Color("track"), warn = c.Color("warnColor"), danger = c.Color("dangerColor");
+            double warnAt = c.Num("warnAt"), dangerAt = c.Num("dangerAt");
+            float glow = (float)c.Num("glow");
+            bool flash = !string.IsNullOrWhiteSpace(c.Raw("flash")) && c.Bool("flash");
+            Color flashColor = c.Color("flashColor");
+            Color ToneAt(double at) => Tone(colorMode, at, color, warn, danger, warnAt, dangerAt);
+
+            void Draw(RectangleF r, Color fill, bool lit, Brush brush = null)
+            {
+                if (r.Width < 0.5f || r.Height < 0.5f) return;
+                using (GraphicsPath flatPath = Paint.Rounded(r, Math.Min(radius, Math.Min(r.Width, r.Height) / 2)))
+                using (GraphicsPath path = warp.Map(flatPath))
+                {
+                    if (lit && glow > 0) Paint.Glow(g, path, fill, glow);
+                    if (brush != null) g.FillPath(brush, path);
+                    else using (var solid = new SolidBrush(fill)) g.FillPath(solid, path);
+                }
+            }
+
+            void Line(float x, float overhang, Color lineColor)
+            {
+                using (var flatPath = new GraphicsPath())
+                {
+                    flatPath.AddLine(x, -overhang, x, thick + overhang);
+                    using (GraphicsPath path = warp.Map(flatPath))
+                    using (var pen = new Pen(lineColor, 2)) g.DrawPath(pen, path);
+                }
+            }
+
+            if (mode == "Segments")
+            {
+                int n = Math.Max(2, (int)c.Num("segments"));
+                int lit = (int)Math.Round(Fraction(c, value) * n);
+                float gap = 3, len = (length - gap * (n - 1)) / n;
+                for (int i = 0; i < n; i++)
+                {
+                    int slot = reverse ? n - 1 - i : i;
+                    bool on = flash || i < lit;
+                    Draw(new RectangleF(slot * (len + gap), 0, len, thick), on ? (flash ? flashColor : ToneAt((i + 0.5) / n)) : track, on);
+                }
+            }
+            else if (mode == "Center")
+            {
+                Draw(flat, track, false);
+                double scale = Math.Max(Math.Abs(c.Num("min")), Math.Abs(c.Num("max")));
+                double f = scale <= 0 ? 0 : Math.Max(-1, Math.Min(1, value / scale));
+                if (reverse) f = -f;
+                float half = length / 2, len = (float)(Math.Abs(f) * half);
+                Draw(f >= 0 ? new RectangleF(half, 0, len, thick) : new RectangleF(half - len, 0, len, thick), value >= 0 ? color : c.Color("negColor"), true);
+                Line(half, 3, c.Theme("text"));
+            }
+            else
+            {
+                Draw(flat, track, false);
+                double f = flash ? 1 : Fraction(c, value);
+                // A sliver is drawn at least as long as the bar is thick so rounded ends stay round.
+                float len = (float)(f * length);
+                if (len > 0 && len < Math.Min(length, thick)) len = Math.Min(length, thick);
+                var fill = reverse ? new RectangleF(length - len, 0, len, thick) : new RectangleF(0, 0, len, thick);
+                if (f > 0)
+                {
+                    if (flash) Draw(fill, flashColor, true);
+                    else if (colorMode == "Gradient")
+                    {
+                        // The blend runs the full length of the bar, so the fill shows how far into the red it is.
+                        PointF from = warp.Map(reverse ? length : 0, thick / 2), to = warp.Map(reverse ? 0 : length, thick / 2);
+                        if (Math.Abs(from.X - to.X) + Math.Abs(from.Y - to.Y) < 1) Draw(fill, ToneAt(f), true);
+                        else
+                        {
+                            float w = (float)Math.Max(0.01, Math.Min(0.98, warnAt)), d = (float)Math.Max(w + 0.01, Math.Min(0.99, dangerAt));
+                            using (var brush = new LinearGradientBrush(from, to, color, danger)
+                            {
+                                InterpolationColors = new ColorBlend { Positions = new[] { 0f, w, d, 1f }, Colors = new[] { color, warn, danger, danger } },
+                                WrapMode = WrapMode.TileFlipX
+                            })
+                                Draw(fill, ToneAt(f), true, brush);
+                        }
+                    }
+                    else Draw(fill, ToneAt(f), true);
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(c.Raw("marker")))
+            {
+                double m = Fraction(c, c.Num("marker"));
+                if (m > 0) Line(reverse ? length - (float)(m * length) : (float)(m * length), 5, c.Color("markerColor"));
+            }
+        }
+
         public static void Arc(WidgetContext c)
         {
             Graphics g = c.G;
@@ -329,42 +465,154 @@ namespace AlmostFastOverlays
             float thickness = (float)c.Num("thickness"), glow = (float)c.Num("glow");
             float start = (float)c.Num("start"), sweep = (float)c.Num("sweep");
             var center = new PointF(b.X + b.Width / 2, b.Y + b.Height / 2);
-            float radius = Math.Max(4, Math.Min(b.Width, b.Height) / 2 - thickness / 2 - glow / 2 - 1);
-            var rect = new RectangleF(center.X - radius, center.Y - radius, radius * 2, radius * 2);
+            float margin = thickness / 2 + glow / 2 + 1;
+            float radius = Math.Max(4, Math.Min(b.Width, b.Height) / 2 - margin);
+            bool oval = c.Bool("oval");
+            var ring = new ArcRing
+            {
+                Center = center, Thickness = thickness, Start = start, Sweep = sweep,
+                RadiusX = oval ? Math.Max(4, b.Width / 2 - margin) : radius, RadiusY = oval ? Math.Max(4, b.Height / 2 - margin) : radius,
+                Taper = (float)Math.Max(-1, Math.Min(1, c.Num("taper") / 100))
+            };
             double f = Fraction(c, c.Num("value"));
             bool flash = c.Bool("flash");
             Color flashColor = c.Color("flashColor"), track = c.Color("track");
-            bool shiftColors = c.Choice("colorMode") == "Shift colors";
+            string colorMode = c.Choice("colorMode"), style = c.Choice("style");
             Color baseColor = c.Color("color"), warn = c.Color("warnColor"), danger = c.Color("dangerColor");
             double warnAt = c.Num("warnAt"), dangerAt = c.Num("dangerAt");
-            Color ColorAt(double at) => !shiftColors ? baseColor : at >= dangerAt ? danger : at >= warnAt ? warn : baseColor;
+            bool zones = c.Bool("zones");
+            Color ColorAt(double at) => Tone(colorMode, at, baseColor, warn, danger, warnAt, dangerAt);
+            Color TrackAt(double at) => !zones ? track : at >= dangerAt ? Color.FromArgb(120, danger) : at >= warnAt ? Color.FromArgb(95, warn) : track;
 
-            if (c.Choice("style") == "Smooth")
+            // One stretch of the ring: pens for a plain circle (as it has always been drawn), outlines for ovals and tapers.
+            void Band(float from, float span, Color color, bool round, bool lit, bool softGlow)
             {
-                using (var pen = new Pen(track, thickness) { StartCap = LineCap.Round, EndCap = LineCap.Round }) g.DrawArc(pen, rect, start, sweep);
-                float s = (float)(f * sweep);
-                if (flash) s = sweep;
-                if (Math.Abs(s) < 0.5f) return;
-                Color color = flash ? flashColor : ColorAt(f);
-                if (glow > 0)
-                    for (int k = 3; k >= 1; k--)
-                        using (var pen = new Pen(Color.FromArgb(28, color), thickness + glow * k / 3f) { StartCap = LineCap.Round, EndCap = LineCap.Round }) g.DrawArc(pen, rect, start, s);
-                using (var pen = new Pen(color, thickness) { StartCap = LineCap.Round, EndCap = LineCap.Round }) g.DrawArc(pen, rect, start, s);
-                return;
+                if (Math.Abs(span) < 0.01f) return;
+                if (ring.Classic)
+                {
+                    LineCap cap = round ? LineCap.Round : LineCap.Flat;
+                    if (lit && glow > 0)
+                    {
+                        if (softGlow)
+                            for (int k = 3; k >= 1; k--)
+                                using (var pen = new Pen(Color.FromArgb(28, color), thickness + glow * k / 3f) { StartCap = cap, EndCap = cap }) g.DrawArc(pen, ring.Rect, from, span);
+                        else using (var pen = new Pen(Color.FromArgb(55, color), thickness + glow) { StartCap = cap, EndCap = cap }) g.DrawArc(pen, ring.Rect, from, span);
+                    }
+                    using (var pen = new Pen(color, thickness) { StartCap = cap, EndCap = cap }) g.DrawArc(pen, ring.Rect, from, span);
+                    return;
+                }
+                using (GraphicsPath path = ring.Band(from, span, round))
+                {
+                    if (lit && glow > 0) Paint.Glow(g, path, color, glow);
+                    using (var brush = new SolidBrush(color)) g.FillPath(brush, path);
+                }
             }
 
-            int n = Math.Max(2, (int)c.Num("segments"));
-            int lit = (int)Math.Ceiling(f * n - 1e-9);
-            float step = sweep / n;
-            for (int i = 0; i < n; i++)
+            if (style == "Segmented")
             {
-                bool on = flash || i < lit;
-                Color color = flash ? flashColor : ColorAt((i + 0.5) / n);
-                float a = start + i * step + step * 0.12f, span = step * 0.76f;
-                if (on && glow > 0)
-                    using (var pen = new Pen(Color.FromArgb(55, color), thickness + glow)) g.DrawArc(pen, rect, a, span);
-                using (var pen = new Pen(on ? color : track, thickness)) g.DrawArc(pen, rect, a, span);
+                int n = Math.Max(2, (int)c.Num("segments"));
+                int lit = (int)Math.Ceiling(f * n - 1e-9);
+                float step = sweep / n;
+                for (int i = 0; i < n; i++)
+                {
+                    bool on = flash || i < lit;
+                    double at = (i + 0.5) / n;
+                    Band(start + i * step + step * 0.12f, step * 0.76f, on ? (flash ? flashColor : ColorAt(at)) : TrackAt(at), false, on, false);
+                }
             }
+            else
+            {
+                Band(start, sweep, track, true, false, true);
+                if (zones && dangerAt > warnAt)
+                    Band(start + (float)(warnAt * sweep), (float)((Math.Min(1, dangerAt) - warnAt) * sweep), TrackAt(warnAt), false, false, true);
+                if (zones && dangerAt < 1)
+                    Band(start + (float)(dangerAt * sweep), (float)((1 - dangerAt) * sweep), TrackAt(1), false, false, true);
+                if (style == "Smooth")
+                {
+                    float s = flash ? sweep : (float)(f * sweep);
+                    if (Math.Abs(s) >= 0.5f) Band(start, s, flash ? flashColor : ColorAt(f), true, true, true);
+                }
+            }
+
+            ArcScale(c, ring, colorMode, danger, dangerAt);
+            ArcNeedle(c, ring, start + (float)(f * sweep), glow);
+        }
+
+        /// <summary>Tick marks and numbers just inside the ring.</summary>
+        private static void ArcScale(WidgetContext c, ArcRing ring, string colorMode, Color danger, double dangerAt)
+        {
+            int major = (int)Math.Round(c.Num("ticks"));
+            if (major <= 0) return;
+            major = Math.Min(major, 60);
+            Graphics g = c.G;
+            int minor = Math.Max(0, Math.Min(9, (int)Math.Round(c.Num("minorTicks"))));
+            int total = major * (minor + 1);
+            float tickLength = (float)c.Num("tickLength");
+            Color tickColor = c.Color("tickColor");
+            float Inside(float angle) => -ring.ThicknessAt(angle) / 2 - 4;
+            using (var majorPen = new Pen(tickColor, 2))
+            using (var minorPen = new Pen(Color.FromArgb(tickColor.A * 7 / 10, tickColor), 1))
+                for (int i = 0; i <= total; i++)
+                {
+                    float a = ring.Start + ring.Sweep * i / total;
+                    bool isMajor = i % (minor + 1) == 0;
+                    float edge = Inside(a), len = isMajor ? tickLength : tickLength * 0.55f;
+                    g.DrawLine(isMajor ? majorPen : minorPen, ring.At(a, edge), ring.At(a, edge - len));
+                }
+            if (!c.Bool("numbers")) return;
+            double from = c.Num("numbersFrom"), to = c.Num("numbersTo");
+            float size = (float)c.Num("numberSize");
+            Color numberColor = c.Color("numberColor");
+            for (int k = 0; k <= major; k++)
+            {
+                float a = ring.Start + ring.Sweep * k / major;
+                PointF p = ring.At(a, Inside(a) - tickLength - size * 0.85f);
+                double number = from + (to - from) * k / major;
+                bool red = colorMode != "Solid" && (double)k / major >= dangerAt;
+                Paint.Text(g, c, number.ToString("0.##"), size, true, red ? danger : numberColor, new RectangleF(p.X - size * 1.6f, p.Y - size * 0.7f, size * 3.2f, size * 1.4f),
+                    StringAlignment.Center, "Middle", false, 0, Color.Empty, false);
+            }
+        }
+
+        /// <summary>A needle from the centre to the value, with an optional cap over its pivot.</summary>
+        private static void ArcNeedle(WidgetContext c, ArcRing ring, float angle, float glow)
+        {
+            string needle = c.Choice("needle");
+            if (needle != "Needle" && needle != "Line") return;
+            Graphics g = c.G;
+            float share = (float)Math.Max(0.2, c.Num("needleLength") / 100), width = (float)Math.Max(1, c.Num("needleWidth"));
+            Color color = c.Color("needleColor");
+            double a = angle * Math.PI / 180;
+            PointF o = ring.Center;
+            var tip = new PointF(o.X + ring.RadiusX * share * (float)Math.Cos(a), o.Y + ring.RadiusY * share * (float)Math.Sin(a));
+            float dx = tip.X - o.X, dy = tip.Y - o.Y, len = (float)Math.Sqrt(dx * dx + dy * dy);
+            if (len < 1) return;
+            float ux = dx / len, uy = dy / len, px = -uy, py = ux;
+            using (var path = new GraphicsPath())
+            {
+                if (needle == "Line")
+                {
+                    path.AddLine(o, tip);
+                    using (var outline = (GraphicsPath)path.Clone())
+                    {
+                        if (glow > 0) using (var wide = new Pen(color, width)) { outline.Widen(wide); Paint.Glow(g, outline, color, glow * 0.6f); }
+                    }
+                    using (var pen = new Pen(color, width) { StartCap = LineCap.Round, EndCap = LineCap.Round }) g.DrawPath(pen, path);
+                }
+                else
+                {
+                    float tail = width * 2.5f;
+                    PointF P(float along, float side) => new PointF(o.X + ux * along + px * side, o.Y + uy * along + py * side);
+                    path.AddPolygon(new[] { P(0, width / 2), P(len, width * 0.15f), P(len, -width * 0.15f), P(0, -width / 2), P(-tail, -width * 0.3f), P(-tail, width * 0.3f) });
+                    if (glow > 0) Paint.Glow(g, path, color, glow * 0.6f);
+                    using (var brush = new SolidBrush(color)) g.FillPath(brush, path);
+                }
+            }
+            if (!c.Bool("hub")) return;
+            float d = width * 3.2f;
+            using (var brush = new SolidBrush(color)) g.FillEllipse(brush, o.X - d / 2, o.Y - d / 2, d, d);
+            float inner = d * 0.45f;
+            using (var brush = new SolidBrush(c.Theme("background"))) g.FillEllipse(brush, o.X - inner / 2, o.Y - inner / 2, inner, inner);
         }
 
         public static void ShiftLights(WidgetContext c)

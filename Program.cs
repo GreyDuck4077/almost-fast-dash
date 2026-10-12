@@ -264,6 +264,33 @@ namespace AlmostFastOverlays
                     using (var frame = DashboardRendererFactory.RenderPreview(dashboard, units, state.Item2))
                         frame.Save(Path.Combine(directory, template.Name + state.Item1 + ".png"), System.Drawing.Imaging.ImageFormat.Png);
             }
+
+            // A sheet of the shaped gauges, at cruising revs and at the shift point.
+            DashLayout sheet = DesignTemplates.Blank();
+            void Place(string block, double x, double y, Action<DashWidget> adjust = null)
+            {
+                List<DashWidget> widgets = DesignBlocks.BuiltIn().First(b => b.Name == block).Create();
+                foreach (DashWidget w in widgets) { w.X += x; w.Y += y; adjust?.Invoke(w); sheet.Screens[0].Widgets.Add(w); }
+            }
+            Place("Swoosh rev bar", 10, 10, w => { w.W = 400; w.H = 110; });
+            Place("Slanted rev bar", 440, 46, w => w.W = 400);
+            Place("Arched rev bar", 10, 128, w => { w.W = 830; w.H = 50; });
+            Place("Tach dial", 10, 186, w => { if (w.Type == "arc") w.Set("taper", "60"); });
+            Place("Tapered rev ring", 320, 186, w => { if (w.Type == "arc") w.Set("oval", "true"); });
+            sheet.Screens[0].Widgets.Add(new DashWidget
+            {
+                Type = "bar", Name = "Bent vertical", X = 650, Y = 190, W = 80, H = 280,
+                Props = { ["value"] = "=RevPct", ["orientation"] = "Vertical", ["bend"] = "-60", ["taper"] = "70", ["thickness"] = "40", ["colorMode"] = "Gradient", ["mode"] = "Segments", ["segments"] = "16", ["radius"] = "0" }
+            });
+            sheet.Screens[0].Widgets.Add(new DashWidget
+            {
+                Type = "bar", Name = "Pinched", X = 750, Y = 190, W = 90, H = 280,
+                Props = { ["value"] = "=RevPct", ["orientation"] = "Vertical", ["bulge"] = "-70", ["skew"] = "-10", ["colorMode"] = "Shift colors" }
+            });
+            var gauges = new DashboardSettings { Layout = Layouts.Custom, Design = sheet, AccentColor = "#22D3EE" };
+            foreach (var state in new[] { Tuple.Create("", IRacingTelemetrySource.CreatePreviewSnapshot()), Tuple.Create(" - Shift point", LightsWindow.Scenario("Shift point")) })
+                using (var frame = DashboardRendererFactory.RenderPreview(gauges, units, state.Item2))
+                    frame.Save(Path.Combine(directory, "Gauge shapes" + state.Item1 + ".png"), System.Drawing.Imaging.ImageFormat.Png);
             return 0;
         }
 

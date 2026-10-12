@@ -157,6 +157,55 @@ namespace AlmostFastOverlays
                     Check("widget draws with defaults: " + type.Name, renderer.Errors.Count == 0, string.Join("; ", renderer.Errors.Values));
             }
 
+            // ---------------- gauge shapes
+            foreach (DesignBlock block in DesignBlocks.BuiltIn())
+            {
+                var layout = DesignTemplates.Blank();
+                foreach (DashWidget w in block.Create()) { w.X += 100; w.Y += 60; layout.Screens[0].Widgets.Add(w); }
+                var errors = new List<string>();
+                using (var renderer = new LayoutRenderer(854, 480, new DashboardSettings { Layout = Layouts.Custom, Design = layout }, _units))
+                    foreach (TelemetrySnapshot snapshot in new[] { IRacingTelemetrySource.CreatePreviewSnapshot(), ShiftSnapshot(), TelemetrySnapshot.Disconnected })
+                        using (renderer.Render(snapshot, true, 4, 1, layout.Screens[0]))
+                            errors.AddRange(renderer.Errors.Values);
+                Check("block draws: " + block.Name, errors.Count == 0, string.Join("; ", errors.Distinct().Take(3)));
+            }
+            var box = new System.Drawing.RectangleF(10, 20, 400, 100);
+            BarWarp Warp(double bend, double peak, double taper, double bulge, double skew, double thick, string anchor, bool vertical = false) =>
+                new BarWarp(box, vertical, bend, peak, taper, bulge, skew, thick, anchor);
+            float Across(BarWarp w, float x)
+            {
+                System.Drawing.PointF a = w.Map(x, 0), b = w.Map(x, w.Thickness);
+                return (float)Math.Sqrt((a.X - b.X) * (a.X - b.X) + (a.Y - b.Y) * (a.Y - b.Y));
+            }
+            BarWarp flatBar = Warp(0, 0.5, 0, 0, 0, 1, "Middle");
+            Check("plain bar is not warped", flatBar.IsStraight && flatBar.Map(0, 0) == new System.Drawing.PointF(10, 20) && flatBar.Map(400, 100) == new System.Drawing.PointF(410, 120));
+            BarWarp upright = Warp(0, 0.5, 0, 0, 0, 1, "Middle", true);
+            Check("vertical bar starts at the bottom", upright.Map(0, 0) == new System.Drawing.PointF(10, 120) && upright.Map(upright.Length, 0) == new System.Drawing.PointF(10, 20));
+            bool inside = true;
+            foreach (BarWarp w in new[] { Warp(1, 0.5, 0, 0, 0, 0.3, "Middle"), Warp(-0.7, 1, 0.9, 0, 0, 0.5, "Middle"), Warp(0.4, 0, -0.5, 0.8, 30, 0.6, "Bottom edge"),
+                Warp(0, 0.5, 0, -1, -45, 1, "Top edge"), Warp(0.8, 0.3, 0.6, 0.5, 15, 1, "Middle", true) })
+                for (int i = 0; i <= 40; i++)
+                    foreach (float y in new[] { 0f, w.Thickness })
+                    {
+                        System.Drawing.PointF p = w.Map(w.Length * i / 40, y);
+                        if (p.X < box.X - 1 || p.X > box.Right + 1 || p.Y < box.Y - 1 || p.Y > box.Bottom + 1) inside = false;
+                    }
+            Check("bent, tapered and slanted bars stay inside their box", inside);
+            BarWarp tapered = Warp(0, 0.5, 0.8, 0, 0, 1, "Middle");
+            Check("taper starts thin and ends full", Across(tapered, 0) < Across(tapered, tapered.Length) * 0.4f);
+            BarWarp swoosh = Warp(0.6, 1, 0, 0, 0, 0.3, "Middle");
+            Check("bend peaking at the end rises toward the end", swoosh.Map(swoosh.Length, swoosh.Thickness / 2).Y < swoosh.Map(0, swoosh.Thickness / 2).Y - 30);
+            BarWarp arched = Warp(0, 0.5, 0, 1, 0, 1, "Bottom edge");
+            Check("bulge from the bottom edge keeps the base flat and arches the top",
+                Math.Abs(arched.Map(0, arched.Thickness).Y - arched.Map(arched.Length / 2, arched.Thickness).Y) < 0.5f && Across(arched, arched.Length / 2) > Across(arched, 0) * 1.8f);
+            BarWarp slanted = Warp(0, 0.5, 0, 0, 25, 1, "Middle");
+            Check("slant leans the top forward", slanted.Map(0, 0).X > slanted.Map(0, slanted.Thickness).X + 20);
+            var ring = new ArcRing { Center = new System.Drawing.PointF(150, 150), RadiusX = 120, RadiusY = 80, Thickness = 20, Taper = 0.8f, Start = 135, Sweep = 270 };
+            Check("tapered ring grows along its sweep", !ring.Classic && ring.ThicknessAt(135) < 6 && Math.Abs(ring.ThicknessAt(405) - 20) < 0.01f);
+            System.Drawing.RectangleF ringBounds;
+            using (var band = ring.Band(135, 270, true)) ringBounds = band.GetBounds();
+            Check("oval ring follows its box", ringBounds.Width > ringBounds.Height * 1.3f && ringBounds.Right < 150 + 120 + 11 && ringBounds.Bottom < 150 + 80 + 11);
+
             // ---------------- editing operations
             int count = _screen.Widgets.Count;
             AddWidgetAtCenter("metric");

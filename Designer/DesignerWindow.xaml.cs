@@ -1225,6 +1225,17 @@ namespace AlmostFastOverlays
                 SelectionChanged();
             }
             else if (scenario.Contains("empty")) Select(null);
+            else if (scenario.Contains("shape"))
+            {
+                // A swoosh rev bar with the Shape controls in view.
+                DashWidget bar = DesignBlocks.BuiltIn().First(b => b.Name == "Swoosh rev bar").Create()[0];
+                bar.X = 220;
+                bar.Y = 150;
+                _screen.Widgets.Add(bar);
+                CollapsedGroups.Add("Value");
+                CollapsedGroups.Add("Look");
+                Select(bar);
+            }
             else Select(Find(scenario.Contains("neon") ? "Gear" : "Fuel laps") ?? _screen.Widgets.LastOrDefault());
             RenderNow();
         }

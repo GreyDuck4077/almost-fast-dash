@@ -61,6 +61,57 @@ namespace AlmostFastOverlays
             };
             yield return new DesignBlock
             {
+                Name = "Tach dial", Icon = "", Description = "A needle tachometer with numbered thousands, a red zone and the RPM underneath.",
+                Create = () =>
+                {
+                    const string top = "=Redline > 0 ? ceil(Redline / 1000) : 8";
+                    return new List<DashWidget>
+                    {
+                        W("arc", "Tach", 0, 0, 300, 300, "value", "=Rpm / 1000", "max", top, "style", "Smooth", "thickness", "10", "zones", "true", "warnAt", "0.75", "dangerAt", "0.9",
+                            "ticks", top, "numbers", "true", "numbersTo", top, "needle", "Needle", "glow", "6"),
+                        W("text", "RPM", 90, 196, 120, 30, "text", "=format(Rpm, \"0\")", "size", "22"),
+                        W("text", "RPM unit", 90, 224, 120, 16, "text", "x1000 RPM", "size", "12", "weight", "Regular", "color", "muted")
+                    };
+                }
+            };
+            yield return new DesignBlock
+            {
+                Name = "Tapered rev ring", Icon = "", Description = "A smooth rev ring that grows thicker toward the redline, around a big gear.",
+                Create = () => new List<DashWidget>
+                {
+                    W("arc", "Rev ring", 0, 0, 300, 300, "value", "=RevPct", "style", "Smooth", "thickness", "28", "taper", "85", "start", "150", "sweep", "240", "colorMode", "Gradient", "glow", "8"),
+                    W("gear", "Gear", 60, 68, 180, 170)
+                }
+            };
+            yield return new DesignBlock
+            {
+                Name = "Swoosh rev bar", Icon = "", Description = "A rev bar that sweeps up and widens toward the shift point.",
+                Create = () => new List<DashWidget>
+                {
+                    W("bar", "Swoosh rev bar", 0, 0, 440, 120, "value", "=RevPct", "bend", "70", "peak", "100", "taper", "85", "thickness", "45", "radius", "3",
+                        "colorMode", "Gradient", "flash", "=ShiftFlash", "glow", "8")
+                }
+            };
+            yield return new DesignBlock
+            {
+                Name = "Arched rev bar", Icon = "", Description = "Segmented revs with a flat base and an arched top, blending to red.",
+                Create = () => new List<DashWidget>
+                {
+                    W("bar", "Arched rev bar", 0, 0, 600, 60, "value", "=RevPct", "mode", "Segments", "segments", "30", "bulge", "100", "grow", "Bottom edge", "radius", "2",
+                        "colorMode", "Gradient", "flash", "=ShiftFlash")
+                }
+            };
+            yield return new DesignBlock
+            {
+                Name = "Slanted rev bar", Icon = "", Description = "Angled segments in shift colors, like a race display.",
+                Create = () => new List<DashWidget>
+                {
+                    W("bar", "Slanted rev bar", 0, 0, 560, 36, "value", "=RevPct", "mode", "Segments", "segments", "24", "skew", "25", "radius", "0",
+                        "colorMode", "Shift colors", "flash", "=ShiftFlash", "glow", "6")
+                }
+            };
+            yield return new DesignBlock
+            {
                 Name = "Delta card", Icon = "", Description = "Delta to best that tints green or red, with a centered bar.",
                 Create = () => new List<DashWidget>
                 {
