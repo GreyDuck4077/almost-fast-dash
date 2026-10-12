@@ -574,6 +574,40 @@ namespace AlmostFastOverlays
         // Inspector
         // ==================================================================
 
+        // Targets kept for layers that already use them, but not offered: the device and group
+        // entries and the split light bar cover them more plainly.
+        private static readonly HashSet<string> RetiredTargets = new HashSet<string> { "dv5", "brow-left", "brow-right" };
+
+        /// <summary>
+        /// The LEDs a layer can light, in two plain sections: by role across every device (only roles
+        /// some device has), then each device on its own, whole or one group.
+        /// </summary>
+        private List<object> TargetItems(List<LedTarget> targets, string current)
+        {
+            var items = new List<object>();
+            ComboBoxItem Header(string text) => new ComboBoxItem
+            {
+                Content = text.ToUpperInvariant(), IsEnabled = false, Focusable = false, FontSize = 10.5, Margin = new Thickness(0, items.Count == 0 ? 0 : 6, 0, 0),
+                Foreground = (Brush)FindResource("Brush.TextTertiary")
+            };
+            ComboBoxItem Item(string text, string id) => new ComboBoxItem { Content = text, Tag = id, Padding = new Thickness(18, 6, 10, 6) };
+
+            items.Add(Header("By role, on every device"));
+            foreach (LedTarget target in targets.Where(t => !t.Id.StartsWith("device:") && !t.Id.StartsWith("group:")))
+                if (target.Id == current || (target.Strips.Count > 0 && !RetiredTargets.Contains(target.Id)))
+                    items.Add(Item(target.Name, target.Id));
+            foreach (DeviceSettings device in Devices.Where(d => d.Enabled))
+            {
+                items.Add(Header(device.Name));
+                items.Add(Item("All " + device.LedCount + " LEDs", "device:" + device.Id));
+                foreach (LedGroup group in device.Groups)
+                    items.Add(Item(group.Name + "  ·  " + (group.From == group.To ? "LED " + group.From : "LEDs " + group.From + "–" + group.To), "group:" + device.Id + "/" + group.Id));
+            }
+            if (!items.OfType<ComboBoxItem>().Any(i => (string)i.Tag == current))
+                items.Add(Item("A device or group that isn't set up", current));
+            return items;
+        }
+
         private TextBlock Section(string text) => new TextBlock { Text = text.ToUpperInvariant(), Style = (Style)FindResource("T.Overline"), Margin = new Thickness(0, 18, 0, 8) };
         private TextBlock Caption(string text, double top = 4) => new TextBlock { Text = text, Style = (Style)FindResource("T.Caption"), Margin = new Thickness(0, top, 0, 0) };
 
@@ -623,14 +657,16 @@ namespace AlmostFastOverlays
             Inspector.Children.Add(Row("Effect", effectCombo));
             Inspector.Children.Add(Caption(effect.Description, 0));
             List<LedTarget> targets = LedTargets.For(Devices);
-            var targetCombo = new ComboBox { ItemsSource = targets.Select(x => x.Name).ToList(), SelectedItem = targets.FirstOrDefault(x => x.Id == layer.Target)?.Name };
+            List<object> targetItems = TargetItems(targets, layer.Target);
+            var targetCombo = new ComboBox { ItemsSource = targetItems };
+            targetCombo.SelectedItem = targetItems.OfType<ComboBoxItem>().FirstOrDefault(i => (string)i.Tag == layer.Target);
             targetCombo.SelectionChanged += (s, e) =>
             {
-                LedTarget chosen = targets.FirstOrDefault(x => x.Name == (string)targetCombo.SelectedItem);
-                if (chosen == null) return;
-                layer.Target = chosen.Id;
+                if (!(targetCombo.SelectedItem is ComboBoxItem chosen) || !(chosen.Tag is string id) || id == layer.Target) return;
+                layer.Target = id;
                 Commit("Target");
                 RefreshLayers();
+                RefreshInspector();
             };
             Inspector.Children.Add(Row("LEDs", targetCombo));
             Inspector.Children.Add(Caption(targets.FirstOrDefault(x => x.Id == layer.Target)?.Description ?? "Aimed at a device or group that isn't set up right now.", 0));

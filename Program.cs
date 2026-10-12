@@ -48,6 +48,8 @@ namespace AlmostFastOverlays
             if (flagDirectory != null) return RenderFlags(flagDirectory);
             string selfTestReport = ParseOption(args, "--designer-selftest");
             if (selfTestReport != null) return DesignerSelfTest(selfTestReport);
+            string lightReport = ParseOption(args, "--light-frames");
+            if (lightReport != null) return LightFrames.Run(lightReport);
             string recording = ParseOption(args, "--replay-ibt");
             if (recording != null) return RecordingReplay.Run(recording, ParseOption(args, recording) ?? "replay.txt");
             string uiScenario = ParseOption(args, "--ui-snapshot");

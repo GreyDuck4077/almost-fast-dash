@@ -119,17 +119,17 @@ namespace AlmostFastOverlays
             new Purpose { Id = "shift", Name = "Shift lights", Description = "Every group set up as shift lights, in its fill order.", Strips = d => Groups(d, LedPurposes.Shift) },
             new Purpose { Id = "left", Name = "Left side", Description = "Every group set up as a left side, usually bottom to top.", Strips = d => Groups(d, LedPurposes.Left) },
             new Purpose { Id = "right", Name = "Right side", Description = "Every group set up as a right side, usually bottom to top.", Strips = d => Groups(d, LedPurposes.Right) },
-            new Purpose { Id = "sides", Name = "Both sides", Description = "The left and right side groups, filled alike.", Strips = d => Groups(d, LedPurposes.Left).Concat(Groups(d, LedPurposes.Right)) },
+            new Purpose { Id = "sides", Name = "Left and right sides", Description = "The left and right side groups, filled alike.", Strips = d => Groups(d, LedPurposes.Left).Concat(Groups(d, LedPurposes.Right)) },
             new Purpose { Id = "dv5", Name = "Every LED on shift-light devices", Description = "Every LED on each device that has shift lights, in the device's own wiring order.",
                 Strips = d => Devices(d).Where(x => x.Item2.Groups.Any(g => g.Purpose == LedPurposes.Shift)).Select(x => new Part(All(x.Item1, x.Item2), false)) },
-            new Purpose { Id = "brow", Name = "Light bar", Description = "Every group set up as a light bar, left to right.", Strips = d => Groups(d, LedPurposes.Bar) },
-            new Purpose { Id = "brow-mirror", Name = "Light bar, left and right halves", Description = "Both halves of every light bar, each from the middle outward: a car on the left lights the left half. A bar made of several groups (two bars side by side) is split between its groups.", FrontAtEnd = false,
+            new Purpose { Id = "brow", Name = "Light bar", Description = "Every group set up as a light bar, each filled on its own. To treat several bars as one long bar, pick the device's All LEDs instead.", Strips = d => Groups(d, LedPurposes.Bar) },
+            new Purpose { Id = "brow-mirror", Name = "Light bar, split down the middle", Description = "Both halves of every light bar, each from the middle outward: a car on the left lights the left half. A bar made of several groups (two bars side by side) is split between its groups.", FrontAtEnd = false,
                 Strips = d => BarHalves(d).SelectMany(h => new[] { new Part(h.Item1, false), new Part(h.Item2, true) }) },
             new Purpose { Id = "brow-left", Name = "Light bar, left half", Description = "The left half of every light bar, from the middle outward.", FrontAtEnd = false,
                 Strips = d => BarHalves(d).Select(h => new Part(h.Item1, false)) },
             new Purpose { Id = "brow-right", Name = "Light bar, right half", Description = "The right half of every light bar, from the middle outward.", FrontAtEnd = false,
                 Strips = d => BarHalves(d).Select(h => new Part(h.Item2, true)) },
-            new Purpose { Id = "all", Name = "Everything", Description = "Every LED on every device.", Strips = d => Devices(d).Select(x => new Part(All(x.Item1, x.Item2), false)) },
+            new Purpose { Id = "all", Name = "Every LED", Description = "Every LED on every device.", Strips = d => Devices(d).Select(x => new Part(All(x.Item1, x.Item2), false)) },
         };
 
         /// <summary>Every target for these devices: the purpose targets, then each device and each of its groups.</summary>
