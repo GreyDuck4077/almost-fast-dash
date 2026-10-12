@@ -359,8 +359,35 @@ namespace AlmostFastOverlays
             DashboardSettings created = _settings.AddDesignedDashboard(DesignTemplates.Find("blank"), package.Name);
             created.Design = package.Design;
             if (!string.IsNullOrEmpty(package.AccentColor)) created.AccentColor = package.AccentColor;
+            if (package.Lights != null)
+            {
+                created.Lights = package.Lights;
+                created.Lights.Normalize();
+            }
             Save("Imported " + created.Name);
             ShowEditor(created);
+        }
+
+        /// <summary>Saves a dashboard (its screens, images, accent and LED lights) to one file to share or back up.</summary>
+        private void ExportDashboard(DashboardSettings dashboard)
+        {
+            FlushSave();
+            var dialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Title = "Export dashboard",
+                Filter = "Almost Fast Overlays dashboard (*.afodash)|*.afodash",
+                FileName = DesignerWindow.SafeFileName(dashboard.Name) + ".afodash"
+            };
+            if (dialog.ShowDialog(this) != true) return;
+            try
+            {
+                DesignPackage.Write(dialog.FileName, DesignPackage.From(dashboard));
+                ShowSaved("Exported " + dashboard.Name);
+            }
+            catch (Exception exception)
+            {
+                MessageBox.Show(this, exception.Message, "Export dashboard", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
         }
 
         private static T FindParent<T>(DependencyObject child) where T : DependencyObject
@@ -528,7 +555,10 @@ namespace AlmostFastOverlays
             reset.Click += (s, a) => { ResetButton.BringIntoView(); ArmConfirm(ResetButton, ResetLabel, "Click again to reset"); };
             var delete = new MenuItem { Header = "Delete", Icon = GlyphIcon(""), IsEnabled = _settings.Dashboards.Count > 1 };
             delete.Click += (s, a) => { DeleteButton.BringIntoView(); ArmConfirm(DeleteButton, DeleteLabel, "Click again to delete"); };
+            var export = new MenuItem { Header = "Export to a file (.afodash)…", Icon = GlyphIcon(""), IsEnabled = _dashboard.Design != null };
+            export.Click += (s, a) => ExportDashboard(_dashboard);
             menu.Items.Add(duplicate);
+            menu.Items.Add(export);
             menu.Items.Add(reset);
             menu.Items.Add(delete);
             menu.IsOpen = true;

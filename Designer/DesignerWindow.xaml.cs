@@ -1027,7 +1027,7 @@ namespace AlmostFastOverlays
             if (dialog.ShowDialog(this) != true) return;
             try
             {
-                DesignPackage.Write(dialog.FileName, new DesignPackage { Name = _dashboard.Name, AccentColor = _dashboard.AccentColor, Design = _layout });
+                DesignPackage.Write(dialog.FileName, DesignPackage.From(_dashboard, _layout));
                 StatusText.Text = "Exported to " + dialog.FileName;
             }
             catch (Exception exception)
@@ -1276,14 +1276,22 @@ namespace AlmostFastOverlays
         }
     }
 
-    /// <summary>The shareable .afodash file: one designed dashboard.</summary>
+    /// <summary>The shareable .afodash file: one designed dashboard, with its images and LED lights.</summary>
     internal sealed class DesignPackage
     {
         public string Format { get; set; } = "AlmostFastOverlays.Dashboard";
-        public int Version { get; set; } = 1;
+        /// <summary>2 added the LED lights; files without them still import.</summary>
+        public int Version { get; set; } = 2;
         public string Name { get; set; }
         public string AccentColor { get; set; }
         public DashLayout Design { get; set; }
+        public LightProfile Lights { get; set; }
+
+        public static DesignPackage From(DashboardSettings dashboard, DashLayout design = null) => new DesignPackage
+        {
+            Name = dashboard.Name, AccentColor = dashboard.AccentColor, Design = design ?? dashboard.Design,
+            Lights = dashboard.Lights == null ? null : SettingsStore.Clone(dashboard.Lights)
+        };
 
         public static void Write(string path, DesignPackage package) =>
             File.WriteAllText(path, SettingsStore.ToJson(package));

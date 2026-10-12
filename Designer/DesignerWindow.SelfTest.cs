@@ -330,6 +330,10 @@ namespace AlmostFastOverlays
             DesignPackage.Write(file, new DesignPackage { Name = "Self test", AccentColor = "#FF0000", Design = _layout });
             DesignPackage package = DesignPackage.Read(file);
             Check("export and import", package.Design.AllWidgets().Count() == _layout.AllWidgets().Count() && package.AccentColor == "#FF0000");
+            var lit = new DashboardSettings { Name = "Lit", AccentColor = "#00FF00", Design = _layout, Lights = LightPresets.Refined() };
+            DesignPackage.Write(file, DesignPackage.From(lit));
+            DesignPackage withLights = DesignPackage.Read(file);
+            Check("exported dashboards carry their LED lights", withLights.Lights != null && withLights.Lights.Layers.Count == lit.Lights.Layers.Count && withLights.Lights.Layers.Count > 0);
             Check("dirty flag clears after save", !Dirty);
 
             // ---------------- light layers
