@@ -54,6 +54,7 @@ namespace AlmostFastOverlays
         private void Run()
         {
             var links = new Dictionary<string, LedDeviceLink>();
+            int statusTick = 0;
             try
             {
                 while (!_stop)
@@ -78,7 +79,12 @@ namespace AlmostFastOverlays
                         DeviceSettings device = devices[i];
                         if (!links.TryGetValue(device.Id, out LedDeviceLink link)) links[device.Id] = link = new LedDeviceLink();
                         link.Apply(device);
-                        if (device.Enabled) link.Send(frame.Leds[i]);
+                        link.Send(frame.Leds[i]);
+                    }
+                    if (unchecked(Environment.TickCount - statusTick) >= 1000)
+                    {
+                        statusTick = Environment.TickCount;
+                        DeviceStatus.Write(links);
                     }
                     Thread.Sleep(FrameMilliseconds);
                 }

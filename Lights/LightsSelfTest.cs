@@ -12,6 +12,7 @@ namespace AlmostFastOverlays
         {
             public readonly List<int> Lengths = new List<int>();
             public int KeepAliveMilliseconds => 0;
+            public string Detail => "test";
             public void Send(Color[] frame) { lock (Lengths) Lengths.Add(frame.Length); }
             public void Dispose() { }
         }

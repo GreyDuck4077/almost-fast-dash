@@ -93,6 +93,8 @@ namespace AlmostFastOverlays
         private static string Context(TelemetrySnapshot t) =>
             !t.Connected ? "not connected" : t.OutOfCar ? "out of car" : t.Flag != RacingFlag.None ? "flag " + t.Flag : t.OnPitRoad ? "pit road" : "driving";
 
+        private static int _statusTick;
+
         /// <summary>Gives each device its LEDs, following devices being added, removed or changed as it happens.</summary>
         private static void Send(Dictionary<string, LedDeviceLink> links, List<DeviceSettings> devices, LightFrame frame)
         {
@@ -106,7 +108,13 @@ namespace AlmostFastOverlays
                 DeviceSettings device = devices[i];
                 if (!links.TryGetValue(device.Id, out LedDeviceLink link)) links[device.Id] = link = new LedDeviceLink();
                 link.Apply(device);
-                if (device.Enabled && i < frame.Leds.Length) link.Send(frame.Leds[i]);
+                if (i < frame.Leds.Length) link.Send(frame.Leds[i]);
+            }
+            // The Devices page shows each device's connection from this.
+            if (unchecked(Environment.TickCount - _statusTick) >= 1000)
+            {
+                _statusTick = Environment.TickCount;
+                DeviceStatus.Write(links);
             }
         }
 

@@ -124,7 +124,8 @@ namespace AlmostFastOverlays
 
             // The real devices show the preview too: directly while the dashboard is stopped, or through
             // the running dashboard (which owns them) while iRacing isn't connected.
-            bool show = !Offline && MirrorLeds.IsChecked == true && !_dashboardOperationInProgress && !_deviceBusy && WindowState != WindowState.Minimized;
+            // Only while the dashboard page is on screen: not while the window is still opening, or on another page.
+            bool show = !Offline && IsLoaded && EditorPage.Visibility == Visibility.Visible && MirrorLeds.IsChecked == true && !_dashboardOperationInProgress && !_deviceBusy && WindowState != WindowState.Minimized;
             if (show && !_dashboardRunning) { PreviewRequest.Clear(); _mirror.Show(frame, _settings.General.Devices); }
             else if (show)
             {

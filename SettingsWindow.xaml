@@ -375,7 +375,7 @@
                                 <StackPanel Margin="0,0,24,0">
                                     <TextBlock Text="LED devices" Style="{StaticResource T.Title}"/>
                                     <TextBlock Style="{StaticResource T.Caption}" Margin="0,4,0,0" TextWrapping="Wrap" MaxWidth="600" HorizontalAlignment="Left"
-                                               Text="The LEDs on your wheel screen, light bars, Arduino boards, Adalight strips and WLED controllers. Each device's LEDs are split into groups (shift lights, sides, light bar…) that light layers aim at."/>
+                                               Text="The LEDs on your wheel screen, light bars, Arduino boards, Adalight strips and WLED controllers. Add one, describe its shape and show the app where its LEDs are; every dashboard's lights then use it."/>
                                 </StackPanel>
                                 <Button Grid.Column="1" Style="{StaticResource Btn.Primary}" VerticalAlignment="Top" Click="AddDevice_Click">
                                     <StackPanel Orientation="Horizontal">

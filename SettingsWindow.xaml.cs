@@ -63,7 +63,11 @@ namespace AlmostFastOverlays
 
             MirrorLeds.Click += (s, e) => { if (MirrorLeds.IsChecked != true) ReleaseDevices(); UpdateLedPreview(); };
             _statusTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
-            _statusTimer.Tick += (s, e) => { if (!_dashboardOperationInProgress) RefreshDashboardStatus(); };
+            _statusTimer.Tick += (s, e) =>
+            {
+                if (!_dashboardOperationInProgress) RefreshDashboardStatus();
+                if (SettingsPage.Visibility == Visibility.Visible) RefreshDeviceStatus();
+            };
             _statusTimer.Start();
             RefreshDashboardStatus();
 

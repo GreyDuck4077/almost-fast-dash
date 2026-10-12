@@ -242,6 +242,7 @@ namespace AlmostFastOverlays
 
         public int KeepAliveMilliseconds => _inner.KeepAliveMilliseconds;
         public void Send(Color[] frame) => _inner.Send(LedPower.Limit(frame, _maxMilliamps));
+        public string Detail => _inner.Detail + (_maxMilliamps > 0 ? ", USB power limit" : "");
         public void Dispose() => _inner.Dispose();
     }
     /// <summary>Sends frames to one kind of device.</summary>
@@ -250,6 +251,8 @@ namespace AlmostFastOverlays
         void Send(Color[] frame);
         /// <summary>How often to resend an unchanged frame so the device doesn't time out; 0 for never.</summary>
         int KeepAliveMilliseconds { get; }
+        /// <summary>A few words on how it's being driven, for the device's status line.</summary>
+        string Detail { get; }
     }
 
     /// <summary>A board on the common sim-racing LED protocol.</summary>
@@ -259,11 +262,13 @@ namespace AlmostFastOverlays
 
         public ArduinoOutput(DeviceSettings device)
         {
-            _controller = new ArduinoLedController(device.ResolvePort(), device.Baud, device.LedCount, null) { Batched = device.FastUpdates };
+            _controller = new ArduinoLedController(device.ResolvePort(), device.Baud, device.LedCount, null);
             try
             {
                 _controller.Connect();
                 Name = _controller.QueryDeviceName();
+                // Fast updates (several colour runs a packet) only for a board that accepts them.
+                _controller.Batched = _controller.AcceptsBatches();
             }
             catch
             {
@@ -274,6 +279,7 @@ namespace AlmostFastOverlays
 
         public string Name { get; }
         public int KeepAliveMilliseconds => 0;
+        public string Detail => _controller.Batched ? "fast updates" : "standard updates";
         public void Send(Color[] frame) => _controller.SetFrame(frame);
         public void Dispose() => _controller.Dispose();
     }
@@ -296,6 +302,7 @@ namespace AlmostFastOverlays
         }
 
         public int KeepAliveMilliseconds => 1000;
+        public string Detail => "Adalight";
 
         public void Send(Color[] frame)
         {
@@ -355,6 +362,7 @@ namespace AlmostFastOverlays
         }
 
         public int KeepAliveMilliseconds => 1000;
+        public string Detail => "WLED over the network";
 
         public void Send(Color[] frame)
         {
@@ -435,6 +443,7 @@ namespace AlmostFastOverlays
         }
 
         public int KeepAliveMilliseconds => _inner.KeepAliveMilliseconds;
+        public string Detail => _inner.Detail;
 
         public void Send(Color[] frame)
         {
@@ -486,6 +495,10 @@ namespace AlmostFastOverlays
 
         public DeviceSettings Device { get; private set; }
 
+        /// <summary>How the connection is going (<see cref="LinkStates"/>), and a few words on it, for the device's row.</summary>
+        public string State { get; private set; } = LinkStates.Connecting;
+        public string Detail { get; private set; }
+
         /// <summary>Forgets the last frame so the next one is sent even if it's the same.</summary>
         public void Invalidate() => _lastFrame = null;
 
@@ -502,7 +515,7 @@ namespace AlmostFastOverlays
 
         public void Send(Color[] frame)
         {
-            if (Device == null || !Device.Enabled || string.IsNullOrWhiteSpace(Device.Connection)) return;
+            if (Device == null || !Device.Enabled || string.IsNullOrWhiteSpace(Device.Connection)) { State = LinkStates.Off; Detail = null; return; }
             if (_output == null)
             {
                 if (_opening != null)
@@ -510,15 +523,24 @@ namespace AlmostFastOverlays
                     if (!_opening.IsCompleted) return;
                     // Each device sends on its own thread, so a slow one never holds up the others.
                     if (_opening.Status == System.Threading.Tasks.TaskStatus.RanToCompletion) _output = new BackgroundOutput(_opening.Result, Device.Name);
-                    else Console.Error.WriteLine(Device.Name + " unavailable on " + Device.Connection + ": " + _opening.Exception?.GetBaseException().Message);
+                    else
+                    {
+                        string why = _opening.Exception?.GetBaseException().Message;
+                        Console.Error.WriteLine(Device.Name + " unavailable on " + Device.Connection + ": " + why);
+                        if (State != LinkStates.Dropping) State = LinkStates.Missing;
+                        Detail = why;
+                    }
                     _opening = null;
                     if (_output == null) return;
                     _connectedUtc = DateTime.UtcNow;
+                    State = LinkStates.Connected;
+                    Detail = _output.Detail;
                 }
                 else
                 {
                     if (DateTime.UtcNow < _nextAttemptUtc) return;
                     _nextAttemptUtc = DateTime.UtcNow.AddSeconds(5);
+                    if (State == LinkStates.Off || State == LinkStates.Connected) State = LinkStates.Connecting;
                     DeviceSettings device = Device;
                     _opening = System.Threading.Tasks.Task.Run(() => Open(device));
                     return;
@@ -540,6 +562,8 @@ namespace AlmostFastOverlays
                 // Lost again soon after connecting: back off 5, 10, 20, 40 then 60 seconds.
                 _drops = (DateTime.UtcNow - _connectedUtc).TotalSeconds < 30 ? _drops + 1 : 1;
                 _nextAttemptUtc = DateTime.UtcNow.AddSeconds(Math.Min(60, 5 * Math.Pow(2, _drops - 1)));
+                State = _drops >= 2 ? LinkStates.Dropping : LinkStates.Connecting;
+                Detail = exception.Message;
             }
         }
 

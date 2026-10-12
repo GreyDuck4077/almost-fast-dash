@@ -65,6 +65,25 @@ namespace AlmostFastOverlays
             return text.Trim();
         }
 
+        /// <summary>
+        /// Whether the board takes several colour runs in one packet (fast updates): sends two runs that turn
+        /// the first two LEDs off and checks the board acknowledges rather than rejects them (04 FF 02).
+        /// </summary>
+        public bool AcceptsBatches()
+        {
+            if (_ledCount < 2) return false;
+            var runs = new System.Collections.Generic.List<Tuple<int, int, Color>> { Tuple.Create(0, 1, Color.Black), Tuple.Create(1, 1, Color.Black) };
+            SendPacket(Payloads(runs, MaxRunsPerPacket)[0], false);
+            var reply = new System.Collections.Generic.List<byte>();
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            while (reply.Count < AckLength && watch.ElapsedMilliseconds < 250)
+            {
+                if (_port.BytesToRead > 0) reply.AddRange(ReadAvailable()); else Thread.Sleep(5);
+            }
+            if (_port.BytesToRead > 0) _port.DiscardInBuffer();
+            return reply.Count >= AckLength && reply[0] == 0x03;
+        }
+
         public void RunStartupAnimation(CancellationToken cancellationToken)
         {
             _lastLength = _ledCount;

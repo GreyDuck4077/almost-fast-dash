@@ -229,6 +229,12 @@ namespace AlmostFastOverlays
                 wizard.Loaded += (s, e) => wizard.JumpTo(scenario.Substring("wizard-".Length));
                 window = wizard;
             }
+            else if (scenario.StartsWith("device-settings"))
+            {
+                AppSettings settings = SettingsStore.Load();
+                DeviceSettings device = settings.General.Devices.LastOrDefault() ?? new DeviceSettings { Name = "Wheel LEDs", Port = "COM6", LedCount = 16 };
+                window = new DeviceSettingsWindow(device, "Connected · fast updates");
+            }
             else if (scenario.StartsWith("lights"))
             {
                 AppSettings settings = SettingsStore.Load();

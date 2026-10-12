@@ -61,7 +61,8 @@ namespace AlmostFastOverlays
             {
                 _mapper = new LayoutMapper(_layout, step != "map-hand");
                 _mapper.Place(0);
-                if (step != "map-partial") _mapper.Place(1);
+                if (step != "map-partial" && step != "map-notlit") _mapper.Place(1);
+                if (step == "map-notlit") _notLit = 1;
                 if (step == "map-ask" || step == "map-doubt") foreach (int led in new[] { 0, 5, 10, 15 }) _checked.Add(led);
                 if (step == "map-check") { _checked.Add(3); _testLed = 3; }
                 _doubted = step == "map-doubt";
@@ -69,13 +70,17 @@ namespace AlmostFastOverlays
             Show(step == "name" ? Step.Name : step.StartsWith("shape") ? Step.Shape : step.StartsWith("map") ? Step.Map : Step.Done);
         }
 
-        public DeviceSetupWindow(AppSettings settings, DeviceSettings existing, Func<bool> dashboardRunning, Func<Task<bool>> stopDashboard)
+        private readonly bool _ledsOnly;
+
+        /// <param name="ledsOnly">For a device already set up: only describe and map its LEDs again (shape, map, done).</param>
+        public DeviceSetupWindow(AppSettings settings, DeviceSettings existing, Func<bool> dashboardRunning, Func<Task<bool>> stopDashboard, bool ledsOnly = false)
         {
+            _ledsOnly = ledsOnly && existing != null;
             _settings = settings;
             _existing = existing;
             _dashboardRunning = dashboardRunning;
             _stopDashboard = stopDashboard;
-            Title = existing == null ? "Add a device" : "Set up " + existing.Name;
+            Title = existing == null ? "Add a device" : (ledsOnly ? "Set up LEDs: " : "Set up ") + existing.Name;
             Width = 860;
             Height = 720;
             MinWidth = 720;
@@ -96,7 +101,7 @@ namespace AlmostFastOverlays
             {
                 _device = SettingsStore.Clone(existing);
                 _layout = existing.Layout != null ? SettingsStore.Clone(existing.Layout) : new LedLayout { Shape = "" };
-                Show(Step.Name);
+                Show(_ledsOnly ? Step.Shape : Step.Name);
             }
         }
 
@@ -152,9 +157,9 @@ namespace AlmostFastOverlays
             if (_step == Step.Map && step != Step.Map) StopChase();
             _step = step;
             _status.Text = "";
-            int number = (int)step + (_existing == null ? 1 : 0), total = _existing == null ? 4 : 3;
+            int number = _ledsOnly ? (int)step - 1 : (int)step + (_existing == null ? 1 : 0), total = _ledsOnly ? 2 : _existing == null ? 4 : 3;
             _stepLabel.Text = step == Step.Done ? "ALL SET" : "STEP " + number + " OF " + total;
-            _back.Visibility = step == Step.Find || (step == Step.Name && _existing != null) || step == Step.Done ? Visibility.Collapsed : Visibility.Visible;
+            _back.Visibility = step == Step.Find || (step == Step.Name && _existing != null) || (step == Step.Shape && _ledsOnly) || step == Step.Done ? Visibility.Collapsed : Visibility.Visible;
             _next.Content = step == Step.Done ? "Finish" : "Continue";
             _next.IsEnabled = true;
             switch (step)
@@ -544,6 +549,8 @@ namespace AlmostFastOverlays
         private readonly HashSet<int> _checked = new HashSet<int>();
         private int _testLed = -1;
         private bool _verified, _doubted;
+        // The LED the user said didn't light up, or -1: the shape has more LEDs than the device.
+        private int _notLit = -1;
         private StackPanel _verify;
 
         private void ResetChecks()
@@ -711,6 +718,8 @@ namespace AlmostFastOverlays
             }
             else
             {
+                if (_notLit == asking) { ShowNotLit(asking); return; }
+                _notLit = -1;
                 _mapPrompt.Text = "LED #" + (asking + 1) + " is lit on your device. Click where it is.";
                 _mapHint.Text = _mapper.ByHand ? "Placing every LED by hand: " + asking + " of " + _mapper.Total + " placed. Undo takes back the last one."
                     : _mapper.Pending
@@ -718,8 +727,38 @@ namespace AlmostFastOverlays
                     : asking == 0 ? "It's the bright white LED. Placed LEDs glow faintly so you can keep your bearings."
                     : "The chain jumped or reached the end of a part, so the app needs LED #" + (asking + 1) + " too.";
                 _next.IsEnabled = false;
+                var missing = new Button { Content = "LED #" + (asking + 1) + " didn't light up", Style = (Style)FindResource("Btn.Ghost"), HorizontalAlignment = HorizontalAlignment.Left, Padding = new Thickness(0, 2, 0, 2) };
+                missing.Click += (s, e) => { _notLit = asking; RenderMap(); };
+                _verify.Children.Add(missing);
+                _verify.Visibility = Visibility.Visible;
                 ShowAsking(asking);
             }
+        }
+
+        /// <summary>An LED that didn't light: the device has fewer LEDs than the shape, or (for the first) isn't showing anything.</summary>
+        private void ShowNotLit(int led)
+        {
+            _preview?.Show(new DrawingColor[Math.Max(1, led)]);
+            var buttons = new StackPanel { Orientation = Orientation.Horizontal };
+            if (led == 0)
+            {
+                _mapPrompt.Text = "Nothing lit up?";
+                _mapHint.Text = "The app couldn't light " + _device.Name + ". Check it's plugged in and powered, then try again.";
+            }
+            else
+            {
+                _mapPrompt.Text = "Your device may have " + led + (led == 1 ? " LED" : " LEDs");
+                _mapHint.Text = "The shape adds up to " + _layout.Total + ", but LED #" + (led + 1) + " didn't light, so it's past the end of the device. Go back and correct the counts; sending colours to LEDs a board doesn't have can make it freeze.";
+                var back = new Button { Content = "Back to the shape", Style = (Style)FindResource("Btn.Primary"), Margin = new Thickness(0, 0, 8, 0) };
+                back.Click += (s, e) => { _notLit = -1; Show(Step.Shape); };
+                buttons.Children.Add(back);
+            }
+            var again = new Button { Content = led == 0 ? "Try again" : "It did light, carry on" };
+            again.Click += (s, e) => { _notLit = -1; RenderMap(); };
+            buttons.Children.Add(again);
+            _verify.Children.Add(buttons);
+            _verify.Visibility = Visibility.Visible;
+            _next.IsEnabled = false;
         }
 
         private void TestLed(int led)
@@ -805,7 +844,8 @@ namespace AlmostFastOverlays
         {
             StopChase();
             _title.Text = _device.Name + " is ready";
-            _subtitle.Text = _layout.Describe() + ". Light layers aimed at a part's role use it, filling the way the part runs: sides bottom to top, rows and bars left to right.";
+            _subtitle.Text = _layout.Describe() + ". Light layers aimed at a part's role use it, filling the way the part runs: sides bottom to top, rows and bars left to right." +
+                (_device.Kind == LedDeviceKinds.Arduino ? " Fast updates are used automatically when the board supports them." : "");
             var body = new StackPanel();
             foreach (LayoutPiece piece in _layout.Pieces())
                 body.Children.Add(new TextBlock
@@ -813,37 +853,13 @@ namespace AlmostFastOverlays
                     Text = piece.Name + " · " + piece.Slots.Length + (piece.Slots.Length == 1 ? " LED" : " LEDs") + " · " + _layout.RoleOf(piece),
                     Style = (Style)FindResource("T.Secondary"), Margin = new Thickness(0, 0, 0, 6)
                 });
-            if (_device.Kind == LedDeviceKinds.Arduino)
-            {
-                var fast = new CheckBox
-                {
-                    Style = (Style)FindResource("Switch"), Content = "Fast updates", IsChecked = _device.FastUpdates, Margin = new Thickness(0, 18, 0, 4),
-                    ToolTip = "Sends each light frame in one message. Smoother if the board supports it"
-                };
-                fast.Click += (s, e) => _device.FastUpdates = fast.IsChecked == true;
-                body.Children.Add(fast);
-                body.Children.Add(new TextBlock { Text = "Sends each light frame in one message, for the smoothest lights. If the lights look wrong with it on, turn it off.", Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap });
-            }
-            if (_device.Kind != LedDeviceKinds.Wled)
+            // Power is asked once here for a new device; a device's settings window changes it later.
+            if (_device.Kind != LedDeviceKinds.Wled && !_ledsOnly)
             {
                 body.Children.Add(new TextBlock { Text = "POWER", Style = (Style)FindResource("T.Overline"), Margin = new Thickness(0, 22, 0, 8) });
-                var power = new ComboBox
-                {
-                    ItemsSource = new[] { "From the PC's USB port", "A powered hub or its own power supply" }, Width = 320, HorizontalAlignment = HorizontalAlignment.Left,
-                    SelectedIndex = _device.MaxMilliamps > 0 ? 0 : 1
-                };
-                var powerHelp = new TextBlock { Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0), MaxWidth = 640, HorizontalAlignment = HorizontalAlignment.Left };
-                void ShowPower()
-                {
-                    powerHelp.Text = _device.MaxMilliamps > 0
-                        ? "Keeps the LEDs to about " + _device.MaxMilliamps + " mA, dimming bright frames (a whole bar lit white, say) so a USB port isn't overloaded. An overloaded port can drop the device and leave its LEDs stuck on."
-                        : "No limit: every LED can light at full brightness. Only choose this when the device has power of its own.";
-                }
-                power.SelectionChanged += (s, e) => { _device.MaxMilliamps = power.SelectedIndex == 0 ? LedPower.DefaultMilliamps : 0; ShowPower(); };
-                ShowPower();
-                body.Children.Add(power);
-                body.Children.Add(powerHelp);
+                body.Children.Add(DeviceUi.PowerPicker(this, _device));
             }
+            if (_ledsOnly) _title.Text = _device.Name + "'s LEDs are mapped";
             _body.Content = body;
             _preview?.Show(new DrawingColor[Math.Max(1, _layout.Total)]);
         }
@@ -930,6 +946,7 @@ namespace AlmostFastOverlays
     internal sealed class NowhereOutput : ILedOutput
     {
         public int KeepAliveMilliseconds => 0;
+        public string Detail => "nowhere";
         public void Send(DrawingColor[] frame) { }
         public void Dispose() { }
     }
