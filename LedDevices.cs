@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO.Ports;
@@ -102,6 +102,12 @@ namespace AlmostFastOverlays
         /// <summary>Send each frame in one message (Arduino boards that support it).</summary>
         public bool FastUpdates { get; set; }
         public bool Enabled { get; set; } = true;
+        /// <summary>
+        /// The most current the LEDs may draw, in milliamps (0 for no limit). Frames that would draw more
+        /// are dimmed to fit. A board powered over USB can brown out its hub when many LEDs light white
+        /// at once, which drops it (and anything sharing the hub) off USB with its LEDs stuck on.
+        /// </summary>
+        public int MaxMilliamps { get; set; } = LedPower.DefaultMilliamps;
 
         public void Normalize()
         {
@@ -173,6 +179,54 @@ namespace AlmostFastOverlays
         }
     }
 
+    /// <summary>
+    /// Estimates the current addressable LEDs draw and dims frames that would draw too much.
+    /// A typical RGB LED draws about 20 mA per colour channel at full level, 60 mA white.
+    /// </summary>
+    internal static class LedPower
+    {
+        /// <summary>The default limit: plenty for rev lights and coloured alerts, while keeping a
+        /// USB-powered wheel hub from browning out when a whole strip lights white.</summary>
+        public const int DefaultMilliamps = 250;
+        private const double MilliampsPerChannel = 20;
+
+        public static double Milliamps(Color[] frame)
+        {
+            double total = 0;
+            foreach (Color c in frame) total += (c.R + c.G + c.B) / 255.0 * MilliampsPerChannel;
+            return total;
+        }
+
+        /// <summary>The frame itself when it's within <paramref name="maxMilliamps"/>, otherwise a dimmed copy.</summary>
+        public static Color[] Limit(Color[] frame, int maxMilliamps)
+        {
+            if (maxMilliamps <= 0 || frame == null) return frame;
+            double draw = Milliamps(frame);
+            if (draw <= maxMilliamps) return frame;
+            double scale = maxMilliamps / draw;
+            var dimmed = new Color[frame.Length];
+            for (int i = 0; i < frame.Length; i++)
+                dimmed[i] = Color.FromArgb((int)(frame[i].R * scale), (int)(frame[i].G * scale), (int)(frame[i].B * scale));
+            return dimmed;
+        }
+    }
+
+    /// <summary>A device output with the power limit applied to every frame.</summary>
+    internal sealed class LimitedOutput : ILedOutput
+    {
+        private readonly ILedOutput _inner;
+        private readonly int _maxMilliamps;
+
+        public LimitedOutput(ILedOutput inner, int maxMilliamps)
+        {
+            _inner = inner;
+            _maxMilliamps = maxMilliamps;
+        }
+
+        public int KeepAliveMilliseconds => _inner.KeepAliveMilliseconds;
+        public void Send(Color[] frame) => _inner.Send(LedPower.Limit(frame, _maxMilliamps));
+        public void Dispose() => _inner.Dispose();
+    }
     /// <summary>Sends frames to one kind of device.</summary>
     internal interface ILedOutput : IDisposable
     {
@@ -362,7 +416,7 @@ namespace AlmostFastOverlays
 
         public void Apply(DeviceSettings device)
         {
-            string signature = device.Kind + "|" + device.Connection + "|" + device.UsbId + "|" + device.Baud + "|" + device.LedCount + "|" + device.Enabled + "|" + device.FastUpdates;
+            string signature = device.Kind + "|" + device.Connection + "|" + device.UsbId + "|" + device.Baud + "|" + device.LedCount + "|" + device.Enabled + "|" + device.FastUpdates + "|" + device.MaxMilliamps;
             Device = device;
             if (signature == _signature) return;
             _signature = signature;
@@ -411,9 +465,10 @@ namespace AlmostFastOverlays
         {
             switch (device.Kind)
             {
-                case LedDeviceKinds.Adalight: return new AdalightOutput(device);
+                case LedDeviceKinds.Adalight: return new LimitedOutput(new AdalightOutput(device), device.MaxMilliamps);
+                // WLED limits its own power, from its power supply settings.
                 case LedDeviceKinds.Wled: return new WledOutput(device);
-                default: return new ArduinoOutput(device);
+                default: return new LimitedOutput(new ArduinoOutput(device), device.MaxMilliamps);
             }
         }
 

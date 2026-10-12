@@ -407,7 +407,8 @@ namespace AlmostFastOverlays
             body.Children.Add(no);
             _body.Content = body;
             _next.IsEnabled = true;
-            _preview.Show(Enumerable.Repeat(DrawingColor.FromArgb(120, 120, 120), _expectedCount).ToArray());
+            // A soft colour, not white: every LED lit white at once can draw more than a USB-powered device can supply.
+            _preview.Show(Enumerable.Repeat(DrawingColor.FromArgb(0, 70, 60), _expectedCount).ToArray());
         }
 
         private void ShowGuidedCount(int start)

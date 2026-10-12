@@ -120,6 +120,14 @@ namespace AlmostFastOverlays
             setupPreview.Dispose();
             Check("device setup sends only the LEDs it asks for, and clears only those", recorder.Lengths.SequenceEqual(new[] { 16, 3, 3 }), string.Join(", ", recorder.Lengths));
 
+            // ---------------- power limit
+            Color[] allWhite = Enumerable.Repeat(Color.White, 16).ToArray();
+            Color[] limited = LedPower.Limit(allWhite, LedPower.DefaultMilliamps);
+            Color[] revs = Enumerable.Repeat(Color.FromArgb(230, 10, 15), 8).ToArray();
+            Check("a whole strip of white is dimmed to the power limit", LedPower.Milliamps(allWhite) > 900 && LedPower.Milliamps(limited) <= LedPower.DefaultMilliamps && limited[0].R > 0,
+                Math.Round(LedPower.Milliamps(allWhite)) + " mA → " + Math.Round(LedPower.Milliamps(limited)) + " mA");
+            Check("rev lights at full are left alone by the power limit", ReferenceEquals(LedPower.Limit(revs, LedPower.DefaultMilliamps), revs), Math.Round(LedPower.Milliamps(revs)) + " mA");
+
             // ---------------- light log
             var activity = new LightActivity();
             var flagRenderer = new LightRenderer(LightPresets.Refined(), "#2DD4BF", units, devices);
