@@ -8,6 +8,14 @@ namespace AlmostFastOverlays
     /// <summary>End-to-end checks for the light layers, run as part of --designer-selftest.</summary>
     internal static class LightsSelfTest
     {
+        private sealed class RecordingOutput : ILedOutput
+        {
+            public readonly List<int> Lengths = new List<int>();
+            public int KeepAliveMilliseconds => 0;
+            public void Send(Color[] frame) { lock (Lengths) Lengths.Add(frame.Length); }
+            public void Dispose() { }
+        }
+
         private static TelemetrySnapshot Snap(double shift, double rpm, RacingFlag flag = RacingFlag.None,
             BlindSpotZone left = BlindSpotZone.None, BlindSpotZone right = BlindSpotZone.None) =>
             IRacingTelemetrySource.WithPreviewExtras(new TelemetrySnapshot(
@@ -101,6 +109,16 @@ namespace AlmostFastOverlays
             replay.OutOfCar = true;
             LightFrame dark = new LightRenderer(LightPresets.Refined(), "#2DD4BF", units, devices).Compose(replay.ForLights(), 4000);
             Check("out of the car or in a replay the LEDs go dark", dark.Leds.All(d => d.All(c => (c.R | c.G | c.B) == 0)));
+
+            // ---------------- device setup never writes past a board's LEDs
+            var recorder = new RecordingOutput();
+            var setupPreview = new LedPreview(new DeviceSettings { Kind = LedDeviceKinds.Arduino, Port = "COM99", LedCount = 16 }, recorder);
+            setupPreview.Show(Enumerable.Repeat(Color.White, 16).ToArray());
+            System.Threading.Thread.Sleep(150);
+            setupPreview.Show(Enumerable.Repeat(Color.White, 3).ToArray());
+            System.Threading.Thread.Sleep(150);
+            setupPreview.Dispose();
+            Check("device setup sends only the LEDs it asks for, and clears only those", recorder.Lengths.SequenceEqual(new[] { 16, 3, 3 }), string.Join(", ", recorder.Lengths));
 
             // ---------------- light log
             var activity = new LightActivity();

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO.Ports;
 using System.Text;
 using System.Threading;
@@ -21,6 +21,8 @@ namespace AlmostFastOverlays
         private readonly SerialPort _port;
         private readonly int _ledCount;
         private readonly string _expectedName;
+        // How many LEDs the last frame addressed; clearing never reaches past it.
+        private int _lastLength;
 
         /// <param name="expectedName">The name the board must report, or null to accept any board.</param>
         public ArduinoLedController(string portName, int baudRate, int ledCount, string expectedName = "SSG DV 5")
@@ -64,6 +66,7 @@ namespace AlmostFastOverlays
 
         public void RunStartupAnimation(CancellationToken cancellationToken)
         {
+            _lastLength = _ledCount;
             for (int pass = 0; pass < 2 && !cancellationToken.IsCancellationRequested; pass++)
             {
                 for (int index = 0; index < _ledCount && !cancellationToken.IsCancellationRequested; index++)
@@ -80,7 +83,11 @@ namespace AlmostFastOverlays
             Clear();
         }
 
-        public void Clear() => SetAll(0, 0, 0);
+        /// <summary>Turns off the LEDs the last frame addressed (none if no frame was sent).</summary>
+        public void Clear()
+        {
+            if (_lastLength > 0) SetRange(0, _lastLength, 0, 0, 0);
+        }
 
         /// <summary>
         /// Sends a composed 16-LED frame, grouping neighbouring LEDs that share a
@@ -92,28 +99,30 @@ namespace AlmostFastOverlays
         /// </summary>
         public bool Batched { get; set; }
 
+        /// <remarks>
+        /// Only the LEDs in the frame are sent, up to the board's count: writing past a board's
+        /// last LED can corrupt its memory and freeze it until it's power-cycled.
+        /// </remarks>
         public void SetFrame(Color[] frame)
         {
+            int count = Math.Min(frame.Length, _ledCount);
+            if (count <= 0) return;
+            _lastLength = count;
             if (Batched)
             {
-                SendBatched(frame);
+                foreach (byte[] payload in BatchedPayloads(frame, count)) SendPacket(payload);
                 return;
             }
             int index = 0;
-            while (index < _ledCount)
+            while (index < count)
             {
-                Color color = index < frame.Length ? frame[index] : Color.Black;
+                Color color = frame[index];
                 int run = 1;
-                while (index + run < _ledCount && index + run < frame.Length &&
+                while (index + run < count &&
                        frame[index + run].ToArgb() == color.ToArgb()) run++;
                 SetRange(index, run, color.R, color.G, color.B);
                 index += run;
             }
-        }
-
-        private void SendBatched(Color[] frame)
-        {
-            foreach (byte[] payload in BatchedPayloads(frame, _ledCount)) SendPacket(payload);
         }
 
         /// <summary>

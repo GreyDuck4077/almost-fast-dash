@@ -407,13 +407,18 @@ namespace AlmostFastOverlays
             body.Children.Add(no);
             _body.Content = body;
             _next.IsEnabled = true;
-            _preview.Show(Enumerable.Range(0, _preview.Size).Select(i => i < _expectedCount ? DrawingColor.FromArgb(120, 120, 120) : DrawingColor.Black).ToArray());
+            _preview.Show(Enumerable.Repeat(DrawingColor.FromArgb(120, 120, 120), _expectedCount).ToArray());
         }
 
         private void ShowGuidedCount(int start)
         {
             _subtitle.Text = "Most LED boards can't report how many LEDs they have, so count them together: only one LED is lit. Move it until it's the very last LED on your device.";
-            int max = _preview.Size;
+            int max = _preview.Limit;
+            // A board on the sim-racing LED protocol can't be told LEDs it doesn't have: writing past its
+            // last LED can freeze it until it's power-cycled. So only LEDs up to the furthest one counted
+            // to are ever sent, and the count moves one LED at a time (no slider to jump ahead).
+            bool careful = _device.Kind == LedDeviceKinds.Arduino;
+            int reach = Math.Max(1, Math.Min(max, start));
             var body = new StackPanel();
             var number = new TextBlock { FontSize = 40, FontWeight = FontWeights.SemiBold, FontFamily = (FontFamily)FindResource("Font.Display") };
             var slider = new Slider { Minimum = 1, Maximum = max, IsSnapToTickEnabled = true, TickFrequency = 1, Width = 460, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 12, 0, 0) };
@@ -423,7 +428,8 @@ namespace AlmostFastOverlays
                 number.Text = _countValue + (_countValue == 1 ? " LED" : " LEDs");
                 if ((int)slider.Value != _countValue) slider.Value = _countValue;
                 // The lit LED is the count; the ones before it glow faintly so the strip is easy to follow.
-                _preview.Show(Enumerable.Range(0, max).Select(i => i == _countValue - 1 ? DrawingColor.White : i < _countValue - 1 ? DrawingColor.FromArgb(0, 0, 40) : DrawingColor.Black).ToArray());
+                reach = Math.Max(reach, _countValue);
+                _preview.Show(Enumerable.Range(0, reach).Select(i => i == _countValue - 1 ? DrawingColor.White : i < _countValue - 1 ? DrawingColor.FromArgb(0, 0, 40) : DrawingColor.Black).ToArray());
             }
             var stepper = new StackPanel { Orientation = Orientation.Horizontal };
             var less = new Button { Content = "−", Width = 44, FontSize = 18 };
@@ -435,10 +441,11 @@ namespace AlmostFastOverlays
             stepper.Children.Add(number);
             body.Children.Add(stepper);
             slider.ValueChanged += (s, e) => { if ((int)slider.Value != _countValue) Update((int)slider.Value); };
-            body.Children.Add(slider);
+            if (!careful) body.Children.Add(slider);
             body.Children.Add(new TextBlock
             {
-                Text = "The bright white LED is the one you're counting to; the faint blue ones come before it. When the white one is the last LED on the device, that's the count.",
+                Text = "The bright white LED is the one you're counting to; the faint blue ones come before it. When the white one is the last LED on the device, that's the count." +
+                    (careful ? " Go up one at a time and stop at the last LED: going well past it can make some boards freeze until they're unplugged." : ""),
                 Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 14, 0, 0), MaxWidth = 560, HorizontalAlignment = HorizontalAlignment.Left
             });
             _body.Content = body;
@@ -613,7 +620,7 @@ namespace AlmostFastOverlays
         {
             if (_preview == null || _chase != null) return;
             only = only ?? _focused;
-            var frame = new DrawingColor[_preview.Size];
+            var frame = new DrawingColor[_device.LedCount];
             for (int g = 0; g < _groups.Count; g++)
             {
                 LedGroup group = _groups[g];
@@ -639,7 +646,7 @@ namespace AlmostFastOverlays
             _chase.Tick += (s, e) =>
             {
                 if (index >= n) { StopChase(); RenderMap(); return; }
-                var frame = new DrawingColor[_preview.Size];
+                var frame = new DrawingColor[n];
                 frame[index] = DrawingColor.White;
                 _preview.Show(frame);
                 _chaseNumber.Text = "LED " + (index + 1);
@@ -685,7 +692,7 @@ namespace AlmostFastOverlays
                 body.Children.Add(new TextBlock { Text = "Sends each light frame in one message, for smoother lights. If the lights look wrong with it on, turn it off.", Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap });
             }
             _body.Content = body;
-            _preview?.Show(new DrawingColor[_preview.Size]);
+            _preview?.Show(new DrawingColor[_device.LedCount]);
         }
 
         private Border Card() => new Border
@@ -708,14 +715,17 @@ namespace AlmostFastOverlays
         private DrawingColor[] _pending;
         private volatile bool _stop;
 
-        /// <summary>How many LEDs a frame has: room to count past what the device has.</summary>
-        public int Size { get; }
+        private int _sent;
+
+        /// <summary>The most LEDs a frame may hold. Frames are sent as long as they are, never padded,
+        /// so a board is only ever sent LEDs the setup has asked for.</summary>
+        public int Limit { get; }
 
         public LedPreview(DeviceSettings device, ILedOutput output = null)
         {
             var open = SettingsStore.Clone(device);
-            Size = device.Kind == LedDeviceKinds.Wled ? Math.Max(device.LedCount, 1) : device.Kind == LedDeviceKinds.Adalight ? 300 : ArduinoLedController.MaxLeds;
-            open.LedCount = Size;
+            Limit = device.Kind == LedDeviceKinds.Wled ? Math.Max(device.LedCount, 1) : device.Kind == LedDeviceKinds.Adalight ? 300 : ArduinoLedController.MaxLeds;
+            open.LedCount = Limit;
             _output = output ?? LedDeviceLink.Open(open);
             _signature = device.Kind + "|" + device.Connection;
             _thread = new Thread(Run) { IsBackground = true, Name = "LED setup preview" };
@@ -740,9 +750,11 @@ namespace AlmostFastOverlays
                 if (frame == null || (frame == last && _output.KeepAliveMilliseconds == 0)) continue;
                 try
                 {
-                    var sized = new DrawingColor[Size];
-                    Array.Copy(frame, sized, Math.Min(frame.Length, Size));
+                    var sized = new DrawingColor[Math.Min(frame.Length, Limit)];
+                    Array.Copy(frame, sized, sized.Length);
+                    if (sized.Length == 0) continue;
                     _output.Send(sized);
+                    _sent = sized.Length;
                     last = frame;
                 }
                 catch { }
@@ -754,7 +766,8 @@ namespace AlmostFastOverlays
             _stop = true;
             _wake.Set();
             _thread.Join(1500);
-            try { _output.Send(new DrawingColor[Size]); } catch { }
+            // Off, for exactly the LEDs that were lit.
+            if (_sent > 0) try { _output.Send(new DrawingColor[_sent]); } catch { }
             _output.Dispose();
             _wake.Dispose();
         }
