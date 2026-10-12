@@ -62,6 +62,9 @@ namespace AlmostFastOverlays
         private static readonly object Gate = new object();
         private static Thread _thread;
         private static volatile bool _stop;
+        // How many sources are listening: the reader stops only when the last one does (the settings
+        // window and the light designer can both show live data).
+        private static int _listeners;
 
         public static event Action<DataSample> NewData;
 
@@ -69,6 +72,7 @@ namespace AlmostFastOverlays
         {
             lock (Gate)
             {
+                _listeners++;
                 if (_thread != null) return;
                 _stop = false;
                 _thread = new Thread(Run) { IsBackground = true, Name = "iRacing telemetry" };
@@ -81,6 +85,8 @@ namespace AlmostFastOverlays
             Thread thread;
             lock (Gate)
             {
+                if (_listeners > 0) _listeners--;
+                if (_listeners > 0) return;
                 thread = _thread;
                 _thread = null;
                 _stop = true;
@@ -97,7 +103,7 @@ namespace AlmostFastOverlays
                 try { map = MemoryMappedFile.OpenExisting(MapName, MemoryMappedFileRights.Read); }
                 catch
                 {
-                    NewData?.Invoke(disconnected);
+                    Publish(disconnected);
                     Sleep(1000);
                     continue;
                 }
@@ -116,18 +122,24 @@ namespace AlmostFastOverlays
                         // Status bit 1 is "connected"; iRacing clears it when the sim closes.
                         if ((view.ReadInt32(4) & 1) == 0)
                         {
-                            NewData?.Invoke(disconnected);
+                            Publish(disconnected);
                             Sleep(500);
                             if (!StillOpen()) break;
                             continue;
                         }
 
                         Telemetry telemetry = Telemetry.Read(view, session, ref lastTick);
-                        if (telemetry != null)
-                            NewData?.Invoke(new DataSample { IsConnected = true, Telemetry = telemetry });
+                        if (telemetry != null) Publish(new DataSample { IsConnected = true, Telemetry = telemetry });
                     }
                 }
             }
+        }
+
+        /// <summary>Hands a sample to every listener; one that fails is logged, never allowed to stop the reader.</summary>
+        private static void Publish(DataSample sample)
+        {
+            try { NewData?.Invoke(sample); }
+            catch (Exception exception) { Console.Error.WriteLine("Telemetry: " + exception); }
         }
 
         private static bool StillOpen()

@@ -41,7 +41,7 @@ namespace AlmostFastOverlays
 
     internal sealed class AppSettings
     {
-        private const int CurrentSchema = 7;
+        private const int CurrentSchema = 8;
 
         public int SchemaVersion { get; set; }
         public string DefaultDashboardId { get; set; } = "dashboard-halo";
@@ -89,6 +89,7 @@ namespace AlmostFastOverlays
                 if (SchemaVersion > 0 && SchemaVersion < 5) ReplaceCodeLayouts();
                 if (SchemaVersion > 0 && SchemaVersion < 6) DevicesFromFixedSettings();
                 if (SchemaVersion > 0 && SchemaVersion < 7) RenameBrowLayers();
+                if (SchemaVersion > 0 && SchemaVersion < 8) ClassicLightsToLayers();
                 SchemaVersion = CurrentSchema;
             }
             foreach (DeviceSettings device in General.Devices) device.Normalize();
@@ -150,8 +151,8 @@ namespace AlmostFastOverlays
         private void DevicesFromFixedSettings()
         {
             if (General.Devices.Count > 0) return;
-            General.Devices.Add(KnownDevices.Create(KnownDevices.Dv5, General.LedPort, KnownDevices.Dv5.LedCount, true, General.FastLedUpdates));
-            General.Devices.Add(KnownDevices.Create(KnownDevices.Lb10, General.BrowPort, Math.Max(1, General.BrowLedCount), General.BrowEnabled, General.FastLedUpdates));
+            General.Devices.Add(KnownDevices.Create(KnownDevices.Dv5, General.LedPort, KnownDevices.Dv5.LedCount, true));
+            General.Devices.Add(KnownDevices.Create(KnownDevices.Lb10, General.BrowPort, Math.Max(1, General.BrowLedCount), General.BrowEnabled));
             General.LedPort = null;
             General.BrowPort = null;
         }
@@ -209,6 +210,13 @@ namespace AlmostFastOverlays
             return candidate;
         }
 
+        /// <summary>Schema 8: a dashboard still on the pre-layer light settings gets them as layers, once.</summary>
+        private void ClassicLightsToLayers()
+        {
+            foreach (DashboardSettings dashboard in Dashboards)
+                if (dashboard.Lights == null) dashboard.Lights = LightPresets.FromClassic(dashboard);
+        }
+
         /// <summary>Schema 7: light layers named after one device ("Brow rev lights") take the generic name ("Light bar rev lights").</summary>
         private void RenameBrowLayers()
         {
@@ -241,7 +249,6 @@ namespace AlmostFastOverlays
         public bool BrowEnabled { get; set; } = true;
         public string BrowPort { get; set; }
         public int BrowLedCount { get; set; } = 20;
-        public bool FastLedUpdates { get; set; }
     }
 
     internal sealed class DashboardSettings
@@ -251,20 +258,21 @@ namespace AlmostFastOverlays
         public string Layout { get; set; } = Layouts.Custom;
         public List<string> RaceTypes { get; set; } = new List<string>();
         public string AccentColor { get; set; } = "#22D3EE";
-        public LedBankSettings CenterLeds { get; set; } = new LedBankSettings();
-        public SideLedSettings LeftLeds { get; set; } = new SideLedSettings();
-        public SideLedSettings RightLeds { get; set; } = new SideLedSettings();
+        // Before schema 8: the light settings from before light layers. Read once to build Lights, then cleared.
+        public LedBankSettings CenterLeds { get; set; }
+        public SideLedSettings LeftLeds { get; set; }
+        public SideLedSettings RightLeds { get; set; }
         public BrowLedSettings BrowLeds { get; set; }
         public AlertSettings Alerts { get; set; } = new AlertSettings();
         /// <summary>The dashboard's design: screens of widgets, drawn by <see cref="LayoutRenderer"/>.</summary>
         public DashLayout Design { get; set; }
-        /// <summary>Layered light profile; null keeps the classic light settings above.</summary>
+        /// <summary>The dashboard's lights: layers of effects on the LED devices.</summary>
         public LightProfile Lights { get; set; }
 
         /// <summary>A new dashboard started from a template.</summary>
         public static DashboardSettings CreateDesigned(DesignTemplate template)
         {
-            DashboardSettings created = Create("dashboard-new", template.Name, template.Accent, "Edges to center", BrowFunctions.Shift);
+            DashboardSettings created = Create("dashboard-new", template.Name, template.Accent);
             created.Design = template.Create();
             created.Lights = template.Id == "oval" ? LightPresets.SpotterFocus() : LightPresets.Refined();
             return created;
@@ -273,7 +281,7 @@ namespace AlmostFastOverlays
         /// <summary>The default road dashboard.</summary>
         public static DashboardSettings CreateHalo()
         {
-            DashboardSettings halo = Create("dashboard-halo", "Halo", "#22D3EE", "Edges to center", BrowFunctions.Shift, Disciplines.Road, Disciplines.DirtRoad);
+            DashboardSettings halo = Create("dashboard-halo", "Halo", "#22D3EE", Disciplines.Road, Disciplines.DirtRoad);
             halo.Design = DesignTemplates.Find("halo").Create();
             halo.Lights = LightPresets.Refined();
             return halo;
@@ -282,23 +290,19 @@ namespace AlmostFastOverlays
         /// <summary>The default oval dashboard.</summary>
         public static DashboardSettings CreateOval()
         {
-            DashboardSettings oval = Create("dashboard-oval", "Oval", "#FFB020", "Edges to center", BrowFunctions.BlindSpot, Disciplines.Oval, Disciplines.DirtOval);
+            DashboardSettings oval = Create("dashboard-oval", "Oval", "#FFB020", Disciplines.Oval, Disciplines.DirtOval);
             oval.Design = DesignTemplates.Find("oval").Create();
             oval.Lights = LightPresets.SpotterFocus();
             return oval;
         }
 
-        private static DashboardSettings Create(string id, string name, string accent, string pattern, string brow, params string[] raceTypes) => new DashboardSettings
+        private static DashboardSettings Create(string id, string name, string accent, params string[] raceTypes) => new DashboardSettings
         {
             Id = id,
             Name = name,
             Layout = Layouts.Custom,
             AccentColor = accent,
-            RaceTypes = raceTypes.ToList(),
-            CenterLeds = LedBankSettings.CreateShiftLights(pattern),
-            LeftLeds = SideLedSettings.CreateDefault(),
-            RightLeds = SideLedSettings.CreateDefault(),
-            BrowLeds = BrowLedSettings.CreateDefault(brow)
+            RaceTypes = raceTypes.ToList()
         };
 
         public void Normalize()
@@ -306,87 +310,38 @@ namespace AlmostFastOverlays
             Layout = Layouts.Custom;
             if (string.IsNullOrWhiteSpace(Name)) Name = "Dashboard";
             if (RaceTypes == null) RaceTypes = new List<string>();
-            if (CenterLeds == null) CenterLeds = LedBankSettings.CreateShiftLights("Edges to center");
-            if (LeftLeds == null) LeftLeds = SideLedSettings.CreateDefault();
-            if (RightLeds == null) RightLeds = SideLedSettings.CreateDefault();
-            if (BrowLeds == null) BrowLeds = BrowLedSettings.CreateDefault(BrowFunctions.Shift);
-            if (!BrowFunctions.All.Contains(BrowLeds.Function)) BrowLeds.Function = BrowFunctions.Shift;
             if (Alerts == null) Alerts = new AlertSettings();
             if (Design == null) Design = DesignTemplates.Blank();
             Design.Normalize();
-            Lights?.Normalize();
-            // "Red" was an early side-light profile; it has always meant one color.
-            foreach (LedBankSettings bank in new LedBankSettings[] { CenterLeds, LeftLeds, RightLeds, BrowLeds })
-                if (bank.ColorProfile == "Red") bank.ColorProfile = LedProfiles.Single;
+            if (Lights == null) Lights = LightPresets.Refined();
+            Lights.Normalize();
+            // The pre-layer light settings have been converted by now.
+            CenterLeds = null;
+            LeftLeds = RightLeds = null;
+            BrowLeds = null;
         }
 
         [ScriptIgnore]
         public Color Accent => SettingsStore.ParseColor(AccentColor, Color.FromArgb(0, 155, 210));
     }
 
-    internal static class BrowFunctions
-    {
-        public const string Shift = "Shift lights";
-        public const string BlindSpot = "Blind spot";
-        public const string Flags = "Flags only";
-        public const string Pedals = "Brake and throttle";
-        public const string Brake = "Brake pressure";
-        public const string Throttle = "Throttle";
-        public const string Delta = "Lap delta";
-        public const string Fuel = "Fuel level";
-        public const string Off = "Off";
-        public static readonly string[] All = { Shift, BlindSpot, Flags, Pedals, Brake, Throttle, Delta, Fuel, Off };
+    // ------------------------------------------------------------------ before schema 8
+    // The light settings from before light layers, kept only so old settings can be read and converted.
 
-        public static string Describe(string function)
-        {
-            switch (function)
-            {
-                case Shift: return "Fills from both ends toward the middle as revs rise and flashes red at the shift point.";
-                case BlindSpot: return "Left half lights for a car on your left, right half for your right; brighter toward the front when it's ahead.";
-                case Flags: return "Dark until a flag is shown, then flashes that flag's color.";
-                case Pedals: return "Brake fills the left half in red, throttle fills the right half in green.";
-                case Brake: return "Fills from the middle outward with brake pressure.";
-                case Throttle: return "Fills from the middle outward with throttle.";
-                case Delta: return "Grows right in green when you're faster than your best lap, left in red when slower.";
-                case Fuel: return "Shows the fuel tank level, turning amber and red as it runs low.";
-                default: return "The light bar stays dark.";
-            }
-        }
+    internal static class LedFunctions
+    {
+        public const string BlindSpot = "Blind spot", Rpm = "RPM", Brake = "Brake pressure", Throttle = "Throttle", Disabled = "Disabled";
     }
 
-    internal sealed class BrowLedSettings : LedBankSettings
+    internal static class BrowFunctions
     {
-        /// <summary>When on, any racing flag takes over the light bar and flashes its color.</summary>
-        public bool FlagOverride { get; set; } = true;
-
-        public static BrowLedSettings CreateDefault(string function) => new BrowLedSettings
-        {
-            Function = function,
-            Pattern = "Edges to center",
-            Brightness = 60,
-            ColorProfile = LedProfiles.GreenYellowRed,
-            FlagOverride = true
-        };
+        public const string Shift = "Shift lights", BlindSpot = "Blind spot", Flags = "Flags only", Pedals = "Brake and throttle",
+            Brake = "Brake pressure", Throttle = "Throttle", Delta = "Lap delta", Fuel = "Fuel level", Off = "Off";
     }
 
     internal static class LedProfiles
     {
-        public const string GreenYellowRed = "Green / Yellow / Red";
-        public const string BluePurpleRed = "Blue / Purple / Red";
-        public const string Single = "Single color";
-        public const string Custom = "Custom";
-        public static readonly string[] All = { GreenYellowRed, BluePurpleRed, Single, Custom };
-
-        /// <summary>Returns the preset stage colors, or null when the profile keeps the user's colors.</summary>
-        public static string[] PresetColors(string profile)
-        {
-            switch (profile)
-            {
-                case GreenYellowRed: return new[] { "#00B85A", "#FFB800", "#FF202F" };
-                case BluePurpleRed: return new[] { "#00BFFF", "#9370DB", "#FF0000" };
-                default: return null;
-            }
-        }
+        public const string GreenYellowRed = "Green / Yellow / Red", BluePurpleRed = "Blue / Purple / Red", Single = "Single color";
     }
 
     internal class LedBankSettings
@@ -398,27 +353,18 @@ namespace AlmostFastOverlays
         public string LowColor { get; set; } = "#00B85A";
         public string MidColor { get; set; } = "#FFB800";
         public string HighColor { get; set; } = "#FF202F";
-
-        public static LedBankSettings CreateShiftLights(string pattern) => new LedBankSettings
-        {
-            Function = "RPM",
-            Pattern = pattern,
-            Brightness = 55,
-            ColorProfile = LedProfiles.GreenYellowRed
-        };
     }
 
-    internal sealed class SideLedSettings : LedBankSettings
+    internal sealed class SideLedSettings : LedBankSettings { }
+
+    internal sealed class BrowLedSettings : LedBankSettings
     {
-        public static SideLedSettings CreateDefault() => new SideLedSettings
+        /// <summary>When on, any racing flag took over the light bar.</summary>
+        public bool FlagOverride { get; set; } = true;
+
+        public static BrowLedSettings CreateDefault(string function) => new BrowLedSettings
         {
-            Function = "Blind spot",
-            Pattern = "Position",
-            Brightness = 45,
-            ColorProfile = LedProfiles.Single,
-            LowColor = "#FF202F",
-            MidColor = "#FF202F",
-            HighColor = "#FF202F"
+            Function = function, Pattern = "Edges to center", Brightness = 60, ColorProfile = LedProfiles.GreenYellowRed, FlagOverride = true
         };
     }
 
@@ -435,25 +381,49 @@ namespace AlmostFastOverlays
 
         public static AppSettings Load()
         {
+            if (TryLoad(out AppSettings loaded)) return loaded;
+            // Unreadable even after retrying: keep the file (it may be fixable by hand) and start from defaults.
             try
             {
-                if (File.Exists(FilePath))
-                {
-                    var loaded = Json.Deserialize<AppSettings>(File.ReadAllText(FilePath));
-                    if (loaded != null)
-                    {
-                        int schema = loaded.SchemaVersion;
-                        loaded.EnsureBuiltInDashboards();
-                        // Persist one-time upgrades so every process sees the same lineup.
-                        if (loaded.SchemaVersion != schema) try { Save(loaded); } catch { }
-                        return loaded;
-                    }
-                }
+                if (File.Exists(FilePath)) File.Copy(FilePath, FilePath + ".unreadable-" + DateTime.Now.ToString("yyyyMMdd-HHmmss"), true);
             }
             catch { }
             var defaults = AppSettings.CreateDefault();
             try { if (!File.Exists(FilePath)) Save(defaults); } catch { }
             return defaults;
+        }
+
+        /// <summary>
+        /// Reads settings.json, retrying for a moment: another process may be swapping in a new copy at that
+        /// instant. True with defaults when there's no file yet; false when it exists but couldn't be read.
+        /// </summary>
+        public static bool TryLoad(out AppSettings settings)
+        {
+            settings = null;
+            for (int attempt = 0; attempt < 5; attempt++)
+            {
+                try
+                {
+                    if (!File.Exists(FilePath))
+                    {
+                        settings = AppSettings.CreateDefault();
+                        try { Save(settings); } catch { }
+                        return true;
+                    }
+                    var loaded = Json.Deserialize<AppSettings>(File.ReadAllText(FilePath));
+                    if (loaded == null) return false;
+                    int schema = loaded.SchemaVersion;
+                    loaded.EnsureBuiltInDashboards();
+                    // Persist one-time upgrades so every process sees the same lineup.
+                    if (loaded.SchemaVersion != schema) try { Save(loaded); } catch { }
+                    settings = loaded;
+                    return true;
+                }
+                catch (IOException) { System.Threading.Thread.Sleep(40); }
+                catch (UnauthorizedAccessException) { System.Threading.Thread.Sleep(40); }
+                catch (Exception) { return false; }
+            }
+            return false;
         }
 
         public static void Save(AppSettings settings)

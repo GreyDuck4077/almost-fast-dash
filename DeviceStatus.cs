@@ -13,8 +13,8 @@ namespace AlmostFastOverlays
 
     /// <summary>
     /// Shares each LED device's connection state between processes: whichever is driving the devices
-    /// (the dashboard, or the settings window's preview) writes it about once a second, and the
-    /// Devices page reads it. A file that hasn't been written for a few seconds means nobody is.
+    /// (the dashboard, or the settings window's preview) writes it when a state changes, and the Devices
+    /// page reads it while one of them is running. Nothing is written while states hold steady.
     /// </summary>
     internal static class DeviceStatus
     {
@@ -24,25 +24,28 @@ namespace AlmostFastOverlays
         }
 
         private static readonly string FilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "devices.status");
-        private const double FreshSeconds = 3;
+        private static string _written;
 
         public static void Write(IEnumerable<KeyValuePair<string, LedDeviceLink>> links)
         {
+            string text = string.Join(Environment.NewLine, links.Select(l =>
+                l.Key + "\t" + l.Value.State + "\t" + (l.Value.Detail ?? "").Replace("\t", " ").Replace("\n", " ").Replace("\r", "")));
+            if (text == _written) return;
             try
             {
-                File.WriteAllLines(FilePath, links.Select(l => l.Key + "\t" + l.Value.State + "\t" + (l.Value.Detail ?? "").Replace("\t", " ").Replace("\n", " ").Replace("\r", "")));
+                File.WriteAllText(FilePath, text);
+                _written = text;
             }
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }
         }
 
-        /// <summary>Each device's state by id, or null when nothing is driving the devices right now.</summary>
+        /// <summary>Each device's state by id, as last written; only meaningful while something is driving the devices.</summary>
         public static Dictionary<string, Entry> Read()
         {
             try
             {
-                var file = new FileInfo(FilePath);
-                if (!file.Exists || (DateTime.UtcNow - file.LastWriteTimeUtc).TotalSeconds > FreshSeconds) return null;
+                if (!File.Exists(FilePath)) return null;
                 var result = new Dictionary<string, Entry>();
                 foreach (string line in File.ReadAllLines(FilePath))
                 {

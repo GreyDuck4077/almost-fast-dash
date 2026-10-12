@@ -8,8 +8,7 @@ namespace AlmostFastOverlays
     /// <summary>
     /// Drives every set-up LED device on its own thread at up to 60 frames a second,
     /// independent of the screen. The active dashboard's light layers are composed for
-    /// the current devices and each device gets its own LEDs. A dashboard without light
-    /// layers uses its classic light settings, converted to layers exactly. Out of the car
+    /// the current devices and each device gets its own LEDs. Out of the car
     /// or in a replay the LEDs follow nothing, as if iRacing weren't running.
     /// </summary>
     internal sealed class LightLoop : IDisposable
@@ -39,6 +38,7 @@ namespace AlmostFastOverlays
             LightRenderer renderer = null;
             DashboardSettings lastDashboard = null;
             LightProfile profile = null;
+            List<DeviceSettings> lastDevices = null;
             var activity = new LightActivity();
             try
             {
@@ -58,14 +58,16 @@ namespace AlmostFastOverlays
                         {
                             // A new dashboard or reloaded settings: rebuild and resend everything.
                             lastDashboard = dashboard;
-                            profile = dashboard == null ? null : dashboard.Lights ?? LightPresets.FromClassic(dashboard);
+                            profile = dashboard?.Lights;
                             renderer = null;
                             foreach (LedDeviceLink link in links.Values) link.Invalidate();
                         }
                         if (profile != null)
                         {
-                            if (renderer == null || renderer.Signature != LightRenderer.DeviceSignature(devices))
+                            // Devices only change with a settings reload (a new list), so that's when to check them.
+                            if (renderer == null || (devices != lastDevices && renderer.Signature != LightRenderer.DeviceSignature(devices)))
                                 renderer = new LightRenderer(profile, dashboard.AccentColor, new UnitSystem(general), devices);
+                            lastDevices = devices;
                             LightFrame frame = renderer.Compose(snapshot, Environment.TickCount);
                             Send(links, devices, frame);
                             if (_log != null)

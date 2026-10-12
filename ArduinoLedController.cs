@@ -84,25 +84,6 @@ namespace AlmostFastOverlays
             return reply.Count >= AckLength && reply[0] == 0x03;
         }
 
-        public void RunStartupAnimation(CancellationToken cancellationToken)
-        {
-            _lastLength = _ledCount;
-            for (int pass = 0; pass < 2 && !cancellationToken.IsCancellationRequested; pass++)
-            {
-                for (int index = 0; index < _ledCount && !cancellationToken.IsCancellationRequested; index++)
-                {
-                    byte red = pass == 0 ? (byte)0 : (byte)20;
-                    byte green = pass == 0 ? (byte)18 : (byte)0;
-                    byte blue = pass == 0 ? (byte)35 : (byte)22;
-                    SetAll(0, 0, 0);
-                    SetRange(index, 1, red, green, blue);
-                    Thread.Sleep(45);
-                }
-            }
-
-            Clear();
-        }
-
         /// <summary>Turns off the LEDs the last frame addressed (none if no frame was sent).</summary>
         public void Clear()
         {
@@ -184,9 +165,6 @@ namespace AlmostFastOverlays
             }
             return payloads;
         }
-
-        private void SetAll(byte red, byte green, byte blue) =>
-            SetRange(0, _ledCount, red, green, blue);
 
         private void SetRange(int start, int count, byte red, byte green, byte blue)
         {

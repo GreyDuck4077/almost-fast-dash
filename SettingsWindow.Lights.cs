@@ -33,9 +33,10 @@ namespace AlmostFastOverlays
         {
             int devices = _settings.General.Devices.Count(d => d.Enabled);
             LightsCardTitle.Text = "Lights";
-            LightsCardText.Text = _dashboard.Lights != null
-                ? _dashboard.Lights.Layers.Count + " light layers drive " + (devices == 1 ? "your LED device" : devices + " LED devices") + " for this dashboard. Open the light designer to change them."
-                : "This dashboard still has its classic light settings, shown as layers. Open the light designer to change them; they carry over exactly.";
+            int layers = _dashboard.Lights?.Layers.Count ?? 0;
+            LightsCardText.Text = devices == 0
+                ? layers + " light layers, ready for when you add an LED device on the Devices page."
+                : layers + " light layers drive " + (devices == 1 ? "your LED device" : devices + " LED devices") + " for this dashboard. Open the light designer to change them.";
             LightsButtonLabel.Text = "Open light designer";
         }
 
@@ -104,12 +105,10 @@ namespace AlmostFastOverlays
         {
             if (_dashboard == null) return;
             BuildLedStrips();
-            LightProfile profile = _dashboard.Lights ?? _previewLightsProfile;
-            if (_previewLights == null || _previewDashboard != _dashboard || (_dashboard.Lights != null && _previewLightsProfile != _dashboard.Lights)
+            LightProfile profile = _dashboard.Lights;
+            if (_previewLights == null || _previewDashboard != _dashboard || _previewLightsProfile != profile
                 || _previewLights.Signature != LightRenderer.DeviceSignature(_settings.General.Devices))
             {
-                // A dashboard on classic lights previews them converted to layers, as the device loop runs them.
-                profile = _dashboard.Lights ?? LightPresets.FromClassic(_dashboard);
                 _previewLights = new LightRenderer(profile, _dashboard.AccentColor, new UnitSystem(_settings.General), _settings.General.Devices);
                 _previewLightsProfile = profile;
                 _previewDashboard = _dashboard;

@@ -16,7 +16,14 @@ namespace AlmostFastOverlays
         {
             StateChanged += (s, e) =>
             {
-                if (WindowState == WindowState.Minimized && _settings.General.MinimizeToTray) HideToTray();
+                // Nothing to show while minimized: the preview pauses (and lets go of the devices) until the window is back.
+                if (WindowState == WindowState.Minimized)
+                {
+                    _ledTimer.Stop();
+                    ReleaseDevices();
+                    if (_settings.General.MinimizeToTray) HideToTray();
+                }
+                else if (EditorPage.Visibility == Visibility.Visible) _ledTimer.Start();
             };
             Closed += (s, e) => { if (_tray != null) { _tray.Visible = false; _tray.Dispose(); _tray = null; } };
         }

@@ -43,7 +43,6 @@ namespace AlmostFastOverlays
         private readonly List<string> _undo = new List<string>(), _redo = new List<string>();
         private string _committed, _savedJson, _pendingCommit, _lastCommitLabel;
         private DateTime _lastCommitUtc;
-        private readonly bool _wasClassic;
 
         private readonly List<Ellipse[]> _deviceLeds = new List<Ellipse[]>();
         private readonly List<DropShadowEffect[]> _deviceGlows = new List<DropShadowEffect[]>();
@@ -60,13 +59,10 @@ namespace AlmostFastOverlays
             _units = new UnitSystem(settings.General);
             SourceInitialized += (s, e) => UseDarkTitleBar(); GlassBackdrop.Apply(this, 0xC0);
 
-            // A dashboard still on classic lights starts from a faithful conversion of them.
-            _wasClassic = dashboard.Lights == null;
-            _profile = _wasClassic ? LightPresets.FromClassic(dashboard) : SettingsStore.Clone(dashboard.Lights);
+            _profile = SettingsStore.Clone(dashboard.Lights ?? LightPresets.Refined());
             _profile.Normalize();
             _selected = _profile.Layers.FirstOrDefault();
-            _committed = _openedJson = Snapshot();
-            _savedJson = _wasClassic ? null : _committed;
+            _committed = _savedJson = Snapshot();
             TitleText.Text = dashboard.Name;
             Title = dashboard.Name + " · Light designer";
 
@@ -88,8 +84,6 @@ namespace AlmostFastOverlays
             RefreshInspector();
             UpdateUndoButtons();
             UpdateSaveState();
-            if (_wasClassic)
-                StatusText.Text = "These layers recreate this dashboard's current lights. They take over on the device as soon as you change something.";
 
             try { ScreenImage.ImageSource = DesignerWindow.RenderThumbnail(dashboard, _units); } catch { }
             PreviewKeyDown += Window_PreviewKeyDown;
@@ -892,15 +886,12 @@ namespace AlmostFastOverlays
             RedoButton.IsEnabled = _redo.Count > 0;
         }
 
-        // A dashboard still on classic lights has nothing saved yet; it only switches once something is changed.
-        private string _openedJson;
-        private bool Dirty => _committed != (_savedJson ?? _openedJson);
+        private bool Dirty => _committed != _savedJson;
 
         private void UpdateSaveState()
         {
-            bool classic = _savedJson == null && !Dirty;
-            SaveState.Text = classic ? "Using classic lights until you change something" : Dirty ? "Saving…" : "Saved";
-            SaveStateIcon.Visibility = Dirty || classic ? Visibility.Collapsed : Visibility.Visible;
+            SaveState.Text = Dirty ? "Saving…" : "Saved";
+            SaveStateIcon.Visibility = Dirty ? Visibility.Collapsed : Visibility.Visible;
         }
 
         private void SaveProfile(bool quiet)

@@ -20,7 +20,8 @@ namespace AlmostFastOverlays
     /// LED at a time and the user clicks where it is on the drawing; two neighbours are enough
     /// for the app to follow an ordinary chain. Nothing is filled in from known devices: every
     /// device is described from scratch, so the lights never depend on assumptions about wiring.
-    /// Opens at the naming step for a device that is already set up.
+    /// For a device that's already set up, only its shape and map are asked again (its name, power and
+    /// the rest are in its settings window).
     /// </summary>
     internal sealed class DeviceSetupWindow : Window
     {
@@ -70,17 +71,18 @@ namespace AlmostFastOverlays
             Show(step == "name" ? Step.Name : step.StartsWith("shape") ? Step.Shape : step.StartsWith("map") ? Step.Map : Step.Done);
         }
 
+        // Setting up an existing device's LEDs again: shape, map, done.
         private readonly bool _ledsOnly;
 
-        /// <param name="ledsOnly">For a device already set up: only describe and map its LEDs again (shape, map, done).</param>
-        public DeviceSetupWindow(AppSettings settings, DeviceSettings existing, Func<bool> dashboardRunning, Func<Task<bool>> stopDashboard, bool ledsOnly = false)
+        /// <param name="existing">A device to set its LEDs up again, or null to add one.</param>
+        public DeviceSetupWindow(AppSettings settings, DeviceSettings existing, Func<bool> dashboardRunning, Func<Task<bool>> stopDashboard)
         {
-            _ledsOnly = ledsOnly && existing != null;
+            _ledsOnly = existing != null;
             _settings = settings;
             _existing = existing;
             _dashboardRunning = dashboardRunning;
             _stopDashboard = stopDashboard;
-            Title = existing == null ? "Add a device" : (ledsOnly ? "Set up LEDs: " : "Set up ") + existing.Name;
+            Title = existing == null ? "Add a device" : "Set up LEDs: " + existing.Name;
             Width = 860;
             Height = 720;
             MinWidth = 720;
@@ -94,14 +96,15 @@ namespace AlmostFastOverlays
             Background = (Brush)FindResource("Brush.Bg");
             GlassBackdrop.Apply(this, 0xD8);
             Content = new Border { Padding = new Thickness(32, 26, 32, 22), Child = Frame() };
-            Closed += (s, e) => { StopChase(); _preview?.Dispose(); };
+            Closed += (s, e) => { StopChase(); WatchDevice(false); _preview?.Dispose(); };
+            KeyDown += (s, e) => { if (e.Key == Key.Escape) Close(); };
 
             if (existing == null) Show(Step.Find);
             else
             {
                 _device = SettingsStore.Clone(existing);
                 _layout = existing.Layout != null ? SettingsStore.Clone(existing.Layout) : new LedLayout { Shape = "" };
-                Show(_ledsOnly ? Step.Shape : Step.Name);
+                Show(Step.Shape);
             }
         }
 
@@ -155,11 +158,12 @@ namespace AlmostFastOverlays
         private void Show(Step step)
         {
             if (_step == Step.Map && step != Step.Map) StopChase();
+            WatchDevice(step == Step.Map);
             _step = step;
             _status.Text = "";
-            int number = _ledsOnly ? (int)step - 1 : (int)step + (_existing == null ? 1 : 0), total = _ledsOnly ? 2 : _existing == null ? 4 : 3;
+            int number = _ledsOnly ? (int)step - 1 : (int)step + 1, total = _ledsOnly ? 2 : 4;
             _stepLabel.Text = step == Step.Done ? "ALL SET" : "STEP " + number + " OF " + total;
-            _back.Visibility = step == Step.Find || (step == Step.Name && _existing != null) || (step == Step.Shape && _ledsOnly) || step == Step.Done ? Visibility.Collapsed : Visibility.Visible;
+            _back.Visibility = step == Step.Find || (step == Step.Shape && _ledsOnly) || step == Step.Done ? Visibility.Collapsed : Visibility.Visible;
             _next.Content = step == Step.Done ? "Finish" : "Continue";
             _next.IsEnabled = true;
             switch (step)
@@ -185,7 +189,7 @@ namespace AlmostFastOverlays
             {
                 case Step.Find: if (_device != null) Show(Step.Name); break;
                 case Step.Name:
-                    _device.Name = string.IsNullOrWhiteSpace(_nameBox?.Text) ? (_device.DetectedName ?? "LED device") : _nameBox.Text.Trim();
+                    _device.Name = UniqueName(string.IsNullOrWhiteSpace(_nameBox?.Text) ? (_device.DetectedName ?? "LED device") : _nameBox.Text.Trim());
                     Show(Step.Shape);
                     break;
                 case Step.Shape:
@@ -227,7 +231,7 @@ namespace AlmostFastOverlays
             body.Children.Add(_foundList);
 
             var actions = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 14, 0, 0) };
-            var scan = new Button { Content = "Look again" };
+            var scan = _scanButton = new Button { Content = "Look again" };
             scan.Click += async (s, e) => await Scan();
             actions.Children.Add(scan);
             body.Children.Add(actions);
@@ -239,9 +243,13 @@ namespace AlmostFastOverlays
             async Task LookUp()
             {
                 string text = address.Text.Trim();
-                if (text.Length == 0) return;
+                if (text.Length == 0 || !lookUp.IsEnabled) return;
+                DeviceSettings known = _found.FirstOrDefault(d => d.Kind == LedDeviceKinds.Wled && string.Equals(d.Address, text, StringComparison.OrdinalIgnoreCase));
+                if (known != null) { Select(known); return; }
                 _status.Text = "Asking " + text + "…";
+                lookUp.IsEnabled = false;
                 Tuple<string, int> info = await Task.Run(() => WledOutput.Info(text));
+                lookUp.IsEnabled = true;
                 if (info == null) { _status.Text = "No WLED controller answered at " + text + ". Check the address in the WLED app, and that this PC is on the same network."; return; }
                 var found = new DeviceSettings { Kind = LedDeviceKinds.Wled, Address = text, DetectedName = info.Item1, Name = info.Item1, LedCount = info.Item2 > 0 ? info.Item2 : 30 };
                 _found.Add(found);
@@ -266,6 +274,7 @@ namespace AlmostFastOverlays
         }
 
         private bool _scanning;
+        private Button _scanButton;
 
         private async Task Scan()
         {
@@ -276,6 +285,7 @@ namespace AlmostFastOverlays
                 return;
             }
             _scanning = true;
+            if (_scanButton != null) _scanButton.IsEnabled = false;
             _status.Text = "Looking for LED devices…";
             var skip = _settings.General.Devices.Select(d => d.ResolvePort()).Where(p => p != null).ToList();
             List<DeviceSettings> found;
@@ -291,6 +301,7 @@ namespace AlmostFastOverlays
             }
             catch (Exception exception) { found = new List<DeviceSettings>(); _status.Text = "The search stopped: " + exception.Message; }
             _scanning = false;
+            if (_scanButton != null) _scanButton.IsEnabled = true;
             foreach (DeviceSettings device in found.Where(f => _found.All(x => x.Port != f.Port))) _found.Add(device);
             if (_step != Step.Find) return;
             _status.Text = busy.Count > 0
@@ -352,9 +363,7 @@ namespace AlmostFastOverlays
         private void Select(DeviceSettings found)
         {
             _device = SettingsStore.Clone(found);
-            // Only technical settings come from a recognised board; its shape is always described from scratch.
-            KnownDevices.Profile profile = KnownDevices.Find(found.UsbId, found.DetectedName);
-            if (profile != null) _device.FastUpdates = profile.FastUpdates;
+            // Nothing is assumed from a recognised board: its shape is described from scratch, and fast updates are detected when it connects.
             _layout = new LedLayout { Shape = "" };
             _mapper = null;
             _next.IsEnabled = true;
@@ -378,6 +387,15 @@ namespace AlmostFastOverlays
             body.Children.Add(_nameBox);
             _body.Content = body;
             Dispatcher.BeginInvoke(new Action(() => { _nameBox.Focus(); _nameBox.SelectAll(); }), DispatcherPriority.Input);
+        }
+
+        /// <summary>The name, or with a number added when another device already has it, so every device can be told apart.</summary>
+        private string UniqueName(string name)
+        {
+            string candidate = name;
+            for (int n = 2; _settings.General.Devices.Any(d => d.Id != _device.Id && string.Equals(d.Name, candidate, StringComparison.OrdinalIgnoreCase)); n++)
+                candidate = name + " " + n;
+            return candidate;
         }
 
         // ------------------------------------------------------------------ 3. shape
@@ -448,7 +466,8 @@ namespace AlmostFastOverlays
                     row.Children.Add(CountField("Along the bottom", _layout.Bottom, v => _layout.Bottom = v));
                     break;
                 case LedShapes.Bars:
-                    row.Children.Add(CountField("How many bars", _layout.Bars, v => { _layout.Bars = v; RenderShapeFields(); }, 1, 8));
+                    // Only the joined switch follows the count, so the box being typed in keeps its focus.
+                    row.Children.Add(CountField("How many bars", _layout.Bars, v => { _layout.Bars = v; RenderJoined(); }, 1, 8));
                     row.Children.Add(CountField("LEDs on each bar", _layout.PerBar, v => _layout.PerBar = v));
                     break;
                 case LedShapes.Strip:
@@ -460,23 +479,30 @@ namespace AlmostFastOverlays
                     return;
             }
             _shapeFields.Children.Add(row);
-            if (_layout.Shape == LedShapes.Bars && _layout.Bars > 1)
-            {
-                var joined = new CheckBox { Style = (Style)FindResource("Switch"), Content = "Joined end to end into one long bar", IsChecked = _layout.Connected, Margin = new Thickness(0, 14, 0, 2) };
-                joined.Click += (s, e) => { _layout.Connected = joined.IsChecked == true; _layout.Map = null; _mapper = null; UpdateShape(); RenderRoles(); };
-                _shapeFields.Children.Add(joined);
-                _shapeFields.Children.Add(new TextBlock
-                {
-                    Text = "Joined bars work as one bar: a fill can run from both outer ends to the middle, and \"split down the middle\" gives a left and a right half. Separate bars each work on their own.",
-                    Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap, MaxWidth = 640, HorizontalAlignment = HorizontalAlignment.Left
-                });
-            }
+            _shapeFields.Children.Add(_joined = new StackPanel());
+            RenderJoined();
             _shapeFields.Children.Add(_roles = new StackPanel { Margin = new Thickness(0, 14, 0, 0) });
             RenderRoles();
             UpdateShape();
         }
 
-        private StackPanel _roles;
+        private StackPanel _roles, _joined;
+
+        /// <summary>For two or more bars: whether they're joined into one long bar.</summary>
+        private void RenderJoined()
+        {
+            if (_joined == null) return;
+            _joined.Children.Clear();
+            if (_layout.Shape != LedShapes.Bars || _layout.Bars < 2) return;
+            var joined = new CheckBox { Style = (Style)FindResource("Switch"), Content = "Joined end to end into one long bar", IsChecked = _layout.Connected, Margin = new Thickness(0, 14, 0, 2) };
+            joined.Click += (s, e) => { _layout.Connected = joined.IsChecked == true; _layout.Map = null; _mapper = null; UpdateShape(); RenderRoles(); };
+            _joined.Children.Add(joined);
+            _joined.Children.Add(new TextBlock
+            {
+                Text = "Joined bars work as one bar: a fill can run from both outer ends to the middle, and \"split down the middle\" gives a left and a right half. Separate bars each work on their own.",
+                Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap, MaxWidth = 640, HorizontalAlignment = HorizontalAlignment.Left
+            });
+        }
 
         /// <summary>What each part of the shape is for, which decides which light layers use it.</summary>
         private void RenderRoles()
@@ -560,6 +586,24 @@ namespace AlmostFastOverlays
         // The LED the user said didn't light up, or -1: the shape has more LEDs than the device.
         private int _notLit = -1;
         private StackPanel _verify;
+        private DispatcherTimer _health;
+
+        /// <summary>While mapping, says so at once if the device stops taking frames (unplugged mid-setup, say).</summary>
+        private void WatchDevice(bool on)
+        {
+            if (!on) { _health?.Stop(); return; }
+            if (_health == null)
+            {
+                _health = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+                _health.Tick += (s, e) =>
+                {
+                    string error = _preview?.LastError;
+                    if (error != null) _status.Text = "Lost contact with " + _device.Name + ": " + error + " Check its cable and power; the LEDs come back when it does.";
+                    else if (_status.Text.StartsWith("Lost contact")) _status.Text = "";
+                };
+            }
+            _health.Start();
+        }
 
         private void ResetChecks()
         {
@@ -911,6 +955,9 @@ namespace AlmostFastOverlays
 
         public bool Matches(DeviceSettings device) => _signature == device.Kind + "|" + device.Connection;
 
+        /// <summary>Why the last frame couldn't be sent (the device was unplugged, say), or null while it's fine.</summary>
+        public string LastError { get; private set; }
+
         public void Show(DrawingColor[] frame)
         {
             Volatile.Write(ref _pending, frame);
@@ -933,8 +980,9 @@ namespace AlmostFastOverlays
                     _output.Send(sized);
                     _sent = sized.Length;
                     last = frame;
+                    LastError = null;
                 }
-                catch { }
+                catch (Exception exception) { LastError = exception.Message; }
             }
         }
 

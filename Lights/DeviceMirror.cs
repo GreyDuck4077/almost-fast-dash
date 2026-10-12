@@ -20,16 +20,24 @@ namespace AlmostFastOverlays
         private volatile bool _stop;
         private LightFrame _frame;
         private List<DeviceSettings> _devices;
+        private string _signature;
 
         public bool Active => _thread != null;
 
         /// <summary>Queues a frame for the devices it was composed for, connecting to them first if needed.</summary>
         public void Show(LightFrame frame, IEnumerable<DeviceSettings> devices)
         {
+            // The sending thread gets its own copy of the devices, made again only when they change.
+            List<DeviceSettings> list = devices.ToList();
+            string signature = LightRenderer.DeviceSignature(list) + "|" + string.Join("|", list.Select(d => d.Connection + d.MaxMilliamps));
             lock (_gate)
             {
                 _frame = frame;
-                _devices = devices.Select(SettingsStore.Clone).ToList();
+                if (signature != _signature)
+                {
+                    _devices = list.Select(SettingsStore.Clone).ToList();
+                    _signature = signature;
+                }
             }
             if (_thread == null)
             {

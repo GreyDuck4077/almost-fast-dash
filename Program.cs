@@ -40,12 +40,8 @@ namespace AlmostFastOverlays
             }
 
 
-            string previewDirectory = ParseOption(args, "--render-previews");
-            if (previewDirectory != null) return RenderPreviews(previewDirectory);
             string templateDirectory = ParseOption(args, "--render-templates");
             if (templateDirectory != null) return RenderTemplates(templateDirectory);
-            string flagDirectory = ParseOption(args, "--render-flags");
-            if (flagDirectory != null) return RenderFlags(flagDirectory);
             string selfTestReport = ParseOption(args, "--designer-selftest");
             if (selfTestReport != null) return DesignerSelfTest(selfTestReport);
             string soakPort = ParseOption(args, "--led-soak");
@@ -57,10 +53,7 @@ namespace AlmostFastOverlays
             string uiScenario = ParseOption(args, "--ui-snapshot");
             if (uiScenario != null) return UiSnapshot(uiScenario, ParseOption(args, uiScenario) ?? "ui.png");
 
-            bool explicitDashboardMode = args.Contains("--run") || args.Contains("--demo") ||
-                args.Contains("--preview") || args.Contains("--preview-timed") || args.Contains("--seconds") ||
-                args.Contains("--capture-preview") || args.Contains("--capture-dashboard");
-            if (!explicitDashboardMode)
+            if (!args.Contains("--run"))
             {
                 var application = new Application
                 {
@@ -98,72 +91,34 @@ namespace AlmostFastOverlays
             while (StopSignal.WaitOne(0)) { }
             File.WriteAllText(DashboardStatusPath, Process.GetCurrentProcess().Id.ToString());
 
-            int? runSeconds = ParseRunSeconds(args);
-            bool demoMode = args.Contains("--demo");
-            bool previewMode = args.Contains("--preview");
-            bool timedPreviewMode = args.Contains("--preview-timed");
             Console.WriteLine("Almost Fast Overlays");
-            Console.WriteLine("Close other dashboard software before running so it does not compete for the device.");
+            Console.WriteLine("Close other dashboard software before running so it does not compete for the devices.");
 
             Console.CancelKeyPress += OnCancelKeyPress;
+            // The dashboard runs unattended in the background: anything unexpected is written down before it ends.
+            AppDomain.CurrentDomain.UnhandledException += (s, e) => WriteCrash(e.ExceptionObject as Exception);
 
-            string captureDashboardId = ParseOption(args, "--capture-dashboard");
-            var runtime = new DashboardRuntime(captureDashboardId);
-            bool logging = runtime.Settings.General.DiagnosticsEnabled && !args.Contains("--no-logging");
+            var runtime = new DashboardRuntime();
+            bool logging = runtime.Settings.General.DiagnosticsEnabled;
             using (runtime)
             using (var diagnostics = new DiagnosticLogger(logging))
             using (var telemetry = new IRacingTelemetrySource(diagnostics, runtime.Dashboard))
             {
                 try
                 {
-                    if (timedPreviewMode)
-                    {
-                        telemetry.StartTimedDashboardPreview();
-                        Console.WriteLine("Preview mode: showing a representative timed race.");
-                    }
-                    else if (previewMode || !string.IsNullOrWhiteSpace(captureDashboardId))
-                    {
-                        telemetry.StartDashboardPreview();
-                        Console.WriteLine("Preview mode: holding representative premium-dashboard values.");
-                    }
-                    else if (demoMode)
-                    {
-                        telemetry.StartDemoSequence();
-                        Console.WriteLine("Demo mode: cycling gears, speed, and all programmed racing flags.");
-                    }
-                    else
-                    {
-                        telemetry.Start();
-                        Console.WriteLine("Live mode: waiting for iRacing telemetry.");
-                    }
+                    telemetry.Start();
+                    Console.WriteLine("Waiting for iRacing telemetry.");
                     if (diagnostics.DirectoryPath != null)
-                        Console.WriteLine("Radar diagnostics: " + diagnostics.DirectoryPath);
-
-                    string capturePath = ParseOption(args, "--capture-preview");
-                    if (!string.IsNullOrWhiteSpace(capturePath))
-                    {
-                        if (!Path.IsPathRooted(capturePath))
-                            capturePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, capturePath);
-                        Directory.CreateDirectory(Path.GetDirectoryName(capturePath));
-                        TelemetrySnapshot captureSnapshot = telemetry.GetSnapshot();
-                        using (var capture = runtime.Renderer.Render(
-                            captureSnapshot, false, captureSnapshot.Gear, 1f))
-                            capture.Save(capturePath, System.Drawing.Imaging.ImageFormat.Png);
-                    }
-
-                    DateTime? finishAt = runSeconds.HasValue
-                        ? DateTime.UtcNow.AddSeconds(runSeconds.Value)
-                        : (DateTime?)null;
-
-                    RunDashboard(telemetry, runtime, finishAt, diagnostics);
+                        Console.WriteLine("Diagnostic logs: " + diagnostics.DirectoryPath);
+                    RunDashboard(telemetry, runtime, diagnostics);
 
                     Console.WriteLine("Dashboard stopped cleanly.");
                     return 0;
                 }
                 catch (Exception exception)
                 {
-                    Console.Error.WriteLine("DV-5 test failed: " + exception.Message);
                     Console.Error.WriteLine(exception);
+                    WriteCrash(exception);
                     return 1;
                 }
                 finally
@@ -183,32 +138,6 @@ namespace AlmostFastOverlays
                     _instanceMutex.Dispose();
                 }
             }
-        }
-
-        /// <summary>
-        /// Writes a PNG of every configured dashboard plus a flag sample without
-        /// opening the screen or LEDs, so layouts can be reviewed while the hardware is in use.
-        /// </summary>
-        private static int RenderPreviews(string directory)
-        {
-            if (!Path.IsPathRooted(directory))
-                directory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, directory);
-            Directory.CreateDirectory(directory);
-            AppSettings settings = SettingsStore.Load();
-            var units = new UnitSystem(settings.General);
-            foreach (DashboardSettings dashboard in settings.Dashboards)
-            {
-                using (var frame = DashboardRendererFactory.RenderPreview(dashboard, units))
-                    frame.Save(Path.Combine(directory, dashboard.Name + ".png"), System.Drawing.Imaging.ImageFormat.Png);
-                using (var spotter = DashboardRendererFactory.RenderPreview(dashboard, units, IRacingTelemetrySource.CreateSpotterPreviewSnapshot()))
-                    spotter.Save(Path.Combine(directory, dashboard.Name + " - Cars alongside.png"), System.Drawing.Imaging.ImageFormat.Png);
-                using (var pit = DashboardRendererFactory.RenderPreview(dashboard, units, IRacingTelemetrySource.CreatePitLanePreviewSnapshot()))
-                        pit.Save(Path.Combine(directory, dashboard.Name + " - Pit lane.png"), System.Drawing.Imaging.ImageFormat.Png);
-            }
-            using (var flag = DashboardRendererFactory.RenderPreview(
-                settings.GetDefaultDashboard(), units, IRacingTelemetrySource.CreatePreviewSnapshot(RacingFlag.Checkered)))
-                flag.Save(Path.Combine(directory, "Flag - Checkered.png"), System.Drawing.Imaging.ImageFormat.Png);
-            return 0;
         }
 
         /// <summary>
@@ -316,36 +245,6 @@ namespace AlmostFastOverlays
         }
 
         /// <summary>Writes a PNG of every designer template in racing, pit-lane and spotter states.</summary>
-        /// <summary>Writes every full-screen flag at a few moments of its breeze, and times a frame.</summary>
-        private static int RenderFlags(string directory)
-        {
-            if (!Path.IsPathRooted(directory)) directory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, directory);
-            Directory.CreateDirectory(directory);
-            using (var renderer = new LayoutRenderer(Dv5Screen.Width, Dv5Screen.Height, DashboardSettings.CreateHalo(), UnitSystem.Default))
-            {
-                foreach (RacingFlag flag in Enum.GetValues(typeof(RacingFlag)))
-                {
-                    if (flag == RacingFlag.None) continue;
-                    TelemetrySnapshot snapshot = IRacingTelemetrySource.CreatePreviewSnapshot(flag);
-                    foreach (int ms in new[] { 0, 900 })
-                    {
-                        renderer.FlagClock = ms;
-                        using (System.Drawing.Bitmap frame = renderer.Render(snapshot, false, snapshot.Gear, 1))
-                            frame.Save(Path.Combine(directory, flag + " " + ms + "ms.png"), System.Drawing.Imaging.ImageFormat.Png);
-                    }
-                }
-                TelemetrySnapshot green = IRacingTelemetrySource.CreatePreviewSnapshot(RacingFlag.Green);
-                var watch = System.Diagnostics.Stopwatch.StartNew();
-                for (int i = 0; i < 60; i++)
-                {
-                    renderer.FlagClock = i * 33;
-                    using (renderer.Render(green, false, green.Gear, 1)) { }
-                }
-                File.WriteAllText(Path.Combine(directory, "timing.txt"), (watch.Elapsed.TotalMilliseconds / 60).ToString("0.0") + " ms per waving flag frame");
-            }
-            return 0;
-        }
-
         private static int RenderTemplates(string directory)
         {
             if (!Path.IsPathRooted(directory))
@@ -371,14 +270,13 @@ namespace AlmostFastOverlays
         private static void RunDashboard(
             IRacingTelemetrySource telemetry,
             DashboardRuntime runtime,
-            DateTime? finishAt,
             DiagnosticLogger diagnostics)
         {
             // While iRacing isn't connected, the settings window's live preview can show on the wheel.
             var preview = new PreviewRequest();
             // The LEDs run on their own loop, so they keep working while the screen reconnects.
             using (new LightLoop(() => preview.Apply(telemetry.GetSnapshot()), () => runtime.Settings, () => runtime.Dashboard, diagnostics.RecordLight))
-            while (!ShouldStop(finishAt))
+            while (!ShouldStop())
             {
                 try
                 {
@@ -389,92 +287,85 @@ namespace AlmostFastOverlays
                         Console.WriteLine("Display ID: " + connection.DisplayId);
                         DateTime nextSettingsCheckUtc = DateTime.MinValue;
 
-                        DisplayState lastDrawn = null;
+                        // The dashboard's own fingerprint of everything it shows: it redraws only when that changes.
+                        int? lastDrawn = null;
                         bool? lastTelemetryConnection = null;
                         int lastObservedGear = int.MinValue;
                         int transitionFromGear = 0;
                         DateTime gearTransitionStartedUtc = DateTime.MinValue;
 
-                        try
+                        while (!ShouldStop())
                         {
-                            while (!ShouldStop(finishAt))
+                            TelemetrySnapshot snapshot = preview.Apply(telemetry.GetSnapshot());
+
+                            // Pick up saved settings and switch dashboards when the
+                            // track type changes, without restarting the process.
+                            if (DateTime.UtcNow >= nextSettingsCheckUtc)
                             {
-
-                                TelemetrySnapshot snapshot = preview.Apply(telemetry.GetSnapshot());
-
-                                // Pick up saved settings and switch dashboards when the
-                                // track type changes, without restarting the process.
-                                if (DateTime.UtcNow >= nextSettingsCheckUtc)
+                                nextSettingsCheckUtc = DateTime.UtcNow.AddSeconds(1);
+                                if (runtime.Refresh(preview.Active ? null : snapshot.Discipline, preview.Active ? preview.DashboardId : null))
                                 {
-                                    nextSettingsCheckUtc = DateTime.UtcNow.AddSeconds(1);
-                                    if (runtime.Refresh(preview.Active ? null : snapshot.Discipline, preview.Active ? preview.DashboardId : null))
-                                    {
-                                        telemetry.ApplyAlertSettings(runtime.Dashboard.Alerts);
-                                        screen.SetBrightness(runtime.Settings.General.ScreenBrightness);
-                                        lastDrawn = null;
-                                        Console.WriteLine("Dashboard: " + runtime.Dashboard.Name);
-                                    }
+                                    telemetry.ApplyAlertSettings(runtime.Dashboard.Alerts);
+                                    screen.SetBrightness(runtime.Settings.General.ScreenBrightness);
+                                    lastDrawn = null;
+                                    Console.WriteLine("Dashboard: " + runtime.Dashboard.Name);
                                 }
-
-                                bool shiftFlashOn = snapshot.ShiftAlert &&
-                                    ((Environment.TickCount / 140) & 1) == 0;
-                                if (snapshot.Connected)
-                                {
-                                    if (lastObservedGear == int.MinValue)
-                                        lastObservedGear = snapshot.Gear;
-                                    else if (snapshot.Gear != lastObservedGear)
-                                    {
-                                        transitionFromGear = lastObservedGear;
-                                        lastObservedGear = snapshot.Gear;
-                                        gearTransitionStartedUtc = DateTime.UtcNow;
-                                    }
-                                }
-                                else
-                                {
-                                    lastObservedGear = int.MinValue;
-                                    gearTransitionStartedUtc = DateTime.MinValue;
-                                }
-
-                                double transitionElapsed = gearTransitionStartedUtc == DateTime.MinValue
-                                    ? GearTransitionMilliseconds
-                                    : (DateTime.UtcNow - gearTransitionStartedUtc).TotalMilliseconds;
-                                float gearProgress = (float)Math.Min(1, transitionElapsed / GearTransitionMilliseconds);
-                                int gearAnimationFrame = gearProgress < 1
-                                    ? (int)(gearProgress * GearTransitionFrames)
-                                    : -1;
-                                if (lastTelemetryConnection != snapshot.Connected)
-                                {
-                                    Console.WriteLine(snapshot.Connected
-                                        ? "iRacing telemetry connected."
-                                        : "Waiting for iRacing telemetry...");
-                                    lastTelemetryConnection = snapshot.Connected;
-                                }
-
-                                int designHash = runtime.Renderer is IStateRenderer designed
-                                    ? designed.StateHash(snapshot, shiftFlashOn, gearAnimationFrame) : 0;
-                                DisplayState current = DisplayState.From(
-                                    snapshot, shiftFlashOn, gearAnimationFrame, runtime.Renderer is ILiveTraceRenderer, designHash);
-                                if (!current.Equals(lastDrawn))
-                                {
-                                    int previousGear = gearProgress < 1 ? transitionFromGear : snapshot.Gear;
-                                    using (var bitmap = runtime.Renderer.Render(
-                                        snapshot, shiftFlashOn, previousGear, gearProgress))
-                                        screen.Draw(bitmap);
-                                    lastDrawn = current;
-                                }
-
-                                // Gear changes and waving flags animate, so they get a faster refresh.
-                                StopRequested.Wait(gearProgress < 1 ? 25 : snapshot.Flag != RacingFlag.None ? 33
-                                    : snapshot.Connected ? RefreshIntervalMilliseconds : IdleRefreshMilliseconds);
                             }
+
+                            bool shiftFlashOn = snapshot.ShiftAlert &&
+                                ((Environment.TickCount / 140) & 1) == 0;
+                            if (snapshot.Connected)
+                            {
+                                if (lastObservedGear == int.MinValue)
+                                    lastObservedGear = snapshot.Gear;
+                                else if (snapshot.Gear != lastObservedGear)
+                                {
+                                    transitionFromGear = lastObservedGear;
+                                    lastObservedGear = snapshot.Gear;
+                                    gearTransitionStartedUtc = DateTime.UtcNow;
+                                }
+                            }
+                            else
+                            {
+                                lastObservedGear = int.MinValue;
+                                gearTransitionStartedUtc = DateTime.MinValue;
+                            }
+
+                            double transitionElapsed = gearTransitionStartedUtc == DateTime.MinValue
+                                ? GearTransitionMilliseconds
+                                : (DateTime.UtcNow - gearTransitionStartedUtc).TotalMilliseconds;
+                            float gearProgress = (float)Math.Min(1, transitionElapsed / GearTransitionMilliseconds);
+                            int gearAnimationFrame = gearProgress < 1
+                                ? (int)(gearProgress * GearTransitionFrames)
+                                : -1;
+                            if (lastTelemetryConnection != snapshot.Connected)
+                            {
+                                Console.WriteLine(snapshot.Connected
+                                    ? "iRacing telemetry connected."
+                                    : "Waiting for iRacing telemetry...");
+                                lastTelemetryConnection = snapshot.Connected;
+                            }
+
+                            int current = runtime.Renderer.StateHash(snapshot, shiftFlashOn, gearAnimationFrame);
+                            if (current != lastDrawn)
+                            {
+                                int previousGear = gearProgress < 1 ? transitionFromGear : snapshot.Gear;
+                                using (var bitmap = runtime.Renderer.Render(
+                                    snapshot, shiftFlashOn, previousGear, gearProgress))
+                                    screen.Draw(bitmap);
+                                lastDrawn = current;
+                            }
+
+                            // Gear changes and waving flags animate, so they get a faster refresh.
+                            StopRequested.Wait(gearProgress < 1 ? 25 : snapshot.Flag != RacingFlag.None ? 33
+                                : snapshot.Connected ? RefreshIntervalMilliseconds : IdleRefreshMilliseconds);
                         }
-                        finally { }
                     }
                 }
                 catch (Exception exception)
                 {
-                    if (ShouldStop(finishAt)) return;
-                    Console.Error.WriteLine("DV-5 connection lost: " + exception.Message);
+                    if (ShouldStop()) return;
+                    Console.Error.WriteLine("Screen connection lost: " + exception.Message);
                     Console.Error.WriteLine("Retrying in 2 seconds...");
                     // Keep following settings and track type so the lights stay right meanwhile.
                     try
@@ -496,14 +387,12 @@ namespace AlmostFastOverlays
         /// </summary>
         private sealed class DashboardRuntime : IDisposable
         {
-            private readonly string _pinnedDashboardId;
             private DateTime _settingsWriteUtc;
             private string _discipline;
             private string _previewId;
 
-            public DashboardRuntime(string pinnedDashboardId)
+            public DashboardRuntime()
             {
-                _pinnedDashboardId = pinnedDashboardId;
                 _settingsWriteUtc = SettingsStore.LastWriteUtc();
                 Settings = SettingsStore.Load();
                 Dashboard = Select();
@@ -513,7 +402,7 @@ namespace AlmostFastOverlays
 
             public AppSettings Settings { get; private set; }
             public DashboardSettings Dashboard { get; private set; }
-            public IDashboardRenderer Renderer { get; private set; }
+            public LayoutRenderer Renderer { get; private set; }
 
             /// <summary>Returns true when the renderer or LED settings were replaced.</summary>
             /// <param name="previewId">A dashboard the settings window is previewing, shown instead while set.</param>
@@ -529,8 +418,10 @@ namespace AlmostFastOverlays
                 if (discipline != null) _discipline = discipline;
                 if (settingsChanged)
                 {
+                    // A copy that can't be read right now is tried again next time; the current settings stay.
+                    if (!SettingsStore.TryLoad(out AppSettings reloaded)) return false;
                     _settingsWriteUtc = writeUtc;
-                    Settings = SettingsStore.Load();
+                    Settings = reloaded;
                 }
 
                 DashboardSettings next = Select();
@@ -549,12 +440,10 @@ namespace AlmostFastOverlays
             private DashboardSettings Select() =>
                 _previewId != null && Settings.Dashboards.Any(d => d.Id == _previewId)
                     ? Settings.Dashboards.First(d => d.Id == _previewId)
-                    : !string.IsNullOrWhiteSpace(_pinnedDashboardId)
-                    ? Settings.Dashboards.FirstOrDefault(d => d.Id == _pinnedDashboardId) ?? Settings.GetDefaultDashboard()
                     : Settings.ResolveDashboard(_discipline);
 
-            private IDashboardRenderer CreateRenderer() =>
-                DashboardRendererFactory.Create(Dv5Screen.Width, Dv5Screen.Height, Dashboard, new UnitSystem(Settings.General));
+            private LayoutRenderer CreateRenderer() =>
+                new LayoutRenderer(Dv5Screen.Width, Dv5Screen.Height, Dashboard, new UnitSystem(Settings.General));
 
             private void WriteActive()
             {
@@ -603,15 +492,27 @@ namespace AlmostFastOverlays
             return 0;
         }
 
-        private static bool ShouldStop(DateTime? finishAt)
+        /// <summary>Appends an unexpected error to Logs\crash.log, so a dashboard that stopped can be looked into.</summary>
+        private static void WriteCrash(Exception exception)
+        {
+            if (exception == null) return;
+            try
+            {
+                string folder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs");
+                Directory.CreateDirectory(folder);
+                File.AppendAllText(Path.Combine(folder, "crash.log"), DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "  " + exception + Environment.NewLine + Environment.NewLine);
+            }
+            catch { }
+        }
+
+        private static bool ShouldStop()
         {
             if (File.Exists(StopRequestPath))
             {
                 try { File.Delete(StopRequestPath); } catch { }
                 return true;
             }
-            return StopRequested.IsSet || StopSignal.WaitOne(0) ||
-                (finishAt.HasValue && DateTime.UtcNow >= finishAt.Value);
+            return StopRequested.IsSet || StopSignal.WaitOne(0);
         }
 
         private static void OnCancelKeyPress(object sender, ConsoleCancelEventArgs eventArgs)
@@ -620,205 +521,12 @@ namespace AlmostFastOverlays
             StopRequested.Set();
         }
 
-        private static int? ParseRunSeconds(string[] args)
-        {
-            int optionIndex = Array.IndexOf(args, "--seconds");
-            if (optionIndex >= 0 && optionIndex + 1 < args.Length &&
-                int.TryParse(args[optionIndex + 1], out int seconds) && seconds > 0)
-            {
-                return seconds;
-            }
-
-            return null;
-        }
-
         private static string ParseOption(string[] args, string option)
         {
             int optionIndex = Array.IndexOf(args, option);
             return optionIndex >= 0 && optionIndex + 1 < args.Length
                 ? args[optionIndex + 1]
                 : null;
-        }
-
-        private sealed class DisplayState
-        {
-            private DisplayState(
-                bool connected, int gear, int speedMph, RacingFlag flag, bool shiftFlashOn,
-                SessionProgressMode progressMode, int secondsRemaining, int lapsCompleted, int totalLaps,
-                int position, int incidents, int fuelTenths, int currentLapTenths, int deltaHundredths,
-                string driverAhead, int aheadHundredths, string driverBehind, int behindHundredths,
-                int totalStarters, bool showLapSummary, int lastLapHundredths,
-                int bestLapHundredths, int averageLapHundredths, int lapColorVersion,
-                int maxForwardGear, int gearAnimationFrame, int strategyHash)
-            {
-                StrategyHash = strategyHash;
-                Connected = connected;
-                Gear = gear;
-                SpeedMph = speedMph;
-                Flag = flag;
-                ShiftFlashOn = shiftFlashOn;
-                ProgressMode = progressMode;
-                SecondsRemaining = secondsRemaining;
-                LapsCompleted = lapsCompleted;
-                TotalLaps = totalLaps;
-                Position = position;
-                Incidents = incidents;
-                FuelTenths = fuelTenths;
-                CurrentLapTenths = currentLapTenths;
-                DeltaHundredths = deltaHundredths;
-                DriverAhead = driverAhead;
-                AheadHundredths = aheadHundredths;
-                DriverBehind = driverBehind;
-                BehindHundredths = behindHundredths;
-                TotalStarters = totalStarters;
-                ShowLapSummary = showLapSummary;
-                LastLapHundredths = lastLapHundredths;
-                BestLapHundredths = bestLapHundredths;
-                AverageLapHundredths = averageLapHundredths;
-                LapColorVersion = lapColorVersion;
-                MaxForwardGear = maxForwardGear;
-                GearAnimationFrame = gearAnimationFrame;
-            }
-
-            private bool Connected { get; }
-            private int Gear { get; }
-            private int SpeedMph { get; }
-            private RacingFlag Flag { get; }
-            private bool ShiftFlashOn { get; }
-            private SessionProgressMode ProgressMode { get; }
-            private int SecondsRemaining { get; }
-            private int LapsCompleted { get; }
-            private int TotalLaps { get; }
-            private int Position { get; }
-            private int Incidents { get; }
-            private int FuelTenths { get; }
-            private int CurrentLapTenths { get; }
-            private int DeltaHundredths { get; }
-            private string DriverAhead { get; }
-            private int AheadHundredths { get; }
-            private string DriverBehind { get; }
-            private int BehindHundredths { get; }
-            private int TotalStarters { get; }
-            private bool ShowLapSummary { get; }
-            private int LastLapHundredths { get; }
-            private int BestLapHundredths { get; }
-            private int AverageLapHundredths { get; }
-            private int LapColorVersion { get; }
-            private int MaxForwardGear { get; }
-            private int GearAnimationFrame { get; }
-            private int StrategyHash { get; }
-
-            public static DisplayState From(
-                TelemetrySnapshot snapshot, bool shiftFlashOn, int gearAnimationFrame, bool liveTrace = false, int designHash = 0) => new DisplayState(
-                snapshot.Connected,
-                snapshot.Gear,
-                (int)Math.Round(snapshot.SpeedMph, MidpointRounding.AwayFromZero),
-                snapshot.Flag,
-                shiftFlashOn,
-                snapshot.ProgressMode,
-                (int)Math.Ceiling(snapshot.SessionSecondsRemaining),
-                snapshot.LapsCompleted,
-                snapshot.TotalLaps,
-                snapshot.Position,
-                snapshot.IncidentPoints,
-                (int)Math.Round(snapshot.FuelLiters * 10),
-                (int)Math.Floor(snapshot.CurrentLapSeconds * 10),
-                (int)Math.Round(snapshot.LapDeltaSeconds * 100),
-                snapshot.DriverAhead,
-                (int)Math.Round(snapshot.RelativeAheadSeconds * 100),
-                snapshot.DriverBehind,
-                (int)Math.Round(snapshot.RelativeBehindSeconds * 100),
-                snapshot.TotalStarters,
-                snapshot.ShowLapSummary,
-                (int)Math.Round(snapshot.LastLapSeconds * 100),
-                (int)Math.Round(snapshot.BestLapSeconds * 100),
-                (int)Math.Round(snapshot.AverageLapSeconds * 100),
-                snapshot.LapColorVersion,
-                snapshot.MaxForwardGear,
-                gearAnimationFrame,
-                StrategyHashOf(snapshot) ^ (liveTrace ? snapshot.TraceVersion * 7919 : 0) ^ designHash);
-
-            // Values only some layouts show (fuel strategy, brake bias, stint).
-            private static int StrategyHashOf(TelemetrySnapshot s)
-            {
-                unchecked
-                {
-                    int hash = (int)Math.Round(s.BrakeBias * 10);
-                    hash = (hash * 397) ^ (int)Math.Round(s.FuelLastLap * 100);
-                    hash = (hash * 397) ^ (int)Math.Round(s.FuelPerLapAverage * 100);
-                    hash = (hash * 397) ^ (int)Math.Round(s.FuelLevelPct * 100);
-                    hash = (hash * 397) ^ s.StintLaps;
-                    hash = (hash * 397) ^ (s.RecentLapSeconds?.Length ?? 0);
-                    return hash;
-                }
-            }
-
-            public override bool Equals(object obj)
-            {
-                var other = obj as DisplayState;
-                return other != null &&
-                    Connected == other.Connected &&
-                    Gear == other.Gear &&
-                    SpeedMph == other.SpeedMph &&
-                    Flag == other.Flag &&
-                    ShiftFlashOn == other.ShiftFlashOn &&
-                    ProgressMode == other.ProgressMode &&
-                    SecondsRemaining == other.SecondsRemaining &&
-                    LapsCompleted == other.LapsCompleted &&
-                    TotalLaps == other.TotalLaps &&
-                    Position == other.Position &&
-                    Incidents == other.Incidents &&
-                    FuelTenths == other.FuelTenths &&
-                    CurrentLapTenths == other.CurrentLapTenths &&
-                    DeltaHundredths == other.DeltaHundredths &&
-                    DriverAhead == other.DriverAhead &&
-                    AheadHundredths == other.AheadHundredths &&
-                    DriverBehind == other.DriverBehind &&
-                    BehindHundredths == other.BehindHundredths &&
-                    TotalStarters == other.TotalStarters &&
-                    ShowLapSummary == other.ShowLapSummary &&
-                    LastLapHundredths == other.LastLapHundredths &&
-                    BestLapHundredths == other.BestLapHundredths &&
-                    AverageLapHundredths == other.AverageLapHundredths &&
-                    LapColorVersion == other.LapColorVersion &&
-                    MaxForwardGear == other.MaxForwardGear &&
-                    GearAnimationFrame == other.GearAnimationFrame &&
-                    StrategyHash == other.StrategyHash;
-            }
-
-            public override int GetHashCode()
-            {
-                unchecked
-                {
-                    int hash = Connected ? 1 : 0;
-                    hash = (hash * 397) ^ Gear;
-                    hash = (hash * 397) ^ SpeedMph;
-                    hash = (hash * 397) ^ (int)Flag;
-                    hash = (hash * 397) ^ (ShiftFlashOn ? 1 : 0);
-                    hash = (hash * 397) ^ (int)ProgressMode;
-                    hash = (hash * 397) ^ SecondsRemaining;
-                    hash = (hash * 397) ^ LapsCompleted;
-                    hash = (hash * 397) ^ TotalLaps;
-                    hash = (hash * 397) ^ Position;
-                    hash = (hash * 397) ^ Incidents;
-                    hash = (hash * 397) ^ FuelTenths;
-                    hash = (hash * 397) ^ CurrentLapTenths;
-                    hash = (hash * 397) ^ DeltaHundredths;
-                    hash = (hash * 397) ^ (DriverAhead?.GetHashCode() ?? 0);
-                    hash = (hash * 397) ^ AheadHundredths;
-                    hash = (hash * 397) ^ (DriverBehind?.GetHashCode() ?? 0);
-                    hash = (hash * 397) ^ BehindHundredths;
-                    hash = (hash * 397) ^ TotalStarters;
-                    hash = (hash * 397) ^ (ShowLapSummary ? 1 : 0);
-                    hash = (hash * 397) ^ LastLapHundredths;
-                    hash = (hash * 397) ^ BestLapHundredths;
-                    hash = (hash * 397) ^ AverageLapHundredths;
-                    hash = (hash * 397) ^ LapColorVersion;
-                    hash = (hash * 397) ^ MaxForwardGear;
-                    hash = (hash * 397) ^ StrategyHash;
-                    return (hash * 397) ^ GearAnimationFrame;
-                }
-            }
         }
     }
 }

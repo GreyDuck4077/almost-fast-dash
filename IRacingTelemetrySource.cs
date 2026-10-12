@@ -276,8 +276,6 @@ namespace AlmostFastOverlays
         private const int FuelAverageLaps = 5;
         private TelemetrySnapshot _latest = TelemetrySnapshot.Disconnected;
         private bool _listening;
-        private Thread _demoThread;
-        private volatile bool _stopDemo;
         private bool _hasResetCounter;
         private int _lastEnterExitReset;
         private bool _suppressHeldBlackFlag;
@@ -359,37 +357,6 @@ namespace AlmostFastOverlays
             iRacing.NewData += OnNewData;
             iRacing.StartListening();
             _listening = true;
-        }
-
-        public void StartDemoSequence()
-        {
-            if (_demoThread != null) return;
-            _stopDemo = false;
-            _demoThread = new Thread(RunDemoSequence)
-            {
-                IsBackground = true,
-                Name = "DV-5 demo sequence"
-            };
-            _demoThread.Start();
-        }
-
-        public void StartDashboardPreview()
-        {
-            SetSnapshot(4, 136, RacingFlag.None, BlindSpotZone.None, BlindSpotZone.None, 0.37);
-        }
-
-        public void StartTimedDashboardPreview()
-        {
-            lock (_sync)
-            {
-                _latest = WithPreviewExtras(new TelemetrySnapshot(
-                    true, 4, 136, RacingFlag.None,
-                    BlindSpotZone.None, BlindSpotZone.None, 0,
-                    SessionProgressMode.TimedRace, 1470, 3600, 8, 0,
-                    4, 4, 24.3, 88.104, 0.46,
-                    "J. MILLER", -0.46, "M. CARTER", 0.82, 22,
-                    false, 87.932, 87.521, 88.204, new bool[0], 0, 6, 6120));
-            }
         }
 
         /// <summary>A representative snapshot for gallery thumbnails and layout review.</summary>
@@ -980,113 +947,6 @@ namespace AlmostFastOverlays
             _stintLaps = 0;
         }
 
-        private void RunDemoSequence()
-        {
-            int[] gears = { -1, 0, 1, 2, 3, 4, 5, 6 };
-            int[] targetSpeeds = { 0, 0, 18, 38, 61, 86, 112, 140 };
-
-            while (!_stopDemo)
-            {
-                double speed = 0;
-                for (int index = 0; index < gears.Length && !_stopDemo; index++)
-                {
-                    double startSpeed = speed;
-                    double targetSpeed = targetSpeeds[index];
-                    const int frames = 8;
-                    for (int frame = 1; frame <= frames && !_stopDemo; frame++)
-                    {
-                        speed = startSpeed + ((targetSpeed - startSpeed) * frame / frames);
-                        SetSnapshot(gears[index], speed, RacingFlag.None);
-                        Thread.Sleep(100);
-                    }
-                }
-
-                RacingFlag[] flags =
-                {
-                    RacingFlag.Green,
-                    RacingFlag.White,
-                    RacingFlag.Yellow,
-                    RacingFlag.Red,
-                    RacingFlag.Black,
-                    RacingFlag.Meatball,
-                    RacingFlag.BlueYellowStripe,
-                    RacingFlag.SafetyCar,
-                    RacingFlag.Surface,
-                    RacingFlag.Checkered
-                };
-
-                foreach (RacingFlag flag in flags)
-                {
-                    int flashCount = flag == RacingFlag.Yellow ? 5 : 3;
-                    for (int flash = 0; flash < flashCount && !_stopDemo; flash++)
-                    {
-                        SetSnapshot(6, speed, flag);
-                        Thread.Sleep(220);
-                        SetSnapshot(6, speed, RacingFlag.None);
-                        Thread.Sleep(160);
-                    }
-                    SleepWithCancellation(180);
-                }
-
-                BlindSpotZone[] radarSweep =
-                {
-                    BlindSpotZone.Front,
-                    BlindSpotZone.Beside,
-                    BlindSpotZone.Rear,
-                    BlindSpotZone.None
-                };
-                foreach (BlindSpotZone zone in radarSweep)
-                {
-                    SetSnapshot(6, speed, RacingFlag.None, zone, BlindSpotZone.None);
-                    SleepWithCancellation(550);
-                }
-                foreach (BlindSpotZone zone in radarSweep)
-                {
-                    SetSnapshot(6, speed, RacingFlag.None, BlindSpotZone.None, zone);
-                    SleepWithCancellation(550);
-                }
-
-                for (int rpmStep = 0; rpmStep <= 4 && !_stopDemo; rpmStep++)
-                {
-                    SetSnapshot(
-                        6, speed, RacingFlag.None,
-                        BlindSpotZone.None, BlindSpotZone.None,
-                        rpmStep / 4.0);
-                    SleepWithCancellation(rpmStep == 4 ? 1200 : 450);
-                }
-                SetSnapshot(6, speed, RacingFlag.None);
-
-                SleepWithCancellation(900);
-            }
-        }
-
-        private void SetSnapshot(int gear, double speedMph, RacingFlag flag)
-        {
-            SetSnapshot(
-                gear, speedMph, flag, BlindSpotZone.None, BlindSpotZone.None);
-        }
-
-        private void SetSnapshot(
-            int gear,
-            double speedMph,
-            RacingFlag flag,
-            BlindSpotZone leftBlindSpot,
-            BlindSpotZone rightBlindSpot,
-            double shiftIndicatorPct = 0)
-        {
-            lock (_sync)
-            {
-                _latest = new TelemetrySnapshot(
-                    true, gear, speedMph, flag, leftBlindSpot, rightBlindSpot, shiftIndicatorPct,
-                    SessionProgressMode.LapRace, 0, 0, 8, 18,
-                    4, 4, 24.3, 88.104, 0.46,
-                    "J. MILLER", -0.46, "M. CARTER", 0.82, 22,
-                    false, 87.932, 87.521, 88.204, new bool[18], 0, 6,
-                    shiftIndicatorPct * 8000);
-                WithPreviewExtras(_latest);
-            }
-        }
-
         private void UpdateLapSummary(Telemetry telemetry, bool yellowActive)
         {
             if (telemetry.SessionUniqueID != _lastSessionUniqueId)
@@ -1387,26 +1247,8 @@ namespace AlmostFastOverlays
             return RacingFlag.None;
         }
 
-        private void SleepWithCancellation(int milliseconds)
-        {
-            int remaining = milliseconds;
-            while (remaining > 0 && !_stopDemo)
-            {
-                int slice = Math.Min(remaining, 50);
-                Thread.Sleep(slice);
-                remaining -= slice;
-            }
-        }
-
         public void Dispose()
         {
-            _stopDemo = true;
-            if (_demoThread != null)
-            {
-                _demoThread.Join(1000);
-                _demoThread = null;
-            }
-
             if (_listening)
             {
                 iRacing.NewData -= OnNewData;

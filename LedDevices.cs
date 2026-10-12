@@ -108,8 +108,6 @@ namespace AlmostFastOverlays
         public int Baud { get; set; } = 115200;
         public int LedCount { get; set; } = 8;
         public List<LedGroup> Groups { get; set; } = new List<LedGroup>();
-        /// <summary>Send each frame in one message (Arduino boards that support it).</summary>
-        public bool FastUpdates { get; set; }
         public bool Enabled { get; set; } = true;
         /// <summary>
         /// The most current the LEDs may draw, in milliamps (0 for no limit). Frames that would draw more
@@ -153,14 +151,12 @@ namespace AlmostFastOverlays
         {
             public string Name, Match, UsbId;
             public int LedCount;
-            /// <summary>Known to take a whole frame in one message, so setup turns Fast updates on.</summary>
-            public bool FastUpdates;
             public Func<int, List<LedGroup>> Groups;
         }
 
         public static readonly Profile Dv5 = new Profile
         {
-            Name = "DV-5", Match = "SSG DV 5", UsbId = DevicePorts.Dv5, LedCount = 16, FastUpdates = true,
+            Name = "DV-5", Match = "SSG DV 5", UsbId = DevicePorts.Dv5, LedCount = 16,
             // The DV-5's chain runs up the left side, across the top, then down the right.
             Groups = n => new List<LedGroup>
             {
@@ -183,12 +179,12 @@ namespace AlmostFastOverlays
                 || (!string.IsNullOrEmpty(detectedName) && detectedName.IndexOf(p.Match, StringComparison.OrdinalIgnoreCase) >= 0));
 
         /// <summary>A device built from a profile, as the old fixed DV-5 and LB-10 settings become.</summary>
-        public static DeviceSettings Create(Profile profile, string port, int ledCount, bool enabled, bool fast)
+        public static DeviceSettings Create(Profile profile, string port, int ledCount, bool enabled)
         {
             var device = new DeviceSettings
             {
                 Id = "device-" + profile.Name.ToLowerInvariant().Replace(" ", "-"), Name = profile.Name, DetectedName = profile.Match,
-                Kind = LedDeviceKinds.Arduino, Port = port, UsbId = profile.UsbId, LedCount = ledCount, Enabled = enabled, FastUpdates = fast,
+                Kind = LedDeviceKinds.Arduino, Port = port, UsbId = profile.UsbId, LedCount = ledCount, Enabled = enabled,
                 Groups = profile.Groups(ledCount)
             };
             device.Normalize();
@@ -504,7 +500,9 @@ namespace AlmostFastOverlays
 
         public void Apply(DeviceSettings device)
         {
-            string signature = device.Kind + "|" + device.Connection + "|" + device.UsbId + "|" + device.Baud + "|" + device.LedCount + "|" + device.Enabled + "|" + device.FastUpdates + "|" + device.MaxMilliamps;
+            // The same settings object as last frame: nothing to check.
+            if (ReferenceEquals(device, Device)) return;
+            string signature = device.Kind + "|" + device.Connection + "|" + device.UsbId + "|" + device.Baud + "|" + device.LedCount + "|" + device.Enabled + "|" + device.MaxMilliamps;
             Device = device;
             if (signature == _signature) return;
             _signature = signature;
@@ -550,7 +548,7 @@ namespace AlmostFastOverlays
                 }
             }
             bool keepAlive = _output.KeepAliveMilliseconds > 0 && (DateTime.UtcNow - _lastSendUtc).TotalMilliseconds >= _output.KeepAliveMilliseconds;
-            if (!keepAlive && LedFrame.SameFrame(frame, _lastFrame)) return;
+            if (!keepAlive && SameFrame(frame, _lastFrame)) return;
             try
             {
                 _output.Send(frame);
@@ -568,6 +566,13 @@ namespace AlmostFastOverlays
                 State = _drops >= 2 ? LinkStates.Dropping : LinkStates.Connecting;
                 Detail = exception.Message;
             }
+        }
+
+        private static bool SameFrame(Color[] a, Color[] b)
+        {
+            if (a == null || b == null || a.Length != b.Length) return false;
+            for (int i = 0; i < a.Length; i++) if (a[i].ToArgb() != b[i].ToArgb()) return false;
+            return true;
         }
 
         public static ILedOutput Open(DeviceSettings device)

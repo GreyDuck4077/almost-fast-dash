@@ -95,7 +95,8 @@ namespace AlmostFastOverlays
         private void RefreshDeviceStatus()
         {
             if (_deviceStatus.Count == 0) return;
-            Dictionary<string, DeviceStatus.Entry> live = DeviceStatus.Read();
+            // Live states only while something is driving the devices; otherwise just whether each is plugged in.
+            Dictionary<string, DeviceStatus.Entry> live = _dashboardRunning || _mirror.Active ? DeviceStatus.Read() : null;
             HashSet<string> ports = null;
             foreach (DeviceSettings device in _settings.General.Devices)
             {
@@ -134,7 +135,7 @@ namespace AlmostFastOverlays
             DevicesStatus.Visibility = string.IsNullOrEmpty(text) ? Visibility.Collapsed : Visibility.Visible;
         }
 
-        private void AddDevice_Click(object sender, RoutedEventArgs e) => OpenDeviceSetup(null, false);
+        private void AddDevice_Click(object sender, RoutedEventArgs e) => OpenDeviceSetup(null);
 
         /// <summary>A device's settings window; from it, setting up the LEDs again, a test or removing it.</summary>
         private void OpenDeviceSettings(DeviceSettings device)
@@ -158,16 +159,16 @@ namespace AlmostFastOverlays
             FlushSave();
             BuildDeviceList();
             _stripsSignature = null;
-            if (window.Choice == DeviceSettingsWindow.Outcome.SetUpLeds) OpenDeviceSetup(edited, true);
+            if (window.Choice == DeviceSettingsWindow.Outcome.SetUpLeds) OpenDeviceSetup(edited);
             else if (window.Choice == DeviceSettingsWindow.Outcome.Test) TestDevice(edited, null);
         }
 
         /// <summary>Runs the device wizard for a new device (null), or to set up an existing one's LEDs again; saves the result.</summary>
-        private async void OpenDeviceSetup(DeviceSettings existing, bool ledsOnly)
+        private async void OpenDeviceSetup(DeviceSettings existing)
         {
             FlushSave();
             ReleaseDevices();
-            var wizard = new DeviceSetupWindow(_settings, existing, IsDashboardRunning, StopDashboardAsync, ledsOnly) { Owner = this };
+            var wizard = new DeviceSetupWindow(_settings, existing, IsDashboardRunning, StopDashboardAsync) { Owner = this };
             bool done = wizard.ShowDialog() == true;
             if (done && wizard.Result != null)
             {

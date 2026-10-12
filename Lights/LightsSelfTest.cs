@@ -33,8 +33,8 @@ namespace AlmostFastOverlays
             // The DV-5 and a 20-LED LB-10 pair, as the schema-6 migration sets them up: device 0 and device 1.
             var devices = new List<DeviceSettings>
             {
-                KnownDevices.Create(KnownDevices.Dv5, "COM4", 16, true, false),
-                KnownDevices.Create(KnownDevices.Lb10, "COM3", brow, true, false)
+                KnownDevices.Create(KnownDevices.Dv5, "COM4", 16, true),
+                KnownDevices.Create(KnownDevices.Lb10, "COM3", brow, true)
             };
 
             // ---------------- every preset in every scenario
@@ -55,46 +55,19 @@ namespace AlmostFastOverlays
                 Check("light preset runs in every scenario: " + preset.Name, errors.Count == 0, string.Join("; ", errors.Distinct().Take(3)));
             }
 
-            // ---------------- converted lights match the classic lights exactly
-            var states = new List<Tuple<string, TelemetrySnapshot>>
-            {
-                Tuple.Create("idle", Snap(0, 3000)),
-                Tuple.Create("full revs", Snap(0.9, 7000)),
-                Tuple.Create("shift point", Snap(1, 7960)),
-            };
-            foreach (BlindSpotZone zone in new[] { BlindSpotZone.Front, BlindSpotZone.Beside, BlindSpotZone.Rear })
-            {
-                states.Add(Tuple.Create("car left " + zone, Snap(0, 3000, left: zone)));
-                states.Add(Tuple.Create("car right " + zone, Snap(0, 3000, right: zone)));
-            }
-            foreach (RacingFlag flag in new[] { RacingFlag.Green, RacingFlag.Yellow, RacingFlag.White, RacingFlag.BlueYellowStripe, RacingFlag.Black, RacingFlag.Checkered, RacingFlag.Meatball })
-                states.Add(Tuple.Create("flag " + flag, Snap(0, 3000, flag)));
-
-            var dashboards = settings.Dashboards.Select(SettingsStore.Clone).ToList();
-            dashboards.AddRange(new[] { DashboardSettings.CreateHalo(), DashboardSettings.CreateOval() });
-            foreach (DashboardSettings dashboard in dashboards)
-            {
-                LightProfile converted = LightPresets.FromClassic(dashboard);
-                var renderer = new LightRenderer(converted, dashboard.AccentColor, units, devices);
-                var mismatches = new List<string>();
-                foreach (var state in states)
-                    foreach (int now in new[] { 0, 140, 250 })
-                    {
-                        TelemetrySnapshot t = state.Item2;
-                        bool flash = t.ShiftAlert && ((now / 140) & 1) == 0;
-                        LedInputs inputs = LedInputs.From(t, flash);
-                        inputs.Clock = now;
-                        Color[] classicDv5 = LedFrame.Compose(dashboard, inputs);
-                        Color[] classicBrow = LedFrame.ComposeBrow(dashboard.BrowLeds, brow, inputs);
-                        LightFrame layered = renderer.Compose(t, now);
-                        for (int i = 0; i < 16; i++)
-                            if (classicDv5[i].ToArgb() != layered.Leds[0][i].ToArgb()) mismatches.Add(state.Item1 + " @" + now + " DV-5 LED " + i + " " + Hex(classicDv5[i]) + "≠" + Hex(layered.Leds[0][i]));
-                        for (int i = 0; i < brow; i++)
-                            if (classicBrow[i].ToArgb() != layered.Leds[1][i].ToArgb()) mismatches.Add(state.Item1 + " @" + now + " bar LED " + i + " " + Hex(classicBrow[i]) + "≠" + Hex(layered.Leds[1][i]));
-                    }
-                Check("converted lights match classic: " + dashboard.Name + " (" + dashboard.BrowLeds?.Function + " bar)", mismatches.Count == 0,
-                    mismatches.Count + " differences" + (mismatches.Count > 0 ? ": " + string.Join("; ", mismatches.Take(3)) : ""));
-            }
+            // ---------------- settings from before light layers become layers, once
+            var oldLights = new AppSettings { SchemaVersion = 7 };
+            var classic = DashboardSettings.CreateHalo();
+            classic.Lights = null;
+            classic.CenterLeds = new LedBankSettings { Function = "RPM", Pattern = "Left to right", Brightness = 40 };
+            classic.BrowLeds = BrowLedSettings.CreateDefault(BrowFunctions.BlindSpot);
+            oldLights.Dashboards.Add(classic);
+            oldLights.EnsureBuiltInDashboards();
+            DashboardSettings converted = oldLights.Dashboards[0];
+            Check("old light settings become layers, and are then dropped", oldLights.SchemaVersion == 8 && converted.Lights != null
+                && converted.Lights.Layers.Any(l => l.Effect == "revs" && l.Target == "shift" && l.Brightness == 40 && l.Get("direction", "") == "Start to end")
+                && converted.Lights.Layers.Any(l => l.Effect == "spotter" && l.Target == "brow-mirror") && converted.CenterLeds == null && converted.BrowLeds == null,
+                string.Join(", ", converted.Lights?.Layers.Select(l => l.Name) ?? new string[0]));
 
             // ---------------- priority and blending
             var refined = new LightRenderer(LightPresets.Refined(), "#2DD4BF", units, devices);
@@ -311,11 +284,10 @@ namespace AlmostFastOverlays
             old.General.BrowPort = "COM3";
             old.General.BrowLedCount = 20;
             old.General.BrowEnabled = false;
-            old.General.FastLedUpdates = true;
             old.EnsureBuiltInDashboards();
             DeviceSettings dv5 = old.General.Devices.FirstOrDefault(), lb10 = old.General.Devices.Skip(1).FirstOrDefault();
-            Check("old DV-5 and LB-10 settings become set-up devices", old.General.Devices.Count == 2 && dv5.Port == "COM4" && dv5.UsbId == DevicePorts.Dv5 && dv5.Groups.Count == 3 && dv5.FastUpdates
-                && lb10.Port == "COM3" && lb10.LedCount == 20 && !lb10.Enabled && lb10.Groups.Single().To == 20 && old.General.LedPort == null && old.SchemaVersion == 7);
+            Check("old DV-5 and LB-10 settings become set-up devices", old.General.Devices.Count == 2 && dv5.Port == "COM4" && dv5.UsbId == DevicePorts.Dv5 && dv5.Groups.Count == 3
+                && lb10.Port == "COM3" && lb10.LedCount == 20 && !lb10.Enabled && lb10.Groups.Single().To == 20 && old.General.LedPort == null && old.SchemaVersion == 8);
             var named = new AppSettings { SchemaVersion = 6 };
             named.Dashboards.Add(DashboardSettings.CreateHalo());
             named.Dashboards[0].Lights.Layers.Add(new LightLayer { Name = "Brow rev lights", Target = "brow", Effect = "revs" });

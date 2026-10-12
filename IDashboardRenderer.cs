@@ -8,9 +8,6 @@ namespace AlmostFastOverlays
         Bitmap Render(TelemetrySnapshot telemetry, bool shiftFlashOn, int previousGear, float gearTransitionProgress);
     }
 
-    /// <summary>Renderers that draw live pedal inputs need a redraw on every trace sample.</summary>
-    internal interface ILiveTraceRenderer { }
-
     internal static class DashboardRendererFactory
     {
         public static IDashboardRenderer Create(int width, int height, DashboardSettings settings, UnitSystem units = null) =>

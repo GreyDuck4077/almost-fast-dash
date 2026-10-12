@@ -10,13 +10,12 @@ namespace AlmostFastOverlays
         public Func<DashboardSettings, LightProfile> Create;
     }
 
-    /// <summary>Ready-made light profiles, and the conversion from a dashboard's classic light settings.</summary>
+    /// <summary>Ready-made light profiles, and the one-time conversion of a dashboard's pre-layer light settings.</summary>
     internal static class LightPresets
     {
         public static readonly List<LightPreset> All = new List<LightPreset>
         {
             new LightPreset { Id = "refined", Name = "Refined", Description = "Car-accurate rev lights on the shift lights and light bar, blind spot on the sides, a pit-limiter scanner, low-fuel and ABS cues, flags on top.", Create = d => Refined() },
-            new LightPreset { Id = "classic", Name = "My current lights", Description = "This dashboard's existing light settings, converted to layers so you can build on them.", Create = FromClassic },
             new LightPreset { Id = "spotter", Name = "Spotter focus", Description = "For ovals: the bar and both sides call cars alongside; revs stay on the shift row.", Create = d => SpotterFocus() },
             new LightPreset { Id = "endurance", Name = "Endurance", Description = "Revs on the shift row, fuel level across the bar, lap delta on the sides.", Create = d => Endurance() },
             new LightPreset { Id = "minimal", Name = "Minimal", Description = "Just rev lights and flags. Nothing else lights up.", Create = d => Minimal() },
@@ -88,7 +87,19 @@ namespace AlmostFastOverlays
 
         private static string[] BankColors(LedBankSettings bank)
         {
-            System.Drawing.Color[] colors = LedFrame.GetProfile(bank);
+            System.Drawing.Color[] colors;
+            switch (bank.ColorProfile)
+            {
+                case LedProfiles.BluePurpleRed: colors = new[] { System.Drawing.Color.DeepSkyBlue, System.Drawing.Color.MediumPurple, System.Drawing.Color.Red }; break;
+                case LedProfiles.Single:
+                case "Red":
+                    System.Drawing.Color single = SettingsStore.ParseColor(bank.HighColor, System.Drawing.Color.Red);
+                    colors = new[] { single, single, single };
+                    break;
+                default:
+                    colors = new[] { SettingsStore.ParseColor(bank.LowColor, System.Drawing.Color.LimeGreen), SettingsStore.ParseColor(bank.MidColor, System.Drawing.Color.Gold), SettingsStore.ParseColor(bank.HighColor, System.Drawing.Color.Red) };
+                    break;
+            }
             return colors.Select(SettingsStore.ToHex).ToArray();
         }
 
@@ -99,12 +110,12 @@ namespace AlmostFastOverlays
         }
 
         /// <summary>
-        /// Rebuilds a dashboard's classic light settings as layers. The colours,
-        /// patterns, functions and brightness carry over; fills step per LED rather
-        /// than in pairs, and revs come from iRacing's shift percentage as before.
+        /// Rebuilds a dashboard's pre-layer light settings as layers, once, when settings from before
+        /// schema 8 are loaded. The colours, patterns, functions and brightness carry over.
         /// </summary>
         public static LightProfile FromClassic(DashboardSettings d)
         {
+            LedBankSettings centerDefault = new LedBankSettings();
             var layers = new List<LightLayer>();
             BrowLedSettings brow = d?.BrowLeds ?? BrowLedSettings.CreateDefault(BrowFunctions.Shift);
             if (brow.FlagOverride || brow.Function == BrowFunctions.Flags) layers.Add(L("Flags", "brow", "flag", "FlagActive", "Replace", brow.Brightness));
@@ -132,7 +143,7 @@ namespace AlmostFastOverlays
             Side(d?.LeftLeds, "left", "Left");
             Side(d?.RightLeds, "right", "Right");
 
-            LedBankSettings center = d?.CenterLeds;
+            LedBankSettings center = d?.CenterLeds ?? centerDefault;
             if (center != null && center.Function != LedFunctions.Disabled)
             {
                 var props = new List<string>(ColorProps(center));

@@ -21,7 +21,7 @@ namespace AlmostFastOverlays
             foreach (DashboardSettings dashboard in settings.Dashboards)
             {
                 report.AppendLine("== " + dashboard.Name);
-                LightProfile profile = dashboard.Lights ?? LightPresets.FromClassic(dashboard);
+                LightProfile profile = dashboard.Lights;
                 var states = new List<Tuple<string, TelemetrySnapshot>>();
                 foreach (double fraction in new[] { 0.0, 0.2, 0.4, 0.6, 0.8, 0.95 })
                     states.Add(Tuple.Create("revs " + (int)(fraction * 100) + "%", Revs(fraction)));

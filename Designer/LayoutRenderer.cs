@@ -16,8 +16,8 @@ namespace AlmostFastOverlays
     }
 
     /// <summary>
-    /// Draws a designed (<see cref="DashLayout"/>) dashboard. Plugs into the same
-    /// runtime as the four built-in renderers, which stay untouched.
+    /// Draws a designed (<see cref="DashLayout"/>) dashboard: every dashboard is one. It also
+    /// fingerprints what a frame would show, so the screen is only redrawn when that changes.
     /// </summary>
     internal sealed class LayoutRenderer : IDashboardRenderer, IStateRenderer
     {

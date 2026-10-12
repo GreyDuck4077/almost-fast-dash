@@ -46,7 +46,7 @@ namespace AlmostFastOverlays
                 {
                     dashboard = now;
                     source.ApplyAlertSettings(dashboard.Alerts);
-                    renderer = new LightRenderer(dashboard.Lights ?? LightPresets.FromClassic(dashboard), dashboard.AccentColor, new UnitSystem(settings.General), devices);
+                    renderer = new LightRenderer(dashboard.Lights, dashboard.AccentColor, new UnitSystem(settings.General), devices);
                     flags.Add(Clock(sessionTime) + "  dashboard: " + dashboard.Name);
                 }
 
