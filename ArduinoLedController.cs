@@ -1,5 +1,6 @@
 using System;
 using System.IO.Ports;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Drawing;
@@ -47,7 +48,7 @@ namespace AlmostFastOverlays
 
         public string QueryDeviceName()
         {
-            SendPacket(new[] { MessageHeader, (byte)'N' });
+            SendPacket(new[] { MessageHeader, (byte)'N' }, false);
             Thread.Sleep(150);
             byte[] response = ReadAvailable();
             string text = ExtractProtocolText(response);
@@ -96,9 +97,8 @@ namespace AlmostFastOverlays
         /// </summary>
         public bool Batched { get; set; }
 
-        // One packet per colour run costs a pause each, so a frame of many colours (a gradient) can take
-        // a fifth of a second and the LEDs visibly update one after another. Without batching, only the
-        // LEDs that changed are sent, with the whole frame resent every second in case a packet was lost.
+        // Only the LEDs that changed are sent, with the whole frame resent every second in case a packet
+        // was lost, so a frame of many colours (a gradient, a sweep) doesn't cost a packet per LED each time.
         private const int FullFrameMilliseconds = 1000;
         private Color[] _shown;
         private int _fullFrameTick;
@@ -112,15 +112,10 @@ namespace AlmostFastOverlays
             int count = Math.Min(frame.Length, _ledCount);
             if (count <= 0) return;
             _lastLength = count;
-            if (Batched)
-            {
-                foreach (byte[] payload in BatchedPayloads(frame, count)) SendPacket(payload);
-                return;
-            }
             bool full = _shown == null || _shown.Length != count || unchecked(Environment.TickCount - _fullFrameTick) >= FullFrameMilliseconds;
             if (full) _fullFrameTick = Environment.TickCount;
-            foreach (Tuple<int, int, Color> run in Runs(frame, full ? null : _shown, count))
-                SetRange(run.Item1, run.Item2, run.Item3.R, run.Item3.G, run.Item3.B);
+            foreach (byte[] payload in Payloads(Runs(frame, full ? null : _shown, count), Batched ? MaxRunsPerPacket : 1))
+                SendPacket(payload);
             if (_shown == null || _shown.Length != count) _shown = new Color[count];
             Array.Copy(frame, _shown, count);
         }
@@ -147,32 +142,27 @@ namespace AlmostFastOverlays
         }
 
         /// <summary>
-        /// The command payloads for one frame in batched mode: colour runs as repeated
-        /// mode-3 entries ending in mode 0, split only if a packet would exceed its
-        /// one-byte length.
+        /// The most colour runs in one packet with fast updates. Boards on this protocol have a small receive
+        /// buffer: a DV-5 takes packets up to 26 bytes (3 runs), cuts off a 32-byte one and rejects anything
+        /// bigger, and a steady stream of oversized packets crashes its LED controller until it's power-cycled.
         /// </summary>
-        internal static System.Collections.Generic.List<byte[]> BatchedPayloads(Color[] frame, int ledCount)
+        public const int MaxRunsPerPacket = 3;
+
+        /// <summary>
+        /// The command payloads for some colour runs: each "6" command carries up to <paramref name="runsPerPacket"/>
+        /// mode-3 entries (start, count, colour) and ends with mode 0.
+        /// </summary>
+        internal static System.Collections.Generic.List<byte[]> Payloads(System.Collections.Generic.IList<Tuple<int, int, Color>> runs, int runsPerPacket)
         {
             var payloads = new System.Collections.Generic.List<byte[]>();
-            var payload = new System.Collections.Generic.List<byte> { MessageHeader, (byte)'6' };
-            int index = 0;
-            while (index < ledCount)
+            for (int first = 0; first < runs.Count; first += runsPerPacket)
             {
-                Color color = index < frame.Length ? frame[index] : Color.Black;
-                int run = 1;
-                while (index + run < ledCount && index + run < frame.Length &&
-                       frame[index + run].ToArgb() == color.ToArgb()) run++;
-                if (payload.Count + 7 > 250)
-                {
-                    payload.Add(0);
-                    payloads.Add(payload.ToArray());
-                    payload = new System.Collections.Generic.List<byte> { MessageHeader, (byte)'6' };
-                }
-                payload.AddRange(new[] { (byte)3, (byte)index, (byte)run, color.R, color.G, color.B });
-                index += run;
+                var payload = new System.Collections.Generic.List<byte> { MessageHeader, (byte)'6' };
+                foreach (Tuple<int, int, Color> run in runs.Skip(first).Take(runsPerPacket))
+                    payload.AddRange(new[] { (byte)3, (byte)run.Item1, (byte)run.Item2, run.Item3.R, run.Item3.G, run.Item3.B });
+                payload.Add(0);
+                payloads.Add(payload.ToArray());
             }
-            payload.Add(0);
-            payloads.Add(payload.ToArray());
             return payloads;
         }
 
@@ -189,8 +179,25 @@ namespace AlmostFastOverlays
             });
         }
 
-        private void SendPacket(byte[] payload)
+        // Boards on this protocol acknowledge each packet (4 bytes) once they've handled it. Sending the next
+        // packet before that, at a fixed pace, overruns a busy board: the DV-5's LED controller crashes
+        // under a steady stream of fast-changing frames. So each packet waits for its acknowledgement
+        // (up to AckMilliseconds); a board that never acknowledges is paced by a short pause instead.
+        private const int AckMilliseconds = 120, AckLength = 4;
+        private bool? _acknowledges;
+        private readonly byte[] _ack = new byte[64];
+
+        /// <summary>Packets sent, and how many went unacknowledged; and the slowest acknowledgement, for testing boards.</summary>
+        public int Sent, Unacknowledged;
+        public double SlowestAckMilliseconds;
+
+        private void SendPacket(byte[] payload, bool waitForAck = true)
         {
+            // The board answers every packet (4 bytes). Left unread, the answers fill the port's
+            // buffer within seconds of fast-changing lights, the board stalls trying to send more
+            // and its LEDs freeze until it's power-cycled. So they're thrown away before each packet;
+            // a query reads its answer right after sending, before the next packet.
+            if (_port.BytesToRead > 0) _port.DiscardInBuffer();
             var core = new byte[payload.Length + 2];
             core[0] = 0xff; // Reset/always-accepted packet ID.
             core[1] = (byte)payload.Length;
@@ -202,7 +209,34 @@ namespace AlmostFastOverlays
             Buffer.BlockCopy(core, 0, packet, 2, core.Length);
             packet[packet.Length - 1] = ComputeCrc8(core);
             _port.Write(packet, 0, packet.Length);
-            Thread.Sleep(10);
+            Sent++;
+            if (!waitForAck) return;
+            if (_acknowledges == false) { Thread.Sleep(10); return; }
+            bool acked = WaitForAck();
+            if (!acked) Unacknowledged++;
+            // The first packets decide: a board that answers none of them doesn't acknowledge at all.
+            if (acked) _acknowledges = true;
+            else if (_acknowledges == null && Sent >= 3 && Unacknowledged >= 3) _acknowledges = false;
+        }
+
+        private bool WaitForAck()
+        {
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            int got = 0;
+            _port.ReadTimeout = AckMilliseconds;
+            try
+            {
+                while (got < AckLength)
+                {
+                    int read = _port.Read(_ack, 0, Math.Min(_ack.Length, Math.Max(AckLength - got, _port.BytesToRead)));
+                    got += read;
+                    if (watch.ElapsedMilliseconds > AckMilliseconds) break;
+                }
+            }
+            catch (TimeoutException) { }
+            finally { _port.ReadTimeout = 1000; }
+            SlowestAckMilliseconds = Math.Max(SlowestAckMilliseconds, watch.Elapsed.TotalMilliseconds);
+            return got >= AckLength;
         }
 
         private byte[] ReadAvailable()

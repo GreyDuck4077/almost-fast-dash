@@ -242,10 +242,11 @@ namespace AlmostFastOverlays
             Check("shift point from the car's blink RPM", DataCatalog.AtShiftPoint(Snap(0.5, 7960)) && !DataCatalog.AtShiftPoint(Snap(0.99, 7900)));
 
             var rainbow = Enumerable.Range(0, 16).Select(i => Color.FromArgb(i * 10, 255 - i * 10, i)).ToArray();
-            List<byte[]> packets = ArduinoLedController.BatchedPayloads(rainbow, 16);
-            Check("fast updates send a 16-colour frame as one packet", packets.Count == 1 && packets[0].Length == 99 && packets[0][1] == (byte)'6' && packets[0][2] == 3 && packets[0][98] == 0,
-                packets.Count + " packets, " + packets[0].Length + " bytes");
-            List<byte[]> solid = ArduinoLedController.BatchedPayloads(Enumerable.Repeat(Color.Red, 16).ToArray(), 16);
+            List<byte[]> packets = ArduinoLedController.Payloads(ArduinoLedController.Runs(rainbow, null, 16), ArduinoLedController.MaxRunsPerPacket);
+            // A DV-5 takes packets up to 26 bytes: a 21-byte payload plus 5 bytes of framing.
+            Check("fast updates keep every packet within what boards accept", packets.Count == 6 && packets.All(p => p.Length <= 21 && p[1] == (byte)'6' && p[p.Length - 1] == 0) && packets[0].Length == 21,
+                packets.Count + " packets, largest " + packets.Max(p => p.Length) + " bytes");
+            List<byte[]> solid = ArduinoLedController.Payloads(ArduinoLedController.Runs(Enumerable.Repeat(Color.Red, 16).ToArray(), null, 16), ArduinoLedController.MaxRunsPerPacket);
             Check("fast updates merge a single colour into one run", solid.Count == 1 && solid[0].Length == 9 && solid[0][4] == 16);
 
             // ---------------- other LED devices
