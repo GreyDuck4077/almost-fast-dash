@@ -967,11 +967,18 @@ namespace AlmostFastOverlays
                         foreach (string key in new[] { "size", "labelSize", "valueSize", "unitSize", "numberSize" })
                         {
                             string raw = w.Get(key, null);
-                            if (raw == null || raw.StartsWith("=") || w.Type == "shape" || w.Type == "gear" || w.Type == "radar") continue;
+                            if (raw == null || raw.StartsWith("=") || w.Type == "shape" || w.Type == "gear" || w.Type == "radar" || w.Type == "laphistory") continue;
                             if (double.TryParse(raw, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double v) && v > 0 && v < ReadableText.Floor)
                                 small.Add(template.Name + "/" + w.Name + "." + key + "=" + raw);
                         }
                 Check("every template's text is at least " + ReadableText.Floor + " px", small.Count == 0, string.Join(", ", small.Take(6)));
+
+                // Every piece of text on every template, as actually drawn, is big enough and stands out from what's behind it.
+                foreach (DesignTemplate template in DesignTemplates.All)
+                {
+                    List<DashboardAudit.Finding> findings = DashboardAudit.Run(DashboardSettings.CreateDesigned(template), _units);
+                    Check("readable at a glance: " + template.Name, findings.Count == 0, string.Join("; ", findings.Take(4)));
+                }
 
                 // Cars in single file stay in line.
                 var single = new RadarTracker();
@@ -1007,10 +1014,10 @@ namespace AlmostFastOverlays
             {
                 // Reports the wheel screen sent while it was tapped at its top-left, top-right and bottom-right, then lifted.
                 byte[] Report(params byte[] start) => start.Concat(new byte[] { 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }).ToArray();
-                Dv5Screen.ReadTouch(Report(0, 0, 1, 0x80, 0x48, 0x03, 0x28), 14, out bool downA, out System.Drawing.Point topLeft);
-                Dv5Screen.ReadTouch(Report(0, 0, 1, 0x80, 0x2E, 0x00, 0x2D), 14, out bool downB, out System.Drawing.Point topRight);
-                Dv5Screen.ReadTouch(Report(0, 0, 1, 0x81, 0xB4, 0x00, 0x25), 14, out bool downC, out System.Drawing.Point bottomRight);
-                Dv5Screen.ReadTouch(Report(0, 0, 0, 0x40, 0x48, 0x03, 0x28), 14, out bool lifted, out _);
+                WheelScreen.ReadTouch(Report(0, 0, 1, 0x80, 0x48, 0x03, 0x28), 14, out bool downA, out System.Drawing.Point topLeft);
+                WheelScreen.ReadTouch(Report(0, 0, 1, 0x80, 0x2E, 0x00, 0x2D), 14, out bool downB, out System.Drawing.Point topRight);
+                WheelScreen.ReadTouch(Report(0, 0, 1, 0x81, 0xB4, 0x00, 0x25), 14, out bool downC, out System.Drawing.Point bottomRight);
+                WheelScreen.ReadTouch(Report(0, 0, 0, 0x40, 0x48, 0x03, 0x28), 14, out bool lifted, out _);
                 Check("touch reports read as the corners that were tapped", downA && downB && downC && !lifted &&
                     topLeft == new System.Drawing.Point(45, 72) && topRight == new System.Drawing.Point(808, 46) && bottomRight == new System.Drawing.Point(816, 436),
                     topLeft + " " + topRight + " " + bottomRight);

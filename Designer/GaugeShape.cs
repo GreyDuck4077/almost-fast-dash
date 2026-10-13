@@ -19,7 +19,7 @@ namespace AlmostFastOverlays
         private readonly RectangleF _box;
         private readonly bool _vertical;
         private readonly float _bend, _peak, _taper, _bulge, _tanSkew, _anchor;
-        private float _profileMax = 1, _left, _top, _sx = 1, _sy = 1, _offsetY;
+        private readonly float _profileMax = 1, _left, _top, _sx = 1, _sy = 1, _offsetY;
 
         /// <summary>The flat space: a straight bar this long and this thick at its thickest.</summary>
         public float Length { get; }

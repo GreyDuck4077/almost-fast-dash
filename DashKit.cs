@@ -8,9 +8,8 @@ using System.Linq;
 namespace AlmostFastOverlays
 {
     /// <summary>
-    /// Shared visual language for every dashboard: palette, type scale, panels,
-    /// chips, bars and gauges. Keeping these in one place is what makes the four
-    /// layouts read as one product.
+    /// Shared drawing basics: the base palette, the Bahnschrift type helpers, rounded panels, chips and bars,
+    /// and the graphics settings every renderer starts from. Widgets and the full-screen flags draw with them.
     /// </summary>
     internal sealed class DashKit : IDisposable
     {
@@ -109,18 +108,6 @@ namespace AlmostFastOverlays
             }
         }
 
-        /// <summary>A panel tinted by a status color, used for delta and warnings.</summary>
-        public static void TintedPanel(Graphics g, RectangleF b, Color tone, float radius = 10)
-        {
-            using (GraphicsPath p = Rounded(b, radius))
-            {
-                using (var brush = new LinearGradientBrush(new RectangleF(b.X, b.Y - 1, b.Width, b.Height + 2),
-                    Color.FromArgb(70, tone), Color.FromArgb(22, tone), 90f))
-                    g.FillPath(brush, p);
-                using (var pen = new Pen(Color.FromArgb(150, tone), 1.5f)) g.DrawPath(pen, p);
-            }
-        }
-
         public static void Fill(Graphics g, RectangleF b, Color color, float radius = 6)
         {
             using (var brush = new SolidBrush(color))
@@ -162,56 +149,6 @@ namespace AlmostFastOverlays
             float w = (float)(Math.Max(0, Math.Min(1, fraction)) * b.Width);
             if (w >= 1) Fill(g, new RectangleF(b.X, b.Y, Math.Max(w, b.Height), b.Height), color, r);
         }
-
-        /// <summary>Bar that grows from the center: right (positive) or left (negative).</summary>
-        public static void CenterBar(Graphics g, RectangleF b, double value, double fullScale, Color positive, Color negative)
-        {
-            Fill(g, b, Track, b.Height / 2);
-            float half = b.Width / 2, center = b.X + half;
-            float len = (float)(Math.Min(1, Math.Abs(value) / fullScale) * half);
-            if (len >= 1)
-            {
-                var fill = value >= 0 ? new RectangleF(center, b.Y, len, b.Height) : new RectangleF(center - len, b.Y, len, b.Height);
-                Fill(g, fill, value >= 0 ? positive : negative, Math.Min(b.Height / 2, len / 2));
-            }
-            using (var tick = new Pen(Text, 2)) g.DrawLine(tick, center, b.Y - 3, center, b.Bottom + 3);
-        }
-
-        /// <summary>Segmented arc; lit segments glow. Angles in degrees, clockwise from 3 o'clock.</summary>
-        public static void SegmentArc(Graphics g, PointF center, float radius, float start, float sweep, int segments,
-            double fraction, Func<double, Color> colorAt, float thickness, bool overrideAll = false, Color? overrideColor = null)
-        {
-            int lit = (int)Math.Ceiling(Math.Max(0, Math.Min(1, fraction)) * segments);
-            float step = sweep / segments;
-            var rect = new RectangleF(center.X - radius, center.Y - radius, radius * 2, radius * 2);
-            for (int i = 0; i < segments; i++)
-            {
-                bool on = overrideAll || i < lit;
-                Color color = overrideAll && overrideColor.HasValue ? overrideColor.Value : colorAt((i + 0.5) / segments);
-                float a = start + i * step + step * 0.12f, s = step * 0.76f;
-                if (on)
-                    using (var glow = new Pen(Color.FromArgb(55, color), thickness + 9)) g.DrawArc(glow, rect, a, s);
-                using (var pen = new Pen(on ? color : Track, thickness)) g.DrawArc(pen, rect, a, s);
-            }
-        }
-
-        /// <summary>Smooth arc with rounded caps filled to a fraction.</summary>
-        public static void SmoothArc(Graphics g, PointF center, float radius, float start, float sweep, double fraction, Color color, float thickness)
-        {
-            var rect = new RectangleF(center.X - radius, center.Y - radius, radius * 2, radius * 2);
-            using (var track = new Pen(Track, thickness) { StartCap = LineCap.Round, EndCap = LineCap.Round }) g.DrawArc(track, rect, start, sweep);
-            float s = (float)(Math.Max(0, Math.Min(1, fraction)) * sweep);
-            if (Math.Abs(s) < 0.5f) return;
-            using (var pen = new Pen(color, thickness) { StartCap = LineCap.Round, EndCap = LineCap.Round }) g.DrawArc(pen, rect, start, s);
-        }
-
-        // ---------------------------------------------------------------- colors
-
-        public Color ShiftColor(double at) => at > 0.86 ? Bad : at > 0.66 ? Warn : Accent;
-
-        public static Color DeltaColor(double delta) => delta > 0.005 ? Good : delta < -0.005 ? Bad : Text;
-
-        public static Color FuelLapsColor(double laps) => laps < 0 ? Text : laps < 2 ? Bad : laps < 5 ? Warn : Text;
 
         // ---------------------------------------------------------------- helpers
 

@@ -43,7 +43,7 @@ namespace AlmostFastOverlays
         {
             try
             {
-                if (Dv5Screen.IsPresent()) return new Size(Dv5Screen.Width, Dv5Screen.Height);
+                if (WheelScreen.IsPresent()) return new Size(WheelScreen.Width, WheelScreen.Height);
             }
             catch { }
             return null;

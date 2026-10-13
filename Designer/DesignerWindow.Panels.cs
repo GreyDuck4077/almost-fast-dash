@@ -174,7 +174,7 @@ namespace AlmostFastOverlays
             grid.Children.Add(icon);
             var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
             text.Children.Add(new TextBlock { Text = block.Name, FontWeight = FontWeights.SemiBold, FontSize = 12.5 });
-            text.Children.Add(new TextBlock { Text = block.Description, Style = (Style)FindResource("T.Caption"), FontSize = 11, TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap });
+            text.Children.Add(new TextBlock { Text = block.Description, Style = (Style)FindResource("T.Caption"), FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap });
             Grid.SetColumn(text, 1);
             grid.Children.Add(text);
             var row = new Border
@@ -313,7 +313,7 @@ namespace AlmostFastOverlays
                 name.Inlines.Clear();
                 name.Inlines.Add(new System.Windows.Documents.Run(string.IsNullOrWhiteSpace(widget.Name) ? type?.Name : widget.Name));
                 name.Inlines.Add(new System.Windows.Documents.Run("  " + widget.GroupName + (widget.Slot != 0 ? " · " + widget.Slot.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) : ""))
-                    { Foreground = (Brush)FindResource("Brush.TextTertiary"), FontSize = 11 });
+                    { Foreground = (Brush)FindResource("Brush.TextTertiary"), FontSize = 12 });
             }
             Grid.SetColumn(name, 1);
             grid.Children.Add(name);
@@ -350,7 +350,7 @@ namespace AlmostFastOverlays
             Point? down = null;
             row.MouseLeftButtonDown += (s, e) =>
             {
-                if (e.ClickCount == 2) { RenameLayer(widget, name); e.Handled = true; return; }
+                if (e.ClickCount == 2) { RenameLayer(widget); e.Handled = true; return; }
                 down = e.GetPosition(row);
             };
             row.MouseMove += (s, e) =>
@@ -400,7 +400,7 @@ namespace AlmostFastOverlays
             return button;
         }
 
-        private void RenameLayer(DashWidget widget, TextBlock label)
+        private void RenameLayer(DashWidget widget)
         {
             string name = Prompt("Rename layer", "Layer name:", widget.Name);
             if (string.IsNullOrWhiteSpace(name)) return;
@@ -474,7 +474,7 @@ namespace AlmostFastOverlays
                 };
                 var label = new StackPanel { VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
                 label.Children.Add(new Border { Width = 26, Height = 4, CornerRadius = new CornerRadius(2), Background = new SolidColorBrush(ToMedia(preset.Accent ?? _dashboard.AccentColor)), Margin = new Thickness(0, 0, 0, 4) });
-                label.Children.Add(new TextBlock { Text = preset.Name, FontSize = 10.5, Foreground = new SolidColorBrush(ToMedia(preset.Colors[7])) });
+                label.Children.Add(new TextBlock { Text = preset.Name, FontSize = 12, Foreground = new SolidColorBrush(ToMedia(preset.Colors[7])) });
                 swatch.Child = label;
                 var p = preset;
                 swatch.MouseLeftButtonUp += (s, e) => ApplyThemePreset(p);

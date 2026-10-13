@@ -47,6 +47,8 @@ namespace AlmostFastOverlays
             if (dashboardDirectory != null) return RenderDashboards(dashboardDirectory);
             string flagDirectory = ParseOption(args, "--render-flags");
             if (flagDirectory != null) return RenderFlags(flagDirectory);
+            string auditReport = ParseOption(args, "--audit-dashboards");
+            if (auditReport != null) return AuditDashboards(auditReport);
             string selfTestReport = ParseOption(args, "--designer-selftest");
             if (selfTestReport != null) return DesignerSelfTest(selfTestReport);
             string soakPort = ParseOption(args, "--led-soak");
@@ -305,6 +307,34 @@ namespace AlmostFastOverlays
         /// moment), flags that stay out stepping aside and then as a frame, and every saved dashboard framed
         /// for a caution and the final lap.
         /// </summary>
+        /// <summary>
+        /// Audits every template and every saved dashboard for text too small or too faint to read at a glance
+        /// (see <see cref="DashboardAudit"/>) and writes what it finds. Exits 1 when anything is found.
+        /// </summary>
+        private static int AuditDashboards(string reportPath)
+        {
+            if (!Path.IsPathRooted(reportPath))
+                reportPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, reportPath);
+            AppSettings settings = SettingsStore.Load();
+            var units = new UnitSystem(settings.General);
+            var report = new List<string>();
+            int total = 0;
+            void Audit(string title, DashboardSettings dashboard)
+            {
+                List<DashboardAudit.Finding> findings = DashboardAudit.Run(dashboard, units);
+                total += findings.Count;
+                report.Add(title + ": " + (findings.Count == 0 ? "readable" : findings.Count + " to fix"));
+                report.AddRange(findings.Select(f => "    " + f));
+            }
+            foreach (DesignTemplate template in DesignTemplates.All)
+                Audit("Template " + template.Name, DashboardSettings.CreateDesigned(template));
+            foreach (DashboardSettings dashboard in settings.Dashboards.Where(d => d.Design != null))
+                Audit("Saved " + dashboard.Name, dashboard);
+            report.Insert(0, total == 0 ? "Every dashboard is readable." : total + " pieces of text to fix.");
+            File.WriteAllLines(reportPath, report);
+            return total == 0 ? 0 : 1;
+        }
+
         private static int RenderFlags(string directory)
         {
             if (!Path.IsPathRooted(directory))
@@ -474,7 +504,7 @@ namespace AlmostFastOverlays
             {
                 try
                 {
-                    using (var screen = new Dv5Screen())
+                    using (var screen = new WheelScreen())
                     {
                         var connection = screen.Connect(runtime.Settings.General.ScreenBrightness);
                         Console.WriteLine("Screen connected: " + connection.ModelName);
@@ -559,8 +589,8 @@ namespace AlmostFastOverlays
                             {
                                 System.Drawing.Size built = runtime.Dashboard.ScreenSize();
                                 // A dashboard of another size is fitted to the screen: undo that fit for the tap.
-                                double scale = Math.Min(Dv5Screen.Width / (double)built.Width, Dv5Screen.Height / (double)built.Height);
-                                double x = (tap.X - (Dv5Screen.Width - built.Width * scale) / 2) / scale, y = (tap.Y - (Dv5Screen.Height - built.Height * scale) / 2) / scale;
+                                double scale = Math.Min(WheelScreen.Width / (double)built.Width, WheelScreen.Height / (double)built.Height);
+                                double x = (tap.X - (WheelScreen.Width - built.Width * scale) / 2) / scale, y = (tap.Y - (WheelScreen.Height - built.Height * scale) / 2) / scale;
                                 if (runtime.Renderer.Tap(x, y, snapshot)) Console.WriteLine("Tap at " + Math.Round(x) + ", " + Math.Round(y));
                             }
                             int current = runtime.Renderer.StateHash(snapshot, shiftFlashOn, gearAnimationFrame);
@@ -573,8 +603,8 @@ namespace AlmostFastOverlays
                                 {
                                     long sendStart = System.Diagnostics.Stopwatch.GetTimestamp();
                                     // A dashboard built for another screen size is fitted to this one, never stretched.
-                                    if (bitmap.Width == Dv5Screen.Width && bitmap.Height == Dv5Screen.Height) screen.Draw(bitmap);
-                                    else using (var fitted = ScreenSizes.Fit(bitmap, Dv5Screen.Width, Dv5Screen.Height)) screen.Draw(fitted);
+                                    if (bitmap.Width == WheelScreen.Width && bitmap.Height == WheelScreen.Height) screen.Draw(bitmap);
+                                    else using (var fitted = ScreenSizes.Fit(bitmap, WheelScreen.Width, WheelScreen.Height)) screen.Draw(fitted);
                                     long sendEnd = System.Diagnostics.Stopwatch.GetTimestamp();
                                     double toMs = 1000.0 / System.Diagnostics.Stopwatch.Frequency;
                                     stats.Frame((sendStart - drawStart) * toMs, (sendEnd - sendStart) * toMs);

@@ -105,7 +105,7 @@ namespace AlmostFastOverlays
 
             /// <summary>A small spaced-out caption.</summary>
             public DashWidget Label(string name, double x, double y, double w, string text, string align = "Left", string color = "muted") =>
-                Text(name, x, y, w, 18, text, "size", "14", "tracking", "1.5", "weight", "Regular", "color", color, "align", align);
+                Text(name, x, y, w, 20, text, "size", "16", "tracking", "1.4", "weight", "Regular", "color", color, "align", align);
 
             /// <summary>A panel with a labelled value on it.</summary>
             public DashWidget Tile(string name, double x, double y, double w, double h, string label, string value, string panelStyle, params string[] metric)
@@ -185,7 +185,7 @@ namespace AlmostFastOverlays
             b.Label("Tyres label", 610, 108, 200, "TYRES · LAST STOP");
             b.Add("tyres", "Tyres", 606, 128, 216, 266, "size", "22");
             b.Metric("Pit position", 307, 384, 240, 80, "POSITION", PositionText, "align", "Center", "valueSize", "40", "labelSize", "11", "labelTracking", "2",
-                "unit", "=Starters > 0 ? \"/\" + Starters : \"\"", "unitColor", "dim");
+                "unit", "=Starters > 0 ? \"/\" + Starters : \"\"", "unitColor", "muted");
         }
 
         /// <summary>A short race-notice banner (flags, penalties, a personal best), coloured by urgency.</summary>
@@ -232,7 +232,7 @@ namespace AlmostFastOverlays
                 "ticks", "=Redline > 0 ? " + top + " : 8", "minorTicks", "4", "tickLength", "12", "tickColor", "#8A8078", "litScale", "true",
                 "numbers", "true", "numbersTo", "=Redline > 0 ? " + top + " : 8", "numberSize", "20", "numberColor", "text",
                 "needle", "Marker", "needleColor", "#FFFFFF", "needleLength", "130", "needleWidth", "3", "glow", "6", "flash", "=ShiftFlash", "flashColor", "accent");
-            b.Text("Rpm unit", 30, 262, 110, 14, "RPM x1000", "size", "10", "tracking", "2.5", "weight", "Regular", "color", "dim", "align", "Left");
+            b.Text("Rpm unit", 30, 262, 110, 14, "RPM x1000", "size", "10", "tracking", "2.5", "weight", "Regular", "color", "muted", "align", "Left");
             b.Text("Clock", 24, 12, 120, 22, "=Clock", "size", "16", "align", "Left", "color", "muted");
             b.Text("Incidents", 710, 12, 120, 22, "=Incidents + \"x\"", "size", "16", "align", "Right", "color", "=Incidents > 0 ? $warn : $muted");
 
@@ -252,7 +252,7 @@ namespace AlmostFastOverlays
             // Right of the gear: the race.
             b.Label("Position label", 534, 196, 180, "POSITION", "Right");
             b.Metric("Position", 534, 206, 180, 58, "", PositionText, "layout", "Value only", "align", "Right", "inset", "0", "valueSize", "44",
-                "unit", "=Starters > 0 ? \"/\" + Starters : \"\"", "unitColor", "dim");
+                "unit", "=Starters > 0 ? \"/\" + Starters : \"\"", "unitColor", "muted");
             b.Add("progress", "Race progress", 534, 264, 180, 4, "gap", "1", "color", "#E9E4DE");
             b.Metric("Lap", 522, 280, 104, 56, "LAP", "=LapText", "inset", "8", "align", "Right", "valueSize", "19", "labelSize", "11", "labelTracking", "2.5");
             b.Metric("Ahead", 618, 280, 104, 56, "AHEAD", "=AheadName == \"---\" ? \"--\" : \"-\" + format(AheadGap, \"0.0\")", "inset", "8", "align", "Right",
@@ -363,7 +363,7 @@ namespace AlmostFastOverlays
 
             // Left: where you are, and the cars either side of you in the order.
             b.Label("Position label", 70, 26, 160, "POSITION");
-            b.Metric("Position", 66, 38, 158, 54, "", PositionText, "layout", "Value only", "inset", "4", "valueSize", "44", "unit", "=Starters > 0 ? \"/\" + Starters : \"\"", "unitColor", "dim");
+            b.Metric("Position", 66, 38, 158, 54, "", PositionText, "layout", "Value only", "inset", "4", "valueSize", "44", "unit", "=Starters > 0 ? \"/\" + Starters : \"\"", "unitColor", "muted");
             b.Text("Gained", 70, 92, 160, 18,
                 "=StartPosition <= 0 ? \"\" : PositionsGained > 0 ? \"+\" + PositionsGained + \" FROM P\" + StartPosition : PositionsGained < 0 ? PositionsGained + \" FROM P\" + StartPosition : \"STARTED P\" + StartPosition",
                 "size", "12", "weight", "Regular", "tracking", "1", "align", "Left", "color", "=PositionsGained > 0 ? $good : PositionsGained < 0 ? $bad : $muted");
@@ -520,7 +520,7 @@ namespace AlmostFastOverlays
             b.Visible("tap(\"race\") == 0",
                 b.Label("Position label", 604, 66, 200, "POSITION"),
                 b.Metric("Position", 598, 76, 130, 52, "", PositionText, "layout", "Value only", "inset", "6", "valueSize", "40",
-                    "unit", "=Starters > 0 ? \"/\" + Starters : \"\"", "unitColor", "dim"),
+                    "unit", "=Starters > 0 ? \"/\" + Starters : \"\"", "unitColor", "muted"),
                 b.Text("Class", 716, 88, 106, 28, "=ClassName != \"\" && ClassPosition > 0 ? \"P\" + ClassPosition + \" \" + ClassName : \"\"", "size", "16",
                     "align", "Right", "color", "accent"),
                 b.Text("Ahead name", 604, 136, 150, 20, "=AheadName == \"---\" ? \"AHEAD  --\" : AheadName", "size", "14", "weight", "Regular", "align", "Left", "color", "text"),
@@ -553,7 +553,7 @@ namespace AlmostFastOverlays
             b.Panel("Traffic panel", 16, 376, 822, 90, "style", "Liquid", "radius", "18");
             b.Label("Behind label", 34, 388, 200, "BEHIND");
             b.Label("Ahead label", 620, 388, 200, "AHEAD", "Right");
-            b.Label("Traffic label", 327, 388, 200, "TRAFFIC  ·  8 S EACH WAY", "Center", "muted").Set("visible", "FasterClassBehind < 0");
+            b.Label("Traffic label", 252, 386, 350, "TRAFFIC  ·  8 S EACH WAY", "Center", "muted").Set("visible", "FasterClassBehind < 0");
             b.Text("Faster class", 277, 384, 300, 20, "=(FasterClass != \"\" ? FasterClass : \"FASTER CLASS\") + \" CLOSING  ·  \" + format(FasterClassBehind, \"0.0\") + \" S\"",
                 "size", "13", "tracking", "2", "color", "warn", "visible", "FasterClassBehind >= 0");
             b.Add("traffic", "Traffic", 30, 410, 794, 44, "seconds", "8");
@@ -634,7 +634,7 @@ namespace AlmostFastOverlays
             b.Visible("tap(\"lap\") == 0",
                 b.Text("Last lap label", 634, 174, 190, 18, "LAST LAP", "size", "14", "tracking", "1.5", "weight", "Regular", "align", "Left", "color", "muted"),
                 b.Text("Last lap", 632, 192, 196, 46, "=laptime(LastLap)", "size", "36", "align", "Left", "color", "=LastLapIsBest ? $purple : $text"),
-                b.Metric("Lap speed", 622, 240, 108, 64, "LAP SPEED", "=LastLapSpeed > 0 ? format(LastLapSpeed, \"0.0\") : \"--\"", "inset", "12", "valueSize", "22",
+                b.Metric("Lap speed", 622, 240, 108, 64, "LAP SPEED", "=LastLapSpeed > 0 ? format(LastLapSpeed, \"0.0\") : \"--\"", "inset", "8", "valueSize", "22",
                     "labelSize", "14", "labelTracking", "1", "valueColor", "info"),
                 b.Metric("Best lap", 726, 240, 110, 64, "BEST", "=laptime(BestLap)", "align", "Right", "inset", "10", "valueSize", "22", "labelSize", "14",
                     "labelTracking", "1", "valueColor", "purple"));
@@ -653,7 +653,7 @@ namespace AlmostFastOverlays
             b.Visible("tap(\"fuel\") == 0",
                 b.Text("Fuel label", 634, 336, 60, 18, "FUEL", "size", "14", "tracking", "1.5", "weight", "Regular", "align", "Left", "color", "muted"),
                 b.Text("Fuel status", 680, 336, 146, 20,
-                    "=(FuelToFinish < 0 ? \"MEASURING\" : FuelToFinish <= 0.05 ? \"MAKES THE FINISH\" : \"ADD \" + fuel(FuelToFinish) + \" \" + FuelUnit) + (FuelEstimate && FuelToFinish >= 0 ? \" · EST\" : \"\")",
+                    "=(FuelToFinish < 0 ? \"MEASURING\" : FuelToFinish <= 0.05 ? \"ENOUGH\" : \"ADD \" + fuel(FuelToFinish) + \" \" + FuelUnit) + (FuelEstimate && FuelToFinish >= 0 ? \" · EST\" : \"\")",
                     "size", "14", "tracking", "0.5", "align", "Right", "color", "=FuelToFinish < 0 ? $muted : FuelToFinish <= 0.05 ? $good : $warn"),
                 b.Text("Fuel laps", 632, 356, 110, 54, FuelLaps, "size", "46", "align", "Left", "color", FuelTone),
                 b.Text("Fuel laps caption", 634, 408, 120, 18, "LAPS OF FUEL", "size", "14", "tracking", "1", "weight", "Regular", "align", "Left", "color", "muted"),
@@ -748,7 +748,7 @@ namespace AlmostFastOverlays
 
             const double tileY = 340, tileH = 128, tileW = 158;
             double X(int i) => 14 + i * (tileW + 9.5);
-            b.Tile("Position", X(0), tileY, tileW, tileH, "POSITION", PositionText, "Liquid", "unit", "=Starters > 0 ? \"/\" + Starters : \"\"", "unitColor", "dim");
+            b.Tile("Position", X(0), tileY, tileW, tileH, "POSITION", PositionText, "Liquid", "unit", "=Starters > 0 ? \"/\" + Starters : \"\"", "unitColor", "muted");
             b.Text("Lap", X(0) + 16, tileY + 96, tileW - 32, 18, "=\"LAP \" + LapText", "size", "13", "align", "Left", "color", "muted");
             b.Tile("Last lap", X(1), tileY, tileW, tileH, "LAST LAP", "=laptime(LastLap)", "Liquid", "valueSize", "27", "valueColor", "=LastLapIsBest ? $purple : $text");
             b.Text("Best lap", X(1) + 16, tileY + 96, tileW - 32, 18, "=\"BEST \" + laptime(BestLap)", "size", "13", "align", "Left", "color", "purple");
@@ -819,7 +819,7 @@ namespace AlmostFastOverlays
             b.Metric("Last lap", 352, 278, 150, 50, "LAST", "=laptime(LastLap)", "align", "Center", "valueSize", "20", "labelSize", "11", "labelTracking", "2", "valueColor", "=LastLapIsBest ? $purple : $text");
 
             b.Panel("Bottom strip", 16, 378, 822, 88, "style", "Glass", "radius", "18");
-            b.Metric("Position", 20, 382, 150, 80, "POSITION", PositionText, "valueSize", "30", "unit", "=Starters > 0 ? \"/\" + Starters : \"\"", "unitColor", "dim");
+            b.Metric("Position", 20, 382, 150, 80, "POSITION", PositionText, "valueSize", "30", "unit", "=Starters > 0 ? \"/\" + Starters : \"\"", "unitColor", "muted");
             b.Metric("Fuel", 180, 382, 160, 80, "FUEL", "=fuel(Fuel)", "valueSize", "30", "unit", "=FuelUnit");
             b.Add("bar", "Fuel level", 196, 448, 130, 5, "value", "=FuelPct", "color", "=FuelLapsLeft >= 0 && FuelLapsLeft < 2 ? $bad : $accent");
             b.Metric("Fuel laps", 350, 382, 140, 80, "LAPS LEFT", FuelLaps, "valueSize", "30", "valueColor", FuelTone);
@@ -912,7 +912,7 @@ namespace AlmostFastOverlays
             b.Panel("Race wing", 612, 26, 226, 410, "style", "Liquid", "radius", "24");
             b.Label("Position label", 632, 42, 186, "POSITION", "Right");
             b.Metric("Position", 628, 56, 194, 44, "", PositionText, "layout", "Value only", "align", "Right", "inset", "4", "valueSize", "36",
-                "unit", "=Starters > 0 ? \"/\" + Starters : \"\"", "unitColor", "dim");
+                "unit", "=Starters > 0 ? \"/\" + Starters : \"\"", "unitColor", "muted");
             b.Text("Gained", 632, 100, 186, 18,
                 "=StartPosition <= 0 ? \"\" : PositionsGained > 0 ? \"+\" + PositionsGained + \" FROM P\" + StartPosition : PositionsGained < 0 ? PositionsGained + \" FROM P\" + StartPosition : \"STARTED P\" + StartPosition",
                 "size", "12", "tracking", "1.5", "weight", "Regular", "align", "Right", "color", "=PositionsGained > 0 ? $good : PositionsGained < 0 ? $bad : $muted");
@@ -1041,9 +1041,9 @@ namespace AlmostFastOverlays
             b.Add("standings", "Race order", 572, 92, 240, 254, "rows", "5", "focus", "Around me", "column", "Interval", "showNumber", "false", "size", "15", "rowColor", "#70181510");
 
             const double y = 366, h = 100;
-            b.Tile("Position", 36, y, 150, h, "POSITION", PositionText, "Soft", "valueSize", "34", "unit", "=Starters > 0 ? \"/\" + Starters : \"\"", "unitColor", "dim");
+            b.Tile("Position", 36, y, 150, h, "POSITION", PositionText, "Soft", "valueSize", "34", "unit", "=Starters > 0 ? \"/\" + Starters : \"\"", "unitColor", "muted");
             b.Tile("To go", 194, y, 150, h, "=SessionType", "=RemainingText", "Soft", "valueSize", "24");
-            b.Tile("Lap speed", 352, y, 150, h, "LAST LAP SPEED", "=format(LastLapSpeed, \"0.0\")", "Soft", "valueSize", "30", "unit", "=SpeedUnit");
+            b.Tile("Lap speed", 352, y, 150, h, "LAP SPEED", "=format(LastLapSpeed, \"0.0\")", "Soft", "valueSize", "30", "unit", "=SpeedUnit");
             b.Tile("Refuel", 510, y, 150, h, FuelToAddLabel, FuelToAdd, "Soft", "valueSize", "28", "unit", FuelToAddUnit, "valueColor", FuelToAddTone);
             b.Tile("Last lap", 668, y, 150, h, "LAST LAP", "=laptime(LastLap)", "Soft", "valueSize", "24", "valueColor", "=LastLapIsBest ? $purple : $text");
             b.Panel("Caution banner", 312, 322, 230, 36, "style", "Tinted", "tint", "warn", "radius", "18", "visible", "Caution");
@@ -1123,7 +1123,7 @@ namespace AlmostFastOverlays
                     "edge", "Left", "edgeColor", "=" + S("ClassColor"));
                 DashWidget place = b.Text("Place", 22, y, 44, 33, "=" + S("Position"), "size", "18", "color", "=" + S("IsPlayer") + " ? $accent : $text");
                 DashWidget number = b.Text("Number", 70, y, 54, 33, "=\"#\" + " + S("Number"), "size", "15", "color", "muted");
-                DashWidget name = b.Text("Name", 130, y, 330, 33, "=" + S("Name"), "size", "17", "align", "Left", "color", "=" + S("InPits") + " ? $dim : $text");
+                DashWidget name = b.Text("Name", 130, y, 330, 33, "=" + S("Name"), "size", "17", "align", "Left", "color", "=" + S("InPits") + " ? $muted : $text");
                 DashWidget best = b.Text("Best", 470, y, 140, 33, "=laptime(" + S("BestLap") + ")", "size", "16", "color", "=" + S("BestLap") + " > 0 && abs(" + S("BestLap") + " - SessionBestLap) < 0.0005 ? $purple : $muted");
                 DashWidget last = b.Text("Last", 616, y, 120, 33, "=laptime(" + S("LastLap") + ")", "size", "16", "color", "muted");
                 DashWidget gap = b.Text("Gap", 740, y, 96, 33, "=" + S("GapText"), "size", "16", "align", "Right");

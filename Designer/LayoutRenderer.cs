@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
-using System.Drawing.Text;
 using System.IO;
 using System.Linq;
 
@@ -245,6 +244,12 @@ namespace AlmostFastOverlays
 
         /// <summary>When set (by the self-test), each live widget's drawing time is added up here in milliseconds.</summary>
         internal Dictionary<string, double> Timings { get; set; }
+
+        /// <summary>When set (by the dashboard audit), every piece of text drawn is noted here, at the size it was drawn.</summary>
+        internal List<DrawnText> TextLog { get; set; }
+
+        /// <summary>Leaves all text out (the audit's view of what is behind the text).</summary>
+        internal bool SkipText { get; set; }
 
         // ------------------------------------------------------------------ redrawing only what changed
 

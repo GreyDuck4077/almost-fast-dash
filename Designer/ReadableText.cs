@@ -1,18 +1,18 @@
 using System;
 using System.Globalization;
-using System.Linq;
 
 namespace AlmostFastOverlays
 {
     /// <summary>
-    /// The smallest text a wheel screen can show and still be read at a glance: 14 px on an 854×480 screen,
-    /// scaled for other sizes. Every template is built to it, and saved dashboards are brought up to it. Text
-    /// that was smaller is raised to the floor; its box grows to hold it (about its middle), and wide letter
-    /// spacing is tightened so a label doesn't outgrow its place.
+    /// The smallest text a wheel screen can show and still be read at a glance: 16 px on an 854×480 screen,
+    /// scaled for other sizes. Every template is built to it, and saved dashboards are brought up to it:
+    /// - Text that was smaller is raised to the floor. Its box grows to hold it (about its middle), and wide letter
+    ///   spacing is tightened so a label doesn't outgrow its place.
+    /// - Text in the theme's dim colour, too faint to read, takes the muted colour.
     /// </summary>
     internal static class ReadableText
     {
-        public const double Floor = 14;
+        public const double Floor = 16;
         private const double MaxTracking = 1.6;
 
         /// <summary>The floor for a design of this size.</summary>
@@ -23,7 +23,7 @@ namespace AlmostFastOverlays
         public static int Apply(DashLayout layout)
         {
             if (layout?.Screens == null) return 0;
-            double floor = FloorFor(layout);
+            double floor = FloorFor(layout), dense = Math.Round(floor * 0.86);
             int changed = 0;
             foreach (DashWidget widget in layout.AllWidgets())
             {
@@ -32,6 +32,7 @@ namespace AlmostFastOverlays
                 switch (widget.Type)
                 {
                     case "text":
+                        Brighten(widget, "color", ref changed);
                         if (Raise(widget, type, "size", floor, ref changed))
                         {
                             Tighten(widget, type, "tracking");
@@ -44,18 +45,22 @@ namespace AlmostFastOverlays
                         }
                         break;
                     case "metric":
+                        foreach (string key in new[] { "labelColor", "valueColor", "unitColor" }) Brighten(widget, key, ref changed);
                         if (Raise(widget, type, "labelSize", floor, ref changed)) Tighten(widget, type, "labelTracking");
                         Raise(widget, type, "valueSize", floor, ref changed);
                         // 0 means "sized from the value": leave that alone.
                         if (Number(widget, type, "unitSize") > 0) Raise(widget, type, "unitSize", floor, ref changed);
                         break;
-                    case "relative":
                     case "standings":
+                        Brighten(widget, "pitColor", ref changed);
+                        Raise(widget, type, "size", floor, ref changed);
+                        break;
+                    case "relative":
                     case "tyres":
                         Raise(widget, type, "size", floor, ref changed);
                         break;
                     case "laphistory":
-                        Raise(widget, type, "labelSize", floor, ref changed);
+                        Raise(widget, type, "labelSize", dense, ref changed);
                         break;
                     case "arc":
                         if (Expr.Bool(widget.Get("numbers", type.Prop("numbers")?.Default))) Raise(widget, type, "numberSize", floor, ref changed);
@@ -83,6 +88,20 @@ namespace AlmostFastOverlays
             widget.Set(key, floor.ToString(CultureInfo.InvariantCulture));
             changed++;
             return true;
+        }
+
+        /// <summary>
+        /// Text in the theme's dim colour is too faint to read on any of the themes (well under 4.5:1); it takes the
+        /// muted colour instead, the one made for secondary text. A formula's $dim does too.
+        /// </summary>
+        private static void Brighten(DashWidget widget, string key, ref int changed)
+        {
+            string raw = widget.Get(key, null);
+            if (raw == null) return;
+            string brighter = raw.Trim() == "dim" ? "muted" : raw.TrimStart().StartsWith("=") ? raw.Replace("$dim", "$muted") : raw;
+            if (brighter == raw) return;
+            widget.Set(key, brighter);
+            changed++;
         }
 
         private static void Tighten(DashWidget widget, WidgetType type, string key)

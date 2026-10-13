@@ -234,7 +234,7 @@ namespace AlmostFastOverlays
             Grid.SetColumn(insert, 1);
             row.Children.Add(insert);
             Children.Add(row);
-            Result = new TextBlock { FontFamily = (FontFamily)owner.FindResource("Font.Mono"), FontSize = 11, Margin = new Thickness(2, 3, 0, 0), TextTrimming = TextTrimming.CharacterEllipsis };
+            Result = new TextBlock { FontFamily = (FontFamily)owner.FindResource("Font.Mono"), FontSize = 12, Margin = new Thickness(2, 3, 0, 0), TextTrimming = TextTrimming.CharacterEllipsis };
             Children.Add(Result);
             Validate();
         }
@@ -386,11 +386,11 @@ namespace AlmostFastOverlays
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             var text = new StackPanel();
             text.Children.Add(new TextBlock { Text = title, FontFamily = (FontFamily)owner.FindResource("Font.Mono"), FontSize = 12, FontWeight = FontWeights.SemiBold });
-            text.Children.Add(new TextBlock { Text = description, Style = (Style)owner.FindResource("T.Caption"), FontSize = 11, TextWrapping = TextWrapping.Wrap });
+            text.Children.Add(new TextBlock { Text = description, Style = (Style)owner.FindResource("T.Caption"), FontSize = 12, TextWrapping = TextWrapping.Wrap });
             grid.Children.Add(text);
             if (!string.IsNullOrEmpty(value))
             {
-                var v = new TextBlock { Text = value.Length > 14 ? value.Substring(0, 14) + "…" : value, FontFamily = (FontFamily)owner.FindResource("Font.Mono"), FontSize = 11, Foreground = (Brush)owner.FindResource("Brush.Accent"), Margin = new Thickness(10, 1, 0, 0) };
+                var v = new TextBlock { Text = value.Length > 14 ? value.Substring(0, 14) + "…" : value, FontFamily = (FontFamily)owner.FindResource("Font.Mono"), FontSize = 12, Foreground = (Brush)owner.FindResource("Brush.Accent"), Margin = new Thickness(10, 1, 0, 0) };
                 Grid.SetColumn(v, 1);
                 grid.Children.Add(v);
             }

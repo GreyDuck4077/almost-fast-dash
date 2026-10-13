@@ -2,11 +2,9 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.IO.Ports;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -15,7 +13,6 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
-using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using System.Windows.Threading;
@@ -155,7 +152,7 @@ namespace AlmostFastOverlays
             {
                 DashboardSettings d = dashboard;
                 TextBlock marker = d.Id == _settings.DefaultDashboardId
-                    ? new TextBlock { Text = "Default", FontSize = 10.5, Foreground = (Brush)FindResource("Brush.TextTertiary"), VerticalAlignment = VerticalAlignment.Center }
+                    ? new TextBlock { Text = "Default", FontSize = 12, Foreground = (Brush)FindResource("Brush.TextTertiary"), VerticalAlignment = VerticalAlignment.Center }
                     : null;
                 var item = new RadioButton
                 {
@@ -1037,7 +1034,7 @@ namespace AlmostFastOverlays
             Style = (Style)FindResource("Pill"),
             Background = (Brush)FindResource(backgroundKey),
             Margin = margin,
-            Child = new TextBlock { Text = text, FontSize = 11, FontWeight = FontWeights.SemiBold, Foreground = (Brush)FindResource(foregroundKey) }
+            Child = new TextBlock { Text = text, FontSize = 12, FontWeight = FontWeights.SemiBold, Foreground = (Brush)FindResource(foregroundKey) }
         };
 
         private TextBlock GlyphIcon(string glyph) => new TextBlock { Text = glyph, Style = (Style)FindResource("T.Icon"), FontSize = 13 };
@@ -1051,9 +1048,6 @@ namespace AlmostFastOverlays
             brush.Freeze();
             return brush;
         }
-
-        private static bool SameJson(object a, object b) =>
-            SettingsStore.ToJson(a) == SettingsStore.ToJson(b);
 
         [DllImport("dwmapi.dll")]
         private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);

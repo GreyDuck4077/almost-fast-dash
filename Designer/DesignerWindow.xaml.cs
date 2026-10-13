@@ -14,7 +14,6 @@ using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using DrawingBitmap = System.Drawing.Bitmap;
-using DrawingRect = System.Drawing.RectangleF;
 
 namespace AlmostFastOverlays
 {
@@ -62,7 +61,7 @@ namespace AlmostFastOverlays
         private readonly List<Tuple<Point, Point>> _guides = new List<Tuple<Point, Point>>();
         private bool _dragChanged;
 
-        private SyntheticTelemetry _synthetic = new SyntheticTelemetry();
+        private readonly SyntheticTelemetry _synthetic = new SyntheticTelemetry();
         private IRacingTelemetrySource _live;
         private DiagnosticLogger _liveLog;
 
@@ -423,7 +422,7 @@ namespace AlmostFastOverlays
                 var size2 = new Border
                 {
                     Background = accent, CornerRadius = new CornerRadius(4 * Px), Padding = new Thickness(5 * Px, 1 * Px, 5 * Px, 1 * Px),
-                    Child = new TextBlock { Text = Math.Round(r.Width) + " × " + Math.Round(r.Height), FontSize = 11 * Px, Foreground = (Brush)FindResource("Brush.OnAccent"), FontWeight = FontWeights.SemiBold }
+                    Child = new TextBlock { Text = Math.Round(r.Width) + " × " + Math.Round(r.Height), FontSize = 12 * Px, Foreground = (Brush)FindResource("Brush.OnAccent"), FontWeight = FontWeights.SemiBold }
                 };
                 size2.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
                 Canvas.SetLeft(size2, r.X + r.Width / 2 - size2.DesiredSize.Width / 2);

@@ -53,7 +53,7 @@ from iRacingSDK.Net is included.
 
 ## VoCore M-PRO screens
 
-The wheel-screen driver (`Dv5Screen.cs`) speaks the USB protocol of VoCore's
+The wheel-screen driver (`WheelScreen.cs`) speaks the USB protocol of VoCore's
 M-PRO screens (USB C872:1004) through Windows' built-in WinUSB driver.
 
 **How the protocol was worked out.** When the app first drove the screen

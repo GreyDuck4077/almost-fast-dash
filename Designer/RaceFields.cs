@@ -25,7 +25,7 @@ namespace AlmostFastOverlays
             return all.FirstOrDefault(r => r.ClassPosition == position && (cls == null || r.ClassName == cls));
         }
 
-        public static object Standing(EvalScope s, StandingsEntry r, string field)
+        public static object Standing(StandingsEntry r, string field)
         {
             if (string.Equals(field, "Exists", StringComparison.OrdinalIgnoreCase)) return r != null;
             if (r == null)

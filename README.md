@@ -117,14 +117,21 @@ dashboard does behind the main figures:
     seconds further off. Then it's drawn in line with you.
 
   Gaps in car lengths are bumper to bumper, using a nominal 5 m car.
-- **Text** is never smaller than 14 px on an 854×480 screen (scaled for other
-  sizes), so labels can be read at a glance.
+- **Text** is never smaller than 16 px on an 854×480 screen (14 px in dense
+  tables), scaled for other sizes. Every piece of text stands out from what is
+  behind it by at least 4.5 to 1 (the WCAG level for text), and none runs into
+  another. The dashboard audit checks all three on every screen and tap view, as
+  actually drawn.
 
 ## Tests and releases
 
 `release-check.ps1` builds the app and runs every automatic check on a clean
-copy before a release: the designer and light self-tests, a render of every
-template, the light frames, and a replay of your latest iRacing recording.
+copy before a release:
+- the designer and light self-tests, including the dashboard audit of every
+  template;
+- a render of every template;
+- the light frames;
+- a replay of your latest finished iRacing recording.
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\release-check.ps1
@@ -289,6 +296,7 @@ a race. No names or account details are recorded.
 | `--render-templates <folder>` | Saves a picture of every template in its states, the second views and other screen sizes. |
 | `--render-dashboards <folder>` | Saves a picture of every dashboard in `settings.json`, in each state and on each page. |
 | `--render-flags <folder>` | Saves every flag screen, flags that stay out stepping aside to their frame, and every dashboard framed for a caution and the final lap. |
+| `--audit-dashboards <report.txt>` | Checks every template and every saved dashboard for text too small, too faint or running into other text, as actually drawn on every screen and tap view. Exits 1 when it finds anything. |
 | `--led-soak <COM port> <LED count> [--fast]` | Streams fast-changing frames to an LED board for 90 seconds and reports whether it kept up. |
 | `--light-frames <report.txt>` | Writes each dashboard's LED colours through a rev sweep and the preview states. |
 | `--designer-selftest <report.txt>` | Runs the end-to-end checks (they write settings next to the exe, so run them from a copy). |
@@ -304,7 +312,7 @@ dotnet build -c Release
 `bin\Release\net48\AlmostFastDash.exe` is the whole application: one file,
 targeting .NET Framework 4.8 (part of Windows) and referencing only Windows' own
 assemblies. The wheel screen (a VoCore-family USB panel) is driven through
-Windows' built-in WinUSB driver (`Dv5Screen.cs`), iRacing's telemetry is read
+Windows' built-in WinUSB driver (`WheelScreen.cs`), iRacing's telemetry is read
 from its shared memory (`IRacingSdk.cs`), and LED devices are in
 `LedDevices.cs`, `ArduinoLedController.cs` and `LedLayout.cs`.
 

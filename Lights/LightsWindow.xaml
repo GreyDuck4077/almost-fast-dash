@@ -40,7 +40,7 @@
                     </Border>
                     <StackPanel VerticalAlignment="Center" MinWidth="120">
                         <TextBlock x:Name="TitleText" Text="Dashboard" FontWeight="SemiBold"/>
-                        <TextBlock Text="Light designer" Style="{StaticResource T.Caption}" FontSize="11"/>
+                        <TextBlock Text="Light designer" Style="{StaticResource T.Caption}" FontSize="12"/>
                     </StackPanel>
                     <Border Width="1" Height="26" Background="{StaticResource Brush.Border}" Margin="16,0,12,0"/>
                     <Button x:Name="UndoButton" Style="{StaticResource Tool}" ToolTip="Undo (Ctrl+Z)" Click="Undo_Click"><TextBlock Style="{StaticResource T.Icon}" Text="&#xE7A7;"/></Button>
@@ -72,7 +72,7 @@
                     <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                     <StackPanel VerticalAlignment="Center">
                         <TextBlock Text="LAYERS" Style="{StaticResource T.Overline}"/>
-                        <TextBlock Text="Top of the list wins where layers overlap" Style="{StaticResource T.Caption}" FontSize="11"/>
+                        <TextBlock Text="Top of the list wins where layers overlap" Style="{StaticResource T.Caption}" FontSize="12"/>
                     </StackPanel>
                     <Button Grid.Column="1" Click="AddLayer_Click" ToolTip="Add a layer">
                         <StackPanel Orientation="Horizontal">

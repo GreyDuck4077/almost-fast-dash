@@ -21,8 +21,8 @@
         <GradientStop Color="#0DFFFFFF" Offset="1"/>
     </LinearGradientBrush>
     <SolidColorBrush x:Key="Brush.Text" Color="#ECF0F5"/>
-    <SolidColorBrush x:Key="Brush.TextSecondary" Color="#A0AAB8"/>
-    <SolidColorBrush x:Key="Brush.TextTertiary" Color="#6B7586"/>
+    <SolidColorBrush x:Key="Brush.TextSecondary" Color="#B4BDCA"/>
+    <SolidColorBrush x:Key="Brush.TextTertiary" Color="#959EAD"/>
     <SolidColorBrush x:Key="Brush.Accent" Color="#2DD4BF"/>
     <SolidColorBrush x:Key="Brush.AccentHover" Color="#5EEAD4"/>
     <SolidColorBrush x:Key="Brush.AccentPressed" Color="#14B8A6"/>
@@ -78,7 +78,7 @@
         <Setter Property="LineHeight" Value="17"/>
     </Style>
     <Style x:Key="T.Overline" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="FontSize" Value="12"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="Foreground" Value="{StaticResource Brush.TextTertiary}"/>
     </Style>

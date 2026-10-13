@@ -219,7 +219,7 @@ namespace AlmostFastOverlays
 
         // ------------------------------------------------------------------ 1. find
 
-        private List<DeviceSettings> _found = new List<DeviceSettings>();
+        private readonly List<DeviceSettings> _found = new List<DeviceSettings>();
         private StackPanel _foundList;
 
         private void ShowFind()

@@ -428,7 +428,7 @@ namespace AlmostFastOverlays
                 title.Children.Add(chevron);
                 int formulas = group.Count(p => LayoutRenderer.IsFormula(widget.Get(p.Key, p.Default), p) && p.Kind != PropKind.Formula);
                 if (formulas > 0)
-                    title.Children.Add(new TextBlock { Text = "  ƒ" + formulas, FontStyle = FontStyles.Italic, FontSize = 11, Foreground = (Brush)FindResource("Brush.Accent"), VerticalAlignment = VerticalAlignment.Center });
+                    title.Children.Add(new TextBlock { Text = "  ƒ" + formulas, FontStyle = FontStyles.Italic, FontSize = 12, Foreground = (Brush)FindResource("Brush.Accent"), VerticalAlignment = VerticalAlignment.Center });
                 var headerButton = new Border { Child = title, Background = Brushes.Transparent, Cursor = Cursors.Hand, Margin = new Thickness(0, 18, 0, 8) };
                 headerButton.MouseLeftButtonUp += (s, e) =>
                 {
@@ -547,7 +547,7 @@ namespace AlmostFastOverlays
             }
             else
             {
-                editor = LiteralEditor(widget, def, raw, Apply);
+                editor = LiteralEditor(def, raw, Apply);
             }
             if (isFormula)
             {
@@ -617,7 +617,7 @@ namespace AlmostFastOverlays
             }
         }
 
-        private FrameworkElement LiteralEditor(DashWidget widget, PropDef def, string raw, Action<string, bool> apply)
+        private FrameworkElement LiteralEditor(PropDef def, string raw, Action<string, bool> apply)
         {
             switch (def.Kind)
             {
@@ -688,7 +688,7 @@ namespace AlmostFastOverlays
                     return combo;
                 }
                 case PropKind.Image:
-                    return ImageEditor(widget, def, raw, apply);
+                    return ImageEditor(raw, apply);
                 default:
                 {
                     var box = new TextBox { Text = raw };
@@ -699,7 +699,7 @@ namespace AlmostFastOverlays
             }
         }
 
-        private FrameworkElement ImageEditor(DashWidget widget, PropDef def, string raw, Action<string, bool> apply)
+        private FrameworkElement ImageEditor(string raw, Action<string, bool> apply)
         {
             var panel = new StackPanel();
             if (!string.IsNullOrEmpty(raw) && _layout.Images.TryGetValue(raw, out string base64))

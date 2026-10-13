@@ -247,7 +247,7 @@ namespace AlmostFastOverlays
 
         private void Paint(Ellipse dot, DropShadowEffect glow, DrawingColor color)
         {
-            ShowLed(color, _profile.Gamma, out Color hue, out double level);
+            ShowLed(color, out Color hue, out double level);
             dot.Fill = level <= 0 ? (Brush)FindResource("Brush.LedOff") : new SolidColorBrush(hue);
             glow.Color = hue;
             glow.Opacity = level;
@@ -258,7 +258,7 @@ namespace AlmostFastOverlays
         /// to the value sent, while a monitor expects gamma-encoded colour, so the value
         /// is encoded for display; the glow follows its brightness.
         /// </summary>
-        internal static void ShowLed(DrawingColor color, bool gamma, out Color hue, out double glow)
+        internal static void ShowLed(DrawingColor color, out Color hue, out double glow)
         {
             byte Encode(int v) => (byte)Math.Round(255 * Math.Pow(Math.Max(0, Math.Min(255, v)) / 255.0, 1 / 2.2));
             hue = Color.FromRgb(Encode(color.R), Encode(color.G), Encode(color.B));
@@ -351,18 +351,18 @@ namespace AlmostFastOverlays
 
             var text = new StackPanel { Opacity = layer.Enabled ? 1 : 0.45 };
             var title = new StackPanel { Orientation = Orientation.Horizontal };
-            title.Children.Add(new TextBlock { Text = (index + 1) + "", Foreground = (Brush)FindResource("Brush.TextTertiary"), FontSize = 11, Width = 18, VerticalAlignment = VerticalAlignment.Center });
+            title.Children.Add(new TextBlock { Text = (index + 1) + "", Foreground = (Brush)FindResource("Brush.TextTertiary"), FontSize = 12, Width = 18, VerticalAlignment = VerticalAlignment.Center });
             title.Children.Add(new TextBlock { Text = layer.Name, FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis });
             text.Children.Add(title);
             text.Children.Add(new TextBlock
             {
                 Text = (effect?.Name ?? layer.Effect) + " · " + (target?.Name ?? layer.Target) + (layer.Blend == "Replace" ? " · replaces" : ""),
-                Style = (Style)FindResource("T.Caption"), FontSize = 11, Margin = new Thickness(18, 1, 0, 0), TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap
+                Style = (Style)FindResource("T.Caption"), FontSize = 12, Margin = new Thickness(18, 1, 0, 0), TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap
             });
             if (!string.IsNullOrWhiteSpace(layer.Condition))
                 text.Children.Add(new TextBlock
                 {
-                    Text = "ƒ when " + layer.Condition, FontFamily = (FontFamily)FindResource("Font.Mono"), FontSize = 10.5, Foreground = (Brush)FindResource("Brush.Accent"),
+                    Text = "ƒ when " + layer.Condition, FontFamily = (FontFamily)FindResource("Font.Mono"), FontSize = 12, Foreground = (Brush)FindResource("Brush.Accent"),
                     Margin = new Thickness(18, 2, 0, 0), TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap
                 });
             Grid.SetColumn(text, 1);
@@ -586,7 +586,7 @@ namespace AlmostFastOverlays
             var items = new List<object>();
             ComboBoxItem Header(string text) => new ComboBoxItem
             {
-                Content = text.ToUpperInvariant(), IsEnabled = false, Focusable = false, FontSize = 10.5, Margin = new Thickness(0, items.Count == 0 ? 0 : 6, 0, 0),
+                Content = text.ToUpperInvariant(), IsEnabled = false, Focusable = false, FontSize = 12, Margin = new Thickness(0, items.Count == 0 ? 0 : 6, 0, 0),
                 Foreground = (Brush)FindResource("Brush.TextTertiary")
             };
             ComboBoxItem Item(string text, string id) => new ComboBoxItem { Content = text, Tag = id, Padding = new Thickness(18, 6, 10, 6) };
@@ -691,7 +691,7 @@ namespace AlmostFastOverlays
                 var visible = group.Where(p => Relevant(effect, p, source)).ToList();
                 if (visible.Count == 0) continue;
                 Inspector.Children.Add(Section(group.Key));
-                foreach (PropDef def in visible) Inspector.Children.Add(PropertyRow(layer, effect, def));
+                foreach (PropDef def in visible) Inspector.Children.Add(PropertyRow(layer, def));
             }
         }
 
@@ -704,7 +704,7 @@ namespace AlmostFastOverlays
             return true;
         }
 
-        private FrameworkElement PropertyRow(LightLayer layer, LightEffect effect, PropDef def)
+        private FrameworkElement PropertyRow(LightLayer layer, PropDef def)
         {
             string raw = layer.Get(def.Key, def.Default) ?? "";
             void Apply(string value) { layer.Set(def.Key, value); CommitSoon("Edit " + def.Label.ToLowerInvariant()); }

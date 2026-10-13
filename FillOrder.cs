@@ -62,7 +62,7 @@ namespace AlmostFastOverlays
         public static float[] Marks(string order, double fraction)
         {
             var marks = new List<float>();
-            foreach ((float from, float to) in Spans(order, fraction)) marks.Add(to);
+            foreach ((float _, float to) in Spans(order, fraction)) marks.Add(to);
             return marks.ToArray();
         }
     }

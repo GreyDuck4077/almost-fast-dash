@@ -73,7 +73,7 @@
                     </Border>
                     <StackPanel VerticalAlignment="Center" MinWidth="120">
                         <TextBlock x:Name="TitleText" Text="Dashboard" FontWeight="SemiBold"/>
-                        <TextBlock Text="Screen designer" Style="{StaticResource T.Caption}" FontSize="11"/>
+                        <TextBlock Text="Screen designer" Style="{StaticResource T.Caption}" FontSize="12"/>
                     </StackPanel>
                     <Border Width="1" Height="26" Background="{StaticResource Brush.Border}" Margin="16,0,12,0"/>
                     <Button x:Name="UndoButton" Style="{StaticResource Tool}" ToolTip="Undo (Ctrl+Z)" Click="Undo_Click">

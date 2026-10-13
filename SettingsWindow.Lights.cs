@@ -119,7 +119,7 @@ namespace AlmostFastOverlays
             LightFrame frame = _previewLights.Compose(snapshot, Environment.TickCount);
             for (int d = 0; d < _stripDots.Count && d < frame.Leds.Length; d++)
                 for (int i = 0; i < _stripDots[d].Length && i < frame.Leds[d].Length; i++)
-                    if (_stripDots[d][i] != null) PaintLed(_stripDots[d][i], _stripGlows[d][i], frame.Leds[d][i], profile.Gamma);
+                    if (_stripDots[d][i] != null) PaintLed(_stripDots[d][i], _stripGlows[d][i], frame.Leds[d][i]);
 
             // The real devices show the preview too: directly while the dashboard is stopped, or through
             // the running dashboard (which owns them) while iRacing isn't connected.
@@ -148,9 +148,9 @@ namespace AlmostFastOverlays
             PreviewRequest.Clear();
         }
 
-        private void PaintLed(Ellipse dot, DropShadowEffect glowEffect, DrawingColor color, bool gamma)
+        private void PaintLed(Ellipse dot, DropShadowEffect glowEffect, DrawingColor color)
         {
-            LightsWindow.ShowLed(color, gamma, out Color hue, out double glow);
+            LightsWindow.ShowLed(color, out Color hue, out double glow);
             dot.Fill = glow <= 0 ? (Brush)FindResource("Brush.LedOff") : new SolidColorBrush(hue);
             glowEffect.Color = hue;
             glowEffect.Opacity = glow;

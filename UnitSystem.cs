@@ -34,16 +34,5 @@ namespace AlmostFastOverlays
 
         public double Speed(double mph) => Metric ? mph * KphPerMph : mph;
         public double Fuel(double liters) => Gallons ? liters / LitersPerGallon : liters;
-
-        public string FormatSpeed(TelemetrySnapshot t) => t.Connected ? Speed(t.SpeedMph).ToString("0") : "---";
-
-        /// <summary>Formats a fuel quantity; negative values mean "not known yet".</summary>
-        public string FormatFuel(double liters, bool withUnit = true, bool precise = false)
-        {
-            string suffix = withUnit ? " " + FuelSuffix : "";
-            if (liters < 0) return "--.-" + suffix;
-            string format = Gallons ? (precise ? "0.000" : "0.00") : (precise ? "0.00" : "0.0");
-            return Fuel(liters).ToString(format) + suffix;
-        }
     }
 }

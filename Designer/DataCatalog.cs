@@ -196,7 +196,7 @@ namespace AlmostFastOverlays
 
             // ---------------- Leaderboard
             Add("Leaderboard", "StandingsCount", "Cars on the leaderboard.", s => (double)(s.T.Standings?.Length ?? 0));
-            Add("Leaderboard", "LeaderName", "The race leader.", s => RaceFields.Standing(s, RaceFields.AtPosition(s.T, 1, false), "Name"));
+            Add("Leaderboard", "LeaderName", "The race leader.", s => RaceFields.Standing(RaceFields.AtPosition(s.T, 1, false), "Name"));
             Add("Leaderboard", "GapToLeader", "Your gap to the leader: seconds, or how many laps down.", s => RaceFields.GapText(s.T.Standings?.FirstOrDefault(r => r.IsPlayer)));
             Add("Leaderboard", "ClassName", "Your class.", s => s.T.Standings?.FirstOrDefault(r => r.IsPlayer)?.ClassName ?? "");
 

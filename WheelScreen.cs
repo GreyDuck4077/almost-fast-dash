@@ -21,7 +21,7 @@ namespace AlmostFastOverlays
     /// open-source M-PRO driver (mpro.c in github.com/Vonger/mpro_drm, GPL-2.0-or-later);
     /// CREDITS.md explains how they were first worked out.
     /// </summary>
-    internal sealed class Dv5Screen : IDisposable
+    internal sealed class WheelScreen : IDisposable
     {
         public const int Width = 854;
         public const int Height = 480;

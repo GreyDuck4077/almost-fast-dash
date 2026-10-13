@@ -248,7 +248,7 @@ namespace AlmostFastOverlays
                 .Color("highlight", "Your row", "accent", "Colors")
                 .Color("rowColor", "Row background", "track", "Colors")
                 .Color("altRowColor", "Every other row", "", "Colors", "Empty uses the row background.")
-                .Color("pitColor", "In the pits", "dim", "Colors")
+                .Color("pitColor", "In the pits", "muted", "Colors")
                 .Color("bestColor", "Fastest lap", "purple", "Colors")
                 .Number("radius", "Row corners", "6", "Look", 0, 20)
                 .Number("gap", "Space between rows", "3", "Look", 0, 20);
@@ -259,7 +259,6 @@ namespace AlmostFastOverlays
                 .Bool("showPressure", "Pressure", "true", "Content")
                 .Font()
                 .Number("size", "Text size", "22", "Type", 6, 80)
-                .Color("textColor", "Text", "text", "Colors")
                 .Color("labelColor", "Labels", "muted", "Colors")
                 .Color("panelColor", "Tyre background", "track", "Colors")
                 .Color("coolColor", "Cool", "info", "Colors")

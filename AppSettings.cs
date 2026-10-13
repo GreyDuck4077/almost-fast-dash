@@ -41,7 +41,7 @@ namespace AlmostFastOverlays
 
     internal sealed class AppSettings
     {
-        private const int CurrentSchema = 18;
+        private const int CurrentSchema = 19;
 
         public int SchemaVersion { get; set; }
         public string DefaultDashboardId { get; set; } = DashboardSettings.RoadId;
@@ -99,7 +99,8 @@ namespace AlmostFastOverlays
                 if (SchemaVersion > 0 && SchemaVersion < 15) { RoundCutPanels(); RebuildNeon(); }
                 if (SchemaVersion > 0 && SchemaVersion < 16) ReworkHaloAndOval();
                 if (SchemaVersion > 0 && SchemaVersion < 17) BrighterLabels();
-                if (SchemaVersion > 0 && SchemaVersion < 18) { WiderRadar(); LargerText(); }
+                if (SchemaVersion > 0 && SchemaVersion < 18) WiderRadar();
+                if (SchemaVersion > 0 && SchemaVersion < 19) { RefreshHaloAndOval(); LargerText(); }
                 SchemaVersion = CurrentSchema;
             }
             foreach (DeviceSettings device in General.Devices) device.Normalize();
@@ -299,14 +300,31 @@ namespace AlmostFastOverlays
         /// narrowed to give it room. A dashboard still built on the first Oval layout (its radar and the ahead
         /// panel beside it) takes the new one at its own size, keeping its page buttons and flag choices.
         /// </summary>
-        private void WiderRadar()
+        private void WiderRadar() => Refresh("oval", widgets => widgets.Any(w => w.Type == "radar" && w.Name == "Radar") && widgets.Any(w => w.Name == "Ahead panel"));
+
+        /// <summary>
+        /// Schema 19: Halo and Oval, both rebuilt on 13 October, take their templates again with text no smaller
+        /// than 16 px and every label in a readable colour. A dashboard is recognised by its first screen: Halo's
+        /// rev ring and traffic strip, or the Oval's radar and ahead panel.
+        /// </summary>
+        private void RefreshHaloAndOval()
+        {
+            Refresh("halo", widgets => widgets.Any(w => w.Type == "traffic") && widgets.Any(w => w.Name == "Rev ring"));
+            WiderRadar();
+        }
+
+        /// <summary>
+        /// Rebuilds the dashboards still made from a template (as <paramref name="isTemplate"/> tells from their first
+        /// screen) at their own size. Their page buttons, flag choices and label colour stay.
+        /// </summary>
+        private void Refresh(string templateId, Func<List<DashWidget>, bool> isTemplate)
         {
             foreach (DashboardSettings dashboard in Dashboards)
             {
                 DashLayout old = dashboard.Design;
                 var widgets = old?.Screens?.FirstOrDefault()?.Widgets;
-                if (widgets == null || !widgets.Any(w => w.Type == "radar" && w.Name == "Radar") || !widgets.Any(w => w.Name == "Ahead panel")) continue;
-                DashLayout rebuilt = DesignTemplates.Find("oval").Create();
+                if (widgets == null || !isTemplate(widgets)) continue;
+                DashLayout rebuilt = DesignTemplates.Find(templateId).Create();
                 rebuilt.ScaleTo(old.Width, old.Height);
                 rebuilt.PageButton = old.PageButton;
                 rebuilt.PageBackButton = old.PageBackButton;
@@ -319,12 +337,18 @@ namespace AlmostFastOverlays
         }
 
         /// <summary>
-        /// Schema 18: no text smaller than a wheel screen can show readably (14 px on an 854×480 screen). Every
-        /// saved design's smaller text is raised to that; nothing else changes (see <see cref="ReadableText"/>).
+        /// Schemas 18 and 19: no text smaller than a wheel screen can show readably (16 px on an 854×480 screen since
+        /// schema 19) and none in the too-faint dim colour. Nothing else changes (see <see cref="ReadableText"/>).
         /// </summary>
         private void LargerText()
         {
-            foreach (DashboardSettings dashboard in Dashboards) ReadableText.Apply(dashboard.Design);
+            foreach (DashboardSettings dashboard in Dashboards)
+            {
+                ReadableText.Apply(dashboard.Design);
+                // A Spotter's "LAST LAP SPEED" no longer fits its tile at the larger size.
+                foreach (DashWidget w in dashboard.Design?.AllWidgets() ?? Enumerable.Empty<DashWidget>())
+                    if (w.Type == "metric" && w.Name == "Lap speed" && w.Get("label", "") == "LAST LAP SPEED") w.Set("label", "LAP SPEED");
+            }
         }
 
         /// <summary>The fuel-to-add value as designs showed it before schema 13: a bare "+0.3".</summary>

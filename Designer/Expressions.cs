@@ -494,9 +494,9 @@ namespace AlmostFastOverlays
 
             // Leaderboard, sectors and tyres.
             Add("standing", "standing(position, \"Name\")", "A detail of the car in a race position: " + string.Join(", ", RaceFields.StandingFields) + ".", 2, 2,
-                (s, a) => RaceFields.Standing(s, RaceFields.AtPosition(s.T, (int)Expr.Num(a[0]), false), Expr.Text(a[1])));
+                (s, a) => RaceFields.Standing(RaceFields.AtPosition(s.T, (int)Expr.Num(a[0]), false), Expr.Text(a[1])));
             Add("classstanding", "classstanding(position, \"Name\")", "Like standing(), counting only your class.", 2, 2,
-                (s, a) => RaceFields.Standing(s, RaceFields.AtPosition(s.T, (int)Expr.Num(a[0]), true), Expr.Text(a[1])));
+                (s, a) => RaceFields.Standing(RaceFields.AtPosition(s.T, (int)Expr.Num(a[0]), true), Expr.Text(a[1])));
             Add("sectortime", "sectortime(sector)", "Your time in a sector of the lap in progress, 0 until you finish it.", 1, 1, (s, a) => RaceFields.Sector(s.T.SectorTimes, a[0]));
             Add("lastsectortime", "lastsectortime(sector)", "Your time in a sector on your last lap.", 1, 1, (s, a) => RaceFields.Sector(s.T.LastLapSectorTimes, a[0]));
             Add("bestsectortime", "bestsectortime(sector)", "Your best time in a sector this session.", 1, 1, (s, a) => RaceFields.Sector(s.T.BestSectorTimes, a[0]));

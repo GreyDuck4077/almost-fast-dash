@@ -341,7 +341,8 @@ namespace AlmostFastOverlays
                     PointF[] roof = { new PointF(0, -hl + CarLong * 0.55f) };
                     using (Matrix m = cam.Local(x, y, 0.8)) m.TransformPoints(roof);
                     float across = CarWide * cam.Scale(y, 0.8), size = across * 0.5f;
-                    if (size >= 7)
+                    // Too small to read on a zoomed-out radar: leave it off rather than show a smudge.
+                    if (size >= c.MinDenseText)
                         Paint.Text(g, c, number, size, true, Color.FromArgb(230, Shade(body, -0.8f)), new RectangleF(roof[0].X - across * 0.48f, roof[0].Y - size, across * 0.96f, size * 2),
                             StringAlignment.Center, "Middle", true, 0, Color.Empty, false);
                 }
@@ -493,10 +494,10 @@ namespace AlmostFastOverlays
                 Paint.Glow(g, cap, own, capH * 0.4f);
                 using (var brush = new SolidBrush(own)) g.FillPath(brush, cap);
             }
-            Paint.Text(g, c, "YOU", capH * 0.5f, true, Ink(own), you, StringAlignment.Center, "Middle", true, 0, Color.Empty, false, 1);
+            Paint.Text(g, c, "YOU", Math.Max(c.MinDenseText, capH * 0.55f), true, Ink(own), you, StringAlignment.Center, "Middle", true, 0, Color.Empty, false, 1);
         }
 
         /// <summary>Dark text on a light fill, light on a dark one.</summary>
-        private static Color Ink(Color fill) => fill.GetBrightness() > 0.55f || (fill.R * 0.3 + fill.G * 0.59 + fill.B * 0.11) > 150 ? Color.FromArgb(10, 12, 16) : Color.White;
+        private static Color Ink(Color fill) => DashboardAudit.InkOn(fill);
     }
 }
