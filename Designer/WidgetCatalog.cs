@@ -183,6 +183,8 @@ namespace AlmostFastOverlays
                 .Number("dangerAt", "Danger from", "0.86", "Colors", 0, 1, 0.01)
                 .Color("track", "Track", "track", "Colors")
                 .Bool("zones", "Mark the zones on the track", "false", "Colors")
+                .Color("rim", "Bezel lines", "", "Colors", "Hairlines along both edges of the whole scale. Empty for none.")
+                .Number("rimWidth", "Bezel width", "1", "Colors", 0.5, 4, 0.5)
                 .Choice("needle", "Needle", "None", "Needle", "None", "Needle", "Line", "Marker")
                 .Color("needleColor", "Needle color", "accent", "Needle")
                 .Number("needleLength", "Needle length %", "100", "Needle", 20, 130)
@@ -193,6 +195,7 @@ namespace AlmostFastOverlays
                 .Number("tickLength", "Tick length", "12", "Scale", 2, 60)
                 .Color("tickColor", "Tick color", "muted", "Scale")
                 .Bool("numbers", "Numbers at major ticks", "false", "Scale")
+                .Bool("litScale", "Light up the scale as it's passed", "false", "Scale")
                 .Number("numbersFrom", "Numbers from", "0", "Scale", double.NaN, double.NaN, 0.5)
                 .Number("numbersTo", "Numbers to", "10", "Scale", double.NaN, double.NaN, 0.5)
                 .Number("numberSize", "Number size", "16", "Scale", 6, 60)
@@ -394,6 +397,7 @@ namespace AlmostFastOverlays
             Rule("arc", "ticks", nonZero, "minorTicks", "tickLength", "tickColor", "numbers");
             Rule("arc", "numbers", on, "numbersFrom", "numbersTo", "numberSize", "numberColor");
             Rule("arc", "flash", set, "flashColor");
+            Rule("arc", "rim", set, "rimWidth");
             Rule("shiftlights", "flash", set, "flashColor");
             Rule("shape", "shape", v => v == "Rectangle", "radius");
             Rule("graph", "value2", set, "color2");

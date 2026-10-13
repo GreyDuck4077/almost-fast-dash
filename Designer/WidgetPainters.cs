@@ -596,13 +596,41 @@ namespace AlmostFastOverlays
                     if (Math.Abs(s) >= 0.5f) Band(start, s, flash ? flashColor : ColorAt(f), true, true, true);
                 }
             }
+            ArcBezel(c, ring);
 
-            ArcScale(c, ring, colorMode, danger, dangerAt);
+            ArcScale(c, ring, colorMode, danger, dangerAt, c.Bool("litScale") ? f : -1, ColorAt);
             ArcNeedle(c, ring, start + (float)(f * sweep), glow);
         }
 
-        /// <summary>Tick marks and numbers just inside the ring.</summary>
-        private static void ArcScale(WidgetContext c, ArcRing ring, string colorMode, Color danger, double dangerAt)
+        /// <summary>The gap between the band and its bezel lines, in pixels.</summary>
+        internal const float BezelGap = 2.5f;
+
+        /// <summary>Hairline bezels along the outer and inner edges of the whole scale, as on a printed instrument.</summary>
+        private static void ArcBezel(WidgetContext c, ArcRing ring)
+        {
+            Color? rim = c.OptionalColor("rim");
+            if (rim == null || rim.Value.A == 0) return;
+            float width = (float)Math.Max(0.5, Math.Min(4, c.Num("rimWidth")));
+            int steps = Math.Max(8, (int)Math.Ceiling(Math.Abs(ring.Sweep) / 1.5f));
+            using (var pen = new Pen(rim.Value, width) { LineJoin = LineJoin.Round, StartCap = LineCap.Round, EndCap = LineCap.Round })
+                foreach (float side in new[] { 1f, -1f })
+                {
+                    var points = new PointF[steps + 1];
+                    for (int i = 0; i <= steps; i++)
+                    {
+                        float a = ring.Start + ring.Sweep * i / steps;
+                        points[i] = ring.At(a, side * (ring.ThicknessAt(a) / 2 + BezelGap + width / 2));
+                    }
+                    c.G.DrawLines(pen, points);
+                }
+        }
+
+        /// <summary>
+        /// Tick marks and numbers just inside the ring. With <paramref name="litTo"/> at 0 or more, the scale
+        /// lights up as the value passes it: marks already reached take the colour the gauge has there and
+        /// the numbers show full; those still ahead stay dim.
+        /// </summary>
+        private static void ArcScale(WidgetContext c, ArcRing ring, string colorMode, Color danger, double dangerAt, double litTo, Func<double, Color> colorAt)
         {
             int major = (int)Math.Round(c.Num("ticks"));
             if (major <= 0) return;
@@ -612,16 +640,21 @@ namespace AlmostFastOverlays
             int total = major * (minor + 1);
             float tickLength = (float)c.Num("tickLength");
             Color tickColor = c.Color("tickColor");
-            float Inside(float angle) => -ring.ThicknessAt(angle) / 2 - 4;
-            using (var majorPen = new Pen(tickColor, 2))
-            using (var minorPen = new Pen(Color.FromArgb(tickColor.A * 7 / 10, tickColor), 1))
-                for (int i = 0; i <= total; i++)
-                {
-                    float a = ring.Start + ring.Sweep * i / total;
-                    bool isMajor = i % (minor + 1) == 0;
-                    float edge = Inside(a), len = isMajor ? tickLength : tickLength * 0.55f;
-                    g.DrawLine(isMajor ? majorPen : minorPen, ring.At(a, edge), ring.At(a, edge - len));
-                }
+            // With a bezel, the marks start inside its inner line.
+            float bezel = c.OptionalColor("rim")?.A > 0 ? BezelGap + (float)Math.Max(0.5, c.Num("rimWidth")) + 1.5f : 0;
+            float Inside(float angle) => -ring.ThicknessAt(angle) / 2 - 4 - bezel;
+            bool lighting = litTo >= 0;
+            Color Dim(Color color, int share) => Color.FromArgb(color.A * share / 100, color);
+            for (int i = 0; i <= total; i++)
+            {
+                float a = ring.Start + ring.Sweep * i / total;
+                double at = (double)i / total;
+                bool isMajor = i % (minor + 1) == 0;
+                Color color = !lighting ? tickColor : at <= litTo + 1e-6 ? colorAt(at) : Dim(tickColor, 55);
+                if (!isMajor) color = Dim(color, 70);
+                float edge = Inside(a), len = isMajor ? tickLength : tickLength * 0.55f;
+                using (var pen = new Pen(color, isMajor ? 2 : 1)) g.DrawLine(pen, ring.At(a, edge), ring.At(a, edge - len));
+            }
             if (!c.Bool("numbers")) return;
             double from = c.Num("numbersFrom"), to = c.Num("numbersTo");
             float size = (float)c.Num("numberSize");
@@ -630,9 +663,11 @@ namespace AlmostFastOverlays
             {
                 float a = ring.Start + ring.Sweep * k / major;
                 PointF p = ring.At(a, Inside(a) - tickLength - size * 0.85f);
-                double number = from + (to - from) * k / major;
-                bool red = colorMode != "Solid" && (double)k / major >= dangerAt;
-                Paint.Text(g, c, number.ToString("0.##"), size, true, red ? danger : numberColor, new RectangleF(p.X - size * 1.6f, p.Y - size * 0.7f, size * 3.2f, size * 1.4f),
+                double number = from + (to - from) * k / major, at = (double)k / major;
+                bool red = colorMode != "Solid" && at >= dangerAt;
+                Color color = red ? danger : numberColor;
+                if (lighting && at > litTo + 1e-6) color = Dim(color, 45);
+                Paint.Text(g, c, number.ToString("0.##"), size, true, color, new RectangleF(p.X - size * 1.6f, p.Y - size * 0.7f, size * 3.2f, size * 1.4f),
                     StringAlignment.Center, "Middle", false, 0, Color.Empty, false);
             }
         }

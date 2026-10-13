@@ -696,6 +696,53 @@ namespace AlmostFastOverlays
                     System.IO.File.Delete(unreadable);
             }
 
+            // ---------------- the instrument finish
+            {
+                // A scale that lights up as it's passed: a tick reached shows bright, one still ahead stays dim.
+                DashLayout scale = DesignTemplates.Blank();
+                scale.Theme.BackgroundStyle = "Solid";
+                scale.Theme.Background = "#000000";
+                DashWidget dial = WidgetCatalog.Create("arc", 200, 40);
+                dial.W = 400; dial.H = 400;
+                string[] look = { "value", "0.5", "style", "Track only", "ticks", "10", "minorTicks", "0", "tickLength", "20", "tickColor", "#FFFFFF",
+                    "colorMode", "Solid", "color", "#FFFFFF", "litScale", "true", "glow", "0", "rim", "#FF0000", "rimWidth", "2", "start", "180", "sweep", "180" };
+                for (int i = 0; i + 1 < look.Length; i += 2) dial.Set(look[i], look[i + 1]);
+                scale.Screens[0].Widgets.Add(dial);
+                using (var renderer = new LayoutRenderer(854, 480, new DashboardSettings { Layout = Layouts.Custom, Design = scale, AccentColor = "#22D3EE" }, _units))
+                using (System.Drawing.Bitmap frame = renderer.Render(IRacingTelemetrySource.CreatePreviewSnapshot(), false, 4, 1))
+                {
+                    // The half-dial runs from the left (0) over the top to the right (1); the middle tick at the top is reached.
+                    int Brightest(int x0, int y0, int x1, int y1)
+                    {
+                        int best = 0;
+                        for (int py = y0; py <= y1; py++)
+                            for (int px = x0; px <= x1; px++) best = Math.Max(best, (int)frame.GetPixel(px, py).G);
+                        return best;
+                    }
+                    int leftTick = Brightest(222, 232, 250, 248), rightTick = Brightest(550, 232, 578, 248);
+                    bool redRim = false;
+                    for (int py = 40; py < 60 && !redRim; py++)
+                        for (int px = 395; px < 460; px++) { var pixel = frame.GetPixel(px, py); if (pixel.R > 120 && pixel.G < 60) { redRim = true; break; } }
+                    Check("a lit scale shows marks already passed brighter than those ahead, inside a hairline bezel", leftTick > rightTick + 60 && redRim,
+                        "passed " + leftTick + ", ahead " + rightTick + ", bezel " + redRim);
+                }
+
+                // A saved Roady from before takes the new finish but keeps where its widgets sit.
+                var before = new AppSettings { SchemaVersion = 13 };
+                DashboardSettings roady = DashboardSettings.CreateRoad();
+                DashScreen race = roady.Design.Screens.First(s => s.Name == "Race");
+                race.Widgets.RemoveAll(w => w.Name == "Gear light");
+                DashWidget sweep = race.Widgets.First(w => w.Name == "Rev sweep");
+                sweep.Props.Remove("rim");
+                sweep.Props.Remove("litScale");
+                sweep.Set("thickness", "14");
+                sweep.X = 30;
+                before.Dashboards.Add(roady);
+                before.EnsureBuiltInDashboards();
+                Check("a saved flagship takes the new finish and keeps its layout", sweep.Get("rim") == "#2E2722" && sweep.Get("litScale") == "true" && sweep.Get("thickness") == "10" &&
+                    sweep.X == 30 && race.Widgets.Count(w => w.Name == "Gear light") == 1 && race.Widgets.FindIndex(w => w.Name == "Gear light") == race.Widgets.IndexOf(sweep) - 1);
+            }
+
             // ---------------- touch
             {
                 // Reports the wheel screen sent while it was tapped at its top-left, top-right and bottom-right, then lifted.

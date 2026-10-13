@@ -423,7 +423,7 @@ namespace AlmostFastOverlays
             string Raw(string key) => widget.Get(key, type.Prop(key)?.Default) ?? "";
             bool Fixed(params string[] keys) => keys.All(k => !Raw(k).StartsWith("="));
             // Anything that can move the drawing about, or that draws across the face, needs the whole box.
-            if (!Fixed("start", "sweep", "thickness", "glow", "oval", "needle", "needleLength", "tickLength", "numberSize", "flipX", "flipY", "rotate")) return null;
+            if (!Fixed("start", "sweep", "thickness", "glow", "oval", "needle", "needleLength", "tickLength", "numberSize", "rimWidth", "flipX", "flipY", "rotate")) return null;
             string needle = Raw("needle");
             if (needle == "Needle" || needle == "Line") return null;
             if (Math.Abs(Expr.Num(Raw("rotate"))) > 0.01) return null;
@@ -445,8 +445,10 @@ namespace AlmostFastOverlays
             float marker = needle == "Marker" ? thickness * Math.Max(0, N("needleLength") / 100 - 1) / 2 + N("needleWidth") : 0;
             // Out to the glow and the marker; in to the ticks and the numbers (a number is drawn 0.85 of its
             // size inside the ticks and is at most two digits wide).
-            float outward = thickness / 2 + marker + glow + 3;
-            float inward = Math.Max(thickness / 2 + glow, thickness / 2 + 4 + (ticks ? N("tickLength") : 0) + (numbers ? N("numberSize") * 1.9f : 0)) + 3;
+            // Bezel lines sit just outside both edges of the band, and push the marks further in.
+            float bezel = Raw("rim").Trim().Length > 0 ? WidgetPainters.BezelGap + Math.Max(0.5f, N("rimWidth")) + 1.5f : 0;
+            float outward = Math.Max(thickness / 2 + marker + glow, thickness / 2 + bezel + 1) + 3;
+            float inward = Math.Max(thickness / 2 + glow, thickness / 2 + 4 + bezel + (ticks ? N("tickLength") : 0) + (numbers ? N("numberSize") * 1.9f : 0)) + 3;
             const float pad = 3;
             float cap = thickness / 2 + glow;
             int pieces = Math.Max(1, (int)Math.Ceiling(Math.Abs(sweep) / 10));

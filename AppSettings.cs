@@ -41,7 +41,7 @@ namespace AlmostFastOverlays
 
     internal sealed class AppSettings
     {
-        private const int CurrentSchema = 13;
+        private const int CurrentSchema = 14;
 
         public int SchemaVersion { get; set; }
         public string DefaultDashboardId { get; set; } = DashboardSettings.RoadId;
@@ -95,6 +95,7 @@ namespace AlmostFastOverlays
                 if (SchemaVersion >= 9 && SchemaVersion < 11) GlassRoady();
                 if (SchemaVersion >= 9 && SchemaVersion < 12) TouchFlagships();
                 if (SchemaVersion > 0 && SchemaVersion < 13) ClearerFuelToAdd();
+                if (SchemaVersion >= 9 && SchemaVersion < 14) PolishFlagships();
                 SchemaVersion = CurrentSchema;
             }
             foreach (DeviceSettings device in General.Devices) device.Normalize();
@@ -136,6 +137,46 @@ namespace AlmostFastOverlays
             var widgets = roundy?.Design?.Screens?.FirstOrDefault()?.Widgets;
             if (widgets == null || !widgets.Any(w => w.Name == "Around panel") || !widgets.Any(w => w.Name == "Falloff panel")) return;
             roundy.Design = DesignTemplates.Oval.Create();
+        }
+
+        /// <summary>
+        /// Schema 14: the flagships' instrument finish. The rev scales gain hairline bezels and light up as
+        /// they're passed, Roady a pool of light behind the gear, Roundy a dial face, and the pit-lane ring
+        /// marks the limit. The saved copies take the look of the named widgets from freshly built templates,
+        /// sized to match. Where everything sits, and the rest of each design, stays as it was.
+        /// </summary>
+        private void PolishFlagships()
+        {
+            void Polish(string id, DesignTemplate template, string[] restyle, string[] addBefore, string[] remove)
+            {
+                DashLayout saved = Dashboards.FirstOrDefault(d => d.Id == id)?.Design;
+                if (saved?.Screens == null) return;
+                DashLayout fresh = template.Create();
+                fresh.ScaleTo(saved.Width, saved.Height);
+                foreach (DashScreen screen in saved.Screens)
+                {
+                    DashScreen model = fresh.Screens.FirstOrDefault(s => s.Name == screen.Name);
+                    if (model == null || screen.Widgets == null) continue;
+                    DashWidget Fresh(string name) => model.Widgets.FirstOrDefault(w => w.Name == name);
+                    foreach (DashWidget widget in screen.Widgets)
+                    {
+                        if (!restyle.Contains(widget.Name) || Fresh(widget.Name) is null || Fresh(widget.Name).Type != widget.Type) continue;
+                        DashWidget look = Fresh(widget.Name);
+                        foreach (var prop in look.Props) widget.Props[prop.Key] = prop.Value;
+                    }
+                    // New widgets go in just below the widget they light or sit behind.
+                    for (int i = 0; i + 1 < addBefore.Length; i += 2)
+                    {
+                        DashWidget added = Fresh(addBefore[i]), anchor = screen.Widgets.FirstOrDefault(w => w.Name == addBefore[i + 1]);
+                        if (added == null || anchor == null || screen.Widgets.Any(w => w.Name == added.Name)) continue;
+                        added.Id = DashScreen.NewId("w");
+                        screen.Widgets.Insert(screen.Widgets.IndexOf(anchor), added);
+                    }
+                    screen.Widgets.RemoveAll(w => remove.Contains(w.Name) && w.Type == "text");
+                }
+            }
+            Polish(DashboardSettings.RoadId, DesignTemplates.Road, new[] { "Rev sweep", "Gear", "Rule", "Pit speed ring" }, new[] { "Gear light", "Rev sweep" }, new string[0]);
+            Polish(DashboardSettings.OvalId, DesignTemplates.Oval, new[] { "Rev dial", "Pit speed ring" }, new[] { "Dial face", "Rev dial" }, new[] { "Rpm unit" });
         }
 
         /// <summary>The fuel-to-add value as designs showed it before schema 13: a bare "+0.3".</summary>

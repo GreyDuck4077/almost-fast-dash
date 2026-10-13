@@ -159,8 +159,10 @@ namespace AlmostFastOverlays
             b.Panel("Limiter banner", 227, 16, 400, 52, "style", "Tinted", "tint", tone, "radius", "26");
             b.Text("Limiter", 227, 16, 400, 52, "=OverPitLimit ? \"SLOW DOWN\" : PitLimiter ? \"PIT LIMITER ON\" : \"PIT LIMITER OFF\"", "size", "24", "tracking", "2", "color", tone);
             b.Add("arc", "Pit speed ring", 287, 84, 280, 280, "value", "=PitSpeedLimit > 0 ? Speed / (PitSpeedLimit * 1.25) : 0", "style", "Smooth",
-                "start", "135", "sweep", "270", "thickness", "14", "colorMode", "Shift colors", "color", "good", "warnColor", "bad", "dangerColor", "bad",
-                "warnAt", "0.8", "dangerAt", "0.8", "flash", "=OverPitLimit", "glow", "12");
+                "start", "135", "sweep", "270", "thickness", "12", "colorMode", "Shift colors", "color", "good", "warnColor", "bad", "dangerColor", "bad",
+                // The red stripe on the rim marks the limit itself (the scale runs to 1.25 times it).
+                "warnAt", "0.8", "dangerAt", "0.8", "zones", "true", "rim", "border", "rimWidth", "1",
+                "needle", "Marker", "needleColor", "#FFFFFF", "needleLength", "130", "needleWidth", "3", "flash", "=OverPitLimit", "glow", "10");
             b.Text("Pit speed", 307, 150, 240, 120, "=format(Speed, \"0\")", "size", "104", "color", "=OverPitLimit ? $bad : $text", "fxShadow", "8");
             b.Text("Pit limit", 307, 270, 240, 18, "=PitSpeedLimit > 0 ? \"LIMIT \" + format(PitSpeedLimit, \"0\") + \" \" + SpeedUnit : \"PIT LANE\"",
                 "size", "12", "tracking", "3", "weight", "Regular", "color", "muted");
@@ -208,18 +210,22 @@ namespace AlmostFastOverlays
             });
             b.Screen("Race");
             const string top = "ceil(Redline / 1000)";
+            // A soft pool of warm light behind the gear gives the screen depth.
+            b.Add("gradient", "Gear light", 197, 40, 460, 340, "style", "Radial", "color", "accent", "strength", "9");
             b.Add("arc", "Rev sweep", 17, 14, 820, 600, "value", "=Rpm / 1000", "max", "=Redline > 0 ? " + top + " : 8", "oval", "true", "style", "Smooth",
-                "start", "197", "sweep", "146", "thickness", "14", "colorMode", "Shift colors", "color", "#E9E4DE", "warnColor", "#FFB23F", "dangerColor", "accent",
+                "start", "197", "sweep", "146", "thickness", "10", "colorMode", "Shift colors", "color", "#EDE8E2", "warnColor", "#FFB23F", "dangerColor", "accent",
                 "warnAt", "=ShiftRpm > 0 && Redline > 0 ? ShiftRpm * 0.93 / (" + top + " * 1000) : 0.8",
                 "dangerAt", "=ShiftRpm > 0 && Redline > 0 ? ShiftRpm / (" + top + " * 1000) : 0.9",
-                "zones", "true", "track", "#17130F", "ticks", "=Redline > 0 ? " + top + " : 8", "minorTicks", "4", "tickLength", "10", "tickColor", "#6E655E",
-                "numbers", "true", "numbersTo", "=Redline > 0 ? " + top + " : 8", "numberSize", "22", "numberColor", "text",
-                "needle", "Marker", "needleColor", "#FFFFFF", "needleLength", "130", "needleWidth", "4", "glow", "8", "flash", "=ShiftFlash", "flashColor", "accent");
+                "zones", "true", "track", "#1C1714", "rim", "#2E2722", "rimWidth", "1",
+                "ticks", "=Redline > 0 ? " + top + " : 8", "minorTicks", "4", "tickLength", "12", "tickColor", "#8A8078", "litScale", "true",
+                "numbers", "true", "numbersTo", "=Redline > 0 ? " + top + " : 8", "numberSize", "20", "numberColor", "text",
+                "needle", "Marker", "needleColor", "#FFFFFF", "needleLength", "130", "needleWidth", "3", "glow", "6", "flash", "=ShiftFlash", "flashColor", "accent");
             b.Text("Rpm unit", 30, 262, 110, 14, "RPM x1000", "size", "10", "tracking", "2.5", "weight", "Regular", "color", "dim", "align", "Left");
             b.Text("Clock", 24, 12, 120, 22, "=Clock", "size", "16", "align", "Left", "color", "muted");
             b.Text("Incidents", 710, 12, 120, 22, "=Incidents + \"x\"", "size", "16", "align", "Right", "color", "=Incidents > 0 ? $warn : $muted");
 
-            b.Add("gear", "Gear", 332, 82, 190, 190, "size", "176", "neighbors", "false", "flashColor", "accent", "fxShadow", "6", "fxShadowY", "3");
+            b.Add("gear", "Gear", 332, 82, 190, 190, "size", "176", "neighbors", "false", "flashColor", "accent", "fxShadow", "6", "fxShadowY", "3",
+                "fxFill", "Gradient", "fxFillColor", "#FFFFFF", "fxFillColor2", "#C9C1B8", "fxFillAngle", "90", "fxFillAmount", "=ShiftFlash ? 0 : 100");
             b.Text("Speed", 337, 278, 180, 58, "=format(Speed, \"0\")", "size", "52");
             b.Text("Speed unit", 337, 332, 180, 14, "=SpeedUnit", "size", "11", "tracking", "4", "weight", "Regular", "color", "muted");
 
@@ -240,7 +246,7 @@ namespace AlmostFastOverlays
             b.Metric("Ahead", 618, 280, 104, 56, "AHEAD", "=AheadName == \"---\" ? \"--\" : \"-\" + format(AheadGap, \"0.0\")", "inset", "8", "align", "Right",
                 "valueSize", "19", "labelSize", "11", "labelTracking", "2.5", "valueColor", "good");
 
-            b.Add("shape", "Rule", 30, 352, 794, 2, "shape", "Line", "stroke", "#3A322C", "strokeWidth", "1");
+            b.Add("shape", "Rule", 60, 352, 734, 2, "shape", "Line", "stroke", "#2E2722", "strokeWidth", "1");
 
             // Along the bottom: pedals, the car's settings, fuel.
             b.Panel("Pedals panel", 18, 366, 300, 104, "style", "Liquid", "radius", "14");
@@ -317,20 +323,23 @@ namespace AlmostFastOverlays
 
             // The dial: revs round a numbered scale, the gear in a ring above the speed.
             b.Add("gradient", "Dial light", 247, 0, 360, 360, "style", "Radial", "color", "accent", "strength", "14");
-            b.Add("arc", "Rev dial", 262, 14, 330, 330, "value", "=Rpm / 1000", "max", RpmTop, "style", "Smooth", "start", "135", "sweep", "270", "thickness", "12",
+            // The dial's face: a disc a shade lighter than the screen, darkening toward the bottom like glass under a light.
+            b.Add("shape", "Dial face", 282, 34, 290, 290, "shape", "Ellipse", "fill", "#0B1525", "stroke", "#172539", "strokeWidth", "1",
+                "fxFill", "Gradient", "fxFillColor", "#0F1D31", "fxFillColor2", "#05090F", "fxFillAngle", "90", "fxFillAmount", "100");
+            b.Add("arc", "Rev dial", 262, 14, 330, 330, "value", "=Rpm / 1000", "max", RpmTop, "style", "Smooth", "start", "135", "sweep", "270", "thickness", "10",
                 "colorMode", "Shift colors", "color", "accent", "warnColor", "warn", "dangerColor", "bad",
                 "warnAt", "=ShiftRpm > 0 && Redline > 0 ? ShiftRpm * 0.93 / (ceil(Redline / 1000) * 1000) : 0.8",
                 "dangerAt", "=ShiftRpm > 0 && Redline > 0 ? ShiftRpm / (ceil(Redline / 1000) * 1000) : 0.9",
-                "zones", "true", "track", "#0F1824", "ticks", RpmTop, "minorTicks", "4", "tickLength", "9", "tickColor", "#3A4C64",
-                "numbers", "true", "numbersTo", RpmTop, "numberSize", "17", "numberColor", "#C9D6E6",
-                "needle", "Marker", "needleColor", "#FFFFFF", "needleLength", "130", "needleWidth", "3", "glow", "10", "flash", "=ShiftFlash");
+                "zones", "true", "track", "#101A27", "rim", "#1E2D44", "rimWidth", "1",
+                "ticks", RpmTop, "minorTicks", "4", "tickLength", "9", "tickColor", "#6D84A6", "litScale", "true",
+                "numbers", "true", "numbersTo", RpmTop, "numberSize", "17", "numberColor", "#DCE6F2",
+                "needle", "Marker", "needleColor", "#FFFFFF", "needleLength", "130", "needleWidth", "3", "glow", "8", "flash", "=ShiftFlash");
             b.Add("shape", "Gear ring", 402, 86, 50, 50, "shape", "Ellipse", "fill", "#401E6FD0", "stroke", "accent", "strokeWidth", "2", "glow", "8");
             b.Add("gear", "Gear", 402, 86, 50, 50, "size", "28", "neighbors", "false");
             b.Text("Speed", 317, 136, 220, 86, "=format(Speed, \"0\")", "size", "90", "fxShadow", "10", "fxShadowY", "4");
             b.Text("Speed unit", 317, 220, 220, 16, "=SpeedUnit", "size", "12", "tracking", "4", "weight", "Regular", "color", "muted");
             b.Text("Lap speed", 317, 244, 220, 18, "=LastLapSpeed > 0 ? \"LAP \" + format(LastLapSpeed, \"0.0\") : \"\"", "size", "14", "tracking", "2", "color", "info");
             b.Text("Lap", 337, 300, 180, 30, "=\"LAP \" + LapText", "size", "18", "tracking", "3", "color", "text", "visible", "Notice == \"\" && !Caution");
-            b.Text("Rpm unit", 337, 324, 180, 14, "RPM x1000", "size", "9", "tracking", "2.5", "weight", "Regular", "color", "dim", "visible", "Notice == \"\" && !Caution");
 
             // Curved gauges either side of the dial: fuel on the left, the live delta on the right.
             b.Add("bar", "Fuel bar", 226, 70, 18, 220, "value", "=FuelPct", "orientation", "Vertical", "bend", "70", "radius", "-1",
