@@ -78,4 +78,6 @@ if ($recording) {
 Write-Host ''
 if ($failed) { Write-Host 'Release check FAILED. Reports are in the folder above.' -ForegroundColor Red; exit 1 }
 Write-Host 'Release check passed.' -ForegroundColor Green
+# For the release notes, so people can check their download (the exe isn't code-signed).
+Write-Host ('SHA-256 of AlmostFastDash.exe: ' + (Get-FileHash (Join-Path $root 'bin\Release\net48\AlmostFastDash.exe') -Algorithm SHA256).Hash.ToLowerInvariant())
 exit 0
