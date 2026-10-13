@@ -16,7 +16,11 @@ namespace AlmostFastOverlays
             Gallons = string.Equals(general?.FuelUnit, "Gallons", StringComparison.OrdinalIgnoreCase);
             string temperature = general?.TemperatureUnit;
             Celsius = string.IsNullOrEmpty(temperature) ? Metric : string.Equals(temperature, "Celsius", StringComparison.OrdinalIgnoreCase);
+            FuelReserveLaps = Math.Max(0, Math.Min(5, general?.FuelReserveLaps ?? 0));
         }
+
+        /// <summary>The fuel margin chosen under settings, in laps; it travels with the units because both shape the numbers shown.</summary>
+        public double FuelReserveLaps { get; }
 
         public bool Metric { get; }
         public bool Gallons { get; }

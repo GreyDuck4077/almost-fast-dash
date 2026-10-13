@@ -18,10 +18,14 @@ alerts. One exe, no installer, no other software required.
   are also included. Every one is built only from the designer's own widgets,
   so any of them can be changed or rebuilt by hand. The dashboard can switch by
   the session's track type, and a wheel button can page through screens.
-- **Any screen resolution.** A new dashboard is built for the wheel screen
+- **Designs for any resolution.** A new dashboard is built for the wheel screen
   that's plugged in, or for the resolution you choose (common wheel and dash
   sizes, or any width and height). Templates scale to it, and the designer
-  can move a dashboard to another size later.
+  can move a dashboard to another size later. Which screens the app can
+  actually *drive* is a shorter list: see [Compatibility](#compatibility).
+- **Touch**: on a touch wheel screen, tapping a panel switches what it shows.
+  In the designer, drop something onto a panel to add it to the panel or to a
+  new view of it.
 - **LED devices** of any shape: the LEDs around a wheel screen, light bars, LED
   strips. Arduino boards on the common sim-racing LED protocol, Adalight strips
   and WLED controllers.
@@ -47,6 +51,61 @@ It does not do on-monitor overlays (standings, relative and the like).
 Only one program can drive a wheel screen or an LED board at a time, so close
 other dashboard software (SimHub and the like) while this runs. The Devices page
 says when another program has a device's port.
+
+## Compatibility
+
+What has been tested on real hardware, what is supported by protocol but not
+yet tried, and what you can only design for:
+
+| | Status |
+| --- | --- |
+| **Sim** | iRacing only. |
+| **Wheel screens driven** | VoCore-family "M-PRO" USB screens at 854×480 (USB C872:1004), including touch. Tested on one such wheel screen. No other screen is driven yet. |
+| **Designing for other sizes** | Any resolution from 64×64 to 3840×3840. A design for another size is fitted onto the driven screen without stretching; it does not make the app drive a screen of that size. |
+| **LED boards tested** | The LEDs around a wheel screen and a light bar, both on SSG firmware (sim-racing LED serial protocol). |
+| **LED devices supported, not yet tested here** | Other Arduino boards on the same serial protocol, Adalight strips (`Firmware\Adalight`), WLED controllers over UDP. |
+| **Windows** | 10 and 11, .NET Framework 4.8 (built in). |
+
+If you try it on something not in the tested rows, please open an issue with
+what worked and what didn't.
+
+## How the numbers are worked out
+
+Race information is only useful if it can be trusted, so here is what the
+dashboard does behind the main figures:
+
+- **Gaps to the cars around you** (relative, ahead/behind) come from iRacing's
+  own estimate of each car's time to reach its spot on the lap, which follows
+  the track's fast and slow parts. If an estimate is missing or doesn't agree
+  with where the cars are, the gap falls back to distance × lap time. Gaps in
+  the race order come from iRacing's official timing.
+- **Fuel per lap** is the average of your last five clean laps: laps that
+  didn't touch pit road, weren't under caution and weren't refuelled. Until
+  three such laps exist, fuel figures are marked **EST**.
+- **Fuel to add** counts only what's left of the current lap plus the laps to
+  go, and adds the **safety margin** from Settings (none, ½, 1 or 2 laps). In a
+  timed race it assumes the race ends when the leader next crosses the line
+  after the clock runs out, worked out at your pace (slightly generous if you're
+  behind the leader). It shows the amount with its unit, or ENOUGH.
+- **Lap falloff** compares your last green-flag lap of the stint with the
+  stint's best; caution and pit laps are left out.
+
+## Tests and releases
+
+`release-check.ps1` builds the app and runs every automatic check on a clean
+copy before a release: the designer and light self-tests, a render of every
+template, the light frames, and a replay of your latest iRacing recording.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\release-check.ps1
+```
+
+Settings are saved whole or not at all, the previous copy is kept as
+`settings.json.bak`, and a dated copy goes into `SettingsBackups` every ten
+minutes of changes (the last twelve are kept). A damaged settings file is
+replaced by the newest backup that reads, and the damaged one is kept beside
+it. **Devices › Wheel screen › Performance** shows the frames a second, drawing
+time and sending time measured on the wheel.
 
 ## Devices
 
@@ -156,8 +215,9 @@ for ten seconds.
 Dashboards are data, not code: a theme plus one or more screens of widgets,
 stored in `settings.json`.
 
-- **Canvas**: the wheel screen at 854×480. Drag, resize, multi-select, snap to
-  edges and centres (Alt turns snapping off), Ctrl+wheel to zoom.
+- **Canvas**: the screen at the dashboard's own resolution (Display resolution
+  changes it). Drag, resize, multi-select, snap to edges and centres (Alt turns
+  snapping off), Ctrl+wheel to zoom.
 - **Add**: widgets (panel, text, value, gear, bar, arc gauge, on-screen shift
   lights, relative, blind spot, flag, session progress, pedal and delta traces,
   lap history, shape, gradient, image) and ready-made blocks. Save your own
@@ -178,9 +238,9 @@ and `blink`.
 
 ## Settings
 
-Units (speed, fuel, temperature), the page the app opens on, minimising to the
-system tray, switching dashboards by track type, starting with Windows, and
-diagnostic logs.
+Units (speed, fuel, temperature), the fuel safety margin, the page the app
+opens on, minimising to the system tray, switching dashboards by track type,
+starting with Windows, checking for new versions, and diagnostic logs.
 
 **Diagnostic logs** (in `Logs` next to the exe) record blind-spot decisions and
 which light layer lit which LEDs, so an unexpected light can be looked up after
@@ -193,7 +253,9 @@ a race. No names or account details are recorded.
 | *(none)* | Opens the app. |
 | `--run` | Runs the dashboard (what the start button and Start with Windows use). |
 | `--stop` | Asks a running dashboard to stop. |
-| `--replay-ibt <file.ibt> <report.txt>` | Replays an iRacing telemetry recording through the light code and reports every flag and every light longer than a second. |
+| `--replay-ibt <file.ibt> <report.txt>` | Replays an iRacing telemetry recording through the app: every flag, each lap's times, falloff and fuel, the traced track map, and every light longer than a second. |
+| `--live-check <report.txt> [seconds]` | While you're in a session: what iRacing sends for every value the dashboards use, what the app makes of it (gaps by both methods, fuel, the race order) and the screen's measured performance. |
+| `--render-templates <folder>` | Saves a picture of every template in its states, the second views and other screen sizes. |
 | `--led-soak <COM port> <LED count> [--fast]` | Streams fast-changing frames to an LED board for 90 seconds and reports whether it kept up. |
 | `--light-frames <report.txt>` | Writes each dashboard's LED colours through a rev sweep and the preview states. |
 | `--designer-selftest <report.txt>` | Runs the end-to-end checks (they write settings next to the exe, so run them from a copy). |

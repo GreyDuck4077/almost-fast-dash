@@ -88,8 +88,14 @@ namespace AlmostFastOverlays
             Add("Fuel", "FuelPerLap", "Average fuel per clean lap, in your unit; -1 until known.", s => s.T.FuelPerLapAverage < 0 ? -1 : s.Units.Fuel(s.T.FuelPerLapAverage), "fuel(FuelPerLap, true)");
             Add("Fuel", "FuelLastLap", "Fuel used last lap, in your unit; -1 until known.", s => s.T.FuelLastLap < 0 ? -1 : s.Units.Fuel(s.T.FuelLastLap), "fuel(FuelLastLap, true)");
             Add("Fuel", "FuelLapsLeft", "Laps the fuel lasts; -1 until known.", s => s.T.FuelLapsLeft, "FuelLapsLeft < 0 ? \"--.-\" : format(FuelLapsLeft, \"0.0\")");
-            Add("Fuel", "FuelToFinish", "Fuel to add to reach the finish, in your unit; -1 until known.", s => s.T.FuelToFinish < 0 ? -1 : s.Units.Fuel(s.T.FuelToFinish), "FuelToFinish < 0 ? \"--.-\" : FuelToFinish <= 0.05 ? \"NONE\" : \"+\" + fuel(FuelToFinish)");
-            Add("Fuel", "FuelEnough", "True when the fuel reaches the finish.", s => s.T.FuelLapsLeft >= 0 && s.T.LapsRemaining >= 0 && s.T.FuelLapsLeft >= s.T.LapsRemaining);
+            Add("Fuel", "FuelToFinish", "Fuel to add to reach the finish, in your unit, with the safety margin from settings; -1 until known. Counts only what's left of this lap, and in a timed race the lap in progress when the clock runs out.",
+                s => { double add = s.T.FuelToFinishWith(s.Units.FuelReserveLaps); return add < 0 ? -1 : s.Units.Fuel(add); },
+                "FuelToFinish < 0 ? \"--\" : FuelToFinish <= 0.05 ? \"ENOUGH\" : \"ADD \" + fuel(FuelToFinish) + \" \" + FuelUnit");
+            Add("Fuel", "FuelEnough", "True when the fuel reaches the finish, safety margin included.", s => s.T.FuelToFinishWith(s.Units.FuelReserveLaps) == 0 && s.T.FuelPerLapAverage > 0);
+            Add("Fuel", "FuelEstimate", "True while fuel use is averaged over fewer than three clean laps, so fuel figures are still early estimates.", s => s.T.FuelLapsMeasured < 3);
+            Add("Fuel", "FuelLapsMeasured", "Clean laps the fuel use is averaged over (up to five).", s => (double)s.T.FuelLapsMeasured);
+            Add("Fuel", "FuelReserve", "The safety margin chosen in settings, in laps.", s => s.Units.FuelReserveLaps);
+            Add("Session", "LapsToGo", "Laps still to drive to the flag, counting only what's left of this one (3.4 = the rest of this lap and 3 more); -1 when unknown.", s => s.T.LapsToGo, "format(LapsToGo, \"0.0\")");
 
             // ---------------- Position
             Add("Position", "Position", "Overall position, 0 when unknown.", s => (double)s.T.Position, "Position > 0 ? \"P\" + Position : \"P--\"");

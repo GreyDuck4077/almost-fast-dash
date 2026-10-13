@@ -41,7 +41,7 @@ namespace AlmostFastOverlays
 
     internal sealed class AppSettings
     {
-        private const int CurrentSchema = 12;
+        private const int CurrentSchema = 13;
 
         public int SchemaVersion { get; set; }
         public string DefaultDashboardId { get; set; } = DashboardSettings.RoadId;
@@ -94,6 +94,7 @@ namespace AlmostFastOverlays
                 if (SchemaVersion == 9) RedesignRoundy();
                 if (SchemaVersion >= 9 && SchemaVersion < 11) GlassRoady();
                 if (SchemaVersion >= 9 && SchemaVersion < 12) TouchFlagships();
+                if (SchemaVersion > 0 && SchemaVersion < 13) ClearerFuelToAdd();
                 SchemaVersion = CurrentSchema;
             }
             foreach (DeviceSettings device in General.Devices) device.Normalize();
@@ -135,6 +136,27 @@ namespace AlmostFastOverlays
             var widgets = roundy?.Design?.Screens?.FirstOrDefault()?.Widgets;
             if (widgets == null || !widgets.Any(w => w.Name == "Around panel") || !widgets.Any(w => w.Name == "Falloff panel")) return;
             roundy.Design = DesignTemplates.Oval.Create();
+        }
+
+        /// <summary>The fuel-to-add value as designs showed it before schema 13: a bare "+0.3".</summary>
+        internal const string OldFuelToAdd = "=FuelToFinish < 0 ? \"--.-\" : FuelToFinish <= 0.05 ? \"NONE\" : \"+\" + fuel(FuelToFinish)";
+
+        /// <summary>
+        /// Schema 13: fuel to add reads "0.3 GAL" (or ENOUGH) under FUEL TO ADD, marked EST while it's an early
+        /// estimate, instead of a bare "+0.3". Only widgets still showing the old value change, and a label the
+        /// user wrote themselves stays.
+        /// </summary>
+        private void ClearerFuelToAdd()
+        {
+            var ours = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "FUEL TO END", "FUEL TO ADD", "REFUEL" };
+            foreach (DashWidget widget in Dashboards.Where(d => d.Design?.Screens != null).SelectMany(d => d.Design.AllWidgets()))
+            {
+                if (widget.Type != "metric" || widget.Get("value") != OldFuelToAdd) continue;
+                widget.Set("value", DesignTemplates.FuelToAdd);
+                string unit = widget.Get("unit", "") ?? "";
+                if (unit == "" || unit == "=FuelUnit") widget.Set("unit", DesignTemplates.FuelToAddUnit);
+                if (ours.Contains(widget.Get("label", "") ?? "")) widget.Set("label", DesignTemplates.FuelToAddLabel);
+            }
         }
 
         /// <summary>Schema 12: the flagships' glass panels gained tap views for touch screens; nothing else in them changes.</summary>
@@ -297,6 +319,9 @@ namespace AlmostFastOverlays
         /// <summary>Asks GitHub for the latest release when the window opens. Off unless the user turns it on.</summary>
         public bool CheckForUpdates { get; set; }
 
+        /// <summary>Extra laps of fuel counted into fuel to add (0, 0.5, 1 or 2): a margin for a slower or thirstier finish.</summary>
+        public double FuelReserveLaps { get; set; }
+
         /// <summary>The screen size last chosen for a new dashboard when no wheel screen was found (0 until then).</summary>
         public int LastScreenWidth { get; set; }
         public int LastScreenHeight { get; set; }
@@ -448,15 +473,33 @@ namespace AlmostFastOverlays
     {
         public static readonly string FilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
 
+        /// <summary>Earlier copies of settings.json, newest first: the save before last, then the timed backups.</summary>
+        public static readonly string BackupFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SettingsBackups");
+        private const int BackupsKept = 12;
+        private static readonly TimeSpan BackupEvery = TimeSpan.FromMinutes(10);
+
         public static AppSettings Load()
         {
             if (TryLoad(out AppSettings loaded)) return loaded;
-            // Unreadable even after retrying: keep the file (it may be fixable by hand) and start from defaults.
+            // Unreadable even after retrying: keep the file (it may be fixable by hand) and go back to the newest
+            // backup that reads, so a damaged file costs the last few minutes of changes rather than everything.
             try
             {
                 if (File.Exists(FilePath)) File.Copy(FilePath, FilePath + ".unreadable-" + DateTime.Now.ToString("yyyyMMdd-HHmmss"), true);
             }
             catch { }
+            foreach (string backup in Backups())
+            {
+                try
+                {
+                    var restored = Json.Deserialize<AppSettings>(File.ReadAllText(backup));
+                    if (restored == null) continue;
+                    restored.EnsureBuiltInDashboards();
+                    try { Save(restored); } catch { }
+                    return restored;
+                }
+                catch { }
+            }
             var defaults = AppSettings.CreateDefault();
             try { if (!File.Exists(FilePath)) Save(defaults); } catch { }
             return defaults;
@@ -495,12 +538,45 @@ namespace AlmostFastOverlays
             return false;
         }
 
+        /// <summary>
+        /// Writes settings.json whole or not at all: a new copy is written beside it and swapped in, the old
+        /// one becoming settings.json.bak. Every ten minutes of saving, a dated copy also goes into
+        /// SettingsBackups (the last twelve are kept). Each process writes its own temporary file, so the
+        /// settings window and the dashboard can never write into the same one.
+        /// </summary>
         public static void Save(AppSettings settings)
         {
-            string temporary = FilePath + ".tmp";
+            string temporary = FilePath + "." + System.Diagnostics.Process.GetCurrentProcess().Id + ".tmp";
             File.WriteAllText(temporary, Indent(Json.Serialize(settings)));
-            if (File.Exists(FilePath)) File.Replace(temporary, FilePath, null);
+            if (File.Exists(FilePath))
+            {
+                TimedBackup();
+                File.Replace(temporary, FilePath, FilePath + ".bak");
+            }
             else File.Move(temporary, FilePath);
+        }
+
+        private static void TimedBackup()
+        {
+            try
+            {
+                Directory.CreateDirectory(BackupFolder);
+                string[] dated = Directory.GetFiles(BackupFolder, "settings-*.json").OrderByDescending(f => f, StringComparer.Ordinal).ToArray();
+                if (dated.Length > 0 && DateTime.UtcNow - File.GetLastWriteTimeUtc(dated[0]) < BackupEvery) return;
+                File.Copy(FilePath, Path.Combine(BackupFolder, "settings-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".json"), true);
+                foreach (string old in dated.Skip(BackupsKept - 1)) File.Delete(old);
+            }
+            catch { }
+        }
+
+        /// <summary>The copies to fall back on, newest first.</summary>
+        public static IEnumerable<string> Backups()
+        {
+            if (File.Exists(FilePath + ".bak")) yield return FilePath + ".bak";
+            string[] dated;
+            try { dated = Directory.Exists(BackupFolder) ? Directory.GetFiles(BackupFolder, "settings-*.json") : new string[0]; }
+            catch { dated = new string[0]; }
+            foreach (string file in dated.OrderByDescending(f => f, StringComparer.Ordinal)) yield return file;
         }
 
         public static DateTime LastWriteUtc()

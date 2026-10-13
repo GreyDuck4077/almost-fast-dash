@@ -10,3 +10,6 @@ App/
 # Local backups (settings copies, zips); old code lives in git history instead
 Backups/
 *.zip
+
+# Working folders of outside reviews
+.review/

@@ -290,16 +290,45 @@ namespace AlmostFastOverlays
         /// <summary>Laps the remaining fuel lasts at the average rate, or -1 when unknown.</summary>
         public double FuelLapsLeft => FuelPerLapAverage > 0 ? FuelLiters / FuelPerLapAverage : -1;
 
-        /// <summary>Fuel to add to reach the finish in liters, or -1 when unknown.</summary>
-        public double FuelToFinish
+        /// <summary>How far round the current lap the player is, 0 to 1.</summary>
+        public double LapFraction =>
+            PlayerCarIdx >= 0 && CarLapDist != null && PlayerCarIdx < CarLapDist.Length && CarLapDist[PlayerCarIdx] >= 0 ? Math.Min(1, CarLapDist[PlayerCarIdx]) : 0;
+
+        /// <summary>
+        /// Laps still to drive to the flag, counting only what's left of this one (3.4 is the last 0.4 of this
+        /// lap and three more), or -1 when unknown. A timed race ends when the leader next crosses the line
+        /// after the clock runs out, so the lap in progress at zero is finished. That is reckoned at your own
+        /// pace, which is right for the leader's lap and errs toward more fuel for anyone behind.
+        /// </summary>
+        public double LapsToGo
         {
             get
             {
-                double laps = LapsRemaining;
-                if (laps < 0 || FuelPerLapAverage <= 0) return -1;
-                return Math.Max(0, laps * FuelPerLapAverage - FuelLiters);
+                double rest = 1 - LapFraction;
+                if (ProgressMode == SessionProgressMode.LapRace && TotalLaps > 0)
+                    return Math.Max(0, TotalLaps - LapsCompleted - LapFraction);
+                if (ProgressMode == SessionProgressMode.TimedRace && ReferenceLapSeconds > 0)
+                {
+                    double seconds = Math.Max(0, SessionSecondsRemaining), lap = ReferenceLapSeconds;
+                    return seconds <= rest * lap ? rest : rest + Math.Ceiling((seconds - rest * lap) / lap);
+                }
+                return -1;
             }
         }
+
+        /// <summary>Fuel to add to reach the finish in liters, or -1 when unknown.</summary>
+        public double FuelToFinish => FuelToFinishWith(0);
+
+        /// <summary>Fuel to add to reach the finish with a margin of <paramref name="reserveLaps"/> more laps, in liters; -1 when unknown.</summary>
+        public double FuelToFinishWith(double reserveLaps)
+        {
+            double laps = LapsToGo;
+            if (laps < 0 || FuelPerLapAverage <= 0) return -1;
+            return Math.Max(0, (laps + Math.Max(0, reserveLaps)) * FuelPerLapAverage - FuelLiters);
+        }
+
+        /// <summary>How many clean laps the fuel use is averaged over; under three it is an early estimate.</summary>
+        public int FuelLapsMeasured { get; set; }
     }
 
     internal sealed partial class IRacingTelemetrySource : IDisposable
@@ -458,6 +487,7 @@ namespace AlmostFastOverlays
             snapshot.FuelLevelPct = 0.41;
             snapshot.FuelLastLap = 2.41;
             snapshot.FuelPerLapAverage = 2.46;
+            snapshot.FuelLapsMeasured = 5;
             snapshot.StintLaps = 8;
             snapshot.RecentLapSeconds = new[] { 88.412, 87.932, 88.105, 87.521, 87.932 };
             // A stint wearing its tyres: up to speed on lap two, then a little slower each lap.
@@ -675,6 +705,7 @@ namespace AlmostFastOverlays
                 _latest.FuelLevelPct = ReadTelemetryDouble(sample.Telemetry, "FuelLevelPct");
                 _latest.FuelLastLap = _lastLapFuel;
                 _latest.FuelPerLapAverage = _fuelPerLap.Count > 0 ? Average(_fuelPerLap) : -1;
+                _latest.FuelLapsMeasured = _fuelPerLap.Count;
                 _latest.StintLaps = _stintLaps;
                 _latest.RecentLapSeconds = _recentLaps.ToArray();
                 _latest.StintLapSeconds = _stintGreenArray;
@@ -846,6 +877,7 @@ namespace AlmostFastOverlays
                 ahead.Sort((a, b) => a.Item1.CompareTo(b.Item1));
                 behind.Sort((a, b) => b.Item1.CompareTo(a.Item1));
 
+                float[] estimates = ReadFloats(telemetry, "CarIdxEstTime");
                 var rows = new System.Collections.Generic.List<RelativeEntry>();
                 for (int k = Math.Min(2, ahead.Count) - 1; k >= 0; k--) rows.Add(Entry(ahead[k].Item2, ahead[k].Item1));
                 rows.Add(Entry(player, 0));
@@ -863,7 +895,7 @@ namespace AlmostFastOverlays
                         Position = positions != null && index < positions.Length ? positions[index] : 0,
                         CarNumber = info?.CarNumber ?? car?.CarNumberDisplay,
                         Name = info?.Name ?? ("CAR " + index),
-                        Gap = -delta * lapSeconds,
+                        Gap = index == player ? 0 : -TrackGap(estimates, player, index, delta, lapSeconds),
                         LapRelation = index == player ? 0 : lapGap > 0.5 ? 1 : lapGap < -0.5 ? -1 : 0,
                         IsPlayer = index == player,
                         InPits = pits != null && index < pits.Length && pits[index],
@@ -991,7 +1023,9 @@ namespace AlmostFastOverlays
             _pendingLapSeen = telemetry.LapLastLapTime;
             _pendingLapAt = TickNow;
 
-            if (!_lapTouchedPit && _fuelAtLapStart > 0)
+            // Only green-flag laps measure fuel use: a caution lap burns less, and counting it would make the
+            // fuel to the finish come out short once racing resumes.
+            if (!_lapTouchedPit && !_currentLapHadYellow && _fuelAtLapStart > 0)
             {
                 double used = _fuelAtLapStart - fuel;
                 if (used > 0.01)
@@ -1162,16 +1196,40 @@ namespace AlmostFastOverlays
                 }
             }
 
+            float[] estimates = ReadFloats(telemetry, "CarIdxEstTime");
             if (aheadIndex >= 0)
             {
                 driverAhead = GetDriverName(details, aheadIndex);
-                relativeAhead = -(closestAhead * estimatedLapSeconds);
+                relativeAhead = -TrackGap(estimates, playerIndex, aheadIndex, closestAhead, estimatedLapSeconds);
             }
             if (behindIndex >= 0)
             {
                 driverBehind = GetDriverName(details, behindIndex);
-                relativeBehind = -(closestBehind * estimatedLapSeconds);
+                relativeBehind = -TrackGap(estimates, playerIndex, behindIndex, closestBehind, estimatedLapSeconds);
             }
+        }
+
+        /// <summary>
+        /// Seconds from the player to another car on track: positive when it is ahead. iRacing gives every
+        /// car an estimated time to reach where it is on the lap (CarIdxEstTime), built from the track's own
+        /// speed profile. The difference between two cars' estimates follows the slow corners and the fast
+        /// straights between them. Distance times a whole-lap average assumes the lap is equally fast all
+        /// round, so it is only used when the estimates are missing or don't make sense.
+        /// </summary>
+        /// <param name="lapDelta">The other car's lead on the lap, -0.5 to 0.5 of a lap.</param>
+        internal static double TrackGap(float[] estimates, int player, int other, double lapDelta, double lapSeconds)
+        {
+            double plain = lapDelta * lapSeconds;
+            if (estimates == null || player < 0 || other < 0 || player >= estimates.Length || other >= estimates.Length) return plain;
+            double mine = estimates[player], theirs = estimates[other];
+            if (mine < 0 || theirs < 0 || (mine == 0 && theirs == 0)) return plain;
+            double gap = theirs - mine;
+            // Across the start/finish line the estimates restart from zero.
+            if (lapDelta > 0 && gap < 0) gap += lapSeconds;
+            else if (lapDelta < 0 && gap > 0) gap -= lapSeconds;
+            // A gap far from what the distance suggests means an estimate that can't be trusted right now.
+            if (Math.Sign(gap) != Math.Sign(lapDelta) || Math.Abs(gap - plain) > lapSeconds * 0.25) return plain;
+            return gap;
         }
 
         private static string GetDriverName(CarDetails[] details, int carIndex)
@@ -1220,6 +1278,12 @@ namespace AlmostFastOverlays
                 mode = SessionProgressMode.TimedRace;
                 totalSeconds = session._SessionTime;
             }
+        }
+
+        private static float[] ReadFloats(Telemetry telemetry, string name)
+        {
+            try { return telemetry[name] as float[]; }
+            catch { return null; }
         }
 
         private static int ReadTelemetryInt(Telemetry telemetry, string name)

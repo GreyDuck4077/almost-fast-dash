@@ -18,7 +18,7 @@ namespace AlmostFastOverlays
         private static readonly string[] Variables =
         {
             "OilTemp", "OilPress", "WaterTemp", "FuelPress", "Voltage", "DRS_Status", "LapDistPct", "SessionTime", "PlayerCarIdx",
-            "CarIdxPosition", "CarIdxClassPosition", "CarIdxLastLapTime", "CarIdxBestLapTime", "CarIdxF2Time", "CarIdxLapCompleted", "CarIdxLapDistPct", "CarIdxOnPitRoad",
+            "CarIdxPosition", "CarIdxClassPosition", "CarIdxLastLapTime", "CarIdxBestLapTime", "CarIdxF2Time", "CarIdxEstTime", "CarIdxLapCompleted", "CarIdxLapDistPct", "CarIdxOnPitRoad",
             "LFtempCL", "LFtempCM", "LFtempCR", "LFwearM", "LFcoldPressure", "RRtempCM", "RRwearM", "RRcoldPressure", "dcBrakeBias", "dcTractionControl", "dcABS", "CarLeftRight"
         };
 
@@ -75,6 +75,28 @@ namespace AlmostFastOverlays
                 s.FuelLiters, s.FuelCapacityLiters, s.Sector, s.SectorCount, Fmt.LapTime(s.SessionBestLapSeconds), Fmt.LapTime(s.ClassBestLapSeconds)));
             foreach (TyreCorner tyre in s.Tyres)
                 report.AppendLine(string.Format(CultureInfo.InvariantCulture, "  tyre {0}: {1:0}/{2:0}/{3:0} C, wear {4:0.00}, {5:0} kPa", tyre.Name, tyre.TempOuter, tyre.TempMiddle, tyre.TempInner, tyre.Wear, tyre.PressureKpa));
+            report.AppendLine(string.Format(CultureInfo.InvariantCulture, "  race: {0:0.00} laps to go, fuel per lap {1:0.000} L over {2} clean laps{3}, fuel to add {4:0.00} L",
+                s.LapsToGo, s.FuelPerLapAverage, s.FuelLapsMeasured, s.FuelLapsMeasured < 3 ? " (early estimate)" : "", s.FuelToFinish));
+            report.AppendLine("  around you (gap from iRacing's per-car time estimates; by distance in brackets, as it was worked out before):");
+            float[] estimates = t["CarIdxEstTime"] as float[], distances = t.CarIdxLapDistPct;
+            int me = s.PlayerCarIdx;
+            double lap = s.ReferenceLapSeconds > 0 ? s.ReferenceLapSeconds : 90;
+            foreach (RelativeEntry row in s.Relatives ?? new RelativeEntry[0])
+            {
+                string plain = "";
+                int index = Array.FindIndex(s.Standings, r => r.CarNumber == row.CarNumber);
+                int car = index >= 0 ? s.Standings[index].CarIdx : -1;
+                if (!row.IsPlayer && distances != null && car >= 0 && me >= 0 && car < distances.Length && me < distances.Length)
+                {
+                    double delta = distances[car] - distances[me];
+                    if (delta > 0.5) delta -= 1;
+                    if (delta < -0.5) delta += 1;
+                    plain = string.Format(CultureInfo.InvariantCulture, " ({0:+0.00;-0.00} s)", -delta * lap);
+                }
+                report.AppendLine(string.Format(CultureInfo.InvariantCulture, "    #{0} {1}: {2:+0.00;-0.00} s{3}{4}", row.CarNumber, row.Name, row.Gap, plain, row.IsPlayer ? "  <- you" : ""));
+            }
+            string screen = ScreenStats.Read();
+            report.AppendLine("  screen: " + (screen ?? "no figures (the dashboard isn't running, or no wheel screen is connected)"));
             report.AppendLine("  leaderboard: " + s.Standings.Length + " cars");
             foreach (StandingsEntry r in s.Standings.Take(12))
                 report.AppendLine(string.Format(CultureInfo.InvariantCulture, "    P{0} (class P{1}) #{2} {3} [{4}] best {5} last {6} gap {7} interval {8:0.00}{9}{10}",

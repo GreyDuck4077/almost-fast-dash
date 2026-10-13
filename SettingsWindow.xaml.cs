@@ -698,6 +698,10 @@ namespace AlmostFastOverlays
             SpeedMph.IsChecked = SpeedKph.IsChecked != true;
             FuelGallons.IsChecked = string.Equals(general.FuelUnit, "Gallons", StringComparison.OrdinalIgnoreCase);
             FuelLiters.IsChecked = FuelGallons.IsChecked != true;
+            FuelReserveHalf.IsChecked = Math.Abs(general.FuelReserveLaps - 0.5) < 0.01;
+            FuelReserve1.IsChecked = Math.Abs(general.FuelReserveLaps - 1) < 0.01;
+            FuelReserve2.IsChecked = Math.Abs(general.FuelReserveLaps - 2) < 0.01;
+            FuelReserve0.IsChecked = FuelReserveHalf.IsChecked != true && FuelReserve1.IsChecked != true && FuelReserve2.IsChecked != true;
             TempC.IsChecked = new UnitSystem(general).Celsius;
             TempF.IsChecked = TempC.IsChecked != true;
             OpenDevices.IsChecked = general.StartPage == "Devices";
@@ -716,6 +720,7 @@ namespace AlmostFastOverlays
             if (_loading) return;
             _settings.General.SpeedUnit = SpeedKph.IsChecked == true ? "KPH" : "MPH";
             _settings.General.FuelUnit = FuelGallons.IsChecked == true ? "Gallons" : "Liters";
+            _settings.General.FuelReserveLaps = FuelReserve2.IsChecked == true ? 2 : FuelReserve1.IsChecked == true ? 1 : FuelReserveHalf.IsChecked == true ? 0.5 : 0;
             if (TempC.IsChecked == true || TempF.IsChecked == true) _settings.General.TemperatureUnit = TempC.IsChecked == true ? "Celsius" : "Fahrenheit";
             Save();
         }

@@ -408,9 +408,11 @@ namespace AlmostFastOverlays
                         int transitionFromGear = 0;
                         DateTime gearTransitionStartedUtc = DateTime.MinValue;
                         bool pageButtonHeld = false, backButtonHeld = false;
+                        var stats = new ScreenStats();
 
                         while (!ShouldStop())
                         {
+                            long frameStart = System.Diagnostics.Stopwatch.GetTimestamp();
                             TelemetrySnapshot snapshot = preview.Apply(telemetry.GetSnapshot());
 
                             // Pick up saved settings and switch dashboards when the
@@ -485,19 +487,28 @@ namespace AlmostFastOverlays
                             if (current != lastDrawn)
                             {
                                 int previousGear = gearProgress < 1 ? transitionFromGear : snapshot.Gear;
+                                long drawStart = System.Diagnostics.Stopwatch.GetTimestamp();
                                 using (var bitmap = runtime.Renderer.Render(
                                     snapshot, shiftFlashOn, previousGear, gearProgress))
                                 {
+                                    long sendStart = System.Diagnostics.Stopwatch.GetTimestamp();
                                     // A dashboard built for another screen size is fitted to this one, never stretched.
                                     if (bitmap.Width == Dv5Screen.Width && bitmap.Height == Dv5Screen.Height) screen.Draw(bitmap);
                                     else using (var fitted = ScreenSizes.Fit(bitmap, Dv5Screen.Width, Dv5Screen.Height)) screen.Draw(fitted);
+                                    long sendEnd = System.Diagnostics.Stopwatch.GetTimestamp();
+                                    double toMs = 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+                                    stats.Frame((sendStart - drawStart) * toMs, (sendEnd - sendStart) * toMs);
                                 }
                                 lastDrawn = current;
                             }
 
                             // Gear changes and waving flags animate, so they get a faster refresh.
-                            StopRequested.Wait(gearProgress < 1 ? 25 : snapshot.Flag != RacingFlag.None ? 33
-                                : snapshot.Connected ? RefreshIntervalMilliseconds : IdleRefreshMilliseconds);
+                            // A steady pace: wait out what's left of the frame's time rather than a fixed pause after the
+                            // work, so drawing and sending don't stretch the gap between frames.
+                            int period = gearProgress < 1 ? 25 : snapshot.Flag != RacingFlag.None ? 33
+                                : snapshot.Connected ? RefreshIntervalMilliseconds : IdleRefreshMilliseconds;
+                            double spent = (System.Diagnostics.Stopwatch.GetTimestamp() - frameStart) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+                            StopRequested.Wait(Math.Max(2, period - (int)spent));
                         }
                     }
                 }

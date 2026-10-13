@@ -49,6 +49,9 @@ namespace AlmostFastOverlays
         /// follow the screen's width and height. Text, line widths, corners and glows follow the smaller of
         /// the two scales, so they stay in proportion when the shape of the screen changes.
         /// </summary>
+        private const double MinReadableText = 10;
+        private static readonly HashSet<string> TextSizes = new HashSet<string> { "size", "valueSize", "labelSize", "unitSize", "numberSize", "titleSize", "neighborSize" };
+
         public void ScaleTo(int width, int height)
         {
             width = ScreenSizes.Clamp(width);
@@ -69,6 +72,9 @@ namespace AlmostFastOverlays
                     // Negative values are settings such as "round" corners, not sizes.
                     if (value <= 0) continue;
                     double scaled = value * s;
+                    // Text stays readable on a small screen: it doesn't shrink below 10 px (smaller text that was
+                    // designed that way stays as it was). Shrink to fit still keeps it inside its box.
+                    if (TextSizes.Contains(key)) scaled = Math.Max(scaled, Math.Min(value, MinReadableText));
                     widget.Props[key] = (scaled >= 10 ? Math.Round(scaled) : Math.Round(scaled, 1)).ToString(System.Globalization.CultureInfo.InvariantCulture);
                 }
             }

@@ -12,6 +12,75 @@ namespace AlmostFastOverlays
     /// code the dashboard runs, and writes what lit each LED group and for how long.
     /// Answers "what was that light?" after a race. Run with --replay-ibt file.ibt report.txt.
     /// </summary>
+    /// <summary>
+    /// Checks the gap to the car ahead against what really happened. Every couple of seconds it notes the
+    /// car just ahead on track, where it is, and the two estimates of the gap: from iRacing's per-car time
+    /// estimates, and from distance times a lap time. Afterwards the true gap is how long you took to reach
+    /// that spot, read from your own path through the recording.
+    /// </summary>
+    internal sealed class GapCheck
+    {
+        private readonly List<double> _time = new List<double>(), _distance = new List<double>();
+        private readonly List<double[]> _samples = new List<double[]>();
+        private double _nextSample;
+
+        public void Observe(Telemetry telemetry, double now, TelemetrySnapshot snapshot)
+        {
+            float[] pct = telemetry.CarIdxLapDistPct, estimates = telemetry["CarIdxEstTime"] as float[];
+            int[] laps = telemetry["CarIdxLap"] as int[];
+            int me = Convert.ToInt32(telemetry["PlayerCarIdx"] ?? -1);
+            if (pct == null || laps == null || me < 0 || me >= pct.Length || pct[me] < 0) return;
+            double mine = laps[me] + pct[me];
+            if (_distance.Count == 0 || mine >= _distance[_distance.Count - 1]) { _time.Add(now); _distance.Add(mine); }
+            bool green = !snapshot.CautionActive && !snapshot.OnPitRoad && snapshot.SpeedMph > 40;
+            if (!green || now < _nextSample) return;
+            _nextSample = now + 2;
+            int ahead = -1;
+            double lead = 1;
+            for (int i = 0; i < pct.Length; i++)
+            {
+                if (i == me || pct[i] < 0) continue;
+                double d = pct[i] - pct[me];
+                if (d < 0) d += 1;
+                if (d > 0.0005 && d < lead) { lead = d; ahead = i; }
+            }
+            if (ahead < 0 || lead > 0.5) return;
+            double lap = 0;
+            foreach (CarDetails c in telemetry.CarDetails ?? new CarDetails[0])
+                if (c != null && c.CarIdx == me && c.Driver != null) lap = c.Driver.CarClassEstLapTime;
+            if (lap <= 10) return;
+            _samples.Add(new[] { now, mine + lead, IRacingTelemetrySource.TrackGap(estimates, me, ahead, lead, lap), lead * lap });
+        }
+
+        public IEnumerable<string> Report()
+        {
+            var estimateErrors = new List<double>();
+            var distanceErrors = new List<double>();
+            foreach (double[] s in _samples)
+            {
+                // When did you reach the spot the car ahead was at?
+                int k = _distance.BinarySearch(s[1]);
+                if (k < 0) k = ~k;
+                if (k <= 0 || k >= _distance.Count) continue;
+                double f = (s[1] - _distance[k - 1]) / Math.Max(1e-9, _distance[k] - _distance[k - 1]);
+                double truth = _time[k - 1] + f * (_time[k] - _time[k - 1]) - s[0];
+                if (truth <= 0 || truth > 10) continue;
+                estimateErrors.Add(Math.Abs(s[2] - truth));
+                distanceErrors.Add(Math.Abs(s[3] - truth));
+            }
+            if (estimateErrors.Count == 0) { yield return "no green-flag running behind another car to check"; yield break; }
+            string Line(string name, List<double> errors)
+            {
+                var sorted = errors.OrderBy(e => e).ToList();
+                return string.Format(CultureInfo.InvariantCulture, "{0}: off by {1:0.000} s on average, {2:0.000} s typically (median), {3:0.000} s at worst",
+                    name, errors.Average(), sorted[sorted.Count / 2], sorted[sorted.Count - 1]);
+            }
+            yield return estimateErrors.Count + " moments checked";
+            yield return Line("iRacing's time estimates (what the dashboard now shows)", estimateErrors);
+            yield return Line("distance times a lap time (how it was worked out before)", distanceErrors);
+        }
+    }
+
     internal static class RecordingReplay
     {
         public static int Run(string recording, string reportPath)
@@ -37,6 +106,7 @@ namespace AlmostFastOverlays
             int lastLaps = -1;
             TelemetrySnapshot final = null;
             var gps = new List<System.Drawing.PointF>();
+            var gaps = new GapCheck();
 
             foreach (Telemetry telemetry in Telemetry.ReadRecording(recording))
             {
@@ -78,10 +148,15 @@ namespace AlmostFastOverlays
                     lastLaps = snapshot.LapsCompleted;
                     race.Add(Clock(sessionTime) + string.Format(CultureInfo.InvariantCulture, "  lap {0} done: last {1}, sectors {2} | best sectors {3} | session best {4}, P{5} of {6} on the leaderboard",
                         snapshot.LapsCompleted, Fmt.LapTime(snapshot.LastLapSeconds), Times(snapshot.LastLapSectorTimes), Times(snapshot.BestSectorTimes),
-                        Fmt.LapTime(snapshot.SessionBestLapSeconds), snapshot.Standings.FirstOrDefault(r => r.IsPlayer)?.Position ?? 0, snapshot.Standings.Length));
+                        Fmt.LapTime(snapshot.SessionBestLapSeconds), snapshot.Standings.FirstOrDefault(r => r.IsPlayer)?.Position ?? 0, snapshot.Standings.Length) +
+                        string.Format(CultureInfo.InvariantCulture, "; stint {0} green laps, falloff {1}; fuel {2} L a lap over {3}, {4:0.0} laps to go, add {5} L",
+                            snapshot.StintLapSeconds.Length, snapshot.StintLapSeconds.Length >= 2 ? "+" + Falloff.Total(snapshot.StintLapSeconds).ToString("0.000", CultureInfo.InvariantCulture) : "--",
+                            snapshot.FuelPerLapAverage > 0 ? snapshot.FuelPerLapAverage.ToString("0.000", CultureInfo.InvariantCulture) : "--", snapshot.FuelLapsMeasured, snapshot.LapsToGo,
+                            snapshot.FuelToFinish >= 0 ? snapshot.FuelToFinish.ToString("0.00", CultureInfo.InvariantCulture) : "--"));
                 }
                 final = snapshot;
                 if (telemetry["Lat"] is double lat && telemetry["Lon"] is double lon && lat != 0) gps.Add(new System.Drawing.PointF((float)lon, (float)lat));
+                gaps.Observe(telemetry, sessionTime, snapshot);
 
                 LightFrame frame = renderer.Compose(snapshot.ForLights(), (int)(sessionTime * 1000));
                 spans.AddRange(activity.Observe(frame, devices, sessionTime, null, renderer.Profile.Gamma));
@@ -108,6 +183,13 @@ namespace AlmostFastOverlays
                     report.AppendLine(string.Format(CultureInfo.InvariantCulture, "  P{0} #{1} {2} ({3}) best {4} last {5} gap {6}", r.Position, r.CarNumber, r.Name, r.ClassName, Fmt.LapTime(r.BestLap), Fmt.LapTime(r.LastLap), RaceFields.GapText(r)));
             }
             report.AppendLine("  track map: " + (final?.TrackMap != null ? "traced (" + final.TrackMap.Name + ")" : "not traced"));
+            if (final != null)
+                report.AppendLine(string.Format(CultureInfo.InvariantCulture, "  at the end: {0} green laps this stint, falloff {1}, {2:+0.000;-0.000} s a lap; fuel {3:0.000} L a lap over {4} laps, {5:0.00} laps to go, fuel to add {6:0.00} L",
+                    final.StintLapSeconds.Length, final.StintLapSeconds.Length >= 2 ? Falloff.Total(final.StintLapSeconds).ToString("0.000", CultureInfo.InvariantCulture) + " s" : "--",
+                    Falloff.PerLap(final.StintLapSeconds), final.FuelPerLapAverage, final.FuelLapsMeasured, final.LapsToGo, final.FuelToFinish));
+            report.AppendLine();
+            report.AppendLine("GAP ACCURACY (the car just ahead on track, against when you actually reached its spot; green-flag running, gaps under 10 s)");
+            foreach (string line in gaps.Report()) report.AppendLine("  " + line);
             if (final?.TrackMap != null) SaveMapCheck(final.TrackMap, gps, Path.ChangeExtension(reportPath, ".map.png"));
             report.AppendLine();
             report.AppendLine("LIGHTS LONGER THAN 1 SECOND (rev lights left out)");

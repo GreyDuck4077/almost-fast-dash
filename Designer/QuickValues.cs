@@ -57,8 +57,8 @@ namespace AlmostFastOverlays
                 "valueColor", "=steps(FuelLapsLeft, $text, 0, $bad, 2, $warn, 5, $text)");
             yield return Value("Fuel", "Last lap consumption", "LAST LAP", "=fuel(FuelLastLap, true)", "=FuelUnit");
             yield return Value("Fuel", "Fuel per lap", "AVG / LAP", "=fuel(FuelPerLap, true)", "=FuelUnit");
-            yield return Value("Fuel", "Fuel to the finish", "REFUEL", "=FuelToFinish < 0 ? \"--.-\" : FuelToFinish <= 0.05 ? \"NONE\" : \"+\" + fuel(FuelToFinish)", "",
-                "valueColor", "=FuelToFinish < 0 ? $text : FuelToFinish <= 0.05 ? $good : $warn");
+            yield return Value("Fuel", "Fuel to add to finish", DesignTemplates.FuelToAddLabel, DesignTemplates.FuelToAdd, DesignTemplates.FuelToAddUnit,
+                "valueColor", DesignTemplates.FuelToAddTone);
 
             // ---------------- Race
             yield return Value("Race", "Race position", "POSITION", "=Position > 0 ? \"P\" + Position : \"P--\"", "=Starters > 0 ? \"/\" + Starters : \"\"");

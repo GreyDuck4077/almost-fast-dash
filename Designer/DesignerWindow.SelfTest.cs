@@ -639,6 +639,63 @@ namespace AlmostFastOverlays
                     plainGlass + " / " + overShape);
             }
 
+            // ---------------- trustworthy numbers: gaps, laps to go, fuel, settings
+            {
+                // A 90-second lap: the car ahead is 3% of a lap on, but 3.5 s away through the slow part of the track.
+                float[] estimates = { 30f, 33.5f, 88f, 1f };
+                double slow = IRacingTelemetrySource.TrackGap(estimates, 0, 1, 0.03, 90);
+                double acrossLine = IRacingTelemetrySource.TrackGap(estimates, 2, 3, 0.03, 90);
+                double missing = IRacingTelemetrySource.TrackGap(new[] { 30f, -1f }, 0, 1, 0.03, 90);
+                double nonsense = IRacingTelemetrySource.TrackGap(new[] { 30f, 70f }, 0, 1, 0.03, 90);
+                Check("gaps follow iRacing's per-car time estimates, across the line too, and fall back when they can't be trusted",
+                    Math.Abs(slow - 3.5) < 0.001 && Math.Abs(acrossLine - 3) < 0.001 && Math.Abs(missing - 2.7) < 0.001 && Math.Abs(nonsense - 2.7) < 0.001,
+                    slow + " " + acrossLine + " " + missing + " " + nonsense);
+
+                TelemetrySnapshot race = IRacingTelemetrySource.CreatePreviewSnapshot();
+                race.PlayerCarIdx = 0;
+                race.CarLapDist = new[] { 0.4f };
+                race.FuelPerLapAverage = 3;
+                race.FuelLapsMeasured = 5;
+                double expectLaps = Math.Max(0, race.TotalLaps - race.LapsCompleted - 0.4);
+                double expectAdd = Math.Max(0, expectLaps * 3 - race.FuelLiters), expectMargin = Math.Max(0, (expectLaps + 1) * 3 - race.FuelLiters);
+                Check("fuel to add counts only the rest of this lap, and a safety margin adds whole laps",
+                    race.ProgressMode == SessionProgressMode.LapRace && Math.Abs(race.LapsToGo - expectLaps) < 1e-5 && expectAdd > 0 &&
+                    Math.Abs(race.FuelToFinish - expectAdd) < 1e-4 && Math.Abs(race.FuelToFinishWith(1) - expectMargin) < 1e-4,
+                    race.LapsToGo + " laps, add " + race.FuelToFinish + ", with a lap's margin " + race.FuelToFinishWith(1));
+
+                var timed = new TelemetrySnapshot(true, 4, 120, RacingFlag.None, BlindSpotZone.None, BlindSpotZone.None, 0.5,
+                    SessionProgressMode.TimedRace, 250, 1800, 12, 0, 4, 2, 20, 10, 0, "A", -1, "B", 1, 10, false, 100, 100, 100, new bool[0], 0, 6, 6000);
+                timed.PlayerCarIdx = 0;
+                timed.CarLapDist = new[] { 0.5f };
+                // 250 s left on 100 s laps, half way round: the rest of this lap (50 s), then two more to pass zero; that one is the last.
+                Check("a timed race runs to the end of the lap in progress when the clock runs out", Math.Abs(timed.LapsToGo - 2.5) < 1e-9, timed.LapsToGo.ToString("0.00"));
+
+                var oldFuel = new AppSettings { SchemaVersion = 12 };
+                DashboardSettings withOld = DashboardSettings.CreateDesigned(DesignTemplates.Find("spotter"));
+                DashWidget refuel = withOld.Design.AllWidgets().First(w => w.Get("value", "") == DesignTemplates.FuelToAdd);
+                refuel.Set("value", AppSettings.OldFuelToAdd);
+                refuel.Set("label", "FUEL TO END");
+                refuel.Props.Remove("unit");
+                oldFuel.Dashboards.Add(withOld);
+                oldFuel.EnsureBuiltInDashboards();
+                Check("saved designs' fuel to add gains its unit and a clear label", refuel.Get("value") == DesignTemplates.FuelToAdd &&
+                    refuel.Get("unit") == DesignTemplates.FuelToAddUnit && refuel.Get("label") == DesignTemplates.FuelToAddLabel);
+
+                // A damaged settings file comes back from the newest backup that reads.
+                AppSettings current = SettingsStore.Load();
+                SettingsStore.Save(current);
+                SettingsStore.Save(current);
+                string good = System.IO.File.ReadAllText(SettingsStore.FilePath);
+                System.IO.File.WriteAllText(SettingsStore.FilePath, "{ this is not settings");
+                AppSettings recovered = SettingsStore.Load();
+                bool restoredFile = System.IO.File.ReadAllText(SettingsStore.FilePath).Length > 100;
+                Check("a damaged settings file is recovered from its backup", recovered != null && recovered.Dashboards.Count == current.Dashboards.Count && restoredFile &&
+                    System.IO.File.Exists(SettingsStore.FilePath + ".bak") && System.IO.Directory.GetFiles(SettingsStore.BackupFolder, "settings-*.json").Length > 0);
+                System.IO.File.WriteAllText(SettingsStore.FilePath, good);
+                foreach (string unreadable in System.IO.Directory.GetFiles(System.IO.Path.GetDirectoryName(SettingsStore.FilePath), "settings.json.unreadable-*"))
+                    System.IO.File.Delete(unreadable);
+            }
+
             // ---------------- touch
             {
                 // Reports the wheel screen sent while it was tapped at its top-left, top-right and bottom-right, then lifted.

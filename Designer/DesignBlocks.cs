@@ -151,8 +151,8 @@ namespace AlmostFastOverlays
                         W("bar", "Fuel range", 14, 74, 240, 8, "value", "=FuelLapsLeft > 0 ? FuelLapsLeft / " + scale + " : FuelPct",
                             "marker", "=LapsRemaining > 0 && FuelLapsLeft > 0 ? LapsRemaining / " + scale + " : 0", "color", "=FuelLapsLeft >= 0 && FuelLapsLeft < LapsRemaining ? $warn : $accent"),
                         W("metric", "Fuel per lap", 0, 94, 134, 70, "label", "AVG / LAP", "value", "=fuel(FuelPerLap, true)", "valueSize", "26"),
-                        W("metric", "Refuel", 134, 94, 134, 70, "label", "REFUEL", "value", "=FuelToFinish < 0 ? \"--.-\" : FuelToFinish <= 0.05 ? \"NONE\" : \"+\" + fuel(FuelToFinish)",
-                            "align", "Right", "valueSize", "26", "valueColor", "=FuelToFinish < 0 ? $text : FuelToFinish <= 0.05 ? $good : $warn")
+                        W("metric", "Refuel", 134, 94, 134, 70, "label", DesignTemplates.FuelToAddLabel, "value", DesignTemplates.FuelToAdd, "unit", DesignTemplates.FuelToAddUnit,
+                            "align", "Right", "valueSize", "26", "valueColor", DesignTemplates.FuelToAddTone)
                     };
                 }
             };

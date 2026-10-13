@@ -408,6 +408,16 @@
                                     <TextBlock x:Name="ScreenBrightnessValue" Style="{StaticResource T.Value}" HorizontalAlignment="Left" TextAlignment="Left" Margin="18,0,0,0"/>
                                 </StackPanel>
                             </Grid>
+                            <Border Style="{StaticResource Divider}"/>
+                            <Grid Style="{StaticResource Row}">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Text="Performance" Style="{StaticResource T.Label}"/>
+                                    <TextBlock Text="Measured on the wheel while the dashboard runs." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                </StackPanel>
+                                <TextBlock x:Name="ScreenPerformance" Grid.Column="1" Style="{StaticResource T.Secondary}" TextWrapping="Wrap" VerticalAlignment="Center"
+                                           Text="Start the dashboard to measure how it keeps up."/>
+                            </Grid>
                         </StackPanel>
                     </Border>
                 </StackPanel>
@@ -442,6 +452,22 @@
                                     <StackPanel Orientation="Horizontal">
                                         <RadioButton x:Name="FuelLiters" Style="{StaticResource Segment}" GroupName="Fuel" Content="Liters" Checked="Units_Changed"/>
                                         <RadioButton x:Name="FuelGallons" Style="{StaticResource Segment}" GroupName="Fuel" Content="Gallons" Checked="Units_Changed"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                            <Border Style="{StaticResource Divider}"/>
+                            <Grid Style="{StaticResource Row}">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="Fuel safety margin" Style="{StaticResource T.Label}"/>
+                                    <TextBlock Text="Extra laps of fuel counted into fuel to add" Style="{StaticResource T.Caption}"/>
+                                </StackPanel>
+                                <Border Grid.Column="1" Style="{StaticResource Segmented}" VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton x:Name="FuelReserve0" Style="{StaticResource Segment}" GroupName="Reserve" Content="None" Checked="Units_Changed"/>
+                                        <RadioButton x:Name="FuelReserveHalf" Style="{StaticResource Segment}" GroupName="Reserve" Content="½ lap" Checked="Units_Changed"/>
+                                        <RadioButton x:Name="FuelReserve1" Style="{StaticResource Segment}" GroupName="Reserve" Content="1 lap" Checked="Units_Changed"/>
+                                        <RadioButton x:Name="FuelReserve2" Style="{StaticResource Segment}" GroupName="Reserve" Content="2 laps" Checked="Units_Changed"/>
                                     </StackPanel>
                                 </Border>
                             </Grid>
