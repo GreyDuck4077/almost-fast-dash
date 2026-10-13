@@ -577,17 +577,17 @@ namespace AlmostFastOverlays
 
             b.Add("shape", "Divider", 40, 334, 774, 2, "shape", "Line", "stroke", "accent", "strokeWidth", "1.5", "fxGlow", "8", "fxGlowColor", "accent", "opacity", "70");
 
-            b.Tile("Last lap", 20, 350, 196, 116, "LAST LAP", "=laptime(LastLap)", "Glass", "valueSize", "28", "valueColor", "=LastLapIsBest ? $purple : $text");
+            b.Tile("Last lap", 20, 350, 196, 116, "LAST LAP", "=laptime(LastLap)", "Liquid", "valueSize", "28", "valueColor", "=LastLapIsBest ? $purple : $text");
             b.Text("Delta", 36, 432, 164, 24, "=signed(Delta, 2)", "size", "18", "align", "Left", "color", "=deltacolor(Delta)");
-            b.Panel("Tyres tile", 226, 350, 196, 116, "style", "Glass", "radius", "16");
+            b.Panel("Tyres tile", 226, 350, 196, 116, "style", "Liquid", "radius", "16");
             b.Add("tyres", "Tyres", 236, 358, 176, 100, "size", "16", "showWear", "false", "showPressure", "false", "panelColor", "#60100A20");
-            b.Tile("Position", 432, 350, 196, 116, "POSITION", PositionText, "Glass", "valueSize", "34", "unit", "=Starters > 0 ? \"/\" + Starters : \"\"", "unitColor", "dim");
-            b.Tile("Fuel laps", 638, 350, 196, 116, "FUEL LAPS", FuelLaps, "Glass", "valueSize", "34", "valueColor", FuelTone);
+            b.Tile("Position", 432, 350, 196, 116, "POSITION", PositionText, "Liquid", "valueSize", "34", "unit", "=Starters > 0 ? \"/\" + Starters : \"\"", "unitColor", "dim");
+            b.Tile("Fuel laps", 638, 350, 196, 116, "FUEL LAPS", FuelLaps, "Liquid", "valueSize", "34", "valueColor", FuelTone);
             b.Add("blindspot", "Car left", 2, 80, 6, 240, "side", "Left", "color", "accent", "glow", "14");
             b.Add("blindspot", "Car right", 846, 80, 6, 240, "side", "Right", "color", "accent", "glow", "14");
             Notice(b, 287, 40, 280, 32);
 
-            PitLane(b, "Glass");
+            PitLane(b, "Liquid");
             return b.Layout;
         }
 

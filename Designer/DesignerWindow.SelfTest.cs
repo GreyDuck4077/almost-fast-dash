@@ -581,6 +581,37 @@ namespace AlmostFastOverlays
                 Select(null);
             }
 
+            // ---------------- Liquid Glass
+            {
+                // A striped backdrop, so the rim's bending shows.
+                int sw = 400, sh = 300;
+                var backdrop = new int[sw * sh];
+                for (int i = 0; i < backdrop.Length; i++) backdrop[i] = (i % sw / 10 % 2 == 0) ? unchecked((int)0xFF203040) : unchecked((int)0xFF8090A0);
+                using (var shape = new System.Drawing.Drawing2D.GraphicsPath())
+                {
+                    shape.AddRectangle(new System.Drawing.RectangleF(50, 50, 300, 200));
+                    var settings = new GlassSettings { Frost = 0, Depth = 14, Refraction = 1, Shine = 0.7f, Dispersion = 0, Light = 270, Tint = System.Drawing.Color.FromArgb(0, 0, 0, 0) };
+                    var watch = System.Diagnostics.Stopwatch.StartNew();
+                    using (System.Drawing.Bitmap pane = LiquidGlass.Render(backdrop, sw, sh, new System.Drawing.Rectangle(50, 50, 300, 200), shape, settings))
+                    {
+                        double ms = watch.Elapsed.TotalMilliseconds;
+                        System.Drawing.Color top = pane.GetPixel(150, 1), bottom = pane.GetPixel(150, 198), middle = pane.GetPixel(150, 100), plain = pane.GetPixel(0, 100), mid = pane.GetPixel(150, 100);
+                        Check("liquid glass lights the rim facing the light more than the far one", top.GetBrightness() > bottom.GetBrightness() && bottom.GetBrightness() > middle.GetBrightness() - 0.02,
+                            top + " " + bottom + " " + middle);
+                        // In the middle the backdrop shows straight through; at the rim it is pulled in from further inside.
+                        int stripesInside = 0, stripesRim = 0;
+                        for (int px = 1; px < 299; px++)
+                        {
+                            if (Math.Abs(pane.GetPixel(px, 100).R - pane.GetPixel(px - 1, 100).R) > 40) stripesInside++;
+                            if (Math.Abs(pane.GetPixel(px, 4).R - pane.GetPixel(px - 1, 4).R) > 40) stripesRim++;
+                        }
+                        Check("liquid glass shows the backdrop through its middle and bends it at the rim", stripesInside >= 25 && plain.A == 255 && mid.A == 255,
+                            "edges inside " + stripesInside + ", along the rim " + stripesRim);
+                        report.Add("INFO  a 300x200 pane of Liquid Glass takes " + ms.ToString("0.0") + " ms to make (then it is kept)");
+                    }
+                }
+            }
+
             // ---------------- lap falloff and the flagships
             {
                 double[] stint = { 88.2, 87.5, 87.6, 87.9 };

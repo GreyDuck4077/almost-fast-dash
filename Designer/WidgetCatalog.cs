@@ -77,6 +77,12 @@ namespace AlmostFastOverlays
                 .Color("edgeColor", "Edge color", "accent", "Border")
                 .Number("glow", "Glow", "0", "Glow", 0, 40)
                 .Color("glowColor", "Glow color", "accent", "Glow")
+                .Number("glassFrost", "Frost", "14", "Glass", 0, 40)
+                .Number("glassDepth", "Rim depth", "12", "Glass", 2, 60)
+                .Number("glassRefraction", "Refraction %", "60", "Glass", 0, 100)
+                .Number("glassShine", "Shine %", "70", "Glass", 0, 100)
+                .Number("glassDispersion", "Colour fringe %", "35", "Glass", 0, 100)
+                .Number("glassLight", "Light from °", "235", "Glass", 0, 360, 5)
                 .ShapeTools()
                 .Text("title", "Title", "", "Title")
                 .Color("titleColor", "Title color", "muted", "Title")
@@ -366,6 +372,7 @@ namespace AlmostFastOverlays
             Func<string, bool> notSolid = v => v != "Solid", set = v => v.Trim().Length > 0, on = v => Expr.Bool(v), nonZero = v => Math.Abs(Expr.Num(v)) > 1e-9;
             Rule("panel", "style", v => v == "Soft", "fill2");
             Rule("panel", "style", v => v == "Tinted", "tint");
+            Rule("panel", "style", v => v == "Liquid", "glassFrost", "glassDepth", "glassRefraction", "glassShine", "glassDispersion", "glassLight");
             Rule("panel", "style", v => v != "None", "fill", "border", "borderWidth");
             Rule("panel", "edge", v => v != "None", "edgeColor");
             Rule("panel", "glow", nonZero, "glowColor");

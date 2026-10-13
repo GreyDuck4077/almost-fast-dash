@@ -729,10 +729,42 @@ namespace AlmostFastOverlays
             return new StyledPicture { Bitmap = composite, At = at };
         }
 
+        private readonly Dictionary<string, Bitmap> _glass = new Dictionary<string, Bitmap>();
+        private int[] _backdrop;
+        private string _backdropKey;
+
+        /// <summary>
+        /// A pane of Liquid Glass over the screen's background, made once per shape, place and setting and then
+        /// kept. The renderer owns it: callers must not dispose it.
+        /// </summary>
+        internal Bitmap Glass(Rectangle at, GraphicsPath shape, GlassSettings settings)
+        {
+            Background();
+            if (_backdrop == null || _backdropKey != _backgroundKey)
+            {
+                _backdrop = LiquidGlass.Pixels(_background);
+                _backdropKey = _backgroundKey;
+                ForgetGlass();
+            }
+            int outline = 17;
+            foreach (PointF p in shape.PathPoints) outline = outline * 31 + (int)Math.Round(p.X * 8) * 7 + (int)Math.Round(p.Y * 8);
+            string key = at + "|" + outline + "|" + shape.PointCount + "|" + settings.Key;
+            if (_glass.TryGetValue(key, out Bitmap pane)) return pane;
+            if (_glass.Count >= 64) ForgetGlass();
+            return _glass[key] = LiquidGlass.Render(_backdrop, _width, _height, at, shape, settings);
+        }
+
+        private void ForgetGlass()
+        {
+            foreach (Bitmap pane in _glass.Values) pane.Dispose();
+            _glass.Clear();
+        }
+
         private void ForgetStyled()
         {
             foreach (StyledPicture picture in _styled.Values) picture.Bitmap.Dispose();
             _styled.Clear();
+            ForgetGlass();
             _still.Clear();
             ForgetShapes();
         }
