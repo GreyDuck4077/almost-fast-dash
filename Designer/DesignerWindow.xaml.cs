@@ -329,7 +329,19 @@ namespace AlmostFastOverlays
             }
 
             if (_selection.Count > 1)
-                AddRect(Union(_selection), accent, 1, true);
+            {
+                Rect around = Union(_selection);
+                AddRect(around, accent, 1, true);
+                if (!_selection.Any(w => w.Locked))
+                    foreach (Point p in HandlePoints(around))
+                    {
+                        double size = 7 * Px;
+                        var handle = new Rectangle { Width = size, Height = size, Fill = accent, Stroke = Brushes.White, StrokeThickness = 1 * Px, IsHitTestVisible = false };
+                        Canvas.SetLeft(handle, p.X - size / 2);
+                        Canvas.SetTop(handle, p.Y - size / 2);
+                        Overlay.Children.Add(handle);
+                    }
+            }
 
             if (_selection.Count == 1 && !_selection[0].Locked)
             {
@@ -469,6 +481,15 @@ namespace AlmostFastOverlays
 
         private int HandleAt(Point p)
         {
+            if (_selection.Count > 1)
+            {
+                // Several selected: handles around them all.
+                if (_selection.Any(w => w.Locked)) return -1;
+                Point[] around = HandlePoints(Union(_selection));
+                for (int i = 0; i < around.Length; i++)
+                    if (Math.Abs(around[i].X - p.X) <= 7 * Px && Math.Abs(around[i].Y - p.Y) <= 7 * Px) return i;
+                return -1;
+            }
             if (_selection.Count != 1 || _selection[0].Locked) return -1;
             if (CanRotate(_selection[0]))
             {
@@ -708,6 +729,11 @@ namespace AlmostFastOverlays
 
         private void DoResize(Point p, bool free, bool keepAspect)
         {
+            if (_selection.Count > 1)
+            {
+                ResizeTogether(p, free, keepAspect);
+                return;
+            }
             DashWidget w = _selection[0];
             Rect o = _originals[w];
             double angle = Angle(w);
@@ -752,6 +778,50 @@ namespace AlmostFastOverlays
             w.Y = Math.Round(top);
             w.W = Math.Max(2, Math.Round(right - left));
             w.H = Math.Max(2, Math.Round(bottom - top));
+            _dragChanged = true;
+        }
+
+        /// <summary>
+        /// Several widgets (or a group) resized from the handles around them all: the outer box follows the
+        /// handle as a single widget's would, and every widget keeps its place and share within it.
+        /// </summary>
+        private void ResizeTogether(Point p, bool free, bool keepAspect)
+        {
+            Rect o = Rect.Empty;
+            foreach (Rect r in _originals.Values) o = o.IsEmpty ? r : Rect.Union(o, r);
+            if (o.Width < 1 || o.Height < 1) return;
+            double left = o.Left, top = o.Top, right = o.Right, bottom = o.Bottom;
+            bool l = _handle == 0 || _handle == 6 || _handle == 7, rt = _handle == 2 || _handle == 3 || _handle == 4;
+            bool t = _handle == 0 || _handle == 1 || _handle == 2, b = _handle == 4 || _handle == 5 || _handle == 6;
+            _guides.Clear();
+            double x = p.X, y = p.Y;
+            if (!free)
+            {
+                if (l || rt) x += SnapAxis(new[] { x }, true, new Rect(x, top, 0, bottom - top));
+                if (t || b) y += SnapAxis(new[] { y }, false, new Rect(left, y, right - left, 0));
+            }
+            if (l) left = Math.Min(x, right - 8);
+            if (rt) right = Math.Max(x, left + 8);
+            if (t) top = Math.Min(y, bottom - 8);
+            if (b) bottom = Math.Max(y, top + 8);
+            if (keepAspect)
+            {
+                double ratio = o.Width / o.Height, width = right - left, height = bottom - top;
+                if ((l || rt) && !(t || b)) height = width / ratio;
+                else if ((t || b) && !(l || rt)) width = height * ratio;
+                else if (width / height > ratio) height = width / ratio; else width = height * ratio;
+                if (l) left = right - width; else right = left + width;
+                if (t) top = bottom - height; else bottom = top + height;
+            }
+            double sx = (right - left) / o.Width, sy = (bottom - top) / o.Height;
+            foreach (KeyValuePair<DashWidget, Rect> pair in _originals)
+            {
+                Rect r = pair.Value;
+                pair.Key.X = Math.Round(left + (r.X - o.X) * sx);
+                pair.Key.Y = Math.Round(top + (r.Y - o.Y) * sy);
+                pair.Key.W = Math.Max(2, Math.Round(r.Width * sx));
+                pair.Key.H = Math.Max(2, Math.Round(r.Height * sy));
+            }
             _dragChanged = true;
         }
 

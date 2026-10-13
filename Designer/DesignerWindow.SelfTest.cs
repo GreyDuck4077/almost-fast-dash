@@ -581,6 +581,27 @@ namespace AlmostFastOverlays
                 Select(null);
             }
 
+            // ---------------- several widgets resized together
+            {
+                DashWidget a = WidgetCatalog.Create("panel", 100, 100), c = WidgetCatalog.Create("panel", 100, 100);
+                a.X = 100; a.Y = 100; a.W = 100; a.H = 50;
+                c.X = 300; c.Y = 150; c.W = 100; c.H = 50;
+                _screen.Widgets.Add(a);
+                _screen.Widgets.Add(c);
+                Select(a);
+                _selection.Add(c);
+                // Together they span 100-400 by 100-200; the bottom-right handle sits at (400, 200).
+                Check("several selected widgets get handles around them all", HandleAt(new System.Windows.Point(400, 200)) == 4);
+                _originals = new[] { a, c }.ToDictionary(w => w, RectOf);
+                _handle = 4;
+                DoResize(new System.Windows.Point(700, 300), true, false);
+                Check("several widgets scale together", a.X == 100 && a.W == 200 && a.H == 100 && c.X == 500 && c.Y == 200 && c.W == 200 && c.H == 100,
+                    a.X + "," + a.Y + " " + a.W + "x" + a.H + " / " + c.X + "," + c.Y + " " + c.W + "x" + c.H);
+                _screen.Widgets.Remove(a);
+                _screen.Widgets.Remove(c);
+                Select(null);
+            }
+
             // ---------------- shape tools on every shaped widget
             foreach (WidgetType shaped in WidgetCatalog.All.Where(t => t.Prop("bend") != null))
             {

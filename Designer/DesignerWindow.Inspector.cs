@@ -97,7 +97,7 @@ namespace AlmostFastOverlays
             Inspector.Children.Add(Tip("", "Test it", "Use Preview › Animated lap, Live iRacing or a flag state, Saved changes reach a running dashboard on the wheel within a second."));
 
             Inspector.Children.Add(SectionTitle("Shortcuts"));
-            Inspector.Children.Add(Caption("Arrows nudge 1 px, Shift+arrows 10 px · Ctrl+D duplicate · Ctrl+C / Ctrl+V copy and paste · Del delete · [ and ] change order · Ctrl+Z / Ctrl+Y undo and redo · Ctrl+wheel zoom · Shift while resizing keeps proportions · Alt turns off snapping. Changes save as you go."));
+            Inspector.Children.Add(Caption("Arrows nudge 1 px, Shift+arrows 10 px · Ctrl+D duplicate (a group copies as the next Slot) · Ctrl+C / Ctrl+V copy and paste · Ctrl+Shift+C / Ctrl+Shift+V copy and paste style · Ctrl+G group, Ctrl+Shift+G ungroup · Del delete · [ and ] change order · Ctrl+Z / Ctrl+Y undo and redo · Ctrl+wheel zoom · the round handle above a widget turns it · several selected widgets resize together · Shift while resizing keeps proportions · Alt turns off snapping. Changes save as you go."));
         }
 
         /// <summary>Shows the assigned wheel button and assigns a new one by pressing it.</summary>
