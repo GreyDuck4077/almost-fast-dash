@@ -308,7 +308,7 @@ namespace AlmostFastOverlays
             b.Screen("Race");
             // Blind-spot arcs hug both edges, well clear of everything else.
             b.Add("blindspot", "Car left", 8, 24, 26, 432, "side", "Left", "bend", "60", "thickness", "34", "color", "#FF3B30", "offColor", "#141E2A", "glow", "12");
-            b.Add("blindspot", "Car right", 820, 24, 26, 432, "side", "Right", "bend", "60", "thickness", "34", "color", "#FF3B30", "offColor", "#141E2A", "glow", "12");
+            b.Add("blindspot", "Car right", 820, 24, 26, 432, "side", "Right", "bend", "60", "thickness", "34", "color", "#FF3B30", "offColor", "#141E2A", "glow", "12", "flipX", "true");
 
             // The dial: revs round a numbered scale, the gear in a ring above the speed.
             b.Add("gradient", "Dial light", 247, 0, 360, 360, "style", "Radial", "color", "accent", "strength", "14");
