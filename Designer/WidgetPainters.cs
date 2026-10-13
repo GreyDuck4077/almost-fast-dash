@@ -176,7 +176,7 @@ namespace AlmostFastOverlays
                 if (!string.IsNullOrEmpty(unit))
                 {
                     float unitSize = (float)c.Num("unitSize");
-                    runs.Add(new Paint.Run(" " + unit, c.Font(unitSize > 0 ? unitSize : Math.Max(6, valueSize * 0.42f), unitSize > 0), c.Color("unitColor")));
+                    runs.Add(new Paint.Run(" " + unit, c.Font(unitSize > 0 ? unitSize : Math.Max(c.MinDenseText, valueSize * 0.42f), unitSize > 0), c.Color("unitColor")));
                 }
                 Paint.Runs(g, c, runs, area, a, valign, true, glow, valueColor);
             }
@@ -833,12 +833,12 @@ namespace AlmostFastOverlays
             }
             float gapW = size * 3.4f;
             bool license = c.Bool("showLicense") && !string.IsNullOrEmpty(r.License);
-            var nameBox = new RectangleF(x, b.Y, Math.Max(10, b.Right - x - gapW), license ? b.Height * 0.58f : b.Height);
+            var nameBox = new RectangleF(x, b.Y, Math.Max(10, b.Right - x - gapW), license ? b.Height * 0.52f : b.Height);
             Paint.Text(g, c, r.IsPlayer ? "YOU" : r.Name, size, true, nameColor, nameBox, StringAlignment.Near, license ? "Bottom" : "Middle", true, 0, Color.Empty, false);
             if (license)
             {
-                float lh = Math.Max(10, size * 0.9f);
-                var lic = new RectangleF(x, b.Y + b.Height * 0.6f, lh * 2.6f, lh);
+                float lh = Math.Max(c.MinDenseText / 0.68f, size * 0.9f);
+                var lic = new RectangleF(x, b.Y + b.Height * 0.54f, lh * 2.6f, lh);
                 DashKit.Fill(g, lic, Color.FromArgb(170, r.LicenseColor), 4);
                 Paint.Text(g, c, r.License + " " + DashKit.IRating(r.IRating), lh * 0.68f, true, text, Paint.Grow(lic, -3, 0), StringAlignment.Center, "Middle", true, 0, Color.Empty, false);
                 if (r.InPits)
@@ -944,14 +944,14 @@ namespace AlmostFastOverlays
             if (c.Bool("showIRating"))
             {
                 float w = size * 2.6f;
-                Paint.Text(g, c, DashKit.IRating(r.IRating), size * 0.8f, false, c.Theme("muted"), new RectangleF(right - w, b.Y, w, b.Height), StringAlignment.Far, "Middle", true, 0, Color.Empty, false);
+                Paint.Text(g, c, DashKit.IRating(r.IRating), Math.Max(c.MinDenseText, size * 0.8f), false, c.Theme("muted"), new RectangleF(right - w, b.Y, w, b.Height), StringAlignment.Far, "Middle", true, 0, Color.Empty, false);
                 right -= w + 6;
             }
             bool car = c.Bool("showCar") && !string.IsNullOrEmpty(r.CarName);
             var nameBox = new RectangleF(x, b.Y, Math.Max(10, right - x), car ? b.Height * 0.6f : b.Height);
             Paint.Text(g, c, r.IsPlayer ? (r.Name ?? "YOU") : r.Name, size, true, nameColor, nameBox, StringAlignment.Near, car ? "Bottom" : "Middle", true, 0, Color.Empty, false);
             if (car)
-                Paint.Text(g, c, r.CarName, size * 0.65f, false, c.Theme("muted"), new RectangleF(x, b.Y + b.Height * 0.6f, nameBox.Width, b.Height * 0.38f), StringAlignment.Near, "Top", true, 0, Color.Empty, false);
+                Paint.Text(g, c, r.CarName, Math.Max(c.MinDenseText, size * 0.65f), false, c.Theme("muted"), new RectangleF(x, b.Y + b.Height * 0.6f, nameBox.Width, b.Height * 0.38f), StringAlignment.Near, "Top", true, 0, Color.Empty, false);
         }
 
         public static void Tyres(WidgetContext c)
@@ -981,7 +981,7 @@ namespace AlmostFastOverlays
             string Temp(double celsius) => double.IsNaN(celsius) ? "--" : c.Scope.Units.Temperature(celsius).ToString("0") + "°";
 
             float pad = Math.Max(6, b.Height * 0.06f), y = b.Y + pad;
-            Paint.Text(g, c, name, size * 0.5f, false, label, new RectangleF(b.X + pad, y, b.Width - pad * 2, size * 0.6f), StringAlignment.Near, "Top", true, 0, Color.Empty, false);
+            Paint.Text(g, c, name, Math.Max(c.MinText, size * 0.5f), false, label, new RectangleF(b.X + pad, y, b.Width - pad * 2, Math.Max(c.MinText, size * 0.5f) * 1.2f), StringAlignment.Near, "Top", true, 0, Color.Empty, false);
             if (c.Bool("showTemps"))
             {
                 double avg = tyre?.Temp ?? double.NaN;
@@ -1004,7 +1004,7 @@ namespace AlmostFastOverlays
                 lines.Add(double.IsNaN(p) ? "--" : p.ToString(c.Scope.Units.Metric ? "0.00" : "0.0") + " " + RaceFields.PressureLabel(c.Scope.Units).ToLowerInvariant());
             }
             if (lines.Count > 0)
-                Paint.Text(g, c, string.Join("   ", lines), size * 0.55f, false, label, new RectangleF(b.X + pad, y, b.Width - pad * 2, Math.Max(size * 0.7f, b.Bottom - pad - y)), StringAlignment.Near, "Middle", true, 0, Color.Empty, false);
+                Paint.Text(g, c, string.Join("  ", lines), Math.Max(c.MinDenseText, size * 0.55f), false, label, new RectangleF(b.X + pad, y, b.Width - pad * 2, Math.Max(Math.Max(c.MinDenseText, size * 0.55f) * 1.25f, b.Bottom - pad - y)), StringAlignment.Near, "Middle", true, 0, Color.Empty, false);
         }
 
         public static void BlindSpot(WidgetContext c)

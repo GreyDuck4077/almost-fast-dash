@@ -932,13 +932,51 @@ namespace AlmostFastOverlays
                 ghost.Update(new[] { 0.5f, At(40) }, null, 0, Track, 3, 0);
                 Check("radar: a car the spotter reports that positions can't place still shows alongside", ghost.Cars.Any(x => x.CarIdx < 0 && x.Lane == 1 && x.Alongside));
 
+                // A car that was alongside on the left and moves a car length and a half ahead: in your bubble it keeps
+                // its lane for a good while (ten seconds on), then drifts into line once nothing says otherwise.
                 var drift = new RadarTracker();
                 drift.Update(new[] { 0.5f, At(1.5) }, null, 0, Track, 2, 0);
-                drift.Update(new[] { 0.5f, At(8) }, null, 0, Track, 1, 1.0);
+                for (int i = 1; i <= 200; i++) drift.Update(new[] { 0.5f, At(8) }, null, 0, Track, 1, i * 0.05);
                 float held = drift.Cars[0].Lane;
-                for (int i = 1; i <= 60; i++) drift.Update(new[] { 0.5f, At(8) }, null, 0, Track, 1, 1.0 + i * 0.05);
-                Check("radar: a car that clears holds its lane a moment, then drifts into line ahead", held == -1 && drift.Cars[0].Lane == 0 && Math.Abs(drift.AheadMeters - 8) < 0.05,
-                    "held " + held + ", then " + drift.Cars[0].Lane + ", ahead " + drift.AheadMeters.ToString("0.00"));
+                for (int i = 201; i <= 500; i++) drift.Update(new[] { 0.5f, At(8) }, null, 0, Track, 1, i * 0.05);
+                Check("radar: a car in your bubble keeps its lane, then drifts into line ahead", held == -1 && drift.Cars[0].Lane == 0 && Math.Abs(drift.AheadMeters - 8) < 0.05,
+                    "after 10 s " + held + ", after 25 s " + drift.Cars[0].Lane + ", ahead " + drift.AheadMeters.ToString("0.00"));
+
+                // Two by two: rows of two cars ahead and behind. Each row is spread across two lanes, the other line on the side
+                // the spotter sees a car beside you (here, your row partner on the left).
+                var formation = new RadarTracker();
+                float[] rows = { 0.5f, At(-0.4), At(9.0), At(9.6), At(18.2), At(18.5), At(-9.0), At(-8.7) };
+                for (int i = 0; i <= 30; i++) formation.Update(rows, null, 0, Track, 2, i * 0.05);
+                int Lane(RadarTracker r, int car) => (int)Math.Round(r.Cars.First(x => x.CarIdx == car).Lane);
+                bool pairsSplit = new[] { Tuple.Create(2, 3), Tuple.Create(4, 5), Tuple.Create(6, 7) }.All(p => Lane(formation, p.Item1) != Lane(formation, p.Item2));
+                bool onTheLeft = new[] { 2, 3, 4, 5, 6, 7 }.All(car => Lane(formation, car) == 0 || Lane(formation, car) == -1);
+                Check("radar: a two-by-two formation shows two wide, with the other line on the side the spotter saw",
+                    pairsSplit && onTheLeft && Lane(formation, 1) == -1 && Math.Abs(formation.AheadMeters - 9.0) < 0.7,
+                    string.Join(" ", formation.Cars.Select(x => "#" + x.CarIdx + "@" + x.Meters.ToString("0.0") + ":" + x.Lane.ToString("0.0"))));
+
+                // With nothing beside you to say which side the other line is on, a row of two straddles your lane.
+                var unknown = new RadarTracker();
+                for (int i = 0; i <= 30; i++) unknown.Update(new[] { 0.5f, At(9.0), At(9.4) }, null, 0, Track, 1, i * 0.05);
+                float l1 = unknown.Cars.First(x => x.CarIdx == 1).Lane, l2 = unknown.Cars.First(x => x.CarIdx == 2).Lane;
+                Check("radar: a row of two with no side known straddles your lane", Math.Abs(Math.Abs(l1) - 0.5f) < 0.01f && Math.Abs(l1 + l2) < 0.01f, l1 + " " + l2);
+
+                // No template has text below the readable floor.
+                var small = new List<string>();
+                foreach (DesignTemplate template in DesignTemplates.All)
+                    foreach (DashWidget w in template.Create().AllWidgets())
+                        foreach (string key in new[] { "size", "labelSize", "valueSize", "unitSize", "numberSize" })
+                        {
+                            string raw = w.Get(key, null);
+                            if (raw == null || raw.StartsWith("=") || w.Type == "shape" || w.Type == "gear" || w.Type == "radar") continue;
+                            if (double.TryParse(raw, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double v) && v > 0 && v < ReadableText.Floor)
+                                small.Add(template.Name + "/" + w.Name + "." + key + "=" + raw);
+                        }
+                Check("every template's text is at least " + ReadableText.Floor + " px", small.Count == 0, string.Join(", ", small.Take(6)));
+
+                // Cars in single file stay in line.
+                var single = new RadarTracker();
+                for (int i = 0; i <= 30; i++) single.Update(new[] { 0.5f, At(6), At(12), At(-6) }, null, 0, Track, 1, i * 0.05);
+                Check("radar: single file stays in line", single.Cars.All(x => x.Lane == 0));
 
                 var closing = new RadarTracker();
                 for (int i = 0; i <= 120; i++) closing.Update(new[] { 0.5f, At(30 - i * 2.0 / 60) }, null, 0, Track, 1, i / 60.0);

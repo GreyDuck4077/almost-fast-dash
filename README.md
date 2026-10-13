@@ -15,9 +15,9 @@ alerts. One exe, no installer, no other software required.
     the cars around you, and a lap-falloff chart of your stint.
 
   Two more have a job of their own:
-  - **Oval**, for pack racing: a live top-view radar of the cars around you,
-    with the gaps to the cars in line ahead and behind in car lengths and how
-    fast they're closing.
+  - **Oval**, for pack racing: a live radar of the cars around you, seen from
+    a camera above and behind your car, with the gaps to the cars in line ahead
+    and behind in car lengths and how fast they're closing.
   - **Halo**, for endurance and multiclass: one ring with revs across the top
     and the live delta across the bottom, your stint and fuel, and the traffic
     within eight seconds in class colours, warning when a faster class is
@@ -104,11 +104,21 @@ dashboard does behind the main figures:
 - **Lap falloff** compares your last green-flag lap of the stint with the
   stint's best; caution and pit laps are left out.
 - **The radar** places every car near you by its exact distance ahead or behind
-  along the track. iRacing doesn't say where other cars are *across* the track:
-  its spotter only reports how many are alongside on each side. So cars
-  alongside are matched to the spotter's report, nearest first, and keep their
-  side while they stay there. Every other car is drawn in line with you. Gaps
-  in car lengths are bumper to bumper, using a nominal 5 m car.
+  along the track. iRacing doesn't say where other cars are *across* the track,
+  so their lanes are worked out from what is certain:
+  - The spotter reports how many cars are alongside on each side. Those are
+    matched to the nearest cars.
+  - Two cars less than a car length apart along the track can't be in the
+    same lane, so a two-by-two formation or a pack two or three wide is spread
+    across lanes. The other line goes on the side the spotter last saw a car
+    beside you, or straddles your lane when that isn't known.
+  - A car keeps its lane while that evidence lasts. After that it keeps it for
+    15 seconds while it's within three car lengths of you (your bubble), or 6
+    seconds further off. Then it's drawn in line with you.
+
+  Gaps in car lengths are bumper to bumper, using a nominal 5 m car.
+- **Text** is never smaller than 14 px on an 854×480 screen (scaled for other
+  sizes), so labels can be read at a glance.
 
 ## Tests and releases
 

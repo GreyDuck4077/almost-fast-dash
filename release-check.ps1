@@ -57,8 +57,12 @@ Step 'Light frames' {
     ((Select-String -Path $report -Pattern '^== ').Count).ToString() + ' dashboards through a rev sweep and the preview states'
 }
 
+# The newest finished recording: one iRacing is still writing (you're in a session) is locked, so it's skipped.
+function Test-Finished($file) {
+    try { $stream = [IO.File]::Open($file.FullName, 'Open', 'Read', 'Read'); $stream.Dispose(); return $true } catch { return $false }
+}
 $recording = Get-ChildItem (Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'iRacing\telemetry') -Filter *.ibt -ErrorAction SilentlyContinue |
-    Sort-Object LastWriteTime -Descending | Select-Object -First 1
+    Sort-Object LastWriteTime -Descending | Where-Object { Test-Finished $_ } | Select-Object -First 1
 if ($recording) {
     Step 'Replay of a real recording' {
         $report = Join-Path $work 'replay.txt'

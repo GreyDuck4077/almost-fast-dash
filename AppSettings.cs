@@ -41,7 +41,7 @@ namespace AlmostFastOverlays
 
     internal sealed class AppSettings
     {
-        private const int CurrentSchema = 17;
+        private const int CurrentSchema = 18;
 
         public int SchemaVersion { get; set; }
         public string DefaultDashboardId { get; set; } = DashboardSettings.RoadId;
@@ -99,6 +99,7 @@ namespace AlmostFastOverlays
                 if (SchemaVersion > 0 && SchemaVersion < 15) { RoundCutPanels(); RebuildNeon(); }
                 if (SchemaVersion > 0 && SchemaVersion < 16) ReworkHaloAndOval();
                 if (SchemaVersion > 0 && SchemaVersion < 17) BrighterLabels();
+                if (SchemaVersion > 0 && SchemaVersion < 18) { WiderRadar(); LargerText(); }
                 SchemaVersion = CurrentSchema;
             }
             foreach (DeviceSettings device in General.Devices) device.Normalize();
@@ -291,6 +292,39 @@ namespace AlmostFastOverlays
                     if (widget.Get("size", "") == "10") widget.Set("size", "11");
                 }
             }
+        }
+
+        /// <summary>
+        /// Schema 18: the Oval's radar became a chase-camera view with bigger cars, and the panels either side
+        /// narrowed to give it room. A dashboard still built on the first Oval layout (its radar and the ahead
+        /// panel beside it) takes the new one at its own size, keeping its page buttons and flag choices.
+        /// </summary>
+        private void WiderRadar()
+        {
+            foreach (DashboardSettings dashboard in Dashboards)
+            {
+                DashLayout old = dashboard.Design;
+                var widgets = old?.Screens?.FirstOrDefault()?.Widgets;
+                if (widgets == null || !widgets.Any(w => w.Type == "radar" && w.Name == "Radar") || !widgets.Any(w => w.Name == "Ahead panel")) continue;
+                DashLayout rebuilt = DesignTemplates.Find("oval").Create();
+                rebuilt.ScaleTo(old.Width, old.Height);
+                rebuilt.PageButton = old.PageButton;
+                rebuilt.PageBackButton = old.PageBackButton;
+                rebuilt.FullScreenFlags = old.FullScreenFlags;
+                rebuilt.WavingFlags = old.WavingFlags;
+                rebuilt.FlagFrame = old.FlagFrame;
+                rebuilt.Theme.Muted = old.Theme?.Muted ?? rebuilt.Theme.Muted;
+                dashboard.Design = rebuilt;
+            }
+        }
+
+        /// <summary>
+        /// Schema 18: no text smaller than a wheel screen can show readably (14 px on an 854×480 screen). Every
+        /// saved design's smaller text is raised to that; nothing else changes (see <see cref="ReadableText"/>).
+        /// </summary>
+        private void LargerText()
+        {
+            foreach (DashboardSettings dashboard in Dashboards) ReadableText.Apply(dashboard.Design);
         }
 
         /// <summary>The fuel-to-add value as designs showed it before schema 13: a bare "+0.3".</summary>

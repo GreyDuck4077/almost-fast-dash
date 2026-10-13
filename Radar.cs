@@ -25,11 +25,16 @@ namespace AlmostFastOverlays
 
     /// <summary>
     /// Builds the radar from iRacing's data. How far each car is ahead or behind comes from every car's
-    /// position round the lap, so it is exact. iRacing doesn't say where the others are across the track;
-    /// its spotter only says how many cars are alongside on each side. Cars alongside are matched to those
-    /// reports (nearest first, and a car keeps the side it was given while it stays alongside). A car that
-    /// was alongside keeps its lane for a moment after it clears, then drifts into line with you, where
-    /// every other car is drawn.
+    /// position round the lap, so it is exact. iRacing doesn't say where the others are across the track, so
+    /// lanes are worked out from what is certain:
+    /// - The spotter says how many cars are alongside on each side. Those are matched to the nearest cars,
+    ///   and a car keeps the side it was given while it stays alongside.
+    /// - Two cars less than a car length apart along the track can't be in the same lane. So a row of cars
+    ///   (a two-by-two formation, a pack two or three wide) is spread across lanes. The other line goes on
+    ///   the side the spotter last saw a car beside you, or straddles your lane when that's not known.
+    /// - A car keeps its lane while that evidence lasts, and afterwards for 15 seconds while it's within
+    ///   three car lengths of you (your bubble) or 6 seconds further off. Then it drifts into line with
+    ///   you, which is where a car is drawn when nothing says otherwise.
     /// </summary>
     internal sealed class RadarTracker
     {
@@ -37,11 +42,18 @@ namespace AlmostFastOverlays
         public const double CarLength = 5.0;
         /// <summary>How far ahead and behind the radar keeps cars, in metres.</summary>
         public const double Reach = 80;
-        private const double AlongsideWindow = 7.5, LaneHold = 2.0, LaneSpeed = 1.5, ClosingSmoothing = 0.5;
+        /// <summary>Two cars closer than this along the track (middle to middle) must be side by side.</summary>
+        public const double Overlap = 4.6;
+        private const double AlongsideWindow = 7.5, LaneHold = 6.0, LaneSpeed = 3.0, ClosingSmoothing = 0.5;
+        /// <summary>Your bubble: cars this close (three car lengths) keep their lane for <see cref="BubbleHold"/> seconds.</summary>
+        private const double Bubble = 15, BubbleHold = 15;
+        /// <summary>How long the side the other line is on is remembered after the spotter last saw a car beside you.</summary>
+        private const double LineMemory = 90;
 
         private sealed class Seen
         {
             public double Meters = double.NaN, Time, Closing, LaneTime = double.NegativeInfinity;
+            /// <summary>The lane the car was last placed in, and the one it is drawn in (sliding toward it).</summary>
             public int Side;
             public float Lane;
             public bool Updated;
@@ -49,6 +61,9 @@ namespace AlmostFastOverlays
 
         private readonly Dictionary<int, Seen> _seen = new Dictionary<int, Seen>();
         private double _time = double.NaN;
+        /// <summary>Which side of you the other line is on (-1 left, 1 right, 0 not known), and when that was last seen.</summary>
+        private int _otherLine;
+        private double _otherLineTime = double.NegativeInfinity;
 
         public RadarCar[] Cars { get; private set; } = new RadarCar[0];
         /// <summary>Metres to the nearest car in line ahead and behind (middle to middle), -1 when there is none.</summary>
@@ -62,6 +77,8 @@ namespace AlmostFastOverlays
         {
             _seen.Clear();
             _time = double.NaN;
+            _otherLine = 0;
+            _otherLineTime = double.NegativeInfinity;
             Cars = new RadarCar[0];
             AheadMeters = BehindMeters = -1;
             AheadClosing = BehindClosing = 0;
@@ -108,13 +125,21 @@ namespace AlmostFastOverlays
             }
             foreach (int gone in _seen.Where(p => !p.Value.Updated).Select(p => p.Key).ToList()) _seen.Remove(gone);
 
-            // Match the spotter's report to the cars closest alongside. A car keeps the side it already has.
+            // 1. Match the spotter's report to the cars closest alongside. A car keeps the side it already has.
             int wantLeft = carLeftRight == 2 || carLeftRight == 4 ? 1 : carLeftRight == 5 ? 2 : 0;
             int wantRight = carLeftRight == 3 || carLeftRight == 4 ? 1 : carLeftRight == 6 ? 2 : 0;
+            // A car on one side only says which side the other line is on.
+            if ((wantLeft > 0) != (wantRight > 0))
+            {
+                _otherLine = wantLeft > 0 ? -1 : 1;
+                _otherLineTime = time;
+            }
+            else if (time - _otherLineTime > LineMemory) _otherLine = 0;
             var candidates = near.Where(p => Math.Abs(p.Value) <= AlongsideWindow).OrderBy(p => Math.Abs(p.Value)).Select(p => p.Key).ToList();
             var left = new List<int>();
             var right = new List<int>();
-            bool Recent(Seen s) => time - s.LaneTime < LaneHold;
+            // Your bubble: a car within three car lengths keeps its lane far longer than one further off.
+            bool Recent(Seen s) => time - s.LaneTime < (Math.Abs(s.Meters) < Bubble ? BubbleHold : LaneHold);
             foreach (int i in candidates)
             {
                 Seen s = _seen[i];
@@ -134,6 +159,46 @@ namespace AlmostFastOverlays
             for (int k = 0; k < left.Count; k++) alongside[left[k]] = -1 - k;
             for (int k = 0; k < right.Count; k++) alongside[right[k]] = 1 + k;
 
+            // 2. Every other car, nearest first, goes in a lane no car within a car length of it is in: the lane it
+            // had while the evidence for it lasts, else in line with you, else the other line's side.
+            var along = near.ToDictionary(p => p.Key, p => p.Value);
+            var placed = new List<KeyValuePair<double, int>> { new KeyValuePair<double, int>(0, 0) };
+            foreach (KeyValuePair<int, int> a in alongside) placed.Add(new KeyValuePair<double, int>(along[a.Key], a.Value));
+            int line = _otherLine != 0 ? _otherLine : 1;
+            var lanes = new Dictionary<int, int>(alongside);
+            foreach (KeyValuePair<int, double> p in near.Where(p => !alongside.ContainsKey(p.Key)).OrderBy(p => Math.Abs(p.Value)))
+            {
+                Seen s = _seen[p.Key];
+                double at = p.Value;
+                bool Free(int lane) => !placed.Any(q => q.Value == lane && Math.Abs(q.Key - at) < Overlap);
+                int chosen;
+                if (s.Side != 0 && Recent(s) && Free(s.Side)) chosen = s.Side;
+                else if (Free(0)) chosen = 0;
+                else
+                {
+                    // Too close to a car in your lane to be in it: fresh evidence it's in the other line.
+                    chosen = new[] { line, -line, 2 * line, -2 * line }.FirstOrDefault(Free);
+                    if (chosen != 0) s.LaneTime = time;
+                }
+                lanes[p.Key] = chosen;
+                placed.Add(new KeyValuePair<double, int>(at, chosen));
+            }
+
+            // A car out of line that is still level with a car in your lane (or with you) keeps its evidence fresh.
+            // Not knowing which side the other line is on, such a row of two straddles your lane.
+            var drawn = lanes.ToDictionary(p => p.Key, p => (float)p.Value);
+            foreach (int car in lanes.Keys.Where(k => lanes[k] != 0 && !alongside.ContainsKey(k)).ToList())
+            {
+                List<int> partners = lanes.Keys.Where(k => lanes[k] == 0 && !alongside.ContainsKey(k) && Math.Abs(along[k] - along[car]) < Overlap).ToList();
+                if (partners.Count > 0 || Math.Abs(along[car]) < Overlap) _seen[car].LaneTime = time;
+                if (_otherLine != 0 || Math.Abs(lanes[car]) != 1) continue;
+                foreach (int partner in partners)
+                {
+                    drawn[car] = lanes[car] * 0.5f;
+                    drawn[partner] = -lanes[car] * 0.5f;
+                }
+            }
+
             var cars = new List<RadarCar>();
             double aheadMeters = double.MaxValue, behindMeters = double.MaxValue, aheadClosing = 0, behindClosing = 0;
             foreach (KeyValuePair<int, double> p in near)
@@ -148,13 +213,12 @@ namespace AlmostFastOverlays
                 }
                 else
                 {
-                    // Just cleared: hold the lane a moment, then drift into line.
-                    float target = Recent(s) ? s.Side : 0;
-                    float step = (float)(LaneSpeed * dt);
+                    // Slide toward the lane it's placed in, so lane changes read as moves rather than jumps.
+                    s.Side = lanes[p.Key];
+                    float target = drawn[p.Key], step = (float)(LaneSpeed * dt);
                     s.Lane = s.Lane < target ? Math.Min(target, s.Lane + step) : Math.Max(target, s.Lane - step);
-                    if (!Recent(s) && Math.Abs(s.Lane) < 0.01f) s.Side = 0;
                 }
-                bool inLine = !beside && Math.Abs(s.Lane) < 0.5f;
+                bool inLine = !beside && lanes[p.Key] == 0;
                 if (inLine && p.Value > 0 && p.Value < aheadMeters) { aheadMeters = p.Value; aheadClosing = s.Closing; }
                 if (inLine && p.Value < 0 && -p.Value < behindMeters) { behindMeters = -p.Value; behindClosing = s.Closing; }
                 if (Math.Abs(p.Value) > Reach) continue;
@@ -179,23 +243,26 @@ namespace AlmostFastOverlays
         // ------------------------------------------------------------------ previews
 
         /// <summary>
-        /// A drafting line for the designer's previews: a car tucked in ahead, one behind, one further up on the
-        /// left, and a car alongside wherever the preview's blind-spot zones put one.
+        /// A two-wide pack for the designer's previews: a row of two just ahead and a row of two just behind (the
+        /// other line on your left), the next car up the road, and a car alongside wherever the preview's
+        /// blind-spot zones put one.
         /// </summary>
         internal static void Preview(TelemetrySnapshot s)
         {
             var cars = new List<RadarCar>
             {
-                new RadarCar { CarIdx = 4, Meters = -10.5, Number = "31", Closing = 0.4 },
-                new RadarCar { CarIdx = 2, Meters = 9.2, Number = "05", Closing = 0.2 },
-                new RadarCar { CarIdx = 1, Meters = 24, Lane = -1, Number = "12", Closing = -0.6 }
+                new RadarCar { CarIdx = 4, Meters = -6.8, Number = "31", Closing = 0.4 },
+                new RadarCar { CarIdx = 5, Meters = -6.3, Lane = -1, Number = "44", Closing = 0.3 },
+                new RadarCar { CarIdx = 2, Meters = 7.2, Number = "05", Closing = 0.2 },
+                new RadarCar { CarIdx = 1, Meters = 7.7, Lane = -1, Number = "12", Closing = -0.1 },
+                new RadarCar { CarIdx = 0, Meters = 21.5, Number = "7", Closing = -0.6 }
             };
-            double Beside(BlindSpotZone zone) => zone == BlindSpotZone.Front ? 2.6 : zone == BlindSpotZone.Rear ? -2.8 : -1.2;
+            double Beside(BlindSpotZone zone) => zone == BlindSpotZone.Front ? 2.6 : zone == BlindSpotZone.Rear ? -2.8 : -0.8;
             if (s.LeftBlindSpot != BlindSpotZone.None) cars.Add(new RadarCar { CarIdx = 6, Meters = Beside(s.LeftBlindSpot), Lane = -1, Alongside = true, Number = "9" });
             if (s.RightBlindSpot != BlindSpotZone.None) cars.Add(new RadarCar { CarIdx = 7, Meters = Beside(s.RightBlindSpot), Lane = 1, Alongside = true, Number = "88" });
             s.Radar = cars.OrderBy(c => c.Meters).ToArray();
-            s.AheadMeters = 9.2;
-            s.BehindMeters = 10.5;
+            s.AheadMeters = 7.2;
+            s.BehindMeters = 6.8;
             s.AheadClosing = 0.2;
             s.BehindClosing = 0.4;
         }
@@ -209,8 +276,8 @@ namespace AlmostFastOverlays
         {
             double cycle = seconds % 16.0;
             var cars = new List<RadarCar>();
-            double ahead = 9.5 + 2.5 * Math.Sin(seconds / 2.3), behind = -(12 + 3 * Math.Sin(seconds / 3.1 + 1));
-            double aheadClosing = -2.5 / 2.3 * Math.Cos(seconds / 2.3), behindClosing = -3 / 3.1 * Math.Cos(seconds / 3.1 + 1);
+            double ahead = 7.5 + 2 * Math.Sin(seconds / 2.3), behind = -(7 + 1.5 * Math.Sin(seconds / 3.1 + 1));
+            double aheadClosing = -2 / 2.3 * Math.Cos(seconds / 2.3), behindClosing = -1.5 / 3.1 * Math.Cos(seconds / 3.1 + 1);
             cars.Add(new RadarCar { CarIdx = 2, Meters = ahead, Number = "05", Closing = aheadClosing });
             cars.Add(new RadarCar { CarIdx = 4, Meters = behind, Number = "31", Closing = behindClosing });
             if (cycle > 2 && cycle < 11)
