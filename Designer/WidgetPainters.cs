@@ -388,16 +388,26 @@ namespace AlmostFastOverlays
             Color flashColor = c.Color("flashColor");
             Color ToneAt(double at) => Tone(colorMode, at, color, warn, danger, warnAt, dangerAt);
 
-            void Draw(RectangleF r, Color fill, bool lit, Brush brush = null)
+            // The warped shapes of the track and segments stay the same while only the value moves, so they
+            // are kept by geometry; a growing fill is warped afresh.
+            string geometry = c.B + "|" + c.Raw("bend") + "|" + c.Raw("peak") + "|" + c.Raw("taper") + "|" + c.Raw("bulge") + "|" + c.Raw("skew") + "|" +
+                c.Raw("thickness") + "|" + c.Raw("grow") + "|" + c.Raw("orientation") + "|" + radius + "|";
+            void Draw(RectangleF r, Color fill, bool lit, Brush brush = null, bool keep = false)
             {
                 if (r.Width < 0.5f || r.Height < 0.5f) return;
-                using (GraphicsPath flatPath = Paint.Rounded(r, Math.Min(radius, Math.Min(r.Width, r.Height) / 2)))
-                using (GraphicsPath path = warp.Map(flatPath))
+                GraphicsPath path = keep ? c.Renderer.Shape(geometry + r, () => Warped(r)) : Warped(r);
+                try
                 {
                     if (lit && glow > 0) Paint.Glow(g, path, fill, glow);
                     if (brush != null) g.FillPath(brush, path);
                     else using (var solid = new SolidBrush(fill)) g.FillPath(solid, path);
                 }
+                finally { if (!keep) path.Dispose(); }
+            }
+
+            GraphicsPath Warped(RectangleF r)
+            {
+                using (GraphicsPath flatPath = Paint.Rounded(r, Math.Min(radius, Math.Min(r.Width, r.Height) / 2))) return warp.Map(flatPath);
             }
 
             void Line(float x, float overhang, Color lineColor)
@@ -420,12 +430,12 @@ namespace AlmostFastOverlays
                 {
                     int rank = FillOrder.Rank(order, i, n);
                     bool on = flash || rank < lit;
-                    Draw(new RectangleF(i * (len + gap), 0, len, thick), on ? (flash ? flashColor : ToneAt((rank + 0.5) / steps)) : track, on);
+                    Draw(new RectangleF(i * (len + gap), 0, len, thick), on ? (flash ? flashColor : ToneAt((rank + 0.5) / steps)) : track, on, null, true);
                 }
             }
             else if (mode == "Center")
             {
-                Draw(flat, track, false);
+                Draw(flat, track, false, null, true);
                 double scale = Math.Max(Math.Abs(c.Num("min")), Math.Abs(c.Num("max")));
                 double f = scale <= 0 ? 0 : Math.Max(-1, Math.Min(1, value / scale));
                 if (reverse) f = -f;
@@ -435,7 +445,7 @@ namespace AlmostFastOverlays
             }
             else
             {
-                Draw(flat, track, false);
+                Draw(flat, track, false, null, true);
                 double f = flash ? 1 : Fraction(c, value);
                 if (f > 0)
                 {
@@ -1153,14 +1163,20 @@ namespace AlmostFastOverlays
             int n = history.Count;
             bool second = !string.IsNullOrWhiteSpace(c.Raw("value2"));
             Func<int, double> firstAt = history.First, secondAt = history.Second;
-            if (n < 2 && c.T.IsPreview)
+            if (n < GraphHistory.Points && c.T.IsPreview)
             {
-                // A still preview has no history yet; show a representative trace around the current value.
+                // A preview hasn't seen the whole span yet: the part it hasn't seen shows a representative trace
+                // around the current value, and the real samples follow on as they arrive.
                 double now1 = c.Num("value"), now2 = second ? c.Num("value2") : 0;
-                n = GraphHistory.Points;
-                firstAt = i => now1 * (0.8 + 0.2 * Math.Sin(i / 10.0) * Math.Cos(i / 27.0));
+                int missing = GraphHistory.Points - n;
+                Func<int, double> realFirst = history.First, realSecond = history.Second;
                 // A value at zero now (a pedal at rest) gets occasional presses; anything else drifts around its value.
-                secondAt = Math.Abs(now2) < 1e-6 ? (Func<int, double>)(i => 0.9 * Math.Pow(Math.Max(0, Math.Sin(i / 9.0 + 2)), 6)) : i => now2 * (0.9 + 0.1 * Math.Sin(i / 13.0 + 1));
+                Func<int, double> madeSecond = Math.Abs(now2) < 1e-6
+                    ? (Func<int, double>)(i => 0.9 * Math.Pow(Math.Max(0, Math.Sin(i / 9.0 + 2)), 6))
+                    : i => now2 * (0.9 + 0.1 * Math.Sin(i / 13.0 + 1));
+                n = GraphHistory.Points;
+                firstAt = i => i >= missing ? realFirst(i - missing) : now1 * (0.8 + 0.2 * Math.Sin(i / 10.0) * Math.Cos(i / 27.0));
+                secondAt = i => i >= missing ? realSecond(i - missing) : madeSecond(i);
             }
             double lo = c.Num("min"), hi = c.Num("max");
             if (hi <= lo)

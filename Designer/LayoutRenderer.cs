@@ -573,7 +573,11 @@ namespace AlmostFastOverlays
             float rotate = (float)(context.Num("rotate") % 360);
             RectangleF b = context.B;
             LayerStyle style = LayerStyle.From(context);
-            if (opacity >= 0.999 && !style.Any)
+            // A widget that can never change (no live data, no formulas) but couldn't go into the base
+            // image, because something live sits beneath it, is kept as a finished picture: redrawing it
+            // when something near it changes is then one image copy instead of drawing it again.
+            bool still = CacheStatic && Still(widget);
+            if (opacity >= 0.999 && !style.Any && !still)
             {
                 GraphicsState state = g.Save();
                 Turn(g, b, flipX, flipY, rotate);
@@ -617,8 +621,9 @@ namespace AlmostFastOverlays
         {
             Rectangle at = Outward(Reach(widget));
             if (at.Width < 1 || at.Height < 1) at = new Rectangle((int)b.X, (int)b.Y, Math.Max(1, (int)b.Width), Math.Max(1, (int)b.Height));
-            var composite = new Bitmap(at.Width, at.Height, PixelFormat.Format32bppArgb);
-            using (var layer = new Bitmap(at.Width, at.Height, PixelFormat.Format32bppArgb))
+            // Premultiplied pictures blend back exactly; see-through panels would lose precision otherwise.
+            var composite = new Bitmap(at.Width, at.Height, PixelFormat.Format32bppPArgb);
+            using (var layer = new Bitmap(at.Width, at.Height, PixelFormat.Format32bppPArgb))
             {
                 Matrix place;
                 using (Graphics lg = Graphics.FromImage(layer))
@@ -645,6 +650,35 @@ namespace AlmostFastOverlays
         {
             foreach (StyledPicture picture in _styled.Values) picture.Bitmap.Dispose();
             _styled.Clear();
+            _still.Clear();
+            ForgetShapes();
+        }
+
+        private readonly Dictionary<string, bool> _still = new Dictionary<string, bool>();
+        private readonly Dictionary<string, GraphicsPath> _shapes = new Dictionary<string, GraphicsPath>();
+
+        /// <summary>
+        /// A shape kept by a key describing its geometry (such as a warped bar's segments), built once.
+        /// The renderer owns it: callers must not dispose it.
+        /// </summary>
+        internal GraphicsPath Shape(string key, Func<GraphicsPath> build)
+        {
+            if (_shapes.TryGetValue(key, out GraphicsPath path)) return path;
+            if (_shapes.Count >= 4000) ForgetShapes();
+            return _shapes[key] = build();
+        }
+
+        private void ForgetShapes()
+        {
+            foreach (GraphicsPath path in _shapes.Values) path.Dispose();
+            _shapes.Clear();
+        }
+
+        /// <summary>Whether a widget never changes, worked out once per widget (and again after an edit).</summary>
+        private bool Still(DashWidget widget)
+        {
+            if (!_still.TryGetValue(widget.Id, out bool still)) _still[widget.Id] = still = IsStatic(widget);
+            return still;
         }
 
         /// <summary>Mirrors and turns everything drawn next about the middle of a widget's box.</summary>

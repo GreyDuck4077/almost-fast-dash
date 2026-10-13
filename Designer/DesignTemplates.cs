@@ -330,13 +330,13 @@ namespace AlmostFastOverlays
 
             b.Add("arc", "Rev ring", 20, 50, 270, 270, "value", "=RevPct", "style", "Smooth", "thickness", "22", "taper", "75", "start", "135", "sweep", "270",
                 "colorMode", "Gradient", "color", "info", "warnColor", "accent", "dangerColor", "bad", "warnAt", "0.5", "dangerAt", "0.88", "track", "#160E28",
-                "glow", "16", "flash", "=ShiftFlash", "fxGlow", "10", "fxGlowColor", "=alpha($accent, 0.5)");
+                "glow", "16", "flash", "=ShiftFlash");
             b.Text("Rpm", 70, 150, 170, 50, "=format(Rpm, \"0\")", "size", "40", "color", "info", "fxGlow", "8", "fxGlowColor", "info");
             b.Text("Rpm unit", 70, 198, 170, 16, "RPM", "size", "11", "tracking", "3", "weight", "Regular", "color", "muted");
 
             b.Add("arc", "Fuel ring", 564, 50, 270, 270, "value", "=FuelPct", "style", "Smooth", "thickness", "22", "taper", "75",
                 "start", "45", "sweep", "-270", "colorMode", "Solid", "color", "accent",
-                "track", "#160E28", "glow", "16", "fxGlow", "10", "fxGlowColor", "=alpha($accent, 0.5)");
+                "track", "#160E28", "glow", "16");
             b.Text("Fuel pct", 614, 150, 170, 50, "=format(FuelPct * 100, \"0\") + \"%\"", "size", "40", "color", "accent", "fxGlow", "8", "fxGlowColor", "accent");
             b.Text("Fuel pct unit", 614, 198, 170, 16, "FUEL", "size", "11", "tracking", "3", "weight", "Regular", "color", "muted");
 

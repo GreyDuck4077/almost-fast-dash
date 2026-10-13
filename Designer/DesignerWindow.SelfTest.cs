@@ -142,20 +142,26 @@ namespace AlmostFastOverlays
             foreach (DesignTemplate template in DesignTemplates.All)
             {
                 DashboardSettings d = DashboardSettings.CreateDesigned(template);
-                int mismatches = 0, baked = 0;
+                int mismatches = 0, baked = 0, worst = 0;
                 // Waving flags follow the clock; hold both renderers at the same moment.
                 using (var cached = new LayoutRenderer(854, 480, d, _units) { FlagClock = 0, FixedNow = TestNow })
                 using (var plain = new LayoutRenderer(854, 480, d, _units) { CacheStatic = false, FlagClock = 0, FixedNow = TestNow })
                     foreach (TelemetrySnapshot snapshot in states)
                         using (var a = cached.Render(snapshot, false, snapshot.Gear, 1))
                         using (var b = plain.Render(snapshot, false, snapshot.Gear, 1))
-                            if (Pixels(a) != Pixels(b)) mismatches++;
+                            if (Pixels(a) != Pixels(b))
+                            {
+                                // Widgets kept as finished pictures can round an edge pixel by 1/255; more is a real difference.
+                                int most = Largest(a, b);
+                                worst = Math.Max(worst, most);
+                                if (most > 2) mismatches++;
+                            }
                 using (var counter = new LayoutRenderer(854, 480, d, _units))
                 {
                     using (counter.Render(states[0], false, 4, 1)) { }
                     baked = d.Design.Screens[0].Widgets.Count(w => counter.IsBaked(d.Design.Screens[0], w));
                 }
-                Check("static cache is pixel-identical: " + template.Name, mismatches == 0, mismatches + " of " + states.Length + " states differ; " + baked + " widgets cached");
+                Check("static cache matches a plain render: " + template.Name, mismatches == 0, mismatches + " of " + states.Length + " states differ beyond rounding (largest " + worst + "/255); " + baked + " widgets baked");
             }
 
             // The largest difference in any colour channel between two frames.
@@ -210,9 +216,9 @@ namespace AlmostFastOverlays
                 var lap = new SyntheticTelemetry();
                 int mismatches = 0, frames = 0, rounded = 0;
                 double share = 0, fast = 0, slow = 0;
-                string firstDiff = "", changed = "";
+                string firstDiff = "", changed = "", costly = "";
                 using (var incremental = new LayoutRenderer(854, 480, d, _units) { FlagClock = 0, FixedNow = TestNow, Timings = new Dictionary<string, double>() })
-                using (var whole = new LayoutRenderer(854, 480, d, _units) { FlagClock = 0, FixedNow = TestNow, RedrawChangesOnly = false })
+                using (var whole = new LayoutRenderer(854, 480, d, _units) { FlagClock = 0, FixedNow = TestNow, RedrawChangesOnly = false, Timings = new Dictionary<string, double>() })
                     for (int i = 0; i < 90; i++)
                     {
                         TelemetrySnapshot snapshot = i % 30 == 29 ? states[i / 30 % states.Length] : lap.Next(out _, out _, out _);
@@ -225,6 +231,7 @@ namespace AlmostFastOverlays
                                 long b1 = System.Diagnostics.Stopwatch.GetTimestamp();
                                 if (i > 0) { fast += a1 - a0; slow += b1 - a1; share += incremental.LastRedrawShare; frames++; }
                                 if (i == 89) changed = string.Join(", ", incremental.Timings.Where(p => p.Key.StartsWith("changed: ")).OrderByDescending(p => p.Value).Take(14).Select(p => p.Key.Substring(9) + " " + p.Value));
+                                if (i == 89) costly = string.Join(", ", whole.Timings.Where(p => !p.Key.StartsWith("changed: ")).OrderByDescending(p => p.Value).Take(6).Select(p => p.Key + " " + (p.Value / 90).ToString("0.00")));
                                 // Scaled glows can round 1/255 differently when clipped; anything larger is a real difference.
                                 if (Pixels(a) != Pixels(b) && Largest(a, b) <= 2) rounded++;
                                 else if (Pixels(a) != Pixels(b))
@@ -252,7 +259,7 @@ namespace AlmostFastOverlays
                 Check("redrawing only changes matches a full redraw: " + template.Name, mismatches == 0, mismatches + " of 90 frames differ" + (rounded > 0 ? ", " + rounded + " within 2/255 rounding" : "") + "; " + firstDiff);
                 if (frames > 0)
                     report.Add("INFO  " + template.Id + " animated lap: " + (fast / frames * 1000 / System.Diagnostics.Stopwatch.Frequency).ToString("0.00") + " ms per frame redrawing changes (" +
-                        (share / frames * 100).ToString("0") + "% of the screen) vs " + (slow / frames * 1000 / System.Diagnostics.Stopwatch.Frequency).ToString("0.00") + " ms redrawing everything; changed most: " + changed);
+                        (share / frames * 100).ToString("0") + "% of the screen) vs " + (slow / frames * 1000 / System.Diagnostics.Stopwatch.Frequency).ToString("0.00") + " ms redrawing everything; changed most: " + changed + "; costliest (ms/frame): " + costly);
             }
 
             // Waving flags: the cloth moves with time, and the runtime is told to redraw it.
