@@ -29,6 +29,13 @@ namespace AlmostFastOverlays
         /// </summary>
         public List<DashScreen> Screens { get; set; } = new List<DashScreen>();
 
+        /// <summary>
+        /// Wheel buttons ("device|number") that step to the next and previous page. Screens without a
+        /// Show-when condition are the pages; screens with one still take over when it's true.
+        /// </summary>
+        public string PageButton { get; set; } = "";
+        public string PageBackButton { get; set; } = "";
+
         /// <summary>Embedded PNG images by id, base64 encoded, so a design is one self-contained file.</summary>
         public Dictionary<string, string> Images { get; set; } = new Dictionary<string, string>();
 

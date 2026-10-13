@@ -57,16 +57,31 @@ namespace AlmostFastOverlays
             Theme = _layout.Theme,
             Accent = _accent,
             ShiftFlashOn = shiftFlashOn,
-            Now = FixedNow ?? DateTime.Now
+            Now = FixedNow ?? DateTime.Now,
+            Page = _page % Math.Max(1, Pages.Count) + 1,
+            PageCount = Math.Max(1, Pages.Count)
         };
 
-        /// <summary>The screen to show: the first conditional screen that matches, else the first plain one.</summary>
+        /// <summary>The screen to show: the first conditional screen that matches, else the current page.</summary>
         public DashScreen ActiveScreen(EvalScope scope)
         {
             foreach (DashScreen screen in _layout.Screens)
                 if (!string.IsNullOrWhiteSpace(screen.Condition) && Expr.Bool(Expr.Evaluate(Strip(screen.Condition), scope)))
                     return screen;
-            return _layout.Screens.FirstOrDefault(s => string.IsNullOrWhiteSpace(s.Condition)) ?? _layout.Screens[0];
+            List<DashScreen> pages = Pages;
+            return pages.Count == 0 ? _layout.Screens[0] : pages[_page % pages.Count];
+        }
+
+        /// <summary>The screens without a condition: the pages a wheel button steps through.</summary>
+        private List<DashScreen> Pages => _layout.Screens.Where(s => string.IsNullOrWhiteSpace(s.Condition)).ToList();
+
+        private int _page;
+
+        /// <summary>Steps to the next page (1) or the previous one (-1), wrapping round.</summary>
+        public void StepPage(int delta)
+        {
+            int count = Math.Max(1, Pages.Count);
+            _page = ((_page + delta) % count + count) % count;
         }
 
         public Bitmap Render(TelemetrySnapshot t, bool shiftFlashOn, int previousGear, float gearTransitionProgress) =>

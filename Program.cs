@@ -51,6 +51,14 @@ namespace AlmostFastOverlays
             if (lightReport != null) return LightFrames.Run(lightReport);
             string recording = ParseOption(args, "--replay-ibt");
             if (recording != null) return RecordingReplay.Run(recording, ParseOption(args, recording) ?? "replay.txt");
+            string controllerReport = ParseOption(args, "--controllers");
+            if (controllerReport != null)
+            {
+                // Lists game controllers Windows sees, and the buttons held on each, for checking page buttons.
+                var lines = WheelButtons.Read().Select(d => d.Key + ": buttons held 0x" + d.Value.ToString("X8"));
+                File.WriteAllLines(controllerReport, lines.DefaultIfEmpty("No game controllers found."));
+                return 0;
+            }
             string liveReport = ParseOption(args, "--live-check");
             if (liveReport != null) return LiveCheck.Run(liveReport, int.TryParse(ParseOption(args, liveReport), out int liveSeconds) ? liveSeconds : 20);
             string uiScenario = ParseOption(args, "--ui-snapshot");
@@ -359,6 +367,7 @@ namespace AlmostFastOverlays
                         int lastObservedGear = int.MinValue;
                         int transitionFromGear = 0;
                         DateTime gearTransitionStartedUtc = DateTime.MinValue;
+                        bool pageButtonHeld = false, backButtonHeld = false;
 
                         while (!ShouldStop())
                         {
@@ -412,6 +421,17 @@ namespace AlmostFastOverlays
                                 lastTelemetryConnection = snapshot.Connected;
                             }
 
+                            // A wheel button steps through the dashboard's pages.
+                            DashLayout design = runtime.Dashboard.Design;
+                            if (design != null && (!string.IsNullOrEmpty(design.PageButton) || !string.IsNullOrEmpty(design.PageBackButton)))
+                            {
+                                Dictionary<string, uint> buttons = WheelButtons.Read();
+                                bool next = WheelButtons.IsDown(buttons, design.PageButton), back = WheelButtons.IsDown(buttons, design.PageBackButton);
+                                if (next && !pageButtonHeld) runtime.Renderer.StepPage(1);
+                                if (back && !backButtonHeld) runtime.Renderer.StepPage(-1);
+                                pageButtonHeld = next;
+                                backButtonHeld = back;
+                            }
                             int current = runtime.Renderer.StateHash(snapshot, shiftFlashOn, gearAnimationFrame);
                             if (current != lastDrawn)
                             {

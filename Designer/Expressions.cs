@@ -15,6 +15,16 @@ namespace AlmostFastOverlays
         public string Accent = "#2DD4BF";
         public bool ShiftFlashOn;
         public DateTime Now = DateTime.Now;
+        /// <summary>The page shown (from 1) and how many pages the design has.</summary>
+        public int Page = 1, PageCount = 1;
+        /// <summary>The number of the group a widget belongs to (such as a driver card's position), 0 outside a group.</summary>
+        public double Slot;
+
+        /// <summary>The same scope for a widget in a numbered group.</summary>
+        public EvalScope WithSlot(double slot) => slot == Slot ? this : new EvalScope
+        {
+            T = T, Units = Units, Theme = Theme, Accent = Accent, ShiftFlashOn = ShiftFlashOn, Now = Now, Page = Page, PageCount = PageCount, Slot = slot
+        };
     }
 
     /// <summary>

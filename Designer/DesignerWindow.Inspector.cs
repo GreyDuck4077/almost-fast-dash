@@ -82,6 +82,13 @@ namespace AlmostFastOverlays
                 "Leave empty for your main screen. A screen with a condition takes over whenever its condition is true, " +
                 "for example OnPitRoad for a pit-lane page, or Caution for a caution page. With several, the first true one wins.", 6));
 
+            Inspector.Children.Add(SectionTitle("Pages"));
+            int pages = _layout.Screens.Count(s => string.IsNullOrWhiteSpace(s.Condition));
+            Inspector.Children.Add(Caption("Screens without a Show-when condition are pages (this design has " + pages + "). Pick a button on your wheel to step through them while driving; " +
+                "the Page field tells widgets which page is showing."));
+            Inspector.Children.Add(LabeledRow("Next page", ButtonPicker(() => _layout.PageButton, v => _layout.PageButton = v)));
+            Inspector.Children.Add(LabeledRow("Previous page", ButtonPicker(() => _layout.PageBackButton, v => _layout.PageBackButton = v)));
+
             Inspector.Children.Add(SectionTitle("Quick start"));
             Inspector.Children.Add(Tip("", "Ready-made blocks", "Cards, clusters and strips under Add are the fastest way to a polished layout."));
             Inspector.Children.Add(Tip("", "Theme first", "Pick a preset under Theme. Widgets that use theme colors ($accent, $panel...) restyle together."));
@@ -91,6 +98,48 @@ namespace AlmostFastOverlays
 
             Inspector.Children.Add(SectionTitle("Shortcuts"));
             Inspector.Children.Add(Caption("Arrows nudge 1 px, Shift+arrows 10 px · Ctrl+D duplicate · Ctrl+C / Ctrl+V copy and paste · Del delete · [ and ] change order · Ctrl+Z / Ctrl+Y undo and redo · Ctrl+wheel zoom · Shift while resizing keeps proportions · Alt turns off snapping. Changes save as you go."));
+        }
+
+        /// <summary>Shows the assigned wheel button and assigns a new one by pressing it.</summary>
+        private FrameworkElement ButtonPicker(Func<string> get, Action<string> set)
+        {
+            var panel = new StackPanel();
+            var label = new TextBlock { Text = WheelButtons.Describe(get()), TextWrapping = TextWrapping.Wrap, Foreground = (Brush)FindResource("Brush.TextSecondary"), Margin = new Thickness(0, 0, 0, 6) };
+            var row = new StackPanel { Orientation = Orientation.Horizontal };
+            var assign = new Button { Content = "Assign…", Margin = new Thickness(0, 0, 6, 0) };
+            var clear = new Button { Content = "Clear", Style = (Style)FindResource("Btn.Ghost"), IsEnabled = !string.IsNullOrEmpty(get()) };
+            System.Windows.Threading.DispatcherTimer listen = null;
+            assign.Click += (s, e) =>
+            {
+                if (listen != null) return;
+                // Wait (up to ten seconds) for a button that wasn't already held when listening started.
+                Dictionary<string, uint> before = WheelButtons.Read();
+                DateTime until = DateTime.UtcNow.AddSeconds(10);
+                assign.Content = "Press a button…";
+                listen = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(30) };
+                listen.Tick += (s2, e2) =>
+                {
+                    Dictionary<string, uint> now = WheelButtons.Read();
+                    string pressed = WheelButtons.NewlyPressed(before, now);
+                    before = now;
+                    if (pressed == null && DateTime.UtcNow < until) return;
+                    listen.Stop();
+                    listen = null;
+                    assign.Content = "Assign…";
+                    if (pressed == null) { StatusText.Text = "No button was pressed. Is the wheel plugged in?"; return; }
+                    set(pressed);
+                    label.Text = WheelButtons.Describe(pressed);
+                    clear.IsEnabled = true;
+                    Commit("Page button");
+                };
+                listen.Start();
+            };
+            clear.Click += (s, e) => { set(""); label.Text = WheelButtons.Describe(""); clear.IsEnabled = false; Commit("Page button"); };
+            row.Children.Add(assign);
+            row.Children.Add(clear);
+            panel.Children.Add(label);
+            panel.Children.Add(row);
+            return panel;
         }
 
         private Grid Tip(string glyph, string title, string text)

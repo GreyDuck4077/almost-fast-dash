@@ -175,7 +175,10 @@ namespace AlmostFastOverlays
             Add("Flags", "NoticeKind", "What sort of notice is showing: Info, Good, Warning or Danger.", s => s.T.NoticeKind ?? "");
             Add("System", "CpuLoad", "The PC's CPU use, 0 to 100.", s => SystemLoad.Cpu, "format(CpuLoad, \"0\") + \"%\"");
             Add("System", "MemoryLoad", "The PC's memory use, 0 to 100.", s => SystemLoad.Memory, "format(MemoryLoad, \"0\") + \"%\"");
-            Add("System", "Clock", "The PC's time, such as 18:04.", s => s.Now.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture));
+            Add("System", "Page", "The page of the dashboard showing, from 1 (a wheel button steps through pages).", s => (double)s.Page);
+            Add("System", "PageCount", "How many pages the dashboard has.", s => (double)s.PageCount);
+            Add("System", "Slot", "The number of the group a widget is in, such as a driver card's race position; 0 outside a numbered group.", s => s.Slot);
+            Add("System", "Clock","The PC's time, such as 18:04.", s => s.Now.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture));
         }
 
         /// <summary>
