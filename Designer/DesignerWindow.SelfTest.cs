@@ -639,6 +639,41 @@ namespace AlmostFastOverlays
                     plainGlass + " / " + overShape);
             }
 
+            // ---------------- screen sizes
+            {
+                DashLayout sized = DesignTemplates.Blank();
+                DashWidget label = WidgetCatalog.Create("text", 427, 240);
+                label.W = 100; label.H = 50;
+                label.Set("size", "20");
+                label.Set("color", "=Speed > 100 ? $bad : $text");
+                DashWidget bar = WidgetCatalog.Create("bar", 0, 0);
+                bar.Set("radius", "-1");
+                bar.Set("thickness", "60");
+                sized.Screens[0].Widgets.Add(label);
+                sized.Screens[0].Widgets.Add(bar);
+                sized.ScaleTo(1280, 720);
+                Check("a design moves to another screen size, scaling what's on it", sized.Width == 1280 && sized.Height == 720 &&
+                    label.X == 640 && label.Y == 360 && label.W == 150 && label.H == 75 && label.Get("size") == "30" && label.Get("color").StartsWith("=") &&
+                    bar.Get("radius") == "-1" && bar.Get("thickness") == "60", label.X + "," + label.Y + " " + label.W + "x" + label.H + " size " + label.Get("size"));
+
+                DashboardSettings wide = DashboardSettings.CreateDesigned(DesignTemplates.Oval, 1024, 600);
+                using (var renderer = new LayoutRenderer(wide.ScreenSize().Width, wide.ScreenSize().Height, wide, _units))
+                using (System.Drawing.Bitmap frame = renderer.Render(IRacingTelemetrySource.CreatePreviewSnapshot(), false, 4, 1))
+                using (System.Drawing.Bitmap fitted = ScreenSizes.Fit(frame, 854, 480))
+                    Check("a dashboard is drawn at its own size and fitted to a screen of another", frame.Width == 1024 && frame.Height == 600 && fitted.Width == 854 && fitted.Height == 480
+                        && renderer.Errors.Count == 0, string.Join("; ", renderer.Errors.Values));
+
+                // The designer's canvas follows the design's size, and back again on undo.
+                int before = _frame.PixelWidth;
+                _layout.ScaleTo(1024, 600);
+                Commit("Self-test resize");
+                RenderNow();
+                bool followed = _frame.PixelWidth == 1024 && _frame.PixelHeight == 600 && Math.Abs(Overlay.Width - 1024) < 0.1;
+                Undo_Click(null, null);
+                RenderNow();
+                Check("the designer's canvas follows the screen size, and undo puts it back", followed && _frame.PixelWidth == before && _layout.Width == before, _frame.PixelWidth + "x" + _frame.PixelHeight);
+            }
+
             // ---------------- lap falloff and the flagships
             {
                 double[] stint = { 88.2, 87.5, 87.6, 87.9 };

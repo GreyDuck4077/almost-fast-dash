@@ -82,6 +82,31 @@ namespace AlmostFastOverlays
                 "Leave empty for your main screen. A screen with a condition takes over whenever its condition is true, " +
                 "for example OnPitRoad for a pit-lane page, or Caution for a caution page. With several, the first true one wins.", 6));
 
+            Inspector.Children.Add(SectionTitle("Display resolution"));
+            var current = new System.Drawing.Size(_layout.Width, _layout.Height);
+            var resolution = new DockPanel();
+            var resize = new Button { Content = "Change…", Margin = new Thickness(8, 0, 0, 0) };
+            DockPanel.SetDock(resize, Dock.Right);
+            resolution.Children.Add(resize);
+            resolution.Children.Add(new TextBlock { Text = current.Width + " × " + current.Height + " pixels", VerticalAlignment = VerticalAlignment.Center, FontWeight = FontWeights.SemiBold });
+            Inspector.Children.Add(resolution);
+            System.Drawing.Size? wheel = ScreenSizes.Detect();
+            Inspector.Children.Add(Caption(wheel == null
+                ? "The dashboard is built for a screen this size. Change it to match your display; everything on it is scaled to fit."
+                : wheel.Value == current
+                    ? "Matches your wheel screen."
+                    : "Your wheel screen is " + wheel.Value.Width + " × " + wheel.Value.Height + ". This dashboard is fitted to it without stretching; change the resolution to fill it exactly.", 6));
+            resize.Click += (s, e) =>
+            {
+                System.Drawing.Size? chosen = ScreenSizePicker.Ask(this, "Display resolution",
+                    "Every screen of this dashboard is scaled to the new size: positions and sizes follow the width and height, and text keeps its proportions. Undo puts it back.",
+                    wheel ?? current, "Resize");
+                if (chosen == null || chosen.Value == current) return;
+                _layout.ScaleTo(chosen.Value.Width, chosen.Value.Height);
+                Commit("Resize to " + chosen.Value.Width + " × " + chosen.Value.Height);
+                RefreshInspector();
+            };
+
             Inspector.Children.Add(SectionTitle("Pages"));
             int pages = _layout.Screens.Count(s => string.IsNullOrWhiteSpace(s.Condition));
             Inspector.Children.Add(Caption("Screens without a Show-when condition are pages (this design has " + pages + "). Pick a button on your wheel to step through them while driving; " +

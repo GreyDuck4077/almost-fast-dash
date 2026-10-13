@@ -15,6 +15,11 @@ namespace AlmostFastOverlays
         public const int CurrentVersion = 1;
 
         public int Version { get; set; } = CurrentVersion;
+
+        /// <summary>The screen the dashboard is built for, in pixels. Designs from before sizes were kept are 854×480.</summary>
+        public int Width { get; set; } = ScreenSizes.DefaultWidth;
+        public int Height { get; set; } = ScreenSizes.DefaultHeight;
+
         public LayoutTheme Theme { get; set; } = new LayoutTheme();
 
         /// <summary>When on, racing flags take over the whole screen like the built-in dashboards.</summary>
@@ -39,8 +44,42 @@ namespace AlmostFastOverlays
         /// <summary>Embedded PNG images by id, base64 encoded, so a design is one self-contained file.</summary>
         public Dictionary<string, string> Images { get; set; } = new Dictionary<string, string>();
 
+        /// <summary>
+        /// Moves the design to another screen size, scaling everything on it to match. Positions and sizes
+        /// follow the screen's width and height. Text, line widths, corners and glows follow the smaller of
+        /// the two scales, so they stay in proportion when the shape of the screen changes.
+        /// </summary>
+        public void ScaleTo(int width, int height)
+        {
+            width = ScreenSizes.Clamp(width);
+            height = ScreenSizes.Clamp(height);
+            if (width == Width && height == Height) return;
+            double sx = width / (double)Math.Max(1, Width), sy = height / (double)Math.Max(1, Height), s = Math.Min(sx, sy);
+            foreach (DashWidget widget in AllWidgets())
+            {
+                widget.X = Math.Round(widget.X * sx);
+                widget.Y = Math.Round(widget.Y * sy);
+                widget.W = Math.Max(1, Math.Round(widget.W * sx));
+                widget.H = Math.Max(1, Math.Round(widget.H * sy));
+                foreach (string key in widget.Props.Keys.ToList())
+                {
+                    string raw = widget.Props[key];
+                    if (!WidgetCatalog.IsPixelSize(widget.Type, key) || raw == null || raw.StartsWith("=")) continue;
+                    if (!double.TryParse(raw, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double value)) continue;
+                    // Negative values are settings such as "round" corners, not sizes.
+                    if (value <= 0) continue;
+                    double scaled = value * s;
+                    widget.Props[key] = (scaled >= 10 ? Math.Round(scaled) : Math.Round(scaled, 1)).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                }
+            }
+            Width = width;
+            Height = height;
+        }
+
         public void Normalize()
         {
+            Width = ScreenSizes.Clamp(Width <= 0 ? ScreenSizes.DefaultWidth : Width);
+            Height = ScreenSizes.Clamp(Height <= 0 ? ScreenSizes.DefaultHeight : Height);
             if (Theme == null) Theme = new LayoutTheme();
             Theme.Normalize();
             if (Screens == null) Screens = new List<DashScreen>();

@@ -231,7 +231,8 @@ namespace AlmostFastOverlays
                 var stack = new StackPanel();
                 var thumbnail = new Border
                 {
-                    CornerRadius = new CornerRadius(11, 11, 0, 0), Background = new ImageBrush(RenderPreview(d, units, null)) { Stretch = Stretch.UniformToFill },
+                    // Dashboards for other screen shapes show whole, centred in the card's picture.
+                    CornerRadius = new CornerRadius(11, 11, 0, 0), Background = new ImageBrush(RenderPreview(d, units, null)) { Stretch = Stretch.Uniform },
                     BorderBrush = (Brush)FindResource("Brush.Border"), BorderThickness = new Thickness(0, 0, 0, 1)
                 };
                 stack.Children.Add(thumbnail);
@@ -249,6 +250,8 @@ namespace AlmostFastOverlays
                     tags.Children.Add(Pill(isDefault ? "Used whenever no other match" : "Not assigned to a track type", "Brush.SurfaceRaised", "Brush.TextTertiary", new Thickness(0, 0, 6, 6)));
                 foreach (string type in Disciplines.All.Where(d.RaceTypes.Contains))
                     tags.Children.Add(Pill(type, "Brush.SurfaceRaised", "Brush.TextSecondary", new Thickness(0, 0, 6, 6)));
+                System.Drawing.Size built = d.ScreenSize();
+                tags.Children.Add(Pill(built.Width + " × " + built.Height, "Brush.SurfaceRaised", "Brush.TextTertiary", new Thickness(0, 0, 6, 6)));
                 body.Children.Add(tags);
 
                 // Wraps rather than clips when a card is narrow.
@@ -293,7 +296,7 @@ namespace AlmostFastOverlays
             foreach (Border card in cards)
             {
                 card.Width = width;
-                if (card.Tag is Border thumbnail) thumbnail.Height = Math.Round((width - 2) * Dv5Screen.Height / Dv5Screen.Width);
+                if (card.Tag is Border thumbnail) thumbnail.Height = Math.Round((width - 2) * ScreenSizes.DefaultHeight / ScreenSizes.DefaultWidth);
             }
         }
 
@@ -303,13 +306,13 @@ namespace AlmostFastOverlays
 
             var designHeader = new StackPanel { Margin = new Thickness(0, 1, 0, 1) };
             designHeader.Children.Add(new TextBlock { Text = "New dashboard…", FontWeight = FontWeights.SemiBold });
-            designHeader.Children.Add(new TextBlock { Text = "Start from Halo, Oval or a blank canvas in the designer", Style = (Style)FindResource("T.Caption"), MaxWidth = 260 });
+            designHeader.Children.Add(new TextBlock { Text = "Start from Roady, Roundy, another template or a blank canvas, sized for your screen", Style = (Style)FindResource("T.Caption"), MaxWidth = 260, TextWrapping = TextWrapping.Wrap });
             var designItem = new MenuItem { Header = designHeader, Icon = GlyphIcon("") };
             designItem.Click += (s, a) =>
             {
-                DesignTemplate template = TemplatePicker.Choose(this, new UnitSystem(_settings.General));
+                DesignTemplate template = TemplatePicker.Choose(this, new UnitSystem(_settings.General), _settings.General, out System.Drawing.Size screen);
                 if (template == null) return;
-                DashboardSettings created = _settings.AddDesignedDashboard(template);
+                DashboardSettings created = _settings.AddDesignedDashboard(template, null, screen);
                 Save();
                 ShowEditor(created);
                 OpenDesigner(created);
@@ -663,7 +666,8 @@ namespace AlmostFastOverlays
         private static BitmapSource RenderPreview(DashboardSettings dashboard, UnitSystem units, TelemetrySnapshot snapshot, bool shiftFlash = false)
         {
             snapshot = snapshot ?? IRacingTelemetrySource.CreatePreviewSnapshot();
-            using (IDashboardRenderer renderer = DashboardRendererFactory.Create(Dv5Screen.Width, Dv5Screen.Height, dashboard, units))
+            System.Drawing.Size size = dashboard.ScreenSize();
+            using (IDashboardRenderer renderer = DashboardRendererFactory.Create(size.Width, size.Height, dashboard, units))
             using (var frame = renderer.Render(snapshot, shiftFlash, snapshot.Gear, 1f))
             using (var stream = new MemoryStream())
             {

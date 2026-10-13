@@ -447,6 +447,24 @@ namespace AlmostFastOverlays
 
         public static WidgetType Find(string id) => All.FirstOrDefault(t => t.Id == id);
 
+        /// <summary>Settings measured in pixels, which scale with the dashboard when it moves to another screen size.</summary>
+        private static readonly HashSet<string> PixelKeys = new HashSet<string>
+        {
+            "size", "valueSize", "labelSize", "unitSize", "neighborSize", "numberSize", "titleSize", "tickLength", "radius", "borderWidth",
+            "strokeWidth", "lineWidth", "carSize", "inset", "needleWidth", "glow", "tracking", "labelTracking",
+            "fxShadow", "fxShadowX", "fxShadowY", "fxGlow", "fxOutline", "glassDepth", "glassFrost"
+        };
+
+        public static bool IsPixelSize(string typeId, string key)
+        {
+            if (PixelKeys.Contains(key)) return true;
+            // Thickness is pixels on an arc but a share of the box for the Shape tools; gaps are pixels between
+            // rows and lap blocks, but a share of each column on the lap chart.
+            if (key == "thickness") return typeId == "arc";
+            if (key == "gap") return typeId == "progress" || typeId == "standings";
+            return false;
+        }
+
         /// <summary>Shows some of a widget's settings only while another setting makes them matter.</summary>
         private static void Rule(string typeId, string dependsOn, Func<string, bool> appliesWhen, params string[] keys)
         {

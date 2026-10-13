@@ -18,6 +18,10 @@ alerts. One exe, no installer, no other software required.
   are also included. Every one is built only from the designer's own widgets,
   so any of them can be changed or rebuilt by hand. The dashboard can switch by
   the session's track type, and a wheel button can page through screens.
+- **Any screen resolution.** A new dashboard is built for the wheel screen
+  that's plugged in, or for the resolution you choose (common wheel and dash
+  sizes, or any width and height). Templates scale to it, and the designer
+  can move a dashboard to another size later.
 - **LED devices** of any shape: the LEDs around a wheel screen, light bars, LED
   strips. Arduino boards on the common sim-racing LED protocol, Adalight strips
   and WLED controllers.

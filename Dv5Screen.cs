@@ -185,6 +185,9 @@ namespace AlmostFastOverlays
             return 0x02;
         }
 
+        /// <summary>Whether the screen is plugged in, without opening it.</summary>
+        public static bool IsPresent() => FindDevicePath() != null;
+
         private static string FindDevicePath()
         {
             string match = $"vid_{VendorId:x4}&pid_{ProductId:x4}";

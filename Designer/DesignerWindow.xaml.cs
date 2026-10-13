@@ -25,7 +25,10 @@ namespace AlmostFastOverlays
     /// </summary>
     public partial class DesignerWindow : Window
     {
-        private const double CanvasW = 854, CanvasH = 480, GridSize = 4, GridDraw = 16;
+        private const double GridSize = 4, GridDraw = 16;
+        /// <summary>The size of the screen being designed for.</summary>
+        private double CanvasW => _layout?.Width ?? ScreenSizes.DefaultWidth;
+        private double CanvasH => _layout?.Height ?? ScreenSizes.DefaultHeight;
 
         private readonly AppSettings _settings;
         private readonly DashboardSettings _dashboard;
@@ -93,8 +96,7 @@ namespace AlmostFastOverlays
             _liveSaveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
             _liveSaveTimer.Tick += (s, e) => { _liveSaveTimer.Stop(); SaveDesign(true); };
 
-            _frame = new WriteableBitmap((int)CanvasW, (int)CanvasH, 96, 96, PixelFormats.Bgra32, null);
-            Frame.Source = _frame;
+            FitCanvasToScreen();
 
             BuildToolbox();
             BuildScreensCombo();
@@ -118,6 +120,18 @@ namespace AlmostFastOverlays
 
         private bool _fitOnResize = true;
 
+        /// <summary>Sizes the frame, the bezel, the overlay and the grid to the screen being designed for.</summary>
+        private void FitCanvasToScreen()
+        {
+            bool resized = _frame != null;
+            _frame = new WriteableBitmap((int)CanvasW, (int)CanvasH, 96, 96, PixelFormats.Bgra32, null);
+            Frame.Source = _frame;
+            Bezel.Width = Frame.Width = Overlay.Width = CanvasW;
+            Bezel.Height = Frame.Height = Overlay.Height = CanvasH;
+            if (_gridRect != null) { _gridRect.Width = CanvasW; _gridRect.Height = CanvasH; }
+            if (resized && IsLoaded) ZoomFit();
+        }
+
         // ==================================================================
         // Rendering
         // ==================================================================
@@ -136,6 +150,12 @@ namespace AlmostFastOverlays
         private void RenderNow()
         {
             _renderPending = false;
+            // The design's screen size can change (resized, or an undo); the canvas follows it.
+            if (_frame == null || _frame.PixelWidth != (int)CanvasW || _frame.PixelHeight != (int)CanvasH)
+            {
+                FitCanvasToScreen();
+                _rendererDirty = true;
+            }
             if (_rendererDirty || _renderer == null)
             {
                 _renderer?.Dispose();
@@ -192,7 +212,8 @@ namespace AlmostFastOverlays
         internal static BitmapSource RenderThumbnail(DashboardSettings dashboard, UnitSystem units, TelemetrySnapshot snapshot = null)
         {
             snapshot = snapshot ?? IRacingTelemetrySource.CreatePreviewSnapshot();
-            using (IDashboardRenderer renderer = DashboardRendererFactory.Create((int)CanvasW, (int)CanvasH, dashboard, units))
+            System.Drawing.Size size = dashboard.ScreenSize();
+            using (IDashboardRenderer renderer = DashboardRendererFactory.Create(size.Width, size.Height, dashboard, units))
             using (DrawingBitmap bitmap = renderer.Render(snapshot, false, snapshot.Gear, 1f))
             {
                 var data = bitmap.LockBits(new System.Drawing.Rectangle(0, 0, bitmap.Width, bitmap.Height), System.Drawing.Imaging.ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);

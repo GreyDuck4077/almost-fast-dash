@@ -212,9 +212,10 @@ namespace AlmostFastOverlays
         }
 
         /// <summary>Adds a designed dashboard started from a template.</summary>
-        public DashboardSettings AddDesignedDashboard(DesignTemplate template, string name = null)
+        public DashboardSettings AddDesignedDashboard(DesignTemplate template, string name = null, System.Drawing.Size? screen = null)
         {
-            DashboardSettings created = DashboardSettings.CreateDesigned(template);
+            System.Drawing.Size size = screen ?? new System.Drawing.Size(ScreenSizes.DefaultWidth, ScreenSizes.DefaultHeight);
+            DashboardSettings created = DashboardSettings.CreateDesigned(template, size.Width, size.Height);
             created.Id = NextId();
             created.Name = UniqueName(name ?? template.Name);
             created.RaceTypes = new List<string>();
@@ -285,6 +286,10 @@ namespace AlmostFastOverlays
         public bool MinimizeToTray { get; set; }
         /// <summary>Asks GitHub for the latest release when the window opens. Off unless the user turns it on.</summary>
         public bool CheckForUpdates { get; set; }
+
+        /// <summary>The screen size last chosen for a new dashboard when no wheel screen was found (0 until then).</summary>
+        public int LastScreenWidth { get; set; }
+        public int LastScreenHeight { get; set; }
         public bool AutoSwitchByDiscipline { get; set; } = true;
         public bool DiagnosticsEnabled { get; set; } = true;
 
@@ -311,14 +316,21 @@ namespace AlmostFastOverlays
         public AlertSettings Alerts { get; set; } = new AlertSettings();
         /// <summary>The dashboard's design: screens of widgets, drawn by <see cref="LayoutRenderer"/>.</summary>
         public DashLayout Design { get; set; }
+
+        /// <summary>The screen size the dashboard is built for.</summary>
+        public System.Drawing.Size ScreenSize() => Design != null
+            ? new System.Drawing.Size(ScreenSizes.Clamp(Design.Width), ScreenSizes.Clamp(Design.Height))
+            : new System.Drawing.Size(ScreenSizes.DefaultWidth, ScreenSizes.DefaultHeight);
         /// <summary>The dashboard's lights: layers of effects on the LED devices.</summary>
         public LightProfile Lights { get; set; }
 
         /// <summary>A new dashboard started from a template.</summary>
-        public static DashboardSettings CreateDesigned(DesignTemplate template)
+        public static DashboardSettings CreateDesigned(DesignTemplate template, int width = ScreenSizes.DefaultWidth, int height = ScreenSizes.DefaultHeight)
         {
             DashboardSettings created = Create("dashboard-new", template.Name, template.Accent);
             created.Design = template.Create();
+            // Templates are drawn for 854×480 and scaled to the screen the dashboard is for.
+            created.Design.ScaleTo(width, height);
             created.Lights = template.OvalLights ? LightPresets.SpotterFocus() : LightPresets.Refined();
             return created;
         }

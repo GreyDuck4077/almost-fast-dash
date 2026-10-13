@@ -184,10 +184,19 @@ namespace AlmostFastOverlays
                 if (scenario.Contains("themes")) lights.Loaded += (s, e) => lights.ShowThemes();
                 window = lights;
             }
+            else if (scenario.StartsWith("template-picker"))
+            {
+                // "template-picker" with no wheel screen and no size chosen before; "template-picker-found" with a screen plugged in.
+                var general = new GeneralSettings();
+                window = TemplatePicker.Build(null, new UnitSystem(general), general,
+                    scenario.EndsWith("found") ? new System.Drawing.Size(ScreenSizes.DefaultWidth, ScreenSizes.DefaultHeight) : (System.Drawing.Size?)null, (t, s) => { });
+            }
             else if (scenario.StartsWith("designer"))
             {
                 AppSettings settings = SettingsStore.Load();
-                DashboardSettings dashboard = DashboardSettings.CreateDesigned(DesignTemplates.Find(scenario.Contains("oval") ? "spotter" : "apex"));
+                DashboardSettings dashboard = scenario.Contains("wide")
+                    ? DashboardSettings.CreateDesigned(DesignTemplates.Road, 1280, 480)
+                    : DashboardSettings.CreateDesigned(DesignTemplates.Find(scenario.Contains("oval") ? "spotter" : "apex"));
                 var designer = new DesignerWindow(settings, dashboard, null) { Width = 1560, Height = 940 };
                 designer.Loaded += (s, e) => designer.Dispatcher.BeginInvoke(new Action(() => designer.PrepareSnapshot(scenario)), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
                 window = designer;
@@ -277,13 +286,22 @@ namespace AlmostFastOverlays
                 // Pages beyond the first, as a wheel button shows them.
                 var pages = dashboard.Design.Screens.Where(s => string.IsNullOrWhiteSpace(s.Condition)).ToList();
                 for (int page = 1; page < pages.Count; page++)
-                    using (var renderer = new LayoutRenderer(854, 480, dashboard, units))
+                    using (var renderer = new LayoutRenderer(dashboard.ScreenSize().Width, dashboard.ScreenSize().Height, dashboard, units))
                     {
                         renderer.StepPage(page);
                         using (var frame = renderer.Render(IRacingTelemetrySource.CreatePreviewSnapshot(), false, 4, 1))
                             frame.Save(Path.Combine(directory, template.Name + " - " + pages[page].Name + ".png"), System.Drawing.Imaging.ImageFormat.Png);
                     }
             }
+
+            // The flagships made for other screen sizes.
+            foreach (DesignTemplate template in new[] { DesignTemplates.Road, DesignTemplates.Oval })
+                foreach (ScreenSizes.Preset size in ScreenSizes.Presets.Where(p => p.Width != ScreenSizes.DefaultWidth || p.Height != ScreenSizes.DefaultHeight))
+                {
+                    DashboardSettings sized = DashboardSettings.CreateDesigned(template, size.Width, size.Height);
+                    using (var frame = DashboardRendererFactory.RenderPreview(sized, units))
+                        frame.Save(Path.Combine(directory, "Size " + size.Width + "x" + size.Height + " - " + template.Name + ".png"), System.Drawing.Imaging.ImageFormat.Png);
+                }
 
             // A sheet of the shaped gauges, at cruising revs and at the shift point.
             DashLayout sheet = DesignTemplates.Blank();
@@ -447,7 +465,11 @@ namespace AlmostFastOverlays
                                 int previousGear = gearProgress < 1 ? transitionFromGear : snapshot.Gear;
                                 using (var bitmap = runtime.Renderer.Render(
                                     snapshot, shiftFlashOn, previousGear, gearProgress))
-                                    screen.Draw(bitmap);
+                                {
+                                    // A dashboard built for another screen size is fitted to this one, never stretched.
+                                    if (bitmap.Width == Dv5Screen.Width && bitmap.Height == Dv5Screen.Height) screen.Draw(bitmap);
+                                    else using (var fitted = ScreenSizes.Fit(bitmap, Dv5Screen.Width, Dv5Screen.Height)) screen.Draw(fitted);
+                                }
                                 lastDrawn = current;
                             }
 
@@ -537,8 +559,11 @@ namespace AlmostFastOverlays
                     ? Settings.Dashboards.First(d => d.Id == _previewId)
                     : Settings.ResolveDashboard(_discipline);
 
-            private LayoutRenderer CreateRenderer() =>
-                new LayoutRenderer(Dv5Screen.Width, Dv5Screen.Height, Dashboard, new UnitSystem(Settings.General));
+            private LayoutRenderer CreateRenderer()
+            {
+                System.Drawing.Size size = Dashboard.ScreenSize();
+                return new LayoutRenderer(size.Width, size.Height, Dashboard, new UnitSystem(Settings.General));
+            }
 
             private void WriteActive()
             {
