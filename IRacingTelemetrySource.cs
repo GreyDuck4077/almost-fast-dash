@@ -258,6 +258,14 @@ namespace AlmostFastOverlays
         /// <summary>The kind of notice: Info, Good, Warning or Danger, for colouring it.</summary>
         public string NoticeKind { get; set; } = "";
 
+        /// <summary>This track's traced outline, or null until a clean lap has been driven here.</summary>
+        public TrackMap TrackMap { get; set; }
+        /// <summary>How far through tracing the map the current lap is (0 to 1); -1 when not tracing.</summary>
+        public double MapProgress { get; set; } = -1;
+        /// <summary>Every car's lap fraction by car index (-1 when not on track), and which car is yours.</summary>
+        public float[] CarLapDist { get; set; } = new float[0];
+        public int PlayerCarIdx { get; set; } = -1;
+
         public double ReferenceLapSeconds =>
             AverageLapSeconds > 0 ? AverageLapSeconds : BestLapSeconds > 0 ? BestLapSeconds : LastLapSeconds;
 

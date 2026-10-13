@@ -414,6 +414,43 @@ namespace AlmostFastOverlays
             using (var band = ring.Band(135, 270, true)) ringBounds = band.GetBounds();
             Check("oval ring follows its box", ringBounds.Width > ringBounds.Height * 1.3f && ringBounds.Right < 150 + 120 + 11 && ringBounds.Bottom < 150 + 80 + 11);
 
+            // ---------------- graph and track map
+            {
+                var layout = DesignTemplates.Blank();
+                DashWidget graph = WidgetCatalog.Create("graph", 100, 100);
+                graph.Set("value", "=Rpm");
+                graph.Set("seconds", "4");
+                layout.Screens[0].Widgets.Add(graph);
+                using (var renderer = new LayoutRenderer(854, 480, new DashboardSettings { Layout = Layouts.Custom, Design = layout }, _units))
+                {
+                    var lap = new SyntheticTelemetry();
+                    string first = null, last = null;
+                    for (int i = 0; i < 60; i++)
+                    {
+                        renderer.FixedNow = TestNow.AddMilliseconds(i * 50);
+                        TelemetrySnapshot snapshot = lap.Next(out _, out _, out _);
+                        renderer.StateHash(snapshot, false, -1);
+                        using (System.Drawing.Bitmap frame = renderer.Render(snapshot, false, snapshot.Gear, 1, layout.Screens[0]))
+                        {
+                            if (i == 5) first = Pixels(frame);
+                            last = Pixels(frame);
+                        }
+                    }
+                    GraphHistory history = renderer.Graph(new WidgetContext(renderer, null, renderer.Scope(TelemetrySnapshot.Disconnected, false), graph, WidgetCatalog.Find("graph")));
+                    Check("graph samples on a steady clock and scrolls", history.Count >= 55 && history.Count <= 61 && first != last, history.Count + " samples");
+                }
+                var lapFractions = new List<double>(); var xs = new List<double>(); var ys = new List<double>();
+                for (int i = 0; i <= 1000; i++)
+                {
+                    double f = i / 1000.0 * 0.999, a = f * 2 * Math.PI;
+                    lapFractions.Add(f); xs.Add(Math.Cos(a) * 300 + 3 * f); ys.Add(Math.Sin(a) * 150 + 2 * f);
+                }
+                TrackMap traced = TrackMap.FromLap("test", "Test", lapFractions, xs, ys);
+                Check("a clean lap becomes a closed track map", traced != null && traced.Valid && Math.Abs(traced.At(0.25).Y - 150) < 6 && Math.Abs(traced.At(0).X - 300) < 1);
+                lapFractions.RemoveRange(400, 100); xs.RemoveRange(400, 100); ys.RemoveRange(400, 100);
+                Check("a lap with a gap makes no map", TrackMap.FromLap("test", "Test", lapFractions, xs, ys) == null);
+            }
+
             // ---------------- Style effects on a single widget
             {
                 var layout = DesignTemplates.Blank();

@@ -950,6 +950,77 @@ namespace AlmostFastOverlays
             }
         }
 
+        public static void TrackMapWidget(WidgetContext c)
+        {
+            Graphics g = c.G;
+            RectangleF b = c.B;
+            TelemetrySnapshot t = c.T;
+            TrackMap map = t.TrackMap;
+            float carSize = (float)c.Num("carSize"), width = (float)c.Num("lineWidth");
+            if (map == null || !map.Valid)
+            {
+                string note = !t.Connected ? "Track map" : t.MapProgress >= 0 ? "Drawing the map… " + (t.MapProgress * 100).ToString("0") + "%" : "Drive a clean lap to draw the map";
+                using (var pen = new Pen(c.Color("trackColor"), width) { DashStyle = DashStyle.Dash })
+                    g.DrawEllipse(pen, RectangleF.Inflate(b, -width - carSize, -width - carSize));
+                Paint.Text(g, c, note, Math.Max(10, Math.Min(18, b.Height / 10)), false, c.Theme("muted"), b, StringAlignment.Center, "Middle", true, 0, Color.Empty, false);
+                return;
+            }
+
+            // Fit the loop into the box, keeping its proportions, with room for the car dots.
+            float minX = map.X.Min(), maxX = map.X.Max(), minY = map.Y.Min(), maxY = map.Y.Max();
+            float room = carSize + width / 2 + 2;
+            float scale = Math.Min((b.Width - room * 2) / Math.Max(1, maxX - minX), (b.Height - room * 2) / Math.Max(1, maxY - minY));
+            float ox = b.X + (b.Width - (maxX - minX) * scale) / 2, oy = b.Y + (b.Height - (maxY - minY) * scale) / 2;
+            // North up: the trace's y grows northward, the screen's downward.
+            PointF Place(PointF p) => new PointF(ox + (p.X - minX) * scale, oy + (maxY - p.Y) * scale);
+
+            var loop = new PointF[TrackMap.Points];
+            for (int i = 0; i < loop.Length; i++) loop[i] = Place(new PointF(map.X[i], map.Y[i]));
+            using (var path = new GraphicsPath())
+            {
+                path.AddPolygon(loop);
+                Color edge = c.Color("edgeColor");
+                if (edge.A > 0) using (var pen = new Pen(edge, width + 3) { LineJoin = LineJoin.Round }) g.DrawPath(pen, path);
+                using (var pen = new Pen(c.Color("trackColor"), width) { LineJoin = LineJoin.Round }) g.DrawPath(pen, path);
+            }
+            if (c.Bool("showStart"))
+            {
+                PointF a = loop[0], next = loop[2];
+                float dx = next.X - a.X, dy = next.Y - a.Y, len = (float)Math.Sqrt(dx * dx + dy * dy);
+                if (len > 0)
+                    using (var pen = new Pen(c.Theme("text"), 2.5f))
+                        g.DrawLine(pen, a.X - dy / len * width * 1.3f, a.Y + dx / len * width * 1.3f, a.X + dy / len * width * 1.3f, a.Y - dx / len * width * 1.3f);
+            }
+
+            float[] dist = t.CarLapDist ?? new float[0];
+            var byCar = (t.Standings ?? new StandingsEntry[0]).ToDictionary(r => r.CarIdx);
+            byCar.TryGetValue(t.PlayerCarIdx, out StandingsEntry me);
+            string show = c.Choice("cars");
+            bool classColors = c.Bool("classColors"), numbers = c.Bool("numbers");
+            Color others = c.Color("carColor"), player = c.Color("playerColor"), pits = c.Color("pitColor");
+            void Car(int index, Color color, float size, bool glow)
+            {
+                PointF p = Place(map.At(dist[index]));
+                var dot = new RectangleF(p.X - size / 2, p.Y - size / 2, size, size);
+                if (glow) using (GraphicsPath ring = Paint.Rounded(dot, size / 2)) Paint.Glow(g, ring, color, size * 0.8f);
+                using (var brush = new SolidBrush(color)) g.FillEllipse(brush, dot);
+                using (var pen = new Pen(Color.FromArgb(200, c.Theme("background")), 1.5f)) g.DrawEllipse(pen, dot);
+                if (numbers && size >= 12 && byCar.TryGetValue(index, out StandingsEntry r))
+                    Paint.Text(g, c, r.CarNumber ?? "", size * 0.5f, true, c.Theme("background"), dot, StringAlignment.Center, "Middle", true, 0, Color.Empty, false);
+            }
+            if (show != "Only me")
+                for (int i = 0; i < dist.Length; i++)
+                {
+                    if (i == t.PlayerCarIdx || dist[i] < 0) continue;
+                    byCar.TryGetValue(i, out StandingsEntry r);
+                    if (r == null && t.Standings != null && t.Standings.Length > 0) continue;
+                    if (show == "My class" && me != null && r != null && r.ClassName != me.ClassName) continue;
+                    Color color = r != null && r.InPits ? pits : classColors && r != null ? r.ClassColor : others;
+                    Car(i, color, carSize, false);
+                }
+            if (t.PlayerCarIdx >= 0 && t.PlayerCarIdx < dist.Length && dist[t.PlayerCarIdx] >= 0) Car(t.PlayerCarIdx, player, carSize * 1.3f, true);
+        }
+
         public static void Flag(WidgetContext c)
         {
             RacingFlag flag = c.T.Flag;
@@ -1071,6 +1142,98 @@ namespace AlmostFastOverlays
             bool fill = c.Bool("fill");
             Paint.Series(g, b, c.T.ThrottleTrace, v => v, c.Color("throttleColor"), width, fill);
             Paint.Series(g, b, c.T.BrakeTrace, v => v, c.Color("brakeColor"), width, fill);
+        }
+
+        public static void Graph(WidgetContext c)
+        {
+            Graphics g = c.G;
+            RectangleF b = c.B;
+            GraphHistory history = c.Renderer.Graph(c);
+            if (c.Bool("grid")) Paint.Grid(g, b, c.Color("gridColor"));
+            int n = history.Count;
+            bool second = !string.IsNullOrWhiteSpace(c.Raw("value2"));
+            double lo = c.Num("min"), hi = c.Num("max");
+            if (hi <= lo)
+            {
+                // Automatic range: what's on the graph, with a little room above and below.
+                lo = double.MaxValue;
+                hi = double.MinValue;
+                for (int i = 0; i < n; i++)
+                    foreach (double v in second ? new[] { history.First(i), history.Second(i) } : new[] { history.First(i) })
+                        if (!double.IsNaN(v) && !double.IsInfinity(v)) { lo = Math.Min(lo, v); hi = Math.Max(hi, v); }
+                if (lo > hi) { lo = 0; hi = 1; }
+                double room = Math.Max(1e-6, (hi - lo) * 0.1);
+                if (hi - lo < 1e-6) room = Math.Max(1, Math.Abs(hi) * 0.1);
+                lo -= room;
+                hi += room;
+            }
+            string style = c.Choice("style");
+            float lw = (float)c.Num("lineWidth"), step = b.Width / (GraphHistory.Points - 1);
+            float Y(double v) => b.Bottom - (float)(Math.Max(0, Math.Min(1, (v - lo) / (hi - lo))) * b.Height);
+
+            void Line(Func<int, double> at, Color color)
+            {
+                if (n < 2) return;
+                // Newest on the right; a gap in the data (an unknown value) breaks the line.
+                var run = new List<PointF>();
+                void Flush()
+                {
+                    if (run.Count >= 2)
+                    {
+                        if (style == "Area")
+                            using (var area = new GraphicsPath())
+                            {
+                                area.AddLines(run.ToArray());
+                                area.AddLine(run[run.Count - 1], new PointF(run[run.Count - 1].X, b.Bottom));
+                                area.AddLine(new PointF(run[run.Count - 1].X, b.Bottom), new PointF(run[0].X, b.Bottom));
+                                area.CloseFigure();
+                                using (var brush = new LinearGradientBrush(Paint.Grow(b, 0, 1), Color.FromArgb(90 * color.A / 255, color), Color.FromArgb(6 * color.A / 255, color), 90f))
+                                    g.FillPath(brush, area);
+                            }
+                        using (var pen = new Pen(color, lw) { LineJoin = LineJoin.Round, StartCap = LineCap.Round, EndCap = LineCap.Round }) g.DrawLines(pen, run.ToArray());
+                    }
+                    run.Clear();
+                }
+                for (int i = 0; i < n; i++)
+                {
+                    double v = at(i);
+                    if (double.IsNaN(v) || double.IsInfinity(v)) { Flush(); continue; }
+                    run.Add(new PointF(b.Right - (n - 1 - i) * step, Y(v)));
+                }
+                Flush();
+            }
+
+            void Bars(Func<int, double> at, Color color, float offset, float width)
+            {
+                using (var brush = new SolidBrush(color))
+                    for (int i = 0; i < n; i++)
+                    {
+                        double v = at(i);
+                        if (double.IsNaN(v)) continue;
+                        float x = b.Right - (n - i) * step + offset, y = Y(v);
+                        if (b.Bottom - y >= 0.5f) g.FillRectangle(brush, x, y, Math.Max(0.5f, width), b.Bottom - y);
+                    }
+            }
+
+            Color first = c.Color("color"), other = c.Color("color2");
+            if (style == "Bars")
+            {
+                float w = step * (second ? 0.42f : 0.8f);
+                Bars(history.First, first, step * 0.1f, w);
+                if (second) Bars(history.Second, other, step * 0.52f, w);
+            }
+            else
+            {
+                if (second) Line(history.Second, other);
+                Line(history.First, first);
+            }
+
+            string label = c.Text("label");
+            if (!string.IsNullOrEmpty(label))
+            {
+                float size = (float)c.Num("labelSize");
+                Paint.Text(g, c, label, size, true, c.Color("labelColor"), new RectangleF(b.X + 6, b.Y + 4, b.Width - 12, size * 1.3f), StringAlignment.Near, "Top", true, 0, Color.Empty, false);
+            }
         }
 
         public static void DeltaTrace(WidgetContext c)

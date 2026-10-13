@@ -36,6 +36,7 @@ namespace AlmostFastOverlays
             string lastNotice = "";
             int lastLaps = -1;
             TelemetrySnapshot final = null;
+            var gps = new List<System.Drawing.PointF>();
 
             foreach (Telemetry telemetry in Telemetry.ReadRecording(recording))
             {
@@ -80,6 +81,7 @@ namespace AlmostFastOverlays
                         Fmt.LapTime(snapshot.SessionBestLapSeconds), snapshot.Standings.FirstOrDefault(r => r.IsPlayer)?.Position ?? 0, snapshot.Standings.Length));
                 }
                 final = snapshot;
+                if (telemetry["Lat"] is double lat && telemetry["Lon"] is double lon && lat != 0) gps.Add(new System.Drawing.PointF((float)lon, (float)lat));
 
                 LightFrame frame = renderer.Compose(snapshot.ForLights(), (int)(sessionTime * 1000));
                 spans.AddRange(activity.Observe(frame, devices, sessionTime, null, renderer.Profile.Gamma));
@@ -105,6 +107,8 @@ namespace AlmostFastOverlays
                 foreach (StandingsEntry r in final.Standings.Take(6))
                     report.AppendLine(string.Format(CultureInfo.InvariantCulture, "  P{0} #{1} {2} ({3}) best {4} last {5} gap {6}", r.Position, r.CarNumber, r.Name, r.ClassName, Fmt.LapTime(r.BestLap), Fmt.LapTime(r.LastLap), RaceFields.GapText(r)));
             }
+            report.AppendLine("  track map: " + (final?.TrackMap != null ? "traced (" + final.TrackMap.Name + ")" : "not traced"));
+            if (final?.TrackMap != null) SaveMapCheck(final.TrackMap, gps, Path.ChangeExtension(reportPath, ".map.png"));
             report.AppendLine();
             report.AppendLine("LIGHTS LONGER THAN 1 SECOND (rev lights left out)");
             foreach (LightSpan span in spans.Where(s => s.Seconds >= 1 && !revs.Contains(s.Layer)).OrderBy(s => s.From))
@@ -118,6 +122,34 @@ namespace AlmostFastOverlays
             File.WriteAllText(reportPath, report.ToString());
             Console.WriteLine(report.ToString());
             return 0;
+        }
+
+        /// <summary>The traced map (left) beside the recording's GPS track (right), north up, to check the trace's shape and handedness.</summary>
+        private static void SaveMapCheck(TrackMap map, List<System.Drawing.PointF> gps, string path)
+        {
+            using (var image = new System.Drawing.Bitmap(800, 400))
+            using (var g = System.Drawing.Graphics.FromImage(image))
+            {
+                g.Clear(System.Drawing.Color.Black);
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                void Draw(IList<System.Drawing.PointF> points, float left, System.Drawing.Color color)
+                {
+                    if (points.Count < 2) return;
+                    float minX = points.Min(p => p.X), maxX = points.Max(p => p.X), minY = points.Min(p => p.Y), maxY = points.Max(p => p.Y);
+                    float scale = Math.Min(360 / Math.Max(1e-6f, maxX - minX), 360 / Math.Max(1e-6f, maxY - minY));
+                    var screen = points.Select(p => new System.Drawing.PointF(left + 20 + (p.X - minX) * scale, 20 + (maxY - p.Y) * scale)).ToArray();
+                    using (var pen = new System.Drawing.Pen(color, 2)) g.DrawLines(pen, screen);
+                    using (var start = new System.Drawing.SolidBrush(System.Drawing.Color.Yellow)) g.FillEllipse(start, screen[0].X - 5, screen[0].Y - 5, 10, 10);
+                }
+                Draw(Enumerable.Range(0, TrackMap.Points + 1).Select(i => new System.Drawing.PointF(map.X[i % TrackMap.Points], map.Y[i % TrackMap.Points])).ToList(), 0, System.Drawing.Color.White);
+                // Longitude shrinks with latitude; scale it so the GPS shape isn't stretched.
+                if (gps.Count > 1)
+                {
+                    double cos = Math.Cos(gps.Average(p => p.Y) * Math.PI / 180);
+                    Draw(gps.Select(p => new System.Drawing.PointF((float)(p.X * cos), p.Y)).ToList(), 400, System.Drawing.Color.OrangeRed);
+                }
+                image.Save(path, System.Drawing.Imaging.ImageFormat.Png);
+            }
         }
 
         private static string Times(double[] times) => times == null || times.Length == 0 ? "none" : string.Join(" ", times.Select(t => t > 0 ? t.ToString("0.000", CultureInfo.InvariantCulture) : "-"));

@@ -283,7 +283,7 @@ namespace AlmostFastOverlays
         private string _backgroundKey;
 
         /// <summary>Widget types that read telemetry directly, whatever their properties say.</summary>
-        private static readonly HashSet<string> LiveTypes = new HashSet<string> { "gear", "relative", "blindspot", "flag", "progress", "trace", "deltatrace", "laphistory", "standings", "tyres" };
+        private static readonly HashSet<string> LiveTypes = new HashSet<string> { "gear", "relative", "blindspot", "flag", "progress", "trace", "deltatrace", "laphistory", "standings", "tyres", "graph", "trackmap" };
 
         private static bool IsStatic(DashWidget widget)
         {
@@ -414,7 +414,7 @@ namespace AlmostFastOverlays
         /// A fingerprint of everything a widget would draw: its formula results and, for widgets
         /// that read telemetry directly, that data. Equal fingerprints mean identical pixels.
         /// </summary>
-        private static int WidgetHash(DashWidget widget, EvalScope scope, int previousGear, float progress)
+        private int WidgetHash(DashWidget widget, EvalScope scope, int previousGear, float progress)
         {
             unchecked
             {
@@ -448,7 +448,40 @@ namespace AlmostFastOverlays
                     case "tyres": hash = hash * 31 + TyresHash(t); break;
                     case "trace": hash = hash * 31 + t.TraceVersion; break;
                     case "deltatrace": hash = hash * 31 + System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(t.DeltaTrace ?? new float[0]); break;
+                    case "graph": hash = hash * 31 + SampleGraph(widget, type, scope).Version; break;
+                    case "trackmap": hash = hash * 31 + MapHash(t); break;
                 }
+                return hash;
+            }
+        }
+
+        private readonly Dictionary<string, GraphHistory> _graphs = new Dictionary<string, GraphHistory>();
+
+        /// <summary>A Graph widget's history, topped up with a sample of its values when one is due.</summary>
+        private GraphHistory SampleGraph(DashWidget widget, WidgetType type, EvalScope scope)
+        {
+            if (!_graphs.TryGetValue(widget.Id, out GraphHistory history)) _graphs[widget.Id] = history = new GraphHistory();
+            double Value(string key)
+            {
+                string raw = widget.Get(key, type.Prop(key)?.Default) ?? "";
+                if (raw.Trim().Length == 0) return double.NaN;
+                return Expr.Num(Expr.Evaluate(Strip(raw), scope));
+            }
+            history.Sample(scope.Now, Math.Max(1, Expr.Num(widget.Get("seconds", "10"))), Value("value"), Value("value2"));
+            return history;
+        }
+
+        /// <summary>The history a Graph widget draws (sampling it if a sample is due).</summary>
+        internal GraphHistory Graph(WidgetContext c) => SampleGraph(c.Widget, c.Type, c.Scope);
+
+        private static int MapHash(TelemetrySnapshot t)
+        {
+            unchecked
+            {
+                int hash = (t.TrackMap?.Key?.GetHashCode() ?? 0) * 31 + (int)(t.MapProgress * 100) + t.PlayerCarIdx * 7;
+                // Positions to a two-thousandth of a lap: smooth on screen without redrawing for nothing.
+                foreach (float d in t.CarLapDist ?? new float[0]) hash = hash * 31 + (int)Math.Round(d * 2000);
+                foreach (StandingsEntry r in t.Standings ?? new StandingsEntry[0]) hash = hash * 31 + (r.InPits ? 1 : 0) + r.CarIdx;
                 return hash;
             }
         }

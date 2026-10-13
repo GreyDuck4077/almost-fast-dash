@@ -444,6 +444,9 @@ namespace AlmostFastOverlays
             TrackPitSpeedLimit = Yaml.Text(map, "TrackPitSpeedLimit");
             Category = Yaml.Text(map, "Category");
             TrackType = Yaml.Text(map, "TrackType");
+            TrackId = Yaml.Int(map, "TrackID");
+            TrackName = Yaml.Text(map, "TrackDisplayName") ?? Yaml.Text(map, "TrackName") ?? "";
+            TrackConfig = Yaml.Text(map, "TrackConfigName") ?? "";
             WeekendOptions = new WeekendOptions { NumStarters = Yaml.Int(Yaml.Map(map, "WeekendOptions"), "NumStarters") };
         }
 
@@ -451,6 +454,10 @@ namespace AlmostFastOverlays
         public string TrackPitSpeedLimit { get; }
         public string Category { get; }
         public string TrackType { get; }
+        /// <summary>iRacing's id for the track layout, its name and its configuration (such as "Oval" or "International").</summary>
+        public int TrackId { get; }
+        public string TrackName { get; }
+        public string TrackConfig { get; }
         public WeekendOptions WeekendOptions { get; }
     }
 

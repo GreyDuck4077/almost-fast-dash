@@ -268,6 +268,20 @@ namespace AlmostFastOverlays
                 .ShapeTools()
                 .Number("glow", "Glow", "14", "Effects", 0, 40);
 
+            Define("trackmap", "Track map", "Racing", "", "The track with every car on it. The map traces itself from your first clean lap at a track and is kept for next time.", 300, 220, WidgetPainters.TrackMapWidget)
+                .Number("lineWidth", "Track width", "7", "Look", 1, 30, 0.5)
+                .Color("trackColor", "Track", "track", "Look")
+                .Color("edgeColor", "Track edge", "border", "Look")
+                .Bool("showStart", "Start/finish line", "true", "Look")
+                .Number("carSize", "Car size", "11", "Cars", 3, 40)
+                .Choice("cars", "Show", "All cars", "Cars", "All cars", "My class", "Only me")
+                .Bool("classColors", "Class colors", "true", "Cars")
+                .Color("carColor", "Other cars", "text", "Cars")
+                .Color("playerColor", "Your car", "accent", "Cars")
+                .Color("pitColor", "In the pits", "dim", "Cars")
+                .Bool("numbers", "Car numbers", "false", "Cars")
+                .Font();
+
             Define("flag", "Flag", "Racing", "", "Shows the current flag inside its own area. Use it when full-screen flags are off.", 260, 90, WidgetPainters.Flag)
                 .Choice("style", "Style", "Fill", "Look", "Fill", "Badge")
                 .Bool("label", "Flag name", "true", "Look")
@@ -303,6 +317,23 @@ namespace AlmostFastOverlays
                 .Color("bestColor", "Best lap", "purple", "Colors")
                 .Color("textColor", "Times", "text", "Colors")
                 .Bool("times", "Show times", "true", "Look")
+                .Font();
+
+            Define("graph", "Graph", "Graphs", "", "A scrolling line of any value (or two) over the last few seconds: speed, revs, fuel, delta, pedals.", 300, 110, WidgetPainters.Graph)
+                .Formula("value", "Value", "=Speed", "Value")
+                .Formula("value2", "Second value", "", "Value", "Optional: a second line, such as Brake beside Throttle.")
+                .Number("seconds", "Time span (seconds)", "10", "Value", 1, 120)
+                .Number("min", "Minimum", "0", "Value", double.NaN, double.NaN, 0.1)
+                .Number("max", "Maximum (same as minimum: automatic)", "0", "Value", double.NaN, double.NaN, 0.1)
+                .Choice("style", "Style", "Area", "Look", "Line", "Area", "Bars")
+                .Number("lineWidth", "Line width", "2", "Look", 0.5, 10, 0.5)
+                .Bool("grid", "Grid lines", "true", "Look")
+                .Color("gridColor", "Grid", "border", "Look")
+                .Color("color", "Color", "accent", "Colors")
+                .Color("color2", "Second color", "warn", "Colors")
+                .Text("label", "Label", "", "Label")
+                .Number("labelSize", "Label size", "14", "Label", 6, 60)
+                .Color("labelColor", "Label color", "text", "Label")
                 .Font();
 
             // ------------------------------------------------------------ Decor
@@ -348,6 +379,10 @@ namespace AlmostFastOverlays
             Rule("arc", "flash", set, "flashColor");
             Rule("shiftlights", "flash", set, "flashColor");
             Rule("shape", "shape", v => v == "Rectangle", "radius");
+            Rule("graph", "value2", set, "color2");
+            Rule("graph", "grid", on, "gridColor");
+            Rule("graph", "label", set, "labelSize", "labelColor", "font");
+            Rule("graph", "style", v => v != "Bars", "lineWidth");
             foreach (WidgetType shaped in All.Where(x => x.Prop("bend") != null)) Rule(shaped.Id, "bend", nonZero, "peak");
             Rule("shape", "shape", v => v != "Line" && v != "Diagonal down" && v != "Diagonal up" && v != "Brackets" && v != "Chevron", "fill");
 

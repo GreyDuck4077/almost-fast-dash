@@ -87,9 +87,86 @@ namespace AlmostFastOverlays
             s.SessionBestLapSeconds = mine > 0 && (_sessionBest <= 0 || mine < _sessionBest) ? mine : _sessionBest;
             s.ClassBestLapSeconds = mine > 0 && (_classBest <= 0 || mine < _classBest) ? mine : _classBest;
 
+            UpdateTrackMap(t, s);
             UpdateNotice(t, s, flags, blackSuppressed);
             s.Notice = UtcNow < _noticeUntilUtc ? _notice : "";
             s.NoticeKind = s.Notice.Length > 0 ? _noticeKind : "";
+        }
+
+        // Tracing the map: where the car is by dead reckoning, and the current lap's samples.
+        private string _mapKey;
+        private TrackMap _map;
+        private double _mapX, _mapY, _mapTime = double.NaN, _mapPct = -1;
+        private int _mapResets = int.MinValue;
+        private List<double> _lapPct, _lapX, _lapY;
+
+        /// <summary>
+        /// Keeps the car positions for the map and, while this track has no map yet, traces one: speed and
+        /// heading are added up into a path, and a lap from line to line with no pit stop, tow or pause
+        /// becomes the map.
+        /// </summary>
+        private void UpdateTrackMap(Telemetry t, TelemetrySnapshot s)
+        {
+            s.CarLapDist = t.CarIdxLapDistPct ?? new float[0];
+            s.PlayerCarIdx = ReadTelemetryInt(t, "PlayerCarIdx");
+            string key = TrackMap.KeyFor(t.SessionData?.WeekendInfo);
+            if (key != _mapKey)
+            {
+                _mapKey = key;
+                _map = TrackMap.Load(key);
+                _lapPct = null;
+            }
+            s.TrackMap = _map;
+            if (_map != null || key == null) return;
+
+            double now = Optional(t, "SessionTime"), pct = Optional(t, "LapDistPct"), yaw = Optional(t, "YawNorth");
+            double vx = Optional(t, "VelocityX"), vy = Optional(t, "VelocityY");
+            int resets = t.EnterExitReset;
+            bool usable = !double.IsNaN(now) && !double.IsNaN(pct) && !double.IsNaN(yaw) && !double.IsNaN(vx) && !double.IsNaN(vy)
+                && pct >= 0 && !s.OnPitRoad && !s.OutOfCar && resets == _mapResets;
+            _mapResets = resets;
+            double dt = now - _mapTime;
+            _mapTime = now;
+            if (!usable || double.IsNaN(dt) || dt <= 0 || dt > 0.5)
+            {
+                // Anything that breaks the trace starts it again at the next line.
+                _lapPct = null;
+                _mapPct = usable ? pct : -1;
+                s.MapProgress = -1;
+                return;
+            }
+            // Velocity is along the car (x forward, y left) and the heading is a compass bearing (clockwise
+            // from north), so forward points (east, north) = (sin, cos) and left = (-cos, sin). Maps come out north up.
+            double cos = Math.Cos(yaw), sin = Math.Sin(yaw);
+            _mapX += (vx * sin - vy * cos) * dt;
+            _mapY += (vx * cos + vy * sin) * dt;
+            bool crossed = _mapPct > 0.9 && pct < 0.1;
+            _mapPct = pct;
+            if (crossed)
+            {
+                if (_lapPct != null && _lapPct.Count > 0)
+                {
+                    TrackMap map = TrackMap.FromLap(key, t.SessionData?.WeekendInfo?.TrackName, _lapPct, _lapX, _lapY);
+                    if (map != null)
+                    {
+                        map.Save();
+                        _map = map;
+                        s.TrackMap = map;
+                        s.MapProgress = -1;
+                        _lapPct = null;
+                        return;
+                    }
+                }
+                _lapPct = new List<double>(4000);
+                _lapX = new List<double>(4000);
+                _lapY = new List<double>(4000);
+            }
+            if (_lapPct == null) { s.MapProgress = -1; return; }
+            if (_lapPct.Count > 0 && pct < _lapPct[_lapPct.Count - 1] - 0.001) { _lapPct = null; s.MapProgress = -1; return; }
+            _lapPct.Add(pct);
+            _lapX.Add(_mapX);
+            _lapY.Add(_mapY);
+            s.MapProgress = pct;
         }
 
         private static double Optional(Telemetry t, string name)
@@ -365,6 +442,9 @@ namespace AlmostFastOverlays
                     GapToLeader = gaps[i], Interval = i == 0 ? 0 : gaps[i] - gaps[i - 1], DeltaToPlayer = gaps[i] - gaps[3], IsPlayer = i == 3, InPits = i == 5
                 };
             s.Standings = rows;
+            s.TrackMap = TrackMap.Preview();
+            s.PlayerCarIdx = 3;
+            s.CarLapDist = new[] { 0.62f, 0.55f, 0.47f, 0.455f, 0.43f, 0.0f, 0.21f, 0.83f };
         }
     }
 }
