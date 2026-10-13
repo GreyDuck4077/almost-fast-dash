@@ -240,6 +240,8 @@ namespace AlmostFastOverlays
         public string StartPage { get; set; } = "Dashboards";
         /// <summary>Minimizing the window hides it to the notification area instead of the taskbar.</summary>
         public bool MinimizeToTray { get; set; }
+        /// <summary>Asks GitHub for the latest release when the window opens. Off unless the user turns it on.</summary>
+        public bool CheckForUpdates { get; set; }
         public bool AutoSwitchByDiscipline { get; set; } = true;
         public bool DiagnosticsEnabled { get; set; } = true;
 

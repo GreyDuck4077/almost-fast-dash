@@ -32,6 +32,9 @@
 
                 <StackPanel DockPanel.Dock="Bottom">
                     <Border Style="{StaticResource Divider}" Margin="4,0,4,12"/>
+                    <TextBlock x:Name="UpdateText" Style="{StaticResource T.Caption}" Margin="12,0,12,6" Visibility="Collapsed" TextWrapping="Wrap">
+                        <Hyperlink x:Name="UpdateLink" Click="UpdateLink_Click" Foreground="{StaticResource Brush.Accent}"><Run x:Name="UpdateRun"/></Hyperlink>
+                    </TextBlock>
                     <TextBlock x:Name="VersionText" Style="{StaticResource T.Caption}" Foreground="{StaticResource Brush.TextTertiary}" Margin="12,0"/>
                 </StackPanel>
 
@@ -510,6 +513,15 @@
                                 </StackPanel>
                                 <Button Grid.Column="1" Style="{StaticResource Btn.Ghost}" Content="Open logs" Margin="0,0,12,0" VerticalAlignment="Center" Click="OpenLogs_Click"/>
                                 <CheckBox x:Name="DiagnosticsToggle" Grid.Column="2" Style="{StaticResource Switch}" VerticalAlignment="Center" Checked="Diagnostics_Click" Unchecked="Diagnostics_Click"/>
+                            </Grid>
+                            <Border Style="{StaticResource Divider}"/>
+                            <Grid Style="{StaticResource Row}">
+                                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Text="Check for new versions" Style="{StaticResource T.Label}"/>
+                                    <TextBlock Text="When the app opens, ask GitHub whether a newer release is out and show a link to it. Only the request for the latest version is sent." TextWrapping="Wrap" Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                </StackPanel>
+                                <CheckBox x:Name="UpdatesToggle" Grid.Column="1" Style="{StaticResource Switch}" VerticalAlignment="Center" Checked="Updates_Click" Unchecked="Updates_Click"/>
                             </Grid>
                         </StackPanel>
                     </Border>

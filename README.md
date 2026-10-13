@@ -24,8 +24,11 @@ It does not do on-monitor overlays (standings, relative and the like).
 
 ## Getting started
 
-1. Put `AlmostFastDash.exe` in a folder of its own and run it. Settings
-   (`settings.json`) and logs are kept next to it.
+1. Download `AlmostFastDash.exe` from the
+   [latest release](https://github.com/Sota4077/almost-fast-dash/releases/latest),
+   put it in a folder of its own and run it. Settings (`settings.json`), logs and
+   track maps are kept next to it. Windows 10 or 11; nothing else to install.
+   **Settings › Check for new versions** shows a link here when a newer one is out.
 2. **Devices › Add device** for each LED device (see below).
 3. **Dashboards**: pick or customise a dashboard and press the start button in
    the header. The dashboard runs in the background and keeps going when the

@@ -81,6 +81,7 @@ namespace AlmostFastOverlays
             Version version = Assembly.GetExecutingAssembly().GetName().Version;
             VersionText.Text = $"Version {version.Major}.{version.Minor} · Changes save automatically";
             SettingsPathText.Text = SettingsStore.FilePath;
+            Loaded += (s, e) => CheckForUpdate();
             Closing += (s, e) => { FlushSave(); _ledTimer.Stop(); _statusTimer.Stop(); _mirror.Dispose(); PreviewRequest.Clear(); StopLivePreview(); };
         }
 
@@ -699,6 +700,7 @@ namespace AlmostFastOverlays
             OpenSettings.IsChecked = general.StartPage == "Settings";
             OpenDashboards.IsChecked = OpenDevices.IsChecked != true && OpenSettings.IsChecked != true;
             TrayToggle.IsChecked = general.MinimizeToTray;
+            UpdatesToggle.IsChecked = general.CheckForUpdates;
             AutoSwitchToggle.IsChecked = general.AutoSwitchByDiscipline;
             DiagnosticsToggle.IsChecked = general.DiagnosticsEnabled;
             MoveOldStartupShortcut();
@@ -733,6 +735,34 @@ namespace AlmostFastOverlays
             if (_loading) return;
             _settings.General.AutoSwitchByDiscipline = AutoSwitchToggle.IsChecked == true;
             Save();
+        }
+
+        private string _updatePage;
+
+        /// <summary>With the check turned on, shows a link in the sidebar when GitHub has a newer release.</summary>
+        private async void CheckForUpdate()
+        {
+            if (!_settings.General.CheckForUpdates || Offline) return;
+            Tuple<Version, string> newer = await UpdateCheck.NewerAsync(Assembly.GetExecutingAssembly().GetName().Version);
+            if (newer == null) return;
+            _updatePage = newer.Item2;
+            UpdateRun.Text = "Version " + newer.Item1.Major + "." + newer.Item1.Minor + " is out. Download it";
+            UpdateText.Visibility = Visibility.Visible;
+            Motion.FadeIn(UpdateText, 300);
+        }
+
+        private void UpdateLink_Click(object sender, RoutedEventArgs e)
+        {
+            try { Process.Start(_updatePage ?? UpdateCheck.Releases); } catch { }
+        }
+
+        private void Updates_Click(object sender, RoutedEventArgs e)
+        {
+            if (_loading) return;
+            _settings.General.CheckForUpdates = UpdatesToggle.IsChecked == true;
+            Save();
+            if (_settings.General.CheckForUpdates) CheckForUpdate();
+            else UpdateText.Visibility = Visibility.Collapsed;
         }
 
         private void Diagnostics_Click(object sender, RoutedEventArgs e)
