@@ -469,7 +469,7 @@ namespace AlmostFastOverlays
             BlinkLengthValue.Text = length + " ms";
             HoldValue.Text = hold == 0 ? "Off" : (hold / 1000.0).ToString("0.##") + " s";
             double total = (count * length * 2 + hold) / 1000.0;
-            AlertSummary.Text = $"A green or yellow flag stays on screen for about {total:0.#} seconds, then the dashboard returns.";
+            AlertSummary.Text = $"A green, yellow or white flag fills the screen for about {total:0.#} seconds, steady while the lights flash, then the dashboard returns. A caution or final lap keeps a frame round it.";
         }
 
         private void AssignmentChanged(object sender, RoutedEventArgs e)

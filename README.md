@@ -26,6 +26,11 @@ alerts. One exe, no installer, no other software required.
 - **Touch**: on a touch wheel screen, tapping a panel switches what it shows.
   In the designer, drop something onto a panel to add it to the panel or to a
   new view of it.
+- **Flags** fill the screen as they come out (steady, while the lights flash),
+  then hand the dashboard back. While one stays out (a caution, the final lap,
+  black, repairs, blue) a glow in its colour runs round the screen's edge with
+  a tab saying what it is. Red and checkered keep the screen, and the checkered
+  flag shows your result: position, class, best lap and places gained.
 - **LED devices** of any shape: the LEDs around a wheel screen, light bars, LED
   strips. Arduino boards on the common sim-racing LED protocol, Adalight strips
   and WLED controllers.
@@ -257,6 +262,7 @@ a race. No names or account details are recorded.
 | `--live-check <report.txt> [seconds]` | While you're in a session: what iRacing sends for every value the dashboards use, what the app makes of it (gaps by both methods, fuel, the race order) and the screen's measured performance. |
 | `--render-templates <folder>` | Saves a picture of every template in its states, the second views and other screen sizes. |
 | `--render-dashboards <folder>` | Saves a picture of every dashboard in `settings.json`, in each state and on each page. |
+| `--render-flags <folder>` | Saves every flag screen, flags that stay out stepping aside to their frame, and every dashboard framed for a caution and the final lap. |
 | `--led-soak <COM port> <LED count> [--fast]` | Streams fast-changing frames to an LED board for 90 seconds and reports whether it kept up. |
 | `--light-frames <report.txt>` | Writes each dashboard's LED colours through a rev sweep and the preview states. |
 | `--designer-selftest <report.txt>` | Runs the end-to-end checks (they write settings next to the exe, so run them from a copy). |

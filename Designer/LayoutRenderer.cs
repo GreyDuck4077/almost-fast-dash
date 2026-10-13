@@ -26,8 +26,11 @@ namespace AlmostFastOverlays
         private readonly string _accent;
         private readonly UnitSystem _units;
         private readonly FlagPainter _flags;
+        private readonly FlagTimeline _timeline;
         private WavingFlag _waving;
-        /// <summary>Fixes the flags' breeze at one moment (milliseconds), for previews and tests; null follows the clock.</summary>
+        private FlagFramePainter _flagFrame;
+        private Bitmap _flagLayer;
+        /// <summary>Fixes the flags' clock (fades, breeze, frame) at one moment in milliseconds, for previews and tests; null follows the clock.</summary>
         public int? FlagClock { get; set; }
         /// <summary>Holds the clock (time formulas, blink) at one moment, for tests; null follows the PC clock.</summary>
         public DateTime? FixedNow { get; set; }
@@ -43,9 +46,19 @@ namespace AlmostFastOverlays
             _accent = settings?.AccentColor ?? "#2DD4BF";
             _units = units ?? UnitSystem.Default;
             _flags = new FlagPainter(width, height);
+            _timeline = new FlagTimeline(settings?.Alerts?.BlinkMilliseconds ?? new AlertSettings().BlinkMilliseconds);
         }
 
         public DashLayout Layout => _layout;
+
+        /// <summary>What the flags show now: a flag over the screen, a frame round the dashboard, or neither.</summary>
+        public FlagView Flags(TelemetrySnapshot t) => Flags(t, FlagClock ?? Environment.TickCount);
+
+        private FlagView Flags(TelemetrySnapshot t, int now) =>
+            _timeline.At(t ?? TelemetrySnapshot.Disconnected, now, _layout.FullScreenFlags, _layout.FlagFrame);
+
+        /// <summary>Forgets the flags seen so far, so the next one alerts in full again.</summary>
+        public void ResetFlags() => _timeline.Reset();
 
         /// <summary>Widget ids whose last draw failed, with the reason; shown by the designer.</summary>
         public Dictionary<string, string> Errors { get; } = new Dictionary<string, string>();
@@ -126,9 +139,54 @@ namespace AlmostFastOverlays
         public Bitmap Render(TelemetrySnapshot t, bool shiftFlashOn, int previousGear, float gearTransitionProgress, DashScreen forceScreen)
         {
             t = t ?? TelemetrySnapshot.Disconnected;
-            bool flagScreen = _layout.FullScreenFlags && t.Flag != RacingFlag.None && forceScreen == null;
-            if (flagScreen) ForgetFrame();
-            else if (CacheStatic && RedrawChangesOnly)
+            int now = FlagClock ?? Environment.TickCount;
+            FlagView flags = Flags(t, now);
+            if (flags.Full)
+            {
+                // The flag covers everything, so the dashboard isn't drawn; it is redrawn in full when the flag goes.
+                ForgetFrame();
+                var cover = new Bitmap(_width, _height, PixelFormat.Format32bppArgb);
+                DrawFlag(cover, flags.Takeover, t, now);
+                return cover;
+            }
+            Bitmap bitmap = RenderDashboard(t, shiftFlashOn, previousGear, gearTransitionProgress, forceScreen);
+            if (flags.Frame == RacingFlag.None && flags.Alpha <= 0) return bitmap;
+            // The frame and a fading flag go over the finished frame (a copy, never the one kept for the next).
+            if (flags.Frame != RacingFlag.None)
+                (_flagFrame ?? (_flagFrame = new FlagFramePainter(_width, _height))).Draw(bitmap, flags.Frame, flags.FrameAlpha, now);
+            if (flags.Alpha > 0)
+            {
+                Bitmap layer = _flagLayer ?? (_flagLayer = new Bitmap(_width, _height, PixelFormat.Format32bppArgb));
+                DrawFlag(layer, flags.Takeover, t, now);
+                using (Graphics g = Graphics.FromImage(bitmap))
+                using (var attributes = new ImageAttributes())
+                {
+                    attributes.SetColorMatrix(new ColorMatrix { Matrix33 = flags.Alpha });
+                    g.InterpolationMode = InterpolationMode.NearestNeighbor;
+                    g.DrawImage(layer, new Rectangle(0, 0, _width, _height), 0, 0, _width, _height, GraphicsUnit.Pixel, attributes);
+                }
+            }
+            return bitmap;
+        }
+
+        /// <summary>A flag over the whole bitmap: waving cloth, or the still picture.</summary>
+        private void DrawFlag(Bitmap target, RacingFlag flag, TelemetrySnapshot t, int now)
+        {
+            if (_layout.WavingFlags)
+            {
+                (_waving ?? (_waving = new WavingFlag(_width, _height, _flags))).Draw(target, flag, t, now);
+                return;
+            }
+            using (Graphics g = Graphics.FromImage(target))
+            {
+                g.CompositingMode = CompositingMode.SourceCopy;
+                g.DrawImageUnscaled(_flags.Picture(flag, t), 0, 0);
+            }
+        }
+
+        private Bitmap RenderDashboard(TelemetrySnapshot t, bool shiftFlashOn, int previousGear, float gearTransitionProgress, DashScreen forceScreen)
+        {
+            if (CacheStatic && RedrawChangesOnly)
             {
                 EvalScope live = Scope(t, shiftFlashOn);
                 _shown = forceScreen ?? ActiveScreen(live);
@@ -136,20 +194,10 @@ namespace AlmostFastOverlays
             }
 
             var bitmap = new Bitmap(_width, _height, PixelFormat.Format32bppArgb);
-            if (flagScreen && _layout.WavingFlags)
-            {
-                (_waving ?? (_waving = new WavingFlag(_width, _height))).Draw(bitmap, t, FlagClock ?? Environment.TickCount);
-                return bitmap;
-            }
             using (Graphics g = Graphics.FromImage(bitmap))
             {
                 DashKit.Prepare(g);
                 EvalScope scope = Scope(t, shiftFlashOn);
-                if (flagScreen)
-                {
-                    _flags.Draw(g, scope.T);
-                    return bitmap;
-                }
                 DashScreen screen = forceScreen ?? ActiveScreen(scope);
                 _shown = screen;
                 Errors.Clear();
@@ -537,14 +585,33 @@ namespace AlmostFastOverlays
             unchecked
             {
                 EvalScope scope = Scope(t, shiftFlashOn);
-                if (_layout.FullScreenFlags && scope.T.Flag != RacingFlag.None)
-                    return (int)scope.T.Flag * 7919 + (_layout.WavingFlags ? WavingFlag.Frame(FlagClock ?? Environment.TickCount) * 31 : 0);
+                int now = FlagClock ?? Environment.TickCount;
+                FlagView flags = Flags(scope.T, now);
+                int flagHash = FlagHash(flags, scope.T, now);
+                if (flags.Full) return flagHash;
                 DashScreen screen = ActiveScreen(scope);
                 int hash = screen.Id.GetHashCode();
                 hash = hash * 31 + gearAnimationFrame;
                 hash = hash * 31 + (scope.T.Connected ? 1 : 0);
                 foreach (DashWidget widget in screen.Widgets)
                     if (!widget.Hidden) hash = hash * 31 + WidgetHash(widget, scope, 0, 1);
+                return hash * 31 + flagHash;
+            }
+        }
+
+        /// <summary>A fingerprint of what the flags add to a frame: the flag and how far it has faded, the cloth's movement, the frame's breath.</summary>
+        private int FlagHash(FlagView flags, TelemetrySnapshot t, int now)
+        {
+            unchecked
+            {
+                int hash = 0;
+                if (flags.Alpha > 0)
+                {
+                    hash = (int)flags.Takeover * 7919 + (int)(flags.Alpha * 48) * 131 + FlagPainter.Key(flags.Takeover, t).GetHashCode();
+                    if (_layout.WavingFlags) hash = hash * 31 + WavingFlag.Frame(now);
+                }
+                if (flags.Frame != RacingFlag.None)
+                    hash = hash * 31 + (int)flags.Frame * 104729 + (int)(flags.FrameAlpha * 48) * 17 + FlagFramePainter.Breath(now);
                 return hash;
             }
         }
@@ -1007,6 +1074,8 @@ namespace AlmostFastOverlays
             ForgetStyled();
             _flags.Dispose();
             _waving?.Dispose();
+            _flagFrame?.Dispose();
+            _flagLayer?.Dispose();
         }
     }
 

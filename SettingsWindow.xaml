@@ -290,7 +290,7 @@
                     <Border Style="{StaticResource Card}">
                         <StackPanel>
                             <TextBlock Text="Flag alerts" Style="{StaticResource T.Title}"/>
-                            <TextBlock Text="How green and yellow flags flash across the screen before the dashboard returns." Style="{StaticResource T.Caption}" Margin="0,4,0,18"/>
+                            <TextBlock Text="How long a green, yellow or white flag fills the screen, and how the flag lights flash meanwhile." Style="{StaticResource T.Caption}" Margin="0,4,0,18"/>
 
                             <Grid Style="{StaticResource Row}">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
@@ -317,7 +317,7 @@
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
                                     <TextBlock Text="Hold afterwards" Style="{StaticResource T.Label}"/>
-                                    <TextBlock Text="Keep the flag on screen after flashing." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                    <TextBlock Text="Keep the flag up after the lights stop flashing." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                                     <Slider x:Name="HoldSlider" Minimum="0" Maximum="10000" IsSnapToTickEnabled="True" TickFrequency="250" Width="380"/>

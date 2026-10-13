@@ -174,8 +174,7 @@ namespace AlmostFastOverlays
             _designChanged = false;
 
             TelemetrySnapshot snapshot = PreviewSnapshot(out bool flash, out int previousGear, out float progress);
-            bool flagTakeover = _layout.FullScreenFlags && snapshot.Flag != RacingFlag.None;
-            using (DrawingBitmap bitmap = _renderer.Render(snapshot, flash, previousGear, progress, flagTakeover ? null : _screen))
+            using (DrawingBitmap bitmap = _renderer.Render(snapshot, flash, previousGear, progress, _screen))
                 CopyToFrame(bitmap);
             // Animation frames leave the selection overlay and layer list alone unless an error came or went.
             string errors = string.Join(",", _renderer.Errors.Keys.OrderBy(k => k));
@@ -191,7 +190,7 @@ namespace AlmostFastOverlays
         /// <summary>The animated preview runs at full rate only while the designer is the window in use.</summary>
         private void PaceAnimation()
         {
-            bool moving = PreviewState == "Animated lap" || PreviewState == "Live iRacing" || PreviewState == "Shift point";
+            bool moving = PreviewState == "Animated lap" || PreviewState == "Live iRacing" || PreviewState == "Shift point" || PreviewState.EndsWith(" flag");
             if (!moving || WindowState == WindowState.Minimized) { _animationTimer.Stop(); return; }
             _animationTimer.Interval = TimeSpan.FromMilliseconds(IsActive ? 33 : 250);
             if (!_animationTimer.IsEnabled) _animationTimer.Start();
@@ -240,7 +239,7 @@ namespace AlmostFastOverlays
         private static readonly string[] PreviewStates =
         {
             "Animated lap", "Live iRacing", "Racing", "Shift point", "Pit lane", "Cars alongside", "Not connected",
-            "Green flag", "Yellow flag", "White flag", "Blue flag", "Black flag", "Checkered flag"
+            "Green flag", "Yellow flag", "White flag", "Red flag", "Blue flag", "Black flag", "Repair flag", "Checkered flag"
         };
 
         private void BuildPreviewCombo()
@@ -297,15 +296,47 @@ namespace AlmostFastOverlays
                 case "Pit lane": snapshot = IRacingTelemetrySource.CreatePitLanePreviewSnapshot(); break;
                 case "Cars alongside": snapshot = IRacingTelemetrySource.CreateSpotterPreviewSnapshot(); break;
                 case "Not connected": snapshot = TelemetrySnapshot.Disconnected; break;
-                case "Green flag": snapshot = IRacingTelemetrySource.CreatePreviewSnapshot(RacingFlag.Green); break;
-                case "Yellow flag": snapshot = IRacingTelemetrySource.CreatePreviewSnapshot(RacingFlag.Yellow); break;
-                case "White flag": snapshot = IRacingTelemetrySource.CreatePreviewSnapshot(RacingFlag.White); break;
-                case "Blue flag": snapshot = IRacingTelemetrySource.CreatePreviewSnapshot(RacingFlag.BlueYellowStripe); break;
-                case "Black flag": snapshot = IRacingTelemetrySource.CreatePreviewSnapshot(RacingFlag.Black); break;
-                case "Checkered flag": snapshot = IRacingTelemetrySource.CreatePreviewSnapshot(RacingFlag.Checkered); break;
+                case "Green flag": snapshot = FlagPreview(RacingFlag.Green); break;
+                case "Yellow flag": snapshot = FlagPreview(RacingFlag.Yellow); break;
+                case "White flag": snapshot = FlagPreview(RacingFlag.White); break;
+                case "Red flag": snapshot = FlagPreview(RacingFlag.Red); break;
+                case "Blue flag": snapshot = FlagPreview(RacingFlag.BlueYellowStripe); break;
+                case "Black flag": snapshot = FlagPreview(RacingFlag.Black); break;
+                case "Repair flag": snapshot = FlagPreview(RacingFlag.Meatball); break;
+                case "Checkered flag": snapshot = FlagPreview(RacingFlag.Checkered); break;
                 default: snapshot = IRacingTelemetrySource.CreatePreviewSnapshot(); break;
             }
             previousGear = snapshot.Gear;
+            return snapshot;
+        }
+
+        private const int FlagPreviewLoop = 9000, FlagPreviewPulse = 2000;
+        private string _flagPreviewState;
+        private int _flagPreviewStart, _flagPreviewRound;
+
+        /// <summary>
+        /// A flag as a race shows it, over and over: green, yellow and white alert for a couple of seconds and
+        /// then hand the screen back (yellow and white keep their frame); flags that stay out alert, then step
+        /// aside to their frame; red and checkered stay.
+        /// </summary>
+        private TelemetrySnapshot FlagPreview(RacingFlag flag)
+        {
+            if (_flagPreviewState != PreviewState)
+            {
+                _flagPreviewState = PreviewState;
+                _flagPreviewStart = Environment.TickCount;
+                _flagPreviewRound = -1;
+            }
+            int elapsed = Environment.TickCount - _flagPreviewStart, round = elapsed / FlagPreviewLoop;
+            if (round != _flagPreviewRound)
+            {
+                _flagPreviewRound = round;
+                if (FlagTimeline.StaysOut(flag)) _renderer?.ResetFlags();
+            }
+            bool pulse = flag == RacingFlag.Green || flag == RacingFlag.Yellow || flag == RacingFlag.White;
+            TelemetrySnapshot snapshot = IRacingTelemetrySource.CreatePreviewSnapshot(pulse && elapsed % FlagPreviewLoop > FlagPreviewPulse ? RacingFlag.None : flag);
+            snapshot.CautionActive = flag == RacingFlag.Yellow;
+            snapshot.WhiteFlagActive = flag == RacingFlag.White;
             return snapshot;
         }
 

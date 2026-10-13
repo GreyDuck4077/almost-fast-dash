@@ -266,14 +266,117 @@ namespace AlmostFastOverlays
             using (var waving = new LayoutRenderer(854, 480, DashboardSettings.CreateRoad(), _units))
             {
                 TelemetrySnapshot green = IRacingTelemetrySource.CreatePreviewSnapshot(RacingFlag.Green);
+                // The flag comes out at 0 and has faded in well before a second.
                 waving.FlagClock = 0;
+                waving.StateHash(green, false, -1);
+                waving.FlagClock = 1000;
                 string first;
                 int hashA = waving.StateHash(green, false, -1);
                 using (var a = waving.Render(green, false, green.Gear, 1)) first = Pixels(a);
-                waving.FlagClock = 700;
+                waving.FlagClock = 1700;
                 int hashB = waving.StateHash(green, false, -1);
                 using (var b = waving.Render(green, false, green.Gear, 1))
                     Check("waving flag moves over time and asks for a redraw", first != Pixels(b) && hashA != hashB);
+            }
+
+            // ---------------- flags: alert, then step aside
+            {
+                TelemetrySnapshot Flagged(RacingFlag flag, bool caution = false)
+                {
+                    TelemetrySnapshot snapshot = IRacingTelemetrySource.CreatePreviewSnapshot(flag);
+                    snapshot.CautionActive = caution;
+                    return snapshot;
+                }
+                // The telemetry flashes a new caution on and off every 150 ms for the lights; the screen holds steady.
+                var caution = new FlagTimeline(150);
+                bool steady = true;
+                for (int ms = 0; ms <= 1800; ms += 50)
+                {
+                    FlagView view = caution.At(Flagged(((ms / 150) & 1) == 0 ? RacingFlag.Yellow : RacingFlag.None, true), ms, true, true);
+                    if (ms >= FlagTimeline.FadeIn && !view.Full) steady = false;
+                }
+                Check("flag: a flashing yellow holds the screen steady", steady);
+                FlagView fading = caution.At(Flagged(RacingFlag.None, true), 1800 + 500, true, true);
+                FlagView later = caution.At(Flagged(RacingFlag.None, true), 1800 + 2000, true, true);
+                Check("flag: after the caution's alert the dashboard returns with a yellow frame",
+                    fading.Alpha > 0 && fading.Alpha < 1 && later.Alpha == 0 && later.Frame == RacingFlag.Yellow, "alpha " + fading.Alpha + " then " + later.Alpha + ", frame " + later.Frame);
+
+                var black = new FlagTimeline(150);
+                black.At(Flagged(RacingFlag.Black), 0, true, true);
+                FlagView alert = black.At(Flagged(RacingFlag.Black), 1000, true, true);
+                FlagView aside = black.At(Flagged(RacingFlag.Black), 5000, true, true);
+                Check("flag: black takes the screen, then steps aside to a frame", alert.Full && aside.Alpha == 0 && aside.Frame == RacingFlag.Black);
+
+                var blue = new FlagTimeline(150);
+                blue.At(Flagged(RacingFlag.BlueYellowStripe), 0, true, true);
+                blue.At(Flagged(RacingFlag.BlueYellowStripe), 4000, true, true);
+                blue.At(Flagged(RacingFlag.None), 6000, true, true);
+                FlagView gone = blue.At(Flagged(RacingFlag.None), 7000, true, true);
+                blue.At(Flagged(RacingFlag.BlueYellowStripe), 10000, true, true);
+                FlagView back = blue.At(Flagged(RacingFlag.BlueYellowStripe), 10500, true, true);
+                Check("flag: a blue flag back within seconds goes straight to its frame", gone.Frame == RacingFlag.None && back.Alpha == 0 && back.Frame == RacingFlag.BlueYellowStripe);
+
+                var red = new FlagTimeline(150);
+                red.At(Flagged(RacingFlag.Red), 0, true, true);
+                Check("flag: red keeps the screen", red.At(Flagged(RacingFlag.Red), 60000, true, true).Full);
+
+                var framesOnly = new FlagTimeline(150);
+                framesOnly.At(Flagged(RacingFlag.Green), 0, false, true);
+                FlagView framed = framesOnly.At(Flagged(RacingFlag.Green), 1000, false, true);
+                Check("flag: with full-screen flags off, a flag shows as a frame", framed.Alpha == 0 && framed.Frame == RacingFlag.Green);
+                Check("flag: with frames off, a caution shows no frame", new FlagTimeline(150).At(Flagged(RacingFlag.None, true), 0, true, false).Frame == RacingFlag.None);
+
+                // On a dashboard: the repair flag covers it, then hands it back with a frame, and leaves nothing behind when it goes.
+                DashboardSettings road = DashboardSettings.CreateDesigned(DesignTemplates.Road);
+                using (var flagged = new LayoutRenderer(854, 480, road, _units) { FixedNow = TestNow, FlagClock = 0 })
+                using (var clean = new LayoutRenderer(854, 480, DashboardSettings.CreateDesigned(DesignTemplates.Road), _units) { FixedNow = TestNow, FlagClock = 0 })
+                using (var reference = clean.Render(Flagged(RacingFlag.None), false, 4, 1))
+                {
+                    TelemetrySnapshot repair = Flagged(RacingFlag.Meatball);
+                    int middle = reference.GetPixel(427, 240).ToArgb(), edge = reference.GetPixel(1, 240).ToArgb();
+                    flagged.StateHash(repair, false, -1);
+                    flagged.FlagClock = 1000;
+                    bool covered;
+                    using (var a = flagged.Render(repair, false, 4, 1)) covered = a.GetPixel(427, 240).ToArgb() != middle;
+                    flagged.FlagClock = 5000;
+                    int breathA = flagged.StateHash(repair, false, -1);
+                    bool handedBack;
+                    using (var b = flagged.Render(repair, false, 4, 1)) handedBack = b.GetPixel(427, 240).ToArgb() == middle && b.GetPixel(1, 240).ToArgb() != edge;
+                    flagged.FlagClock = 5000 + 600;
+                    int breathB = flagged.StateHash(repair, false, -1);
+                    Check("flag: repairs alert, then hand the dashboard back framed", covered && handedBack);
+                    Check("flag: the frame asks for redraws as it breathes", breathA != breathB);
+                    flagged.FlagClock = 20000;
+                    using (var c = flagged.Render(Flagged(RacingFlag.None), false, 4, 1))
+                        Check("flag: the frame leaves nothing behind when the flag goes", Pixels(c) == Pixels(reference));
+                }
+
+                // Every flag screen draws at another screen size, and the finish shows the result.
+                foreach (RacingFlag flag in Enum.GetValues(typeof(RacingFlag)).Cast<RacingFlag>().Where(f => f != RacingFlag.None))
+                    using (var painter = new FlagPainter(1024, 600))
+                    {
+                        System.Drawing.Bitmap picture = painter.Picture(flag, Flagged(flag));
+                        Check("flag screen draws at 1024x600: " + flag, picture.Width == 1024 && picture.GetPixel(512, 300).A == 255);
+                    }
+                using (var timed = new LayoutRenderer(854, 480, DashboardSettings.CreateDesigned(DesignTemplates.Road), _units) { FixedNow = TestNow, FlagClock = 0 })
+                {
+                    TelemetrySnapshot yellow = Flagged(RacingFlag.None, true), plain = Flagged(RacingFlag.None);
+                    double Cost(TelemetrySnapshot snapshot)
+                    {
+                        using (timed.Render(snapshot, false, 4, 1)) { }
+                        var watch = System.Diagnostics.Stopwatch.StartNew();
+                        for (int i = 1; i <= 30; i++)
+                        {
+                            timed.FlagClock = i * 100;
+                            using (timed.Render(snapshot, false, 4, 1)) { }
+                        }
+                        return watch.Elapsed.TotalMilliseconds / 30;
+                    }
+                    report.Add("INFO  caution frame over the road template: " + Cost(yellow).ToString("0.00") + " ms per frame vs " + Cost(plain).ToString("0.00") + " ms without");
+                }
+                TelemetrySnapshot finish = Flagged(RacingFlag.Checkered), better = Flagged(RacingFlag.Checkered);
+                better.StartPosition = 12;
+                Check("flag: the finish screen changes with the result", FlagPainter.Key(RacingFlag.Checkered, finish) != FlagPainter.Key(RacingFlag.Checkered, better));
             }
 
             foreach (WidgetType type in WidgetCatalog.All)

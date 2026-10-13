@@ -22,11 +22,17 @@ namespace AlmostFastOverlays
 
         public LayoutTheme Theme { get; set; } = new LayoutTheme();
 
-        /// <summary>When on, racing flags take over the whole screen like the built-in dashboards.</summary>
+        /// <summary>When on, a new flag takes over the whole screen for its alert.</summary>
         public bool FullScreenFlags { get; set; } = true;
 
         /// <summary>Full-screen flags move like cloth in a soft breeze instead of standing still.</summary>
         public bool WavingFlags { get; set; } = true;
+
+        /// <summary>
+        /// While a flag stays out (a caution, the final lap, black, repairs, blue), a glow in its colour runs
+        /// round the dashboard with a tab saying what it is.
+        /// </summary>
+        public bool FlagFrame { get; set; } = true;
 
         /// <summary>
         /// Screens are checked top to bottom; the first whose condition is true is shown.

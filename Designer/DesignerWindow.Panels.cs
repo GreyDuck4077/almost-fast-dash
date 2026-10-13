@@ -520,11 +520,19 @@ namespace AlmostFastOverlays
             ThemeEditor.Children.Add(new TextBlock
             {
                 Style = (Style)FindResource("T.Caption"), Margin = new Thickness(0, 6, 0, 0),
-                Text = "On: flags take over the whole screen. Off: show them with a Flag widget, or react with FlagActive in a formula."
+                Text = "On: a new flag fills the screen for a few seconds, then hands it back. Red and checkered stay until they end. Off: show flags with a Flag widget, or react with FlagActive in a formula."
             });
             var waving = new CheckBox { Style = (Style)FindResource("Switch"), Content = "Wave in a soft breeze", IsChecked = _layout.WavingFlags, Margin = new Thickness(0, 10, 0, 0) };
             waving.Click += (s, e) => { _layout.WavingFlags = waving.IsChecked == true; Commit("Flags"); RequestRender(); };
             ThemeEditor.Children.Add(waving);
+            var frame = new CheckBox { Style = (Style)FindResource("Switch"), Content = "Frame the dashboard while a flag is out", IsChecked = _layout.FlagFrame, Margin = new Thickness(0, 10, 0, 0) };
+            frame.Click += (s, e) => { _layout.FlagFrame = frame.IsChecked == true; Commit("Flags"); RequestRender(); };
+            ThemeEditor.Children.Add(frame);
+            ThemeEditor.Children.Add(new TextBlock
+            {
+                Style = (Style)FindResource("T.Caption"), Margin = new Thickness(0, 6, 0, 0),
+                Text = "A glow in the flag's colour runs round the edge, with a tab at the top: during a caution, on the final lap, and while a black, repair or blue flag is out."
+            });
         }
 
         private Grid ThemeColorRow(string label, Func<string> get, Action<string> set, string help = null)

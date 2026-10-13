@@ -8,99 +8,6 @@ using System.Runtime.InteropServices;
 namespace AlmostFastOverlays
 {
     /// <summary>
-    /// Full-screen racing flag alerts shared by every dashboard layout so flags
-    /// look and behave the same whichever dashboard is active.
-    /// </summary>
-    internal sealed class FlagPainter : IDisposable
-    {
-        private readonly int _width, _height;
-        private readonly Font _flagFont = Fmt.FontOf(68, FontStyle.Bold);
-        private readonly Font _flagSmallFont = Fmt.FontOf(34, FontStyle.Bold);
-        private readonly Font _scFont = Fmt.FontOf(155, FontStyle.Bold);
-        private readonly StringFormat _center = new StringFormat
-        {
-            Alignment = StringAlignment.Center,
-            LineAlignment = StringAlignment.Center,
-            FormatFlags = StringFormatFlags.NoWrap
-        };
-
-        public FlagPainter(int width, int height)
-        {
-            _width = width;
-            _height = height;
-        }
-
-        public void Draw(Graphics g, TelemetrySnapshot telemetry)
-        {
-            switch (telemetry.Flag)
-            {
-                case RacingFlag.Green: Solid(g, Color.FromArgb(30, 205, 70), Brushes.Black, "GREEN"); break;
-                case RacingFlag.White: Solid(g, Color.White, Brushes.Black, "WHITE"); break;
-                case RacingFlag.Yellow: Solid(g, Color.FromArgb(255, 220, 0), Brushes.Black, "YELLOW"); break;
-                case RacingFlag.Red: Solid(g, Color.FromArgb(225, 20, 35), Brushes.White, "RED"); break;
-                case RacingFlag.Black:
-                    g.Clear(Color.Black);
-                    using (var pen = new Pen(Color.White, 8)) g.DrawRectangle(pen, 18, 18, _width - 36, _height - 36);
-                    Text(g, "BLACK", _flagFont, Brushes.White, new RectangleF(0, 0, _width, _height));
-                    break;
-                case RacingFlag.Meatball:
-                    g.Clear(Color.Black);
-                    using (var orange = new SolidBrush(Color.FromArgb(245, 95, 30))) g.FillEllipse(orange, (_width - 245) / 2, 65, 245, 245);
-                    Text(g, "MEATBALL", _flagSmallFont, Brushes.White, new RectangleF(0, 340, _width, 80));
-                    break;
-                case RacingFlag.BlueYellowStripe:
-                    g.Clear(Color.FromArgb(35, 115, 210));
-                    using (var stripe = new Pen(Color.FromArgb(255, 220, 0), 90)) g.DrawLine(stripe, -40, _height + 40, _width + 40, -40);
-                    Backdrop(g, "BLUE");
-                    break;
-                case RacingFlag.SafetyCar:
-                    g.Clear(Color.White);
-                    Text(g, "SC", _scFont, Brushes.Black, new RectangleF(0, 0, _width, _height));
-                    break;
-                case RacingFlag.Surface:
-                    for (int x = 0; x < _width; x += 95)
-                        using (var brush = new SolidBrush((x / 95) % 2 == 0 ? Color.FromArgb(255, 220, 0) : Color.FromArgb(220, 25, 35)))
-                            g.FillRectangle(brush, x, 0, 95, _height);
-                    Backdrop(g, "SURFACE");
-                    break;
-                case RacingFlag.Checkered:
-                    float cw = _width / 10f, ch = _height / 6f;
-                    for (int r = 0; r < 6; r++)
-                        for (int c = 0; c < 10; c++)
-                            g.FillRectangle(((r + c) & 1) == 0 ? Brushes.White : Brushes.Black, c * cw, r * ch, cw + 1, ch + 1);
-                    using (var backdrop = new SolidBrush(Color.FromArgb(255, 12, 14, 18))) g.FillRoundedRectangle(backdrop, new RectangleF(235, 125, 384, 230), 18);
-                    Text(g, "FINISH", _flagSmallFont, Brushes.White, new RectangleF(235, 145, 384, 70));
-                    Text(g, telemetry.Position > 0 ? "P" + telemetry.Position : "P--", _flagFont, Brushes.White, new RectangleF(235, 210, 384, 120));
-                    break;
-            }
-        }
-
-        private void Solid(Graphics g, Color background, Brush foreground, string label)
-        {
-            g.Clear(background);
-            Text(g, label, _flagFont, foreground, new RectangleF(0, 0, _width, _height));
-        }
-
-        private void Backdrop(Graphics g, string label)
-        {
-            var box = new RectangleF(205, 182, _width - 410, 116);
-            using (var backdrop = new SolidBrush(Color.FromArgb(255, 12, 14, 18))) g.FillRoundedRectangle(backdrop, box, 16);
-            Text(g, label, _flagSmallFont, Brushes.White, box);
-        }
-
-        private void Text(Graphics g, string text, Font font, Brush brush, RectangleF bounds) =>
-            g.DrawString(text, font, brush, bounds, _center);
-
-        public void Dispose()
-        {
-            _flagFont.Dispose();
-            _flagSmallFont.Dispose();
-            _scFont.Dispose();
-            _center.Dispose();
-        }
-    }
-
-    /// <summary>
     /// A flag as cloth in a soft breeze. The flat flag is drawn once, then every frame
     /// it is bent by two slow travelling waves (stronger toward the free, right-hand
     /// edge), the folds catch the light or fall into shadow, and a faint weave moves
@@ -117,11 +24,12 @@ namespace AlmostFastOverlays
         private int[] _source, _output;
         private string _sourceKey;
 
-        public WavingFlag(int width, int height)
+        /// <param name="painter">Draws the flat flags; shared, so the waving flag doesn't dispose it.</param>
+        public WavingFlag(int width, int height, FlagPainter painter)
         {
             _width = width;
             _height = height;
-            _painter = new FlagPainter(width, height);
+            _painter = painter;
             // Fabric: a fine two-pixel weave with a little grain, a few percent either way.
             var random = new Random(11);
             _weave = new sbyte[width * height];
@@ -133,9 +41,9 @@ namespace AlmostFastOverlays
         /// <summary>Changes about 30 times a second, so the runtime knows to draw a new frame.</summary>
         public static int Frame(int tickCount) => tickCount / 33;
 
-        public void Draw(Bitmap target, TelemetrySnapshot telemetry, int tickCount)
+        public void Draw(Bitmap target, RacingFlag flag, TelemetrySnapshot telemetry, int tickCount)
         {
-            int[] source = Source(telemetry);
+            int[] source = Source(flag, telemetry);
             int w = _width, h = _height;
             int[] output = _output ?? (_output = new int[w * h]);
             double seconds = tickCount / 1000.0;
@@ -218,28 +126,20 @@ namespace AlmostFastOverlays
 
         private static int Clamp(int v) => v < 0 ? 0 : v > 255 ? 255 : v;
 
-        private int[] Source(TelemetrySnapshot telemetry)
+        private int[] Source(RacingFlag flag, TelemetrySnapshot telemetry)
         {
-            string key = telemetry.Flag + (telemetry.Flag == RacingFlag.Checkered ? "|" + telemetry.Position : "");
+            string key = FlagPainter.Key(flag, telemetry);
             if (_source != null && key == _sourceKey) return _source;
-            using (var flat = new Bitmap(_width, _height, PixelFormat.Format32bppArgb))
-            {
-                using (Graphics g = Graphics.FromImage(flat))
-                {
-                    g.SmoothingMode = SmoothingMode.AntiAlias;
-                    g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
-                    _painter.Draw(g, telemetry);
-                }
-                BitmapData data = flat.LockBits(new Rectangle(0, 0, _width, _height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
-                _source = new int[_width * _height];
-                try { Marshal.Copy(data.Scan0, _source, 0, _source.Length); }
-                finally { flat.UnlockBits(data); }
-            }
+            Bitmap flat = _painter.Picture(flag, telemetry);
+            BitmapData data = flat.LockBits(new Rectangle(0, 0, _width, _height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+            if (_source == null) _source = new int[_width * _height];
+            try { Marshal.Copy(data.Scan0, _source, 0, _source.Length); }
+            finally { flat.UnlockBits(data); }
             _sourceKey = key;
             return _source;
         }
 
-        public void Dispose() => _painter.Dispose();
+        public void Dispose() { }
     }
 
     /// <summary>Formatting and drawing helpers shared by the dashboard renderers.</summary>

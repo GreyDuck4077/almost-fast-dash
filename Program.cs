@@ -45,6 +45,8 @@ namespace AlmostFastOverlays
             if (templateDirectory != null) return RenderTemplates(templateDirectory);
             string dashboardDirectory = ParseOption(args, "--render-dashboards");
             if (dashboardDirectory != null) return RenderDashboards(dashboardDirectory);
+            string flagDirectory = ParseOption(args, "--render-flags");
+            if (flagDirectory != null) return RenderFlags(flagDirectory);
             string selfTestReport = ParseOption(args, "--designer-selftest");
             if (selfTestReport != null) return DesignerSelfTest(selfTestReport);
             string soakPort = ParseOption(args, "--led-soak");
@@ -266,7 +268,6 @@ namespace AlmostFastOverlays
             return exit;
         }
 
-        /// <summary>Writes a PNG of every designer template in racing, pit-lane and spotter states.</summary>
         /// <summary>Saves a picture of every saved dashboard (in settings.json next to the exe), in each state and on each page.</summary>
         private static int RenderDashboards(string directory)
         {
@@ -299,6 +300,51 @@ namespace AlmostFastOverlays
             return 0;
         }
 
+        /// <summary>
+        /// Saves every flag as the default dashboard shows it a second after it came out (the cloth at a fixed
+        /// moment), flags that stay out stepping aside and then as a frame, and every saved dashboard framed
+        /// for a caution and the final lap.
+        /// </summary>
+        private static int RenderFlags(string directory)
+        {
+            if (!Path.IsPathRooted(directory))
+                directory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, directory);
+            Directory.CreateDirectory(directory);
+            AppSettings settings = SettingsStore.Load();
+            var units = new UnitSystem(settings.General);
+            void Save(DashboardSettings dashboard, TelemetrySnapshot snapshot, int moment, string file)
+            {
+                using (var renderer = new LayoutRenderer(dashboard.ScreenSize().Width, dashboard.ScreenSize().Height, dashboard, units))
+                {
+                    renderer.FlagClock = 0;
+                    renderer.StateHash(snapshot, false, -1);
+                    renderer.FlagClock = moment;
+                    using (var frame = renderer.Render(snapshot, false, snapshot.Gear, 1))
+                        frame.Save(Path.Combine(directory, string.Join("_", file.Split(Path.GetInvalidFileNameChars())) + ".png"), System.Drawing.Imaging.ImageFormat.Png);
+                }
+            }
+            DashboardSettings main = settings.GetDefaultDashboard();
+            foreach (RacingFlag flag in Enum.GetValues(typeof(RacingFlag)).Cast<RacingFlag>().Where(f => f != RacingFlag.None))
+            {
+                TelemetrySnapshot snapshot = IRacingTelemetrySource.CreatePreviewSnapshot(flag);
+                Save(main, snapshot, 1000, flag.ToString());
+                if (!FlagTimeline.StaysOut(flag)) continue;
+                Save(main, snapshot, FlagTimeline.TakeoverMilliseconds + FlagTimeline.StepAside / 2, flag + " stepping aside");
+                Save(main, snapshot, FlagTimeline.TakeoverMilliseconds + FlagTimeline.StepAside + 1000, flag + " frame");
+            }
+            foreach (DashboardSettings dashboard in settings.Dashboards)
+            {
+                TelemetrySnapshot caution = IRacingTelemetrySource.CreatePreviewSnapshot();
+                caution.CautionActive = true;
+                Save(dashboard, caution, 1000, dashboard.Name + " - Caution frame");
+                TelemetrySnapshot last = IRacingTelemetrySource.CreatePreviewSnapshot();
+                last.WhiteFlagActive = true;
+                Save(dashboard, last, 1000, dashboard.Name + " - Final lap frame");
+            }
+            return 0;
+        }
+
+        /// <summary>Writes a PNG of every designer template in racing, pit-lane and spotter states.</summary>
         private static int RenderTemplates(string directory)
         {
             if (!Path.IsPathRooted(directory))
