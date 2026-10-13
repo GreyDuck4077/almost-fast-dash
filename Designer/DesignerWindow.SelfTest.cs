@@ -686,6 +686,28 @@ namespace AlmostFastOverlays
                     widgets + " -> " + oldRoady.Design.AllWidgets().Count());
             }
 
+            // ---------------- dropping onto a panel builds its views
+            {
+                DashWidget pane = WidgetCatalog.Create("panel", 500, 300);
+                pane.W = 300; pane.H = 120; pane.Name = "Engine panel";
+                _screen.Widgets.Add(pane);
+                DashWidget oil = WidgetCatalog.Create("metric", 520, 310), water = WidgetCatalog.Create("metric", 900, 310), volts = WidgetCatalog.Create("metric", 600, 330);
+                bool found = PanelAt(new System.Windows.Point(650, 360)) == pane && PanelAt(new System.Windows.Point(100, 100)) == null;
+                DropOnPanel(pane, new List<DashWidget> { oil }, "Add oil", false);
+                bool joined = !string.IsNullOrEmpty(pane.Group) && oil.Group == pane.Group && string.IsNullOrEmpty(pane.Get("tapName", "")) && string.IsNullOrEmpty(oil.Get("visible", ""));
+                DropOnPanel(pane, new List<DashWidget> { water }, "Add water", true);
+                DropOnPanel(pane, new List<DashWidget> { volts }, "Add volts", false);
+                Check("dropping onto a panel joins it, and a new view writes the tap setup", found && joined &&
+                    pane.Get("tapName") == "engine" && pane.Get("tapViews") == "2" && oil.Get("visible") == "tap(\"engine\") == 0" &&
+                    water.Get("visible") == "tap(\"engine\") == 1" && volts.Get("visible") == "tap(\"engine\") == 1" &&
+                    water.X + water.W <= pane.X + pane.W && new[] { water, volts }.All(w => w.Group == pane.Group) && _designTaps["engine"] == 1,
+                    pane.Get("tapName", "") + " " + oil.Get("visible", "") + " / " + water.Get("visible", "") + " / " + volts.Get("visible", "") + " water at " + water.X);
+                foreach (DashWidget w in new[] { pane, oil, water, volts }) _screen.Widgets.Remove(w);
+                _designTaps.Clear();
+                Select(null);
+                Commit("Self-test cleanup");
+            }
+
             // ---------------- screen sizes
             {
                 DashLayout sized = DesignTemplates.Blank();

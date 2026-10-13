@@ -893,18 +893,26 @@ namespace AlmostFastOverlays
         private void Overlay_Drop(object sender, DragEventArgs e)
         {
             Point p = e.GetPosition(Overlay);
+            List<DashWidget> widgets;
+            string label;
             if (e.Data.GetData("afo-widget") is string type)
             {
                 WidgetType info = WidgetCatalog.Find(type);
-                AddWidgets(new[] { WidgetCatalog.Create(type, p.X - info.DefaultW / 2, p.Y - info.DefaultH / 2) }, "Add " + info.Name);
+                widgets = new List<DashWidget> { WidgetCatalog.Create(type, p.X - info.DefaultW / 2, p.Y - info.DefaultH / 2) };
+                label = "Add " + info.Name;
             }
             else if (e.Data.GetData("afo-block") is DesignBlock block)
             {
-                List<DashWidget> widgets = block.Create();
+                widgets = block.Create();
                 Rect bounds = Union(widgets);
                 foreach (DashWidget w in widgets) { w.X += Math.Round(p.X - bounds.Width / 2 - bounds.X); w.Y += Math.Round(p.Y - bounds.Height / 2 - bounds.Y); }
-                AddWidgets(widgets, "Add " + block.Name);
+                label = "Add " + block.Name;
             }
+            else return;
+            // Dropped on a panel: ask whether it belongs to the panel, and on which of its views.
+            DashWidget panel = PanelAt(p);
+            if (panel != null && !widgets.Any(w => w.Type == "panel")) AskPanelDrop(panel, widgets, label);
+            else AddWidgets(widgets, label);
         }
 
         // ==================================================================
@@ -976,9 +984,10 @@ namespace AlmostFastOverlays
             }
         }
 
-        internal void AddWidgets(IList<DashWidget> widgets, string label)
+        /// <param name="keepGroups">Joining a group already on the screen (a panel's), rather than coming in as new groups of their own.</param>
+        internal void AddWidgets(IList<DashWidget> widgets, string label, bool keepGroups = false)
         {
-            if (widgets.Any(w => !string.IsNullOrEmpty(w.Group) && _screen.Widgets.Any(s => s.Group == w.Group))) FreshGroups(widgets);
+            if (!keepGroups && widgets.Any(w => !string.IsNullOrEmpty(w.Group) && _screen.Widgets.Any(s => s.Group == w.Group))) FreshGroups(widgets);
             foreach (DashWidget w in widgets)
             {
                 w.X = Math.Round(Math.Max(-w.W + 10, Math.Min(CanvasW - 10, w.X)));

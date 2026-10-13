@@ -104,7 +104,8 @@ namespace AlmostFastOverlays
         /// <summary>The height each panel was drawn at in the 854×480 templates, for scaling a saved copy of another size.</summary>
         private static double Base(string panelName) => panelName == "Strip" ? 110 : 104;
 
-        private static void Only(DashWidget widget, string condition)
+        /// <summary>Adds a condition to a widget's Show when, keeping any it already has.</summary>
+        internal static void Only(DashWidget widget, string condition)
         {
             string existing = widget.Get("visible", "") ?? "";
             widget.Set("visible", string.IsNullOrWhiteSpace(existing) ? condition : "(" + existing.TrimStart('=') + ") && " + condition);
