@@ -1,4 +1,4 @@
-# Almost Fast Overlays
+# Almost Fast Dash
 
 A small, standalone dashboard manager for sim-racing wheel screens, with LED
 control, for iRacing. Design exactly what your wheel screen shows, set up any
@@ -22,7 +22,7 @@ It does not do on-monitor overlays (standings, relative and the like).
 
 ## Getting started
 
-1. Put `AlmostFastOverlays.exe` in a folder of its own and run it. Settings
+1. Put `AlmostFastDash.exe` in a folder of its own and run it. Settings
    (`settings.json`) and logs are kept next to it.
 2. **Devices › Add device** for each LED device (see below).
 3. **Dashboards**: pick or customise a dashboard and press the start button in
@@ -165,7 +165,7 @@ Needs the .NET SDK; the result needs only Windows 10 or 11.
 dotnet build -c Release
 ```
 
-`bin\Release\net48\AlmostFastOverlays.exe` is the whole application: one file,
+`bin\Release\net48\AlmostFastDash.exe` is the whole application: one file,
 targeting .NET Framework 4.8 (part of Windows) and referencing only Windows' own
 assemblies. The wheel screen (a VoCore-family USB panel) is driven through
 Windows' built-in WinUSB driver (`Dv5Screen.cs`), iRacing's telemetry is read
@@ -176,7 +176,7 @@ from its shared memory (`IRacingSdk.cs`), and LED devices are in
 
 Copyright (C) 2026 adam-paul (https://github.com/Sota4077)
 
-Almost Fast Overlays is free and open-source software under the
+Almost Fast Dash is free and open-source software under the
 [GNU General Public License v3.0](LICENSE). You may use, study, change and share
 it, including commercially. If you distribute it or anything built from it, you
 must release that complete source code under the same license, so it stays open

@@ -359,7 +359,7 @@ namespace AlmostFastOverlays
 
         private void ImportDesign()
         {
-            var dialog = new Microsoft.Win32.OpenFileDialog { Title = "Import dashboard design", Filter = "Almost Fast Overlays dashboard (*.afodash)|*.afodash|All files|*.*" };
+            var dialog = new Microsoft.Win32.OpenFileDialog { Title = "Import dashboard design", Filter = "Almost Fast Dash dashboard (*.afodash)|*.afodash|All files|*.*" };
             if (dialog.ShowDialog(this) != true) return;
             DesignPackage package;
             try { package = DesignPackage.Read(dialog.FileName); }
@@ -387,7 +387,7 @@ namespace AlmostFastOverlays
             var dialog = new Microsoft.Win32.SaveFileDialog
             {
                 Title = "Export dashboard",
-                Filter = "Almost Fast Overlays dashboard (*.afodash)|*.afodash",
+                Filter = "Almost Fast Dash dashboard (*.afodash)|*.afodash",
                 FileName = DesignerWindow.SafeFileName(dashboard.Name) + ".afodash"
             };
             if (dialog.ShowDialog(this) != true) return;
@@ -701,6 +701,7 @@ namespace AlmostFastOverlays
             TrayToggle.IsChecked = general.MinimizeToTray;
             AutoSwitchToggle.IsChecked = general.AutoSwitchByDiscipline;
             DiagnosticsToggle.IsChecked = general.DiagnosticsEnabled;
+            MoveOldStartupShortcut();
             StartupToggle.IsChecked = File.Exists(StartupShortcutPath);
         }
 
@@ -742,7 +743,20 @@ namespace AlmostFastOverlays
         }
 
         private static string StartupShortcutPath =>
-            System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Startup), "Almost Fast Overlays.lnk");
+            System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Startup), "Almost Fast Dash.lnk");
+
+        /// <summary>A start-with-Windows shortcut made before the rename points at the old exe; replace it with one for this one.</summary>
+        private static void MoveOldStartupShortcut()
+        {
+            string old = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Startup), "Almost Fast Dash.lnk");
+            try
+            {
+                if (!File.Exists(old)) return;
+                CreateStartupShortcut();
+                File.Delete(old);
+            }
+            catch { }
+        }
 
         private void Startup_Click(object sender, RoutedEventArgs e)
         {
@@ -775,7 +789,7 @@ namespace AlmostFastOverlays
                 t.InvokeMember("TargetPath", BindingFlags.SetProperty, null, shortcut, new object[] { exe });
                 t.InvokeMember("Arguments", BindingFlags.SetProperty, null, shortcut, new object[] { "--run" });
                 t.InvokeMember("WorkingDirectory", BindingFlags.SetProperty, null, shortcut, new object[] { System.IO.Path.GetDirectoryName(exe) });
-                t.InvokeMember("Description", BindingFlags.SetProperty, null, shortcut, new object[] { "Start the Almost Fast Overlays iRacing dashboard automatically" });
+                t.InvokeMember("Description", BindingFlags.SetProperty, null, shortcut, new object[] { "Start the Almost Fast Dash iRacing dashboard automatically" });
                 t.InvokeMember("Save", BindingFlags.InvokeMethod, null, shortcut, null);
                 Marshal.FinalReleaseComObject(shortcut);
             }
@@ -917,7 +931,9 @@ namespace AlmostFastOverlays
                 if (!File.Exists(Program.DashboardStatusPath)) return false;
                 if (!int.TryParse(File.ReadAllText(Program.DashboardStatusPath).Trim(), out int pid)) return false;
                 Process process = Process.GetProcessById(pid);
-                return !process.HasExited && string.Equals(process.ProcessName, "AlmostFastOverlays", StringComparison.OrdinalIgnoreCase);
+                // The exe was called AlmostFastOverlays before the rename; either is ours.
+                return !process.HasExited && (string.Equals(process.ProcessName, "AlmostFastDash", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(process.ProcessName, "AlmostFastOverlays", StringComparison.OrdinalIgnoreCase));
             }
             catch { return false; }
         }

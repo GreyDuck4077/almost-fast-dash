@@ -32,17 +32,17 @@ namespace AlmostFastOverlays
         {
             if (_tray == null)
             {
-                _tray = new Forms.NotifyIcon { Text = "Almost Fast Overlays" };
+                _tray = new Forms.NotifyIcon { Text = "Almost Fast Dash" };
                 try
                 {
-                    var stream = Application.GetResourceStream(new Uri("pack://application:,,,/AlmostFastOverlays;component/Assets/AppIcon.ico"))?.Stream;
+                    var stream = Application.GetResourceStream(new Uri("pack://application:,,,/AlmostFastDash;component/Assets/AppIcon.ico"))?.Stream;
                     if (stream != null) using (stream) _tray.Icon = new System.Drawing.Icon(stream, Forms.SystemInformation.SmallIconSize);
                 }
                 catch { }
                 if (_tray.Icon == null) _tray.Icon = System.Drawing.SystemIcons.Application;
                 _tray.MouseClick += (s, e) => { if (e.Button == Forms.MouseButtons.Left) RestoreFromTray(); };
                 var menu = new Forms.ContextMenuStrip();
-                menu.Items.Add("Open Almost Fast Overlays", null, (s, e) => RestoreFromTray());
+                menu.Items.Add("Open Almost Fast Dash", null, (s, e) => RestoreFromTray());
                 var dashboard = new Forms.ToolStripMenuItem();
                 dashboard.Click += async (s, e) => { if (IsDashboardRunning()) await StopDashboardAsync(); else await StartDashboardAsync(); };
                 menu.Items.Add(dashboard);

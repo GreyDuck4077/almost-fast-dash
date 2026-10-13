@@ -1094,7 +1094,7 @@ namespace AlmostFastOverlays
             var dialog = new Microsoft.Win32.SaveFileDialog
             {
                 Title = "Export dashboard design",
-                Filter = "Almost Fast Overlays dashboard (*.afodash)|*.afodash",
+                Filter = "Almost Fast Dash dashboard (*.afodash)|*.afodash",
                 FileName = SafeFileName(_dashboard.Name) + ".afodash"
             };
             if (dialog.ShowDialog(this) != true) return;
@@ -1111,7 +1111,7 @@ namespace AlmostFastOverlays
 
         private void Import_Click(object sender, RoutedEventArgs e)
         {
-            var dialog = new Microsoft.Win32.OpenFileDialog { Title = "Import dashboard design", Filter = "Almost Fast Overlays dashboard (*.afodash)|*.afodash|All files|*.*" };
+            var dialog = new Microsoft.Win32.OpenFileDialog { Title = "Import dashboard design", Filter = "Almost Fast Dash dashboard (*.afodash)|*.afodash|All files|*.*" };
             if (dialog.ShowDialog(this) != true) return;
             DesignPackage package;
             try { package = DesignPackage.Read(dialog.FileName); }
@@ -1352,6 +1352,7 @@ namespace AlmostFastOverlays
     /// <summary>The shareable .afodash file: one designed dashboard, with its images and LED lights.</summary>
     internal sealed class DesignPackage
     {
+        /// <summary>The file's identity, from before the rename to Almost Fast Dash; kept so every .afodash file stays readable.</summary>
         public string Format { get; set; } = "AlmostFastOverlays.Dashboard";
         /// <summary>2 added the LED lights; files without them still import.</summary>
         public int Version { get; set; } = 2;
@@ -1374,7 +1375,7 @@ namespace AlmostFastOverlays
             var serializer = new System.Web.Script.Serialization.JavaScriptSerializer { MaxJsonLength = int.MaxValue, RecursionLimit = 256 };
             DesignPackage package = serializer.Deserialize<DesignPackage>(File.ReadAllText(path));
             if (package?.Design == null || package.Format != "AlmostFastOverlays.Dashboard")
-                throw new InvalidDataException("This is not an Almost Fast Overlays dashboard file.");
+                throw new InvalidDataException("This is not an Almost Fast Dash dashboard file.");
             package.Design.Normalize();
             if (string.IsNullOrWhiteSpace(package.Name)) package.Name = System.IO.Path.GetFileNameWithoutExtension(path);
             return package;

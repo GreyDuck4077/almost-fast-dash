@@ -17,6 +17,7 @@ namespace AlmostFastOverlays
         private const int GearTransitionMilliseconds = 420;
         private const int GearTransitionFrames = 14;
         private static readonly ManualResetEventSlim StopRequested = new ManualResetEventSlim(false);
+        // These names predate the rename to Almost Fast Dash and stay, so a new exe can still stop an old one.
         private static readonly EventWaitHandle StopSignal = new EventWaitHandle(
             false, EventResetMode.AutoReset, @"Local\AlmostFastOverlays.StopRequested");
         private static readonly string StopRequestPath = Path.Combine(
@@ -66,12 +67,12 @@ namespace AlmostFastOverlays
                     // Keep the settings window alive and leave a trace instead of vanishing.
                     try { File.AppendAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings-error.txt"), DateTime.Now + Environment.NewLine + e.Exception + Environment.NewLine); }
                     catch { }
-                    MessageBox.Show(e.Exception.Message, "Almost Fast Overlays", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(e.Exception.Message, "Almost Fast Dash", MessageBoxButton.OK, MessageBoxImage.Warning);
                     e.Handled = true;
                 };
                 application.Resources.MergedDictionaries.Add(new ResourceDictionary
                 {
-                    Source = new Uri("pack://application:,,,/AlmostFastOverlays;component/Theme.xaml")
+                    Source = new Uri("pack://application:,,,/AlmostFastDash;component/Theme.xaml")
                 });
                 application.Run(new SettingsWindow());
                 return 0;
@@ -82,7 +83,7 @@ namespace AlmostFastOverlays
             _instanceMutex = new Mutex(true, @"Local\AlmostFastOverlays.SingleInstance", out bool ownsMutex);
             if (!ownsMutex)
             {
-                Console.Error.WriteLine("Almost Fast Overlays is already running.");
+                Console.Error.WriteLine("Almost Fast Dash is already running.");
                 _instanceMutex.Dispose();
                 return 2;
             }
@@ -93,7 +94,7 @@ namespace AlmostFastOverlays
             while (StopSignal.WaitOne(0)) { }
             File.WriteAllText(DashboardStatusPath, Process.GetCurrentProcess().Id.ToString());
 
-            Console.WriteLine("Almost Fast Overlays");
+            Console.WriteLine("Almost Fast Dash");
             Console.WriteLine("Close other dashboard software before running so it does not compete for the devices.");
 
             Console.CancelKeyPress += OnCancelKeyPress;
@@ -150,7 +151,7 @@ namespace AlmostFastOverlays
         {
             if (!Path.IsPathRooted(output)) output = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, output);
             var application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-            application.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("pack://application:,,,/AlmostFastOverlays;component/Theme.xaml") });
+            application.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("pack://application:,,,/AlmostFastDash;component/Theme.xaml") });
             Window window;
             if (scenario.StartsWith("wizard"))
             {
@@ -228,7 +229,7 @@ namespace AlmostFastOverlays
             string folder = AppDomain.CurrentDomain.BaseDirectory;
             if (!Path.IsPathRooted(reportPath)) reportPath = Path.Combine(folder, reportPath);
             var application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
-            application.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("pack://application:,,,/AlmostFastOverlays;component/Theme.xaml") });
+            application.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("pack://application:,,,/AlmostFastDash;component/Theme.xaml") });
             AppSettings settings = SettingsStore.Load();
             DashboardSettings dashboard = settings.AddDesignedDashboard(DesignTemplates.Find("halo"), "Self test");
             var designer = new DesignerWindow(settings, dashboard, null) { Left = -4000, Top = 0, ShowActivated = false, WindowStartupLocation = WindowStartupLocation.Manual };

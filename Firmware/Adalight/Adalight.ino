@@ -1,12 +1,12 @@
 // Adalight receiver for an addressable LED strip (WS2812B / NeoPixel), for
-// Almost Fast Overlays' "Other LED devices". Needs the FastLED library
+// Almost Fast Dash' "Other LED devices". Needs the FastLED library
 // (Arduino IDE: Tools > Manage Libraries > FastLED).
 //
 // Set the three values below, upload, then click Scan USB on the Devices page.
 // Protocol: "Ada", LED count - 1 (high byte, low byte), checksum (high ^ low ^ 0x55),
 // then red, green, blue for every LED.
 //
-// Part of Almost Fast Overlays, GPL-3.0-or-later.
+// Part of Almost Fast Dash, GPL-3.0-or-later.
 
 #include <FastLED.h>
 

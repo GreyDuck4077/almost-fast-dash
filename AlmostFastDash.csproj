@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!--
-    Builds one self-contained AlmostFastOverlays.exe. It targets .NET Framework 4.8,
+    Builds one self-contained AlmostFastDash.exe. It targets .NET Framework 4.8,
     which ships with Windows 10 and 11, and references only assemblies that are part
     of Windows, so nothing else has to sit next to the exe.
   -->
@@ -12,9 +12,9 @@
     <LangVersion>latest</LangVersion>
     <Nullable>disable</Nullable>
     <UseWPF>true</UseWPF>
-    <AssemblyName>AlmostFastOverlays</AssemblyName>
-    <Product>Almost Fast Overlays</Product>
-    <Version>3.28.0</Version>
+    <AssemblyName>AlmostFastDash</AssemblyName>
+    <Product>Almost Fast Dash</Product>
+    <Version>3.29.0</Version>
     <RootNamespace>AlmostFastOverlays</RootNamespace>
     <DebugType>none</DebugType>
     <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
