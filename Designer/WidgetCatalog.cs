@@ -291,6 +291,42 @@ namespace AlmostFastOverlays
                 .Bool("numbers", "Car numbers", "false", "Cars")
                 .Font();
 
+            Define("radar", "Radar", "Racing", "", "A top view of your car and the cars around you: exactly how far ahead and behind they are, which side when alongside, and sensor waves that turn amber, then red, as the car in line gets close.", 280, 440, RadarPainters.Radar)
+                .Number("range", "Range, car lengths", "3.5", "Content", 1, 16, 0.5)
+                .Bool("numbers", "Car numbers", "true", "Content")
+                .Bool("beyond", "Next car beyond the edge", "true", "Content")
+                .Bool("lanes", "Lanes", "true", "Look")
+                .Bool("moving", "Lanes move as you drive", "true", "Look")
+                .Bool("rings", "Range rings", "true", "Look")
+                .Bool("sensors", "Sensor waves", "true", "Look")
+                .Font()
+                .Color("carColor", "Your car", "accent", "Colors")
+                .Color("otherColor", "Other cars", "#DCE4F0", "Colors")
+                .Bool("classColors", "Class colors", "false", "Colors")
+                .Color("paceColor", "Pace car", "warn", "Colors")
+                .Color("alongsideColor", "Alongside", "bad", "Colors")
+                .Color("clearColor", "Clear ahead", "good", "Colors")
+                .Color("nearColor", "Getting close", "warn", "Colors")
+                .Color("closeColor", "Very close", "bad", "Colors")
+                .Number("nearAt", "Getting close within", "1.5", "Colors", 0, 10, 0.1)
+                .Number("closeAt", "Very close within", "0.5", "Colors", 0, 10, 0.1)
+                .Color("roadColor", "Road", "#C00A1834", "Colors", "Empty for no road.")
+                .Color("laneColor", "Lane lines", "#3D7BE0", "Colors")
+                .Color("ringColor", "Range rings", "#70D8B860", "Colors")
+                .Number("glow", "Glow on your car", "10", "Effects", 0, 40);
+
+            Define("traffic", "Traffic", "Racing", "", "The cars within a few seconds either way on a strip, in class colours, glowing when a faster class is closing from behind.", 600, 40, RadarPainters.TrafficStrip)
+                .Number("seconds", "Seconds each way", "8", "Content", 2, 30)
+                .Bool("numbers", "Car numbers", "true", "Content")
+                .Bool("warn", "Faster class warning", "true", "Content")
+                .Font()
+                .Bool("classColors", "Class colors", "true", "Colors")
+                .Color("carColor", "Cars", "text", "Colors", "Used when class colors are off.")
+                .Color("playerColor", "Your car", "accent", "Colors")
+                .Color("warnColor", "Faster class", "warn", "Colors")
+                .Color("pitColor", "In the pits", "dim", "Colors")
+                .Color("trackColor", "Strip", "track", "Colors");
+
             Define("flag", "Flag", "Racing", "", "Shows the current flag inside its own area. Use it when full-screen flags are off.", 260, 90, WidgetPainters.Flag)
                 .Choice("style", "Style", "Fill", "Look", "Fill", "Badge")
                 .Bool("label", "Flag name", "true", "Look")
@@ -400,6 +436,12 @@ namespace AlmostFastOverlays
             Rule("arc", "rim", set, "rimWidth");
             Rule("shiftlights", "flash", set, "flashColor");
             Rule("shape", "shape", v => v == "Rectangle", "radius");
+            Rule("radar", "lanes", on, "moving", "laneColor");
+            Rule("radar", "rings", on, "ringColor");
+            Rule("radar", "sensors", on, "clearColor", "nearColor", "closeColor", "nearAt", "closeAt");
+            Rule("radar", "classColors", v => !Expr.Bool(v), "otherColor");
+            Rule("traffic", "classColors", v => !Expr.Bool(v), "carColor");
+            Rule("traffic", "warn", on, "warnColor");
             Rule("graph", "value2", set, "color2");
             Rule("graph", "grid", on, "gridColor");
             Rule("graph", "label", set, "labelSize", "labelColor", "font");

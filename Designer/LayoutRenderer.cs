@@ -389,7 +389,7 @@ namespace AlmostFastOverlays
         private string _backgroundKey;
 
         /// <summary>Widget types that read telemetry directly, whatever their properties say.</summary>
-        private static readonly HashSet<string> LiveTypes = new HashSet<string> { "gear", "relative", "blindspot", "flag", "progress", "trace", "deltatrace", "laphistory", "standings", "tyres", "graph", "trackmap" };
+        private static readonly HashSet<string> LiveTypes = new HashSet<string> { "gear", "relative", "blindspot", "flag", "progress", "trace", "deltatrace", "laphistory", "standings", "tyres", "graph", "trackmap", "radar", "traffic" };
 
         private static bool IsStatic(DashWidget widget)
         {
@@ -668,7 +668,26 @@ namespace AlmostFastOverlays
                     case "deltatrace": hash = hash * 31 + System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(t.DeltaTrace ?? new float[0]); break;
                     case "graph": hash = hash * 31 + SampleGraph(widget, type, scope).Version; break;
                     case "trackmap": hash = hash * 31 + MapHash(t); break;
+                    case "radar": hash = hash * 31 + RadarHash(t); break;
+                    case "traffic": hash = hash * 31 + MapHash(t) + (int)(t.ReferenceLapSeconds * 10) + (int)t.SpeedMph; break;
                 }
+                return hash;
+            }
+        }
+
+        /// <summary>
+        /// The radar's cars, the gaps its sensors show and how far you've driven (the lanes move), all exact:
+        /// even a fraction of a pixel moves an anti-aliased edge.
+        /// </summary>
+        private static int RadarHash(TelemetrySnapshot t)
+        {
+            unchecked
+            {
+                int hash = t.AheadMeters.GetHashCode() * 31 + t.BehindMeters.GetHashCode();
+                hash = hash * 31 + (t.LapFraction * t.TrackLengthMiles).GetHashCode();
+                foreach (RadarCar car in t.Radar ?? new RadarCar[0])
+                    hash = hash * 31 + car.CarIdx * 7 + car.Meters.GetHashCode() * 13 + car.Lane.GetHashCode() * 17 + (car.Alongside ? 1 : 0) + (car.PaceCar ? 2 : 0)
+                        + (car.Number?.GetHashCode() ?? 0) + car.ClassColor.ToArgb();
                 return hash;
             }
         }

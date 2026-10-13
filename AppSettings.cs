@@ -41,7 +41,7 @@ namespace AlmostFastOverlays
 
     internal sealed class AppSettings
     {
-        private const int CurrentSchema = 15;
+        private const int CurrentSchema = 16;
 
         public int SchemaVersion { get; set; }
         public string DefaultDashboardId { get; set; } = DashboardSettings.RoadId;
@@ -97,6 +97,7 @@ namespace AlmostFastOverlays
                 if (SchemaVersion > 0 && SchemaVersion < 13) ClearerFuelToAdd();
                 if (SchemaVersion >= 9 && SchemaVersion < 14) PolishFlagships();
                 if (SchemaVersion > 0 && SchemaVersion < 15) { RoundCutPanels(); RebuildNeon(); }
+                if (SchemaVersion > 0 && SchemaVersion < 16) ReworkHaloAndOval();
                 SchemaVersion = CurrentSchema;
             }
             foreach (DeviceSettings device in General.Devices) device.Normalize();
@@ -237,6 +238,30 @@ namespace AlmostFastOverlays
                 rebuilt.ScaleTo(dashboard.Design.Width, dashboard.Design.Height);
                 rebuilt.PageButton = dashboard.Design.PageButton;
                 rebuilt.PageBackButton = dashboard.Design.PageBackButton;
+                dashboard.Design = rebuilt;
+            }
+        }
+
+        /// <summary>
+        /// Schema 16: Halo and Oval were reworked from the ground up. Halo is now the endurance and multiclass
+        /// dashboard (a rev ring over a live delta, traffic in class colours) and Oval the pack-racing radar. The
+        /// saved Halo and Oval take the new designs at their own size. Their names, accent colours, lights,
+        /// track types, page buttons and flag choices stay. No other dashboard changes.
+        /// </summary>
+        private void ReworkHaloAndOval()
+        {
+            foreach (DashboardSettings dashboard in Dashboards)
+            {
+                string template = dashboard.Id == "dashboard-halo" ? "halo" : dashboard.Id == "dashboard-oval" ? "oval" : null;
+                DashLayout old = dashboard.Design;
+                if (template == null || old == null) continue;
+                DashLayout rebuilt = DesignTemplates.Find(template).Create();
+                rebuilt.ScaleTo(old.Width, old.Height);
+                rebuilt.PageButton = old.PageButton;
+                rebuilt.PageBackButton = old.PageBackButton;
+                rebuilt.FullScreenFlags = old.FullScreenFlags;
+                rebuilt.WavingFlags = old.WavingFlags;
+                rebuilt.FlagFrame = old.FlagFrame;
                 dashboard.Design = rebuilt;
             }
         }

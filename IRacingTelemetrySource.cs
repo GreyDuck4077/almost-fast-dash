@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 
 namespace AlmostFastOverlays
@@ -270,6 +271,14 @@ namespace AlmostFastOverlays
         /// <summary>Every car's lap fraction by car index (-1 when not on track), and which car is yours.</summary>
         public float[] CarLapDist { get; set; } = new float[0];
         public int PlayerCarIdx { get; set; } = -1;
+        /// <summary>The cars near you for the radar (see <see cref="RadarTracker"/>), nearest behind first.</summary>
+        public RadarCar[] Radar { get; set; } = new RadarCar[0];
+        /// <summary>Metres to the nearest car in line ahead and behind, middle to middle; -1 when there is none.</summary>
+        public double AheadMeters { get; set; } = -1;
+        public double BehindMeters { get; set; } = -1;
+        /// <summary>How fast those gaps are closing in metres a second (positive: getting closer).</summary>
+        public double AheadClosing { get; set; }
+        public double BehindClosing { get; set; }
 
         public double ReferenceLapSeconds =>
             AverageLapSeconds > 0 ? AverageLapSeconds : BestLapSeconds > 0 ? BestLapSeconds : LastLapSeconds;
@@ -536,6 +545,7 @@ namespace AlmostFastOverlays
             snapshot.ThrottleTrace = throttle;
             snapshot.BrakeTrace = brake;
             PreviewRaceData(snapshot);
+            RadarTracker.Preview(snapshot);
             return snapshot;
         }
 
@@ -790,7 +800,35 @@ namespace AlmostFastOverlays
                 _latest.BrakeTrace = _brakeTraceCopy;
                 _latest.TraceVersion = _traceVersion;
                 UpdateRaceData(sample.Telemetry, _latest, sessionFlags, _suppressHeldBlackFlag);
+                UpdateRadar(sample.Telemetry, _latest, carLeftRight);
             }
+        }
+
+        private readonly RadarTracker _radar = new RadarTracker();
+
+        /// <summary>The cars around you for the radar, with the gaps to the cars in line ahead and behind.</summary>
+        private void UpdateRadar(Telemetry t, TelemetrySnapshot s, int carLeftRight)
+        {
+            var byCar = new Dictionary<int, StandingsEntry>();
+            foreach (StandingsEntry row in s.Standings ?? new StandingsEntry[0]) byCar[row.CarIdx] = row;
+            var pace = new HashSet<int>();
+            foreach (CarDetails car in t.CarDetails ?? new CarDetails[0])
+                if (car?.Driver != null && car.Driver.CarIsPaceCar) pace.Add(car.CarIdx);
+            double time = ReadTelemetryDouble(t, "SessionTime");
+            _radar.Update(t.CarIdxLapDistPct, t.CarIdxOnPitRoad, ReadTelemetryInt(t, "PlayerCarIdx"), s.TrackLengthMiles * 1609.344, carLeftRight, time, car =>
+            {
+                if (byCar.TryGetValue(car.CarIdx, out StandingsEntry row))
+                {
+                    car.Number = row.CarNumber ?? "";
+                    car.ClassColor = row.ClassColor;
+                }
+                car.PaceCar = pace.Contains(car.CarIdx);
+            });
+            s.Radar = _radar.Cars;
+            s.AheadMeters = _radar.AheadMeters;
+            s.BehindMeters = _radar.BehindMeters;
+            s.AheadClosing = _radar.AheadClosing;
+            s.BehindClosing = _radar.BehindClosing;
         }
 
         private double GetTrackLengthMiles(Telemetry telemetry)

@@ -867,6 +867,86 @@ namespace AlmostFastOverlays
                     !haloMain.Widgets.Contains(kink) && baseLine.W == 252 &&
                     oldNeon.Design.AllWidgets().Any(w => w.Name == "Shift horizon") && !oldNeon.Design.AllWidgets().Any(w => w.Name == "Fuel ring"),
                     tile.Get("corners", "") + " " + tile.Get("radius", "") + " / " + chip.Get("radius", ""));
+
+                // Schema 16: Halo and Oval are reworked; their names, colours, track types and flag choices stay, and nothing else changes.
+                var reworked = new AppSettings { SchemaVersion = 15 };
+                DashboardSettings oldHalo = DashboardSettings.CreateDesigned(DesignTemplates.Find("blank")), oldOval = DashboardSettings.CreateDesigned(DesignTemplates.Find("blank")),
+                    ownDesign = DashboardSettings.CreateDesigned(DesignTemplates.Find("blank"));
+                oldHalo.Id = "dashboard-halo";
+                oldHalo.Name = "Halo";
+                oldHalo.AccentColor = "#30D158";
+                oldHalo.Design.FlagFrame = false;
+                oldOval.Id = "dashboard-oval";
+                oldOval.Name = "Oval";
+                oldOval.RaceTypes = new List<string> { Disciplines.Oval };
+                ownDesign.Id = "dashboard-own";
+                int ownWidgets = ownDesign.Design.AllWidgets().Count();
+                reworked.Dashboards.AddRange(new[] { oldHalo, oldOval, ownDesign });
+                reworked.EnsureBuiltInDashboards();
+                Check("Halo and Oval take the reworked designs, keeping their names, colours, track types and flag choices",
+                    oldHalo.Design.AllWidgets().Any(w => w.Type == "traffic") && oldOval.Design.AllWidgets().Any(w => w.Type == "radar") && oldHalo.Name == "Halo" &&
+                    oldHalo.AccentColor == "#30D158" && !oldHalo.Design.FlagFrame && oldOval.RaceTypes.Contains(Disciplines.Oval) && ownDesign.Design.AllWidgets().Count() == ownWidgets);
+            }
+
+            // ---------------- radar and traffic
+            {
+                const double Track = 1000;
+                float At(double meters) => (float)(0.5 + meters / Track);
+
+                var radar = new RadarTracker();
+                radar.Update(new[] { 0.5f, At(10), At(0.5), -1f }, new[] { false, false, true, false }, 0, Track, 1, 100);
+                Check("radar: a car ten metres ahead is a car length clear, and a car in the pits isn't shown",
+                    radar.Cars.Length == 1 && Math.Abs(radar.Cars[0].Meters - 10) < 0.05 && Math.Abs(RadarTracker.Lengths(radar.AheadMeters) - 1) < 0.02,
+                    radar.Cars.Length + " cars, ahead " + radar.AheadMeters.ToString("0.00"));
+
+                var wrap = new RadarTracker();
+                wrap.Update(new[] { 0.995f, 0.004f }, null, 0, Track, 1, 0);
+                Check("radar: a car just over the line is still just ahead", wrap.Cars.Length == 1 && Math.Abs(wrap.Cars[0].Meters - 9) < 0.1);
+
+                var sides = new RadarTracker();
+                float[] three = { 0.5f, At(1.5), At(-2), At(30) };
+                sides.Update(three, null, 0, Track, 2, 0);
+                RadarCar first = sides.Cars.First(x => x.CarIdx == 1);
+                sides.Update(three, null, 0, Track, 4, 0.05);
+                RadarCar kept = sides.Cars.First(x => x.CarIdx == 1), second = sides.Cars.First(x => x.CarIdx == 2);
+                Check("radar: a car left goes to the nearest car; a second alongside goes right and the first stays left",
+                    first.Lane == -1 && first.Alongside && kept.Lane == -1 && second.Lane == 1 && second.Alongside && !sides.Cars.First(x => x.CarIdx == 3).Alongside);
+
+                var ghost = new RadarTracker();
+                ghost.Update(new[] { 0.5f, At(40) }, null, 0, Track, 3, 0);
+                Check("radar: a car the spotter reports that positions can't place still shows alongside", ghost.Cars.Any(x => x.CarIdx < 0 && x.Lane == 1 && x.Alongside));
+
+                var drift = new RadarTracker();
+                drift.Update(new[] { 0.5f, At(1.5) }, null, 0, Track, 2, 0);
+                drift.Update(new[] { 0.5f, At(8) }, null, 0, Track, 1, 1.0);
+                float held = drift.Cars[0].Lane;
+                for (int i = 1; i <= 60; i++) drift.Update(new[] { 0.5f, At(8) }, null, 0, Track, 1, 1.0 + i * 0.05);
+                Check("radar: a car that clears holds its lane a moment, then drifts into line ahead", held == -1 && drift.Cars[0].Lane == 0 && Math.Abs(drift.AheadMeters - 8) < 0.05,
+                    "held " + held + ", then " + drift.Cars[0].Lane + ", ahead " + drift.AheadMeters.ToString("0.00"));
+
+                var closing = new RadarTracker();
+                for (int i = 0; i <= 120; i++) closing.Update(new[] { 0.5f, At(30 - i * 2.0 / 60) }, null, 0, Track, 1, i / 60.0);
+                Check("radar: a gap shrinking two metres a second closes at about 2 m/s", Math.Abs(closing.AheadClosing - 2) < 0.3, closing.AheadClosing.ToString("0.00"));
+
+                // The radar redraws as a car moves, and not otherwise.
+                var radarLayout = DesignTemplates.Blank();
+                radarLayout.Screens[0].Widgets.Add(WidgetCatalog.Create("radar", 280, 20));
+                radarLayout.FullScreenFlags = false;
+                using (var radarRenderer = new LayoutRenderer(854, 480, new DashboardSettings { Layout = Layouts.Custom, Design = radarLayout }, _units) { FixedNow = TestNow, FlagClock = 0 })
+                {
+                    TelemetrySnapshot still = IRacingTelemetrySource.CreatePreviewSnapshot(), moved = IRacingTelemetrySource.CreatePreviewSnapshot();
+                    moved.Radar[0].Meters += 1;
+                    int a = radarRenderer.StateHash(still, false, -1), same = radarRenderer.StateHash(IRacingTelemetrySource.CreatePreviewSnapshot(), false, -1), b = radarRenderer.StateHash(moved, false, -1);
+                    Check("radar: redraws when a car moves, and only then", a == same && a != b);
+                }
+
+                // A prototype 2.5 seconds behind a GT car is a faster class closing.
+                TelemetrySnapshot traffic = IRacingTelemetrySource.CreatePreviewSnapshot();
+                traffic.Standings = traffic.Standings.Concat(new[] { new StandingsEntry { CarIdx = 8, Position = 9, ClassName = "LMP2", ClassColor = System.Drawing.Color.RoyalBlue, BestLap = 80.1, CarNumber = "30" } }).ToArray();
+                traffic.CarLapDist = traffic.CarLapDist.Concat(new[] { (float)(0.455 - 2.5 / traffic.ReferenceLapSeconds) }).ToArray();
+                double faster = RadarPainters.FasterClassBehind(traffic, out string fasterClass);
+                Check("traffic: a faster class 2.5 s behind is flagged", Math.Abs(faster - 2.5) < 0.1 && fasterClass == "LMP2", faster.ToString("0.00") + " " + fasterClass);
+                Check("traffic: one class alone has no faster class", RadarPainters.FasterClassBehind(IRacingTelemetrySource.CreatePreviewSnapshot(), out _) < 0);
             }
 
             // ---------------- touch

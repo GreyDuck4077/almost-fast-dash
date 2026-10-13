@@ -19,6 +19,7 @@ namespace AlmostFastOverlays
     internal static class DataCatalog
     {
         public static readonly List<DataField> All = new List<DataField>();
+        private const double MetersPerSecondToMph = 2.2369363;
         private static readonly Dictionary<string, DataField> ByName = new Dictionary<string, DataField>(StringComparer.OrdinalIgnoreCase);
 
         public static readonly string[] Categories = { "Car", "Engine", "Timing", "Session", "Fuel", "Tyres", "Position", "Leaderboard", "Nearby cars", "Flags", "Pit", "Conditions", "System" };
@@ -118,6 +119,22 @@ namespace AlmostFastOverlays
             Add("Nearby cars", "CarRight", "True while a car is alongside on the right.", s => s.T.RightBlindSpot != BlindSpotZone.None);
             Add("Nearby cars", "LeftZone", "Where the car on the left is: Front, Beside, Rear or None.", s => s.T.LeftBlindSpot.ToString());
             Add("Nearby cars", "RightZone", "Where the car on the right is: Front, Beside, Rear or None.", s => s.T.RightBlindSpot.ToString());
+            Add("Nearby cars", "AheadLengths", "Clear track to the car in line ahead, in car lengths (bumper to bumper); -1 when there is none.",
+                s => RadarTracker.Lengths(s.T.AheadMeters), "format(AheadLengths, \"0.0\")");
+            Add("Nearby cars", "BehindLengths", "Clear track to the car in line behind, in car lengths (bumper to bumper); -1 when there is none.",
+                s => RadarTracker.Lengths(s.T.BehindMeters), "format(BehindLengths, \"0.0\")");
+            Add("Nearby cars", "AheadClosing", "How fast you're catching the car in line ahead, in your speed unit; negative while it pulls away.",
+                s => s.Units.Speed(s.T.AheadClosing * MetersPerSecondToMph), "signed(AheadClosing, 1)");
+            Add("Nearby cars", "BehindClosing", "How fast the car in line behind is catching you, in your speed unit; negative while you pull away.",
+                s => s.Units.Speed(s.T.BehindClosing * MetersPerSecondToMph), "signed(BehindClosing, 1)");
+            Add("Nearby cars", "CarsAlongside", "How many cars are alongside you, 0 to 4.", s => (double)(s.T.Radar?.Count(c => c.Alongside) ?? 0));
+            Add("Nearby cars", "FasterClassBehind", "Seconds to the nearest car of a faster class coming up behind you (within ten seconds); -1 when there is none.",
+                s => RadarPainters.FasterClassBehind(s.T, out _), "format(FasterClassBehind, \"0.0\")");
+            Add("Nearby cars", "FasterClass", "The class of that car, such as LMP2; empty when there is none.", s =>
+            {
+                RadarPainters.FasterClassBehind(s.T, out string name);
+                return name;
+            });
 
             // ---------------- Flags
             Add("Flags", "Flag", "The flag being shown: None, Green, White, Yellow, Red, Black, Meatball, Blue, Surface, Checkered.", s => FlagName(s.T.Flag));

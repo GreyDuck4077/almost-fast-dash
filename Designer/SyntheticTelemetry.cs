@@ -93,6 +93,7 @@ namespace AlmostFastOverlays
             snapshot.BrakeTrace = (float[])_brake.Clone();
             snapshot.DeltaTrace = (float[])_delta.Clone();
             snapshot.TraceVersion = _version;
+            RadarTracker.Animate(snapshot, t);
             return snapshot;
         }
     }

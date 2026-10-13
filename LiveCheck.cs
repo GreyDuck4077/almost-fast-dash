@@ -28,12 +28,26 @@ namespace AlmostFastOverlays
             var source = new IRacingTelemetrySource(null, null);
             Telemetry latest = null;
             int samples = 0;
+            // The radar against iRacing's spotter: every change of what the spotter reports, and what the radar drew.
+            var radar = new List<string>();
+            int lastSpotter = -1, alongsideSamples = 0, unplaced = 0;
             void OnData(DataSample sample)
             {
                 if (sample?.IsConnected != true || sample.Telemetry == null) return;
                 latest = sample.Telemetry;
                 samples++;
                 source.OnNewData(sample);
+                int spotter = sample.Telemetry["CarLeftRight"] is int value ? value : 0;
+                RadarCar[] cars = source.GetSnapshot().Radar ?? new RadarCar[0];
+                RadarCar[] beside = cars.Where(c => c.Alongside).ToArray();
+                if (beside.Length > 0) alongsideSamples++;
+                if (beside.Any(c => c.CarIdx < 0)) unplaced++;
+                if (spotter == lastSpotter || radar.Count >= 60) return;
+                lastSpotter = spotter;
+                double time = sample.Telemetry["SessionTime"] is double clock ? clock : 0;
+                radar.Add(string.Format(CultureInfo.InvariantCulture, "    {0,7:0.0} s  spotter {1}  ->  {2}", time, spotter,
+                    beside.Length == 0 ? "nothing alongside" : string.Join(", ", beside.Select(c => (c.CarIdx < 0 ? "unplaced car" : "#" + c.Number) +
+                        (c.Lane < 0 ? " left " : " right ") + c.Meters.ToString("+0.0;-0.0", CultureInfo.InvariantCulture) + " m"))));
             }
             iRacing.NewData += OnData;
             iRacing.StartListening();
@@ -95,6 +109,11 @@ namespace AlmostFastOverlays
                 }
                 report.AppendLine(string.Format(CultureInfo.InvariantCulture, "    #{0} {1}: {2:+0.00;-0.00} s{3}{4}", row.CarNumber, row.Name, row.Gap, plain, row.IsPlayer ? "  <- you" : ""));
             }
+            report.AppendLine(string.Format(CultureInfo.InvariantCulture, "  radar: {0} cars within {1:0} m, in line ahead {2:0.0} m (closing {3:0.0} m/s), behind {4:0.0} m (closing {5:0.0} m/s)",
+                s.Radar.Length, RadarTracker.Reach, s.AheadMeters, s.AheadClosing, s.BehindMeters, s.BehindClosing));
+            report.AppendLine(string.Format(CultureInfo.InvariantCulture, "  radar against the spotter (1 clear, 2 left, 3 right, 4 both, 5 two left, 6 two right): a car alongside in {0} samples, " +
+                "{1} of them with a car the positions couldn't place", alongsideSamples, unplaced));
+            foreach (string line in radar) report.AppendLine(line);
             string screen = ScreenStats.Read();
             report.AppendLine("  screen: " + (screen ?? "no figures (the dashboard isn't running, or no wheel screen is connected)"));
             report.AppendLine("  leaderboard: " + s.Standings.Length + " cars");

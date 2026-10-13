@@ -14,6 +14,15 @@ alerts. One exe, no installer, no other software required.
   - **Roundy**, for ovals: curved blind-spot arcs, speed and gear in a rev ring,
     the cars around you, and a lap-falloff chart of your stint.
 
+  Two more have a job of their own:
+  - **Oval**, for pack racing: a live top-view radar of the cars around you,
+    with the gaps to the cars in line ahead and behind in car lengths and how
+    fast they're closing.
+  - **Halo**, for endurance and multiclass: one ring with revs across the top
+    and the live delta across the bottom, your stint and fuel, and the traffic
+    within eight seconds in class colours, warning when a faster class is
+    coming up behind.
+
   **Apex**, **Twin Dial**, **Neon**, **Ribbon**, **Spotter** and **Race Display**
   are also included. Every one is built only from the designer's own widgets,
   so any of them can be changed or rebuilt by hand. The dashboard can switch by
@@ -94,6 +103,12 @@ dashboard does behind the main figures:
   behind the leader). It shows the amount with its unit, or ENOUGH.
 - **Lap falloff** compares your last green-flag lap of the stint with the
   stint's best; caution and pit laps are left out.
+- **The radar** places every car near you by its exact distance ahead or behind
+  along the track. iRacing doesn't say where other cars are *across* the track:
+  its spotter only reports how many are alongside on each side. So cars
+  alongside are matched to the spotter's report, nearest first, and keep their
+  side while they stay there. Every other car is drawn in line with you. Gaps
+  in car lengths are bumper to bumper, using a nominal 5 m car.
 
 ## Tests and releases
 
@@ -172,7 +187,8 @@ screen; every setting can be a fixed value or a live formula (`ƒx`).
 
 - **Widgets**: text and values, the gear, bars and arc gauges (needles, ticks,
   numbers), shift lights, the leaderboard, relative, tyres, a self-tracing track
-  map, live graphs of any value, flags, blind-spot bars, panels and shapes.
+  map, a radar of the cars around you, a traffic strip in class colours, live
+  graphs of any value, flags, blind-spot bars, panels and shapes.
 - **Quick values**: one-click items for engine, lap, sectors, tyres, fuel, race,
   leaderboard, notices and the PC.
 - **Shared tools** on every widget where they fit: shape (bend, taper, bulge,
@@ -259,7 +275,7 @@ a race. No names or account details are recorded.
 | `--run` | Runs the dashboard (what the start button and Start with Windows use). |
 | `--stop` | Asks a running dashboard to stop. |
 | `--replay-ibt <file.ibt> <report.txt>` | Replays an iRacing telemetry recording through the app: every flag, each lap's times, falloff and fuel, the traced track map, and every light longer than a second. |
-| `--live-check <report.txt> [seconds]` | While you're in a session: what iRacing sends for every value the dashboards use, what the app makes of it (gaps by both methods, fuel, the race order) and the screen's measured performance. |
+| `--live-check <report.txt> [seconds]` | While you're in a session: what iRacing sends for every value the dashboards use, what the app makes of it (gaps by both methods, fuel, the race order, the radar against iRacing's spotter) and the screen's measured performance. |
 | `--render-templates <folder>` | Saves a picture of every template in its states, the second views and other screen sizes. |
 | `--render-dashboards <folder>` | Saves a picture of every dashboard in `settings.json`, in each state and on each page. |
 | `--render-flags <folder>` | Saves every flag screen, flags that stay out stepping aside to their frame, and every dashboard framed for a caution and the final lap. |
