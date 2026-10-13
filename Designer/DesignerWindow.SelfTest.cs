@@ -600,6 +600,15 @@ namespace AlmostFastOverlays
                     older.GetDefaultDashboard().Id == DashboardSettings.RoadId);
                 older.EnsureBuiltInDashboards();
                 Check("the flagships are added once", older.Dashboards.Count == 3);
+
+                var firstRoundy = new AppSettings { SchemaVersion = 9 };
+                DashboardSettings boxed = DashboardSettings.CreateOval(), edited = DashboardSettings.CreateRoad();
+                boxed.Design.Screens[0].Widgets.Add(new DashWidget { Type = "panel", Name = "Around panel" });
+                boxed.Design.Screens[0].Widgets.Add(new DashWidget { Type = "panel", Name = "Falloff panel" });
+                firstRoundy.Dashboards.Add(edited);
+                firstRoundy.Dashboards.Add(boxed);
+                firstRoundy.EnsureBuiltInDashboards();
+                Check("the first Roundy takes the redesign", !boxed.Design.Screens[0].Widgets.Any(w => w.Name == "Around panel") && boxed.Design.Screens[0].Widgets.Any(w => w.Name == "Rev dial"));
             }
 
             // ---------------- several widgets resized together

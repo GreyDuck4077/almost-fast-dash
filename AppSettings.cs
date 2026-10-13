@@ -41,7 +41,7 @@ namespace AlmostFastOverlays
 
     internal sealed class AppSettings
     {
-        private const int CurrentSchema = 9;
+        private const int CurrentSchema = 10;
 
         public int SchemaVersion { get; set; }
         public string DefaultDashboardId { get; set; } = DashboardSettings.RoadId;
@@ -91,6 +91,7 @@ namespace AlmostFastOverlays
                 if (SchemaVersion > 0 && SchemaVersion < 7) RenameBrowLayers();
                 if (SchemaVersion > 0 && SchemaVersion < 8) ClassicLightsToLayers();
                 if (SchemaVersion > 0 && SchemaVersion < 9) AddFlagships();
+                if (SchemaVersion == 9) RedesignRoundy();
                 SchemaVersion = CurrentSchema;
             }
             foreach (DeviceSettings device in General.Devices) device.Normalize();
@@ -120,6 +121,18 @@ namespace AlmostFastOverlays
             Take(DashboardSettings.CreateOval(), Disciplines.Oval, Disciplines.DirtOval);
             Take(DashboardSettings.CreateRoad(), Disciplines.Road, Disciplines.DirtRoad);
             DefaultDashboardId = DashboardSettings.RoadId;
+        }
+
+        /// <summary>
+        /// Schema 10: Roundy was redrawn round a numbered dial. A Roundy still in its first form (with its
+        /// boxed panels) takes the new design. One that has been rebuilt by hand is left alone.
+        /// </summary>
+        private void RedesignRoundy()
+        {
+            DashboardSettings roundy = Dashboards.FirstOrDefault(d => d.Id == DashboardSettings.OvalId);
+            var widgets = roundy?.Design?.Screens?.FirstOrDefault()?.Widgets;
+            if (widgets == null || !widgets.Any(w => w.Name == "Around panel") || !widgets.Any(w => w.Name == "Falloff panel")) return;
+            roundy.Design = DesignTemplates.Oval.Create();
         }
 
         /// <summary>

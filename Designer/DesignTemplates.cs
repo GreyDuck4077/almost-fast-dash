@@ -288,10 +288,10 @@ namespace AlmostFastOverlays
         // ------------------------------------------------------------------ Roundy
 
         /// <summary>
-        /// The oval flagship. Curved blind-spot arcs frame the screen and light from front to back as a car
-        /// comes alongside. Speed and gear sit inside a rev ring in the middle. The cars around you are on
-        /// the left. On the right, the lap falloff chart shows each green lap of the stint rising with the
-        /// time it lost to your best. Position, laps to go, lap speed and fuel to the end run along the bottom.
+        /// The oval flagship, after the round clusters of the Mini and Bentley. Curved blind-spot arcs hug the
+        /// edges. A numbered rev dial holds the gear, the speed and the lap speed, flanked by curved fuel and
+        /// delta gauges. Position and the cars either side are on the left, and lap falloff over the stint is
+        /// on the right. One glass strip carries laps to go, the last lap, fuel to the end and the leader.
         /// </summary>
         private static DashLayout Roundy()
         {
@@ -306,56 +306,81 @@ namespace AlmostFastOverlays
                 t.Track = "#121B27";
             });
             b.Screen("Race");
-            b.Add("blindspot", "Car left", 8, 30, 36, 420, "side", "Left", "bend", "-60", "thickness", "28", "color", "#FF3B30", "offColor", "#16202C", "glow", "20");
-            b.Add("blindspot", "Car right", 810, 30, 36, 420, "side", "Right", "bend", "60", "thickness", "28", "color", "#FF3B30", "offColor", "#16202C", "glow", "20");
+            // Blind-spot arcs hug both edges, well clear of everything else.
+            b.Add("blindspot", "Car left", 8, 24, 26, 432, "side", "Left", "bend", "60", "thickness", "34", "color", "#FF3B30", "offColor", "#141E2A", "glow", "12");
+            b.Add("blindspot", "Car right", 820, 24, 26, 432, "side", "Right", "bend", "60", "thickness", "34", "color", "#FF3B30", "offColor", "#141E2A", "glow", "12");
 
-            b.Text("Lap", 300, 10, 254, 24, "=\"LAP \" + LapText", "size", "16", "tracking", "3", "color", "muted");
+            // The dial: revs round a numbered scale, the gear in a ring above the speed.
+            b.Add("gradient", "Dial light", 247, 0, 360, 360, "style", "Radial", "color", "accent", "strength", "14");
+            b.Add("arc", "Rev dial", 262, 14, 330, 330, "value", "=Rpm / 1000", "max", RpmTop, "style", "Smooth", "start", "135", "sweep", "270", "thickness", "12",
+                "colorMode", "Shift colors", "color", "accent", "warnColor", "warn", "dangerColor", "bad",
+                "warnAt", "=ShiftRpm > 0 && Redline > 0 ? ShiftRpm * 0.93 / (ceil(Redline / 1000) * 1000) : 0.8",
+                "dangerAt", "=ShiftRpm > 0 && Redline > 0 ? ShiftRpm / (ceil(Redline / 1000) * 1000) : 0.9",
+                "zones", "true", "track", "#0F1824", "ticks", RpmTop, "minorTicks", "4", "tickLength", "9", "tickColor", "#3A4C64",
+                "numbers", "true", "numbersTo", RpmTop, "numberSize", "17", "numberColor", "#C9D6E6",
+                "needle", "Marker", "needleColor", "#FFFFFF", "needleLength", "130", "needleWidth", "3", "glow", "10", "flash", "=ShiftFlash");
+            b.Add("shape", "Gear ring", 402, 86, 50, 50, "shape", "Ellipse", "fill", "#401E6FD0", "stroke", "accent", "strokeWidth", "2", "glow", "8");
+            b.Add("gear", "Gear", 402, 86, 50, 50, "size", "28", "neighbors", "false");
+            b.Text("Speed", 317, 136, 220, 86, "=format(Speed, \"0\")", "size", "90", "fxShadow", "10", "fxShadowY", "4");
+            b.Text("Speed unit", 317, 220, 220, 16, "=SpeedUnit", "size", "12", "tracking", "4", "weight", "Regular", "color", "muted");
+            b.Text("Lap speed", 317, 244, 220, 18, "=LastLapSpeed > 0 ? \"LAP \" + format(LastLapSpeed, \"0.0\") : \"\"", "size", "14", "tracking", "2", "color", "info");
+            b.Text("Lap", 337, 300, 180, 30, "=\"LAP \" + LapText", "size", "18", "tracking", "3", "color", "text", "visible", "Notice == \"\" && !Caution");
+            b.Text("Rpm unit", 337, 324, 180, 14, "RPM x1000", "size", "9", "tracking", "2.5", "weight", "Regular", "color", "dim", "visible", "Notice == \"\" && !Caution");
 
-            b.Add("arc", "Rev ring", 307, 40, 240, 240, "value", "=RevPct", "style", "Smooth", "start", "135", "sweep", "270", "thickness", "8",
-                "colorMode", "Shift colors", "color", "info", "warnColor", "warn", "dangerColor", "bad", "warnAt", "0.85", "dangerAt", "0.96", "track", "#101A26",
-                "ticks", "10", "minorTicks", "1", "tickLength", "6", "tickColor", "#33465E", "needle", "Marker", "needleColor", "#FFFFFF", "needleLength", "130",
-                "needleWidth", "3", "glow", "12", "flash", "=ShiftFlash");
-            b.Text("Speed", 332, 92, 190, 92, "=format(Speed, \"0\")", "size", "88", "fxShadow", "10", "fxShadowY", "4");
-            b.Text("Speed unit", 332, 182, 190, 16, "=SpeedUnit", "size", "12", "tracking", "4", "weight", "Regular", "color", "muted");
-            b.Panel("Gear pill", 387, 210, 80, 54, "style", "Tinted", "tint", "accent", "radius", "16");
-            b.Add("gear", "Gear", 387, 210, 80, 54, "size", "40", "neighbors", "false");
+            // Curved gauges either side of the dial: fuel on the left, the live delta on the right.
+            b.Add("bar", "Fuel bar", 226, 70, 18, 220, "value", "=FuelPct", "orientation", "Vertical", "bend", "70", "radius", "-1",
+                "color", "=FuelLapsLeft >= 0 && FuelLapsLeft < 2 ? $bad : #D7E6F7", "track", "#121C29");
+            b.Label("Fuel bar label", 196, 296, 80, "FUEL", "Center");
+            b.Add("bar", "Delta bar", 610, 70, 18, 220, "value", "=Delta", "min", "-1", "max", "1", "mode", "Center", "orientation", "Vertical", "bend", "-70", "radius", "-1",
+                "color", "good", "negColor", "bad", "track", "#121C29");
+            b.Label("Delta bar label", 579, 296, 80, "DELTA", "Center");
 
-            b.Panel("Around panel", 56, 40, 236, 262, "style", "Liquid", "radius", "18");
-            b.Label("Around label", 72, 52, 200, "AROUND YOU");
-            b.Add("relative", "Relative", 62, 70, 224, 226, "rows", "5", "size", "14", "showLicense", "false");
-
-            b.Panel("Falloff panel", 562, 40, 236, 262, "style", "Liquid", "radius", "18");
-            b.Label("Falloff label", 578, 52, 200, "LAP FALLOFF");
-            b.Text("Falloff", 578, 66, 110, 40, "=Falloff < 0 ? \"--\" : \"+\" + format(Falloff, \"0.00\")", "size", "32", "align", "Left",
-                "color", "=Falloff < 0 ? $text : Falloff < 0.15 ? $good : Falloff < 0.4 ? $warn : $bad");
-            b.Text("Falloff trend", 688, 66, 96, 40, "=StintGreenLaps < 3 ? \"\" : signed(FalloffPerLap, 2) + \"/LAP\"", "size", "14", "align", "Right", "color", "muted");
-            b.Add("laphistory", "Falloff chart", 574, 112, 212, 150, "source", "This stint", "laps", "12", "style", "Columns", "range", "0", "showDelta", "true",
-                "labelSize", "10", "gap", "34", "radius", "3", "color", "#2F7FE0", "slowColor", "#A8DBFF", "track", "#0E1621");
-            b.Text("Stint best", 578, 270, 206, 22, "=StintBestLap > 0 ? \"STINT BEST \" + laptime(StintBestLap) : \"STINT BEST --\"", "size", "12", "tracking", "1.5",
-                "weight", "Regular", "align", "Left", "color", "purple");
-
-            const double y = 314, h = 116, w = 179, step = 187.67;
-            // Four tiles, each a value with a line of detail under it.
-            void Tile(int i, string name, string label, string value, string note, string noteColor, params string[] metric)
-            {
-                double x = 56 + step * i;
-                b.Tile(name, x, y, w, h, label, value, "Liquid", metric).H = 84;
-                b.Text(name + " note", x + 16, y + 86, w - 32, 18, note, "size", "12", "weight", "Regular", "tracking", "1", "align", "Left", "color", noteColor);
-            }
-            Tile(0, "Position", "POSITION", PositionText,
+            // Left: where you are, and the cars either side of you in the order.
+            b.Label("Position label", 70, 26, 160, "POSITION");
+            b.Metric("Position", 66, 38, 158, 54, "", PositionText, "layout", "Value only", "inset", "4", "valueSize", "44", "unit", "=Starters > 0 ? \"/\" + Starters : \"\"", "unitColor", "dim");
+            b.Text("Gained", 70, 92, 160, 18,
                 "=StartPosition <= 0 ? \"\" : PositionsGained > 0 ? \"+\" + PositionsGained + \" FROM P\" + StartPosition : PositionsGained < 0 ? PositionsGained + \" FROM P\" + StartPosition : \"STARTED P\" + StartPosition",
-                "=PositionsGained > 0 ? $good : PositionsGained < 0 ? $bad : $muted", "valueSize", "34", "unit", "=Starters > 0 ? \"/\" + Starters : \"\"", "unitColor", "dim");
-            Tile(1, "To go", "=SessionType", "=RemainingText", "=GapToLeader == \"\" ? \"\" : \"LEADER \" + GapToLeader", "muted", "valueSize", "28");
-            Tile(2, "Last lap", "LAST LAP", "=laptime(LastLap)", "=LastLapSpeed > 0 ? format(LastLapSpeed, \"0.0\") + \" \" + SpeedUnit : \"\"", "info",
-                "valueSize", "28", "valueColor", "=LastLapIsBest ? $purple : $text");
-            Tile(3, "Refuel", "FUEL TO END", "=FuelToFinish < 0 ? \"--.-\" : FuelToFinish <= 0.05 ? \"NONE\" : \"+\" + fuel(FuelToFinish)",
-                "=FuelLapsLeft < 0 ? \"\" : format(FuelLapsLeft, \"0.0\") + \" LAPS IN TANK\"", "muted",
-                "valueSize", "28", "valueColor", "=FuelToFinish < 0 ? $text : FuelToFinish <= 0.05 ? $good : $warn");
-            b.Add("progress", "Race progress", 56, 444, 742, 6, "gap", "2");
+                "size", "12", "weight", "Regular", "tracking", "1", "align", "Left", "color", "=PositionsGained > 0 ? $good : PositionsGained < 0 ? $bad : $muted");
+            b.Add("shape", "Left rule 1", 70, 124, 140, 2, "shape", "Line", "stroke", "#1C2A3C", "strokeWidth", "1");
+            b.Label("Ahead label", 70, 138, 160, "AHEAD");
+            b.Text("Ahead gap", 70, 152, 160, 38, "=AheadName == \"---\" ? \"--\" : \"-\" + format(AheadGap, \"0.0\")", "size", "32", "align", "Left", "color", "good");
+            b.Text("Ahead name", 70, 190, 160, 18, "=AheadName == \"---\" ? \"\" : AheadName", "size", "13", "weight", "Regular", "align", "Left", "color", "muted");
+            b.Add("shape", "Left rule 2", 70, 222, 140, 2, "shape", "Line", "stroke", "#1C2A3C", "strokeWidth", "1");
+            b.Label("Behind label", 70, 236, 160, "BEHIND");
+            b.Text("Behind gap", 70, 250, 160, 38, "=BehindName == \"---\" ? \"--\" : \"+\" + format(BehindGap, \"0.0\")", "size", "32", "align", "Left", "color", "warn");
+            b.Text("Behind name", 70, 288, 160, 18, "=BehindName == \"---\" ? \"\" : BehindName", "size", "13", "weight", "Regular", "align", "Left", "color", "muted");
 
-            b.Panel("Caution banner", 312, 266, 230, 36, "style", "Tinted", "tint", "warn", "radius", "18", "visible", "Caution");
-            b.Text("Caution", 312, 266, 230, 36, "CAUTION", "size", "18", "tracking", "4", "color", "warn", "visible", "Caution");
-            Notice(b, 312, 266, 230, 36);
+            // Right: lap falloff over the stint.
+            b.Label("Falloff label", 624, 26, 160, "LAP FALLOFF", "Right");
+            b.Text("Falloff", 624, 38, 160, 50, "=Falloff < 0 ? \"--\" : \"+\" + format(Falloff, \"0.00\")", "size", "40", "align", "Right",
+                "color", "=Falloff < 0 ? $text : Falloff < 0.15 ? $good : Falloff < 0.4 ? $warn : $bad");
+            b.Text("Falloff trend", 624, 92, 160, 18, "=StintGreenLaps < 3 ? \"\" : signed(FalloffPerLap, 2) + \" PER LAP\"", "size", "12", "weight", "Regular", "tracking", "1",
+                "align", "Right", "color", "muted");
+            b.Add("laphistory", "Falloff chart", 632, 130, 152, 150, "source", "This stint", "laps", "8", "style", "Columns", "range", "0", "showDelta", "false",
+                "gap", "30", "radius", "3", "color", "#2F7FE0", "slowColor", "#A8DBFF", "track", "#0C141E");
+            b.Text("Stint best", 624, 288, 160, 18, "=StintBestLap > 0 ? \"BEST \" + laptime(StintBestLap) : \"BEST --\"", "size", "12", "tracking", "1",
+                "weight", "Regular", "align", "Right", "color", "purple");
+
+            // Along the bottom: one glass strip with the race, the last lap, fuel and the leader.
+            b.Panel("Strip", 66, 356, 722, 110, "style", "Liquid", "radius", "20");
+            string[] labels = { "=SessionType", "LAST LAP", "FUEL TO END", "TO THE LEADER" };
+            string[] values =
+            {
+                "=RemainingText", "=laptime(LastLap)", "=FuelToFinish < 0 ? \"--.-\" : FuelToFinish <= 0.05 ? \"NONE\" : \"+\" + fuel(FuelToFinish)",
+                "=GapToLeader == \"\" ? \"--\" : GapToLeader"
+            };
+            string[] tones = { "text", "=LastLapIsBest ? $purple : $text", "=FuelToFinish < 0 ? $text : FuelToFinish <= 0.05 ? $good : $warn", "text" };
+            for (int i = 0; i < 4; i++)
+            {
+                double x = 66 + i * 180.5;
+                b.Metric(labels[i].TrimStart('='), x, 364, 180.5, 76, labels[i], values[i], "align", "Center", "valueSize", "26", "labelSize", "11", "labelTracking", "2.5", "valueColor", tones[i]);
+                if (i > 0) b.Add("shape", "Strip rule " + i, x, 378, 2, 50, "shape", "Line", "stroke", "#22324A", "strokeWidth", "1");
+            }
+            b.Add("progress", "Race progress", 88, 448, 678, 5, "gap", "2");
+
+            b.Panel("Caution banner", 342, 298, 170, 36, "style", "Tinted", "tint", "warn", "radius", "18", "visible", "Caution");
+            b.Text("Caution", 342, 298, 170, 36, "CAUTION", "size", "18", "tracking", "4", "color", "warn", "visible", "Caution");
+            Notice(b, 322, 298, 210, 36);
 
             // Page 2 on a wheel button: the race order and the stint.
             b.Screen("Race order");
