@@ -120,6 +120,9 @@ namespace AlmostFastOverlays
 
         private bool _fitOnResize = true;
 
+        /// <summary>Which view each tap zone shows in the preview, kept while the design is edited.</summary>
+        private readonly Dictionary<string, int> _designTaps = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
         /// <summary>Sizes the frame, the bezel, the overlay and the grid to the screen being designed for.</summary>
         private void FitCanvasToScreen()
         {
@@ -162,7 +165,7 @@ namespace AlmostFastOverlays
                 // The same redraw-what-changed renderer as the wheel; every edit invalidates it, so an
                 // animated preview only redraws the moving parts between edits.
                 _renderer = new LayoutRenderer((int)CanvasW, (int)CanvasH,
-                    new DashboardSettings { Layout = Layouts.Custom, Design = _layout, AccentColor = _dashboard.AccentColor }, _units);
+                    new DashboardSettings { Layout = Layouts.Custom, Design = _layout, AccentColor = _dashboard.AccentColor }, _units) { Taps = _designTaps };
                 _rendererDirty = false;
                 _designChanged = true;
             }

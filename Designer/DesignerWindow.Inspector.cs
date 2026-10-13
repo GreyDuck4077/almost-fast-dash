@@ -370,6 +370,23 @@ namespace AlmostFastOverlays
             if (!string.IsNullOrEmpty(widget.Group))
                 Inspector.Children.Add(Caption("In " + widget.GroupName + (widget.Slot != 0 ? " (Slot " + widget.Slot.ToString("0.##", CultureInfo.InvariantCulture) + ")" : "") +
                     ". Click the group on the canvas to select all of it.", 6));
+            // A tap zone, or a widget that shows on one of its views: flip the preview through the views here,
+            // as a tap on a touch screen would.
+            string tapName = widget.Get("tapName", "")?.Trim();
+            if (string.IsNullOrEmpty(tapName))
+            {
+                var used = System.Text.RegularExpressions.Regex.Match(widget.Get("visible", "") ?? "", "tap\\(\\s*\"([^\"]+)\"");
+                if (used.Success) tapName = used.Groups[1].Value.Trim();
+            }
+            if (!string.IsNullOrEmpty(tapName))
+            {
+                DashWidget zone = _layout.AllWidgets().FirstOrDefault(w => string.Equals(w.Get("tapName", "")?.Trim(), tapName, StringComparison.OrdinalIgnoreCase));
+                int views = zone != null ? LayoutRenderer.TapViews(zone) : 2;
+                _designTaps.TryGetValue(tapName, out int view);
+                var next = new Button { Content = "Tap \"" + tapName + "\": showing view " + (view % views + 1) + " of " + views + "  ·  Next ›", Margin = new Thickness(0, 10, 0, 0), HorizontalAlignment = HorizontalAlignment.Left };
+                next.Click += (s, e) => { _designTaps[tapName] = (view + 1) % views; RequestRender(); RefreshInspector(); };
+                Inspector.Children.Add(next);
+            }
             if (_renderer != null && _renderer.Errors.TryGetValue(widget.Id, out string error))
                 Inspector.Children.Add(new TextBlock { Text = "⚠ " + error, Foreground = (Brush)FindResource("Brush.Danger"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0) });
 

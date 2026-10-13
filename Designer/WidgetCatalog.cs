@@ -433,6 +433,10 @@ namespace AlmostFastOverlays
                 type.Props.Add(new PropDef { Key = "rotate", Label = "Rotate °", Kind = PropKind.Number, Default = "0", Group = "Transform", Min = -180, Max = 180,
                     Help = "Turns the widget about its middle." });
                 type.Props.Add(new PropDef { Key = "visible", Label = "Show when", Kind = PropKind.Formula, Default = "", Group = "Visibility", Help = "A condition such as OnPitRoad or Fuel < 5. Empty means always." });
+                type.Props.Add(new PropDef { Key = "tapName", Label = "Tap name", Kind = PropKind.Text, Default = "", Group = "Touch",
+                    Help = "Makes the widget a tap zone on a touch screen. Each tap moves tap(\"name\") to the next view, so other widgets can show for each view with Show when, such as tap(\"fuel\") == 1." });
+                type.Props.Add(new PropDef { Key = "tapViews", Label = "Views", Kind = PropKind.Number, Default = "2", Group = "Touch", Min = 2, Max = 9 });
+                type.Props.Add(new PropDef { Key = "tapDots", Label = "Show view dots", Kind = PropKind.Bool, Default = "true", Group = "Touch" });
                 type.Props.Add(new PropDef { Key = "opacity", Label = "Opacity %", Kind = PropKind.Number, Default = "100", Group = "Visibility", Min = 0, Max = 100 });
 
                 Rule(type.Id, "fxFill", v => v == "Color" || v == "Gradient", "fxFillColor");
@@ -442,6 +446,7 @@ namespace AlmostFastOverlays
                 Rule(type.Id, "fxOutline", nonZero, "fxOutlineColor");
                 Rule(type.Id, "fxShadow", nonZero, "fxShadowColor", "fxShadowX", "fxShadowY");
                 Rule(type.Id, "fxGlow", nonZero, "fxGlowColor");
+                Rule(type.Id, "tapName", set, "tapViews", "tapDots");
             }
         }
 

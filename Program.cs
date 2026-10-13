@@ -294,6 +294,19 @@ namespace AlmostFastOverlays
                     }
             }
 
+            // The flagships' second views, as a tap on each glass panel shows them.
+            foreach (DesignTemplate template in new[] { DesignTemplates.Road, DesignTemplates.Oval })
+            {
+                DashboardSettings dashboard = DashboardSettings.CreateDesigned(template);
+                using (var renderer = new LayoutRenderer(854, 480, dashboard, units))
+                {
+                    foreach (DashWidget zone in dashboard.Design.Screens[0].Widgets.Where(w => !string.IsNullOrWhiteSpace(w.Get("tapName", ""))))
+                        renderer.Tap(zone.X + zone.W / 2, zone.Y + zone.H / 2);
+                    using (var frame = renderer.Render(IRacingTelemetrySource.CreatePreviewSnapshot(), false, 4, 1))
+                        frame.Save(Path.Combine(directory, template.Name + " - Tapped.png"), System.Drawing.Imaging.ImageFormat.Png);
+                }
+            }
+
             // The flagships made for other screen sizes.
             foreach (DesignTemplate template in new[] { DesignTemplates.Road, DesignTemplates.Oval })
                 foreach (ScreenSizes.Preset size in ScreenSizes.Presets.Where(p => p.Width != ScreenSizes.DefaultWidth || p.Height != ScreenSizes.DefaultHeight))
@@ -459,6 +472,15 @@ namespace AlmostFastOverlays
                                 pageButtonHeld = next;
                                 backButtonHeld = back;
                             }
+                            // Taps on a touch screen move tap zones on to their next view.
+                            while (screen.TryTakeTap(out System.Drawing.Point tap))
+                            {
+                                System.Drawing.Size built = runtime.Dashboard.ScreenSize();
+                                // A dashboard of another size is fitted to the screen: undo that fit for the tap.
+                                double scale = Math.Min(Dv5Screen.Width / (double)built.Width, Dv5Screen.Height / (double)built.Height);
+                                double x = (tap.X - (Dv5Screen.Width - built.Width * scale) / 2) / scale, y = (tap.Y - (Dv5Screen.Height - built.Height * scale) / 2) / scale;
+                                if (runtime.Renderer.Tap(x, y, snapshot)) Console.WriteLine("Tap at " + Math.Round(x) + ", " + Math.Round(y));
+                            }
                             int current = runtime.Renderer.StateHash(snapshot, shiftFlashOn, gearAnimationFrame);
                             if (current != lastDrawn)
                             {
@@ -562,8 +584,14 @@ namespace AlmostFastOverlays
             private LayoutRenderer CreateRenderer()
             {
                 System.Drawing.Size size = Dashboard.ScreenSize();
-                return new LayoutRenderer(size.Width, size.Height, Dashboard, new UnitSystem(Settings.General));
+                // Tap views stay put while the same dashboard is redrawn after a settings change, and start
+                // again from the first view on another dashboard.
+                if (_tapsFor != Dashboard.Id) { _taps.Clear(); _tapsFor = Dashboard.Id; }
+                return new LayoutRenderer(size.Width, size.Height, Dashboard, new UnitSystem(Settings.General)) { Taps = _taps };
             }
+
+            private readonly Dictionary<string, int> _taps = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            private string _tapsFor;
 
             private void WriteActive()
             {

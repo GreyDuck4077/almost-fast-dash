@@ -19,11 +19,13 @@ namespace AlmostFastOverlays
         public int Page = 1, PageCount = 1;
         /// <summary>The number of the group a widget belongs to (such as a driver card's position), 0 outside a group.</summary>
         public double Slot;
+        /// <summary>Which view each tap zone is on, by tap name (0 for the first).</summary>
+        public Dictionary<string, int> Taps;
 
         /// <summary>The same scope for a widget in a numbered group.</summary>
         public EvalScope WithSlot(double slot) => slot == Slot ? this : new EvalScope
         {
-            T = T, Units = Units, Theme = Theme, Accent = Accent, ShiftFlashOn = ShiftFlashOn, Now = Now, Page = Page, PageCount = PageCount, Slot = slot
+            T = T, Units = Units, Theme = Theme, Accent = Accent, ShiftFlashOn = ShiftFlashOn, Now = Now, Page = Page, PageCount = PageCount, Slot = slot, Taps = Taps
         };
     }
 
@@ -498,6 +500,8 @@ namespace AlmostFastOverlays
             Add("sectortime", "sectortime(sector)", "Your time in a sector of the lap in progress, 0 until you finish it.", 1, 1, (s, a) => RaceFields.Sector(s.T.SectorTimes, a[0]));
             Add("lastsectortime", "lastsectortime(sector)", "Your time in a sector on your last lap.", 1, 1, (s, a) => RaceFields.Sector(s.T.LastLapSectorTimes, a[0]));
             Add("bestsectortime", "bestsectortime(sector)", "Your best time in a sector this session.", 1, 1, (s, a) => RaceFields.Sector(s.T.BestSectorTimes, a[0]));
+            Add("tap", "tap(\"name\")", "Which view a tap zone is on: 0 at first, then 1, 2... each time it's tapped on a touch screen. Use it in Show when, such as tap(\"fuel\") == 1.", 1, 1,
+                (s, a) => s.Taps != null && s.Taps.TryGetValue(Expr.Text(a[0]).Trim(), out int view) ? (double)view : 0.0);
             Add("tyre", "tyre(\"LF\", \"Temp\")", "A tyre reading in your units. Corner: LF, RF, LR or RR. Reading: " + string.Join(", ", RaceFields.TyreFields) + ". iRacing updates these in the pits.", 2, 2,
                 (s, a) => RaceFields.Tyre(s, Expr.Text(a[0]), Expr.Text(a[1])));
         }

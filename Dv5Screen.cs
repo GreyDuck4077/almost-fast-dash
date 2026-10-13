@@ -55,6 +55,7 @@ namespace AlmostFastOverlays
             _bulkOut = FindBulkOutPipe();
             uint timeout = TransferTimeoutMilliseconds;
             Native.WinUsb_SetPipePolicy(_usb, _bulkOut, Native.PipeTransferTimeout, 4, ref timeout);
+            StartTouch();
 
             uint screen = Query(new byte[] { 0x51, 0x02, 0x04, 0x1F, 0xFC });
             uint code = Query(new byte[] { 0x51, 0x02, 0x04, 0x1F, 0xF8 });
@@ -185,6 +186,92 @@ namespace AlmostFastOverlays
             return 0x02;
         }
 
+        // ------------------------------------------------------------------ touch
+
+        private System.Threading.Thread _touchThread;
+        private volatile bool _touchRunning;
+        private readonly System.Collections.Concurrent.ConcurrentQueue<Point> _taps = new System.Collections.Concurrent.ConcurrentQueue<Point>();
+
+        /// <summary>Whether the screen reports touches (it has an interrupt channel for them).</summary>
+        public bool HasTouch { get; private set; }
+
+        /// <summary>The next tap since the last call, in the 854×480 picture's pixels.</summary>
+        public bool TryTakeTap(out Point tap) => _taps.TryDequeue(out tap);
+
+        /// <summary>
+        /// Reads the touch panel on its own thread. While a finger is down the screen sends a report every
+        /// 8 ms or so: a byte with the number of touches, then the first touch's position on the portrait
+        /// panel (X and Y as 12-bit numbers, the top bits of X sharing a byte with the event flags). A short
+        /// touch that hardly moves counts as a tap, so a hand brushing or resting on the glass doesn't.
+        /// </summary>
+        private void StartTouch()
+        {
+            byte touchIn = 0;
+            if (Native.WinUsb_QueryInterfaceSettings(_usb, 0, out Native.UsbInterfaceDescriptor descriptor))
+                for (byte i = 0; i < descriptor.NumEndpoints; i++)
+                    if (Native.WinUsb_QueryPipe(_usb, 0, i, out Native.WinUsbPipeInformation pipe) && pipe.PipeType == Native.UsbdPipeTypeInterrupt && (pipe.PipeId & 0x80) != 0)
+                        touchIn = pipe.PipeId;
+            if (touchIn == 0) return;
+            HasTouch = true;
+            uint timeout = 250;
+            Native.WinUsb_SetPipePolicy(_usb, touchIn, Native.PipeTransferTimeout, 4, ref timeout);
+            _touchRunning = true;
+            IntPtr usb = _usb;
+            _touchThread = new System.Threading.Thread(() => ReadTouches(usb, touchIn)) { IsBackground = true, Name = "Touch", Priority = System.Threading.ThreadPriority.BelowNormal };
+            _touchThread.Start();
+        }
+
+        private void ReadTouches(IntPtr usb, byte pipe)
+        {
+            var report = new byte[64];
+            bool down = false;
+            Point start = Point.Empty, last = Point.Empty;
+            int startTick = 0;
+            while (_touchRunning)
+            {
+                if (!Native.WinUsb_ReadPipe(usb, pipe, report, (uint)report.Length, out uint got, IntPtr.Zero))
+                {
+                    // Nothing within the timeout is normal: nobody is touching the screen.
+                    if (Marshal.GetLastWin32Error() != 121) System.Threading.Thread.Sleep(100);
+                    continue;
+                }
+                if (!ReadTouch(report, (int)got, out bool touching, out Point at)) continue;
+                if (touching)
+                {
+                    last = at;
+                    if (!down) { down = true; start = last; startTick = Environment.TickCount; }
+                }
+                else if (down)
+                {
+                    down = false;
+                    int dx = last.X - start.X, dy = last.Y - start.Y;
+                    if (unchecked(Environment.TickCount - startTick) <= 700 && dx * dx + dy * dy <= 40 * 40) _taps.Enqueue(start);
+                }
+            }
+        }
+
+        /// <summary>One touch report: whether a finger is down, and where on the 854×480 picture.</summary>
+        internal static bool ReadTouch(byte[] report, int length, out bool touching, out Point at)
+        {
+            touching = false;
+            at = Point.Empty;
+            if (length < 7) return false;
+            // The touch count, then event flags (top two bits: 01 is a lift) sharing a byte with X's top bits.
+            touching = report[2] > 0 && (report[3] & 0xC0) != 0x40;
+            if (!touching) return true;
+            int panelX = ((report[3] & 0x0F) << 8) | report[4], panelY = ((report[5] & 0x0F) << 8) | report[6];
+            // The panel is portrait; the picture is turned a quarter onto it (see ConvertToRgb565).
+            at = new Point(Math.Max(0, Math.Min(Width - 1, Width - 1 - panelY)), Math.Max(0, Math.Min(Height - 1, panelX)));
+            return true;
+        }
+
+        private void StopTouch()
+        {
+            _touchRunning = false;
+            _touchThread?.Join(800);
+            _touchThread = null;
+        }
+
         /// <summary>Whether the screen is plugged in, without opening it.</summary>
         public static bool IsPresent() => FindDevicePath() != null;
 
@@ -224,6 +311,7 @@ namespace AlmostFastOverlays
 
         public void Dispose()
         {
+            StopTouch();
             if (_connected)
             {
                 try
@@ -264,6 +352,7 @@ namespace AlmostFastOverlays
             public const uint FileFlagOverlapped = 0x40000000;
             public const uint PipeTransferTimeout = 0x03;
             public const int UsbdPipeTypeBulk = 2;
+            public const int UsbdPipeTypeInterrupt = 3;
             private const int DigcfPresent = 0x2;
             private const int DigcfDeviceInterface = 0x10;
 
@@ -331,6 +420,10 @@ namespace AlmostFastOverlays
             [DllImport("winusb.dll", SetLastError = true)]
             public static extern bool WinUsb_ControlTransfer(IntPtr interfaceHandle, WinUsbSetupPacket setupPacket,
                 byte[] buffer, uint bufferLength, out uint lengthTransferred, IntPtr overlapped);
+
+            [DllImport("winusb.dll", SetLastError = true)]
+            public static extern bool WinUsb_ReadPipe(IntPtr interfaceHandle, byte pipeId, byte[] buffer,
+                uint bufferLength, out uint lengthTransferred, IntPtr overlapped);
 
             [DllImport("winusb.dll", SetLastError = true)]
             public static extern bool WinUsb_WritePipe(IntPtr interfaceHandle, byte pipeId, byte[] buffer,

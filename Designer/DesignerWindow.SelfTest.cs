@@ -639,6 +639,53 @@ namespace AlmostFastOverlays
                     plainGlass + " / " + overShape);
             }
 
+            // ---------------- touch
+            {
+                // Reports the wheel screen sent while it was tapped at its top-left, top-right and bottom-right, then lifted.
+                byte[] Report(params byte[] start) => start.Concat(new byte[] { 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }).ToArray();
+                Dv5Screen.ReadTouch(Report(0, 0, 1, 0x80, 0x48, 0x03, 0x28), 14, out bool downA, out System.Drawing.Point topLeft);
+                Dv5Screen.ReadTouch(Report(0, 0, 1, 0x80, 0x2E, 0x00, 0x2D), 14, out bool downB, out System.Drawing.Point topRight);
+                Dv5Screen.ReadTouch(Report(0, 0, 1, 0x81, 0xB4, 0x00, 0x25), 14, out bool downC, out System.Drawing.Point bottomRight);
+                Dv5Screen.ReadTouch(Report(0, 0, 0, 0x40, 0x48, 0x03, 0x28), 14, out bool lifted, out _);
+                Check("touch reports read as the corners that were tapped", downA && downB && downC && !lifted &&
+                    topLeft == new System.Drawing.Point(45, 72) && topRight == new System.Drawing.Point(808, 46) && bottomRight == new System.Drawing.Point(816, 436),
+                    topLeft + " " + topRight + " " + bottomRight);
+
+                DashboardSettings roady = DashboardSettings.CreateDesigned(DesignTemplates.Road);
+                using (var renderer = new LayoutRenderer(854, 480, roady, _units))
+                {
+                    TelemetrySnapshot snapshot = IRacingTelemetrySource.CreatePreviewSnapshot();
+                    DashWidget fuelPanel = roady.Design.Screens[0].Widgets.First(w => w.Name == "Fuel panel");
+                    int before = renderer.StateHash(snapshot, false, -1);
+                    using (renderer.Render(snapshot, false, 4, 1)) { }
+                    bool hit = renderer.Tap(fuelPanel.X + 20, fuelPanel.Y + 20, snapshot);
+                    int after = renderer.StateHash(snapshot, false, -1);
+                    bool missed = !renderer.Tap(427, 150, snapshot);
+                    renderer.Tap(fuelPanel.X + 20, fuelPanel.Y + 20, snapshot);
+                    Check("a tap on a glass panel moves it to its next view and back, and a tap elsewhere does nothing",
+                        hit && missed && before != after && renderer.Taps.TryGetValue("fuel", out int view) && view == 0);
+                }
+
+                var saved = new AppSettings { SchemaVersion = 11 };
+                DashboardSettings oldRoady = DashboardSettings.CreateRoad(), oldRoundy = DashboardSettings.CreateOval();
+                foreach (DashboardSettings d in new[] { oldRoady, oldRoundy })
+                    foreach (DashWidget w in d.Design.AllWidgets().ToList())
+                    {
+                        if (!string.IsNullOrEmpty(w.Get("tapName", ""))) { w.Props.Remove("tapName"); w.Props.Remove("tapViews"); }
+                        if ((w.Get("visible", "") ?? "").Contains("tap(")) d.Design.Screens.ForEach(s => s.Widgets.Remove(w));
+                    }
+                foreach (DashScreen s in oldRoady.Design.Screens.Concat(oldRoundy.Design.Screens))
+                    foreach (DashWidget w in s.Widgets) if ((w.Get("visible", "") ?? "").Contains("tap(")) w.Props.Remove("visible");
+                saved.Dashboards.Add(oldRoady);
+                saved.Dashboards.Add(oldRoundy);
+                int widgets = oldRoady.Design.AllWidgets().Count();
+                saved.EnsureBuiltInDashboards();
+                saved.EnsureBuiltInDashboards();
+                Check("saved flagships gain their tap views once", oldRoady.Design.AllWidgets().Count(w => !string.IsNullOrEmpty(w.Get("tapName", ""))) == 3 &&
+                    oldRoundy.Design.AllWidgets().Count(w => !string.IsNullOrEmpty(w.Get("tapName", ""))) == 1 && oldRoady.Design.AllWidgets().Count() == widgets + 8,
+                    widgets + " -> " + oldRoady.Design.AllWidgets().Count());
+            }
+
             // ---------------- screen sizes
             {
                 DashLayout sized = DesignTemplates.Blank();

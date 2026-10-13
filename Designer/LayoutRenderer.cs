@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -59,8 +59,43 @@ namespace AlmostFastOverlays
             ShiftFlashOn = shiftFlashOn,
             Now = FixedNow ?? DateTime.Now,
             Page = _page % Math.Max(1, Pages.Count) + 1,
-            PageCount = Math.Max(1, Pages.Count)
+            PageCount = Math.Max(1, Pages.Count),
+            Taps = Taps
         };
+
+        /// <summary>
+        /// Which view each tap zone is on, by its tap name (see <see cref="Tap"/>). The designer shares its
+        /// own, so a view chosen there stays chosen while the design is edited.
+        /// </summary>
+        public Dictionary<string, int> Taps { get; set; } = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+        private DashScreen _shown;
+
+        /// <summary>
+        /// A tap on the screen at a point in the dashboard's own pixels. The top-most widget there that has a
+        /// tap name moves on to its next view, wrapping round. Returns whether anything changed.
+        /// </summary>
+        public bool Tap(double x, double y, TelemetrySnapshot t = null)
+        {
+            EvalScope scope = Scope(t ?? TelemetrySnapshot.Disconnected, false);
+            DashScreen screen = _shown ?? ActiveScreen(scope);
+            for (int i = screen.Widgets.Count - 1; i >= 0; i--)
+            {
+                DashWidget widget = screen.Widgets[i];
+                string name = widget.Get("tapName", "")?.Trim();
+                if (widget.Hidden || string.IsNullOrEmpty(name) || !widget.Bounds.Contains((float)x, (float)y)) continue;
+                EvalScope own = ForWidget(scope, widget);
+                string visible = widget.Get("visible", "");
+                if (!string.IsNullOrWhiteSpace(visible) && !Expr.Bool(Expr.Evaluate(Strip(visible), own))) continue;
+                int views = TapViews(widget);
+                Taps.TryGetValue(name, out int view);
+                Taps[name] = (view + 1) % views;
+                return true;
+            }
+            return false;
+        }
+
+        internal static int TapViews(DashWidget widget) => Math.Max(2, Math.Min(9, (int)Math.Round(Expr.Num(widget.Get("tapViews", "2")))));
 
         /// <summary>The screen to show: the first conditional screen that matches, else the current page.</summary>
         public DashScreen ActiveScreen(EvalScope scope)
@@ -96,7 +131,8 @@ namespace AlmostFastOverlays
             else if (CacheStatic && RedrawChangesOnly)
             {
                 EvalScope live = Scope(t, shiftFlashOn);
-                return RenderChanges(forceScreen ?? ActiveScreen(live), live, previousGear, gearTransitionProgress);
+                _shown = forceScreen ?? ActiveScreen(live);
+                return RenderChanges(_shown, live, previousGear, gearTransitionProgress);
             }
 
             var bitmap = new Bitmap(_width, _height, PixelFormat.Format32bppArgb);
@@ -115,6 +151,7 @@ namespace AlmostFastOverlays
                     return bitmap;
                 }
                 DashScreen screen = forceScreen ?? ActiveScreen(scope);
+                _shown = screen;
                 Errors.Clear();
                 HashSet<string> baked = null;
                 if (CacheStatic)
@@ -310,6 +347,8 @@ namespace AlmostFastOverlays
         {
             WidgetType type = WidgetCatalog.Find(widget.Type);
             if (type == null || LiveTypes.Contains(widget.Type)) return false;
+            // A tap zone shows which view it's on.
+            if (!string.IsNullOrWhiteSpace(widget.Get("tapName", "")) && Expr.Bool(widget.Get("tapDots", "true"))) return false;
             foreach (PropDef prop in type.Props)
             {
                 string raw = widget.Get(prop.Key, prop.Default);
@@ -534,6 +573,13 @@ namespace AlmostFastOverlays
                 TelemetrySnapshot t = scope.T;
                 // Several widgets look different while iRacing isn't connected.
                 hash = hash * 31 + (t.Connected ? 1 : 0);
+                // A tap zone's dots show which view it's on.
+                string tapName = widget.Get("tapName", "");
+                if (!string.IsNullOrWhiteSpace(tapName) && scope.Taps != null)
+                {
+                    scope.Taps.TryGetValue(tapName.Trim(), out int view);
+                    hash = hash * 31 + view * 7 + TapViews(widget) * 101;
+                }
                 // Data-heavy widgets read more than their properties show.
                 switch (widget.Type)
                 {
@@ -668,6 +714,7 @@ namespace AlmostFastOverlays
                 context.FlipY = flipY;
                 type.Draw(context);
                 g.Restore(state);
+                DrawTapDots(g, widget, scope);
                 return;
             }
 
@@ -687,6 +734,23 @@ namespace AlmostFastOverlays
             else
                 using (ImageAttributes attributes = LayerStyle.Fade((float)opacity))
                     g.DrawImage(picture.Bitmap, picture.At, 0, 0, picture.At.Width, picture.At.Height, GraphicsUnit.Pixel, attributes);
+            DrawTapDots(g, widget, scope);
+        }
+
+        /// <summary>A row of small dots along the bottom of a tap zone: one per view, the current one lit.</summary>
+        private static void DrawTapDots(Graphics g, DashWidget widget, EvalScope scope)
+        {
+            string name = widget.Get("tapName", "")?.Trim();
+            if (string.IsNullOrEmpty(name) || !Expr.Bool(widget.Get("tapDots", "true"))) return;
+            int views = TapViews(widget), view = 0;
+            scope.Taps?.TryGetValue(name, out view);
+            RectangleF b = widget.Bounds;
+            float d = Math.Max(3, Math.Min(6, b.Height / 18)), gap = d * 1.4f;
+            float total = views * d + (views - 1) * gap, x = b.X + (b.Width - total) / 2, y = b.Bottom - d - Math.Max(4, d * 1.4f);
+            Color text = Expr.ParseHex(scope.Theme?.Text) ?? Color.White;
+            for (int i = 0; i < views; i++)
+                using (var brush = new SolidBrush(Color.FromArgb(i == view % views ? 210 : 60, text)))
+                    g.FillEllipse(brush, x + i * (d + gap), y, d, d);
         }
 
         private sealed class StyledPicture

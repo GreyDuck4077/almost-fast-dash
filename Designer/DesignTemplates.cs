@@ -282,6 +282,7 @@ namespace AlmostFastOverlays
             b.Metric("Session best", 640, 388, 190, 70, "SESSION BEST", "=laptime(SessionBestLap)", "align", "Right", "valueSize", "24", "labelSize", "11", "labelTracking", "2");
 
             PitLane(b, "Liquid");
+            TouchViews.Roady(b.Layout);
             return b.Layout;
         }
 
@@ -401,6 +402,7 @@ namespace AlmostFastOverlays
             b.Text("Average", 514, 428, 308, 22, "=AverageLap > 0 ? \"AVERAGE LAP \" + laptime(AverageLap) : \"\"", "size", "12", "tracking", "1.5", "weight", "Regular", "align", "Left", "color", "muted");
 
             PitLane(b, "Liquid");
+            TouchViews.Roundy(b.Layout);
             return b.Layout;
         }
 
