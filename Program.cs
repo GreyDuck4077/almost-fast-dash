@@ -43,6 +43,8 @@ namespace AlmostFastOverlays
 
             string templateDirectory = ParseOption(args, "--render-templates");
             if (templateDirectory != null) return RenderTemplates(templateDirectory);
+            string dashboardDirectory = ParseOption(args, "--render-dashboards");
+            if (dashboardDirectory != null) return RenderDashboards(dashboardDirectory);
             string selfTestReport = ParseOption(args, "--designer-selftest");
             if (selfTestReport != null) return DesignerSelfTest(selfTestReport);
             string soakPort = ParseOption(args, "--led-soak");
@@ -265,6 +267,38 @@ namespace AlmostFastOverlays
         }
 
         /// <summary>Writes a PNG of every designer template in racing, pit-lane and spotter states.</summary>
+        /// <summary>Saves a picture of every saved dashboard (in settings.json next to the exe), in each state and on each page.</summary>
+        private static int RenderDashboards(string directory)
+        {
+            if (!Path.IsPathRooted(directory))
+                directory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, directory);
+            Directory.CreateDirectory(directory);
+            AppSettings settings = SettingsStore.Load();
+            var units = new UnitSystem(settings.General);
+            var states = new[]
+            {
+                Tuple.Create("", IRacingTelemetrySource.CreatePreviewSnapshot()),
+                Tuple.Create(" - Pit lane", IRacingTelemetrySource.CreatePitLanePreviewSnapshot()),
+                Tuple.Create(" - Cars alongside", IRacingTelemetrySource.CreateSpotterPreviewSnapshot())
+            };
+            foreach (DashboardSettings dashboard in settings.Dashboards)
+            {
+                string name = string.Join("_", dashboard.Name.Split(Path.GetInvalidFileNameChars()));
+                foreach (var state in states)
+                    using (var frame = DashboardRendererFactory.RenderPreview(dashboard, units, state.Item2))
+                        frame.Save(Path.Combine(directory, name + state.Item1 + ".png"), System.Drawing.Imaging.ImageFormat.Png);
+                var pages = dashboard.Design?.Screens.Where(s => string.IsNullOrWhiteSpace(s.Condition)).ToList() ?? new List<DashScreen>();
+                for (int page = 1; page < pages.Count; page++)
+                    using (var renderer = new LayoutRenderer(dashboard.ScreenSize().Width, dashboard.ScreenSize().Height, dashboard, units))
+                    {
+                        renderer.StepPage(page);
+                        using (var frame = renderer.Render(IRacingTelemetrySource.CreatePreviewSnapshot(), false, 4, 1))
+                            frame.Save(Path.Combine(directory, name + " - " + pages[page].Name + ".png"), System.Drawing.Imaging.ImageFormat.Png);
+                    }
+            }
+            return 0;
+        }
+
         private static int RenderTemplates(string directory)
         {
             if (!Path.IsPathRooted(directory))

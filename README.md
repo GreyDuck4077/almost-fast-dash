@@ -256,6 +256,7 @@ a race. No names or account details are recorded.
 | `--replay-ibt <file.ibt> <report.txt>` | Replays an iRacing telemetry recording through the app: every flag, each lap's times, falloff and fuel, the traced track map, and every light longer than a second. |
 | `--live-check <report.txt> [seconds]` | While you're in a session: what iRacing sends for every value the dashboards use, what the app makes of it (gaps by both methods, fuel, the race order) and the screen's measured performance. |
 | `--render-templates <folder>` | Saves a picture of every template in its states, the second views and other screen sizes. |
+| `--render-dashboards <folder>` | Saves a picture of every dashboard in `settings.json`, in each state and on each page. |
 | `--led-soak <COM port> <LED count> [--fast]` | Streams fast-changing frames to an LED board for 90 seconds and reports whether it kept up. |
 | `--light-frames <report.txt>` | Writes each dashboard's LED colours through a rev sweep and the preview states. |
 | `--designer-selftest <report.txt>` | Runs the end-to-end checks (they write settings next to the exe, so run them from a copy). |

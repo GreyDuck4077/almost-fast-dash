@@ -41,7 +41,7 @@ namespace AlmostFastOverlays
 
     internal sealed class AppSettings
     {
-        private const int CurrentSchema = 14;
+        private const int CurrentSchema = 15;
 
         public int SchemaVersion { get; set; }
         public string DefaultDashboardId { get; set; } = DashboardSettings.RoadId;
@@ -96,6 +96,7 @@ namespace AlmostFastOverlays
                 if (SchemaVersion >= 9 && SchemaVersion < 12) TouchFlagships();
                 if (SchemaVersion > 0 && SchemaVersion < 13) ClearerFuelToAdd();
                 if (SchemaVersion >= 9 && SchemaVersion < 14) PolishFlagships();
+                if (SchemaVersion > 0 && SchemaVersion < 15) { RoundCutPanels(); RebuildNeon(); }
                 SchemaVersion = CurrentSchema;
             }
             foreach (DeviceSettings device in General.Devices) device.Normalize();
@@ -177,6 +178,67 @@ namespace AlmostFastOverlays
             }
             Polish(DashboardSettings.RoadId, DesignTemplates.Road, new[] { "Rev sweep", "Gear", "Rule", "Pit speed ring" }, new[] { "Gear light", "Rev sweep" }, new string[0]);
             Polish(DashboardSettings.OvalId, DesignTemplates.Oval, new[] { "Rev dial", "Pit speed ring" }, new[] { "Dial face", "Rev dial" }, new[] { "Rpm unit" });
+        }
+
+        /// <summary>
+        /// Schema 15: Halo and Oval (designs from before the templates were rebuilt) take rounded corners to
+        /// match their round centrepieces. Cut-cornered panels become rounded, short chips become pills, and
+        /// the stepped hairlines across the top straighten out. Their rev lights gain bezel lines, and the
+        /// pit-lane ring marks the limit. Only those two dashboards change, and only the widgets named here.
+        /// </summary>
+        private void RoundCutPanels()
+        {
+            foreach (DashboardSettings dashboard in Dashboards.Where(d => d.Id == "dashboard-halo" || d.Id == "dashboard-oval"))
+            {
+                if (dashboard.Design?.Screens == null) continue;
+                foreach (DashScreen screen in dashboard.Design.Screens)
+                {
+                    if (screen.Widgets == null) continue;
+                    foreach (DashWidget w in screen.Widgets)
+                    {
+                        string corners = w.Get("corners", "") ?? "";
+                        if (w.Type == "panel" && (corners.StartsWith("Cut") || w.Name == "Delta badge"))
+                        {
+                            w.Set("corners", "Round");
+                            // Short chips become pills; tiles and cards take one even radius.
+                            w.Set("radius", (w.H <= 32 ? Math.Round(w.H / 2) : w.H < 100 ? 16 : 18).ToString(System.Globalization.CultureInfo.InvariantCulture));
+                        }
+                        if (w.Type == "arc" && w.Name.StartsWith("Rev lights"))
+                        {
+                            w.Set("rim", "#243041");
+                            w.Set("rimWidth", "1");
+                        }
+                        if (w.Type == "arc" && w.Name == "Pit speed")
+                            foreach (var p in new[] { "zones", "true", "rim", "border", "rimWidth", "1", "needle", "Marker", "needleColor", "#FFFFFF", "needleLength", "130", "needleWidth", "3" }
+                                .Select((v, i) => new { v, i }).GroupBy(x => x.i / 2, x => x.v).Select(g => g.ToArray()))
+                                w.Set(p[0], p[1]);
+                    }
+                    // The hairlines across the top stepped down with a diagonal kink to meet the cut corners: now one straight line each side.
+                    screen.Widgets.RemoveAll(w => w.Type == "shape" && (w.Name == "Hairline left" || w.Name == "Hairline right" || w.Name == "Hairline left angle" || w.Name == "Hairline right angle"));
+                    DashWidget left = screen.Widgets.FirstOrDefault(w => w.Name == "Hairline left base"), right = screen.Widgets.FirstOrDefault(w => w.Name == "Hairline right base");
+                    if (left != null) { left.W = 252; left.Set("stroke", "#1E2836"); }
+                    if (right != null) { right.X = 584; right.W = 252; right.Set("stroke", "#1E2836"); }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Schema 15: Neon was rebuilt from the ground up. A dashboard still made of the first Neon (its two
+        /// tapered rings and the divider under them) takes the new design at its own size. Its name, lights
+        /// and track types stay. One that has been taken apart and rebuilt by hand is left alone.
+        /// </summary>
+        private void RebuildNeon()
+        {
+            foreach (DashboardSettings dashboard in Dashboards)
+            {
+                var widgets = dashboard.Design?.Screens?.FirstOrDefault()?.Widgets;
+                if (widgets == null || !new[] { "Rev ring", "Fuel ring", "Fuel pct", "Divider" }.All(n => widgets.Any(w => w.Name == n))) continue;
+                DashLayout rebuilt = DesignTemplates.Find("neon").Create();
+                rebuilt.ScaleTo(dashboard.Design.Width, dashboard.Design.Height);
+                rebuilt.PageButton = dashboard.Design.PageButton;
+                rebuilt.PageBackButton = dashboard.Design.PageBackButton;
+                dashboard.Design = rebuilt;
+            }
         }
 
         /// <summary>The fuel-to-add value as designs showed it before schema 13: a bare "+0.3".</summary>

@@ -741,6 +741,29 @@ namespace AlmostFastOverlays
                 before.EnsureBuiltInDashboards();
                 Check("a saved flagship takes the new finish and keeps its layout", sweep.Get("rim") == "#2E2722" && sweep.Get("litScale") == "true" && sweep.Get("thickness") == "10" &&
                     sweep.X == 30 && race.Widgets.Count(w => w.Name == "Gear light") == 1 && race.Widgets.FindIndex(w => w.Name == "Gear light") == race.Widgets.IndexOf(sweep) - 1);
+
+                // Halo and Oval round their corners; a first-generation Neon is rebuilt.
+                var older = new AppSettings { SchemaVersion = 14 };
+                DashboardSettings haloDash = DashboardSettings.CreateDesigned(DesignTemplates.Find("blank"));
+                haloDash.Id = "dashboard-halo";
+                DashScreen haloMain = haloDash.Design.Screens[0];
+                DashWidget tile = new DashWidget { Type = "panel", Name = "Fuel tile", X = 600, Y = 100, W = 196, H = 60 }, chip = new DashWidget { Type = "panel", Name = "Caution chip", X = 360, Y = 80, W = 116, H = 24 };
+                tile.Set("corners", "Cut diagonal");
+                chip.Set("corners", "Cut diagonal");
+                DashWidget revs = new DashWidget { Type = "arc", Name = "Rev lights left" }, pit = new DashWidget { Type = "arc", Name = "Pit speed" };
+                DashWidget kink = new DashWidget { Type = "shape", Name = "Hairline left angle" }, baseLine = new DashWidget { Type = "shape", Name = "Hairline left base", X = 18, Y = 54, W = 158, H = 2 };
+                haloMain.Widgets.AddRange(new[] { tile, chip, revs, pit, kink, baseLine });
+                DashboardSettings oldNeon = DashboardSettings.CreateDesigned(DesignTemplates.Find("blank"));
+                oldNeon.Id = "dashboard-oldneon";
+                foreach (string name in new[] { "Rev ring", "Fuel ring", "Fuel pct", "Divider" }) oldNeon.Design.Screens[0].Widgets.Add(new DashWidget { Type = "text", Name = name });
+                older.Dashboards.Add(haloDash);
+                older.Dashboards.Add(oldNeon);
+                older.EnsureBuiltInDashboards();
+                Check("Halo and Oval take rounded corners, pills and straight hairlines; a first Neon is rebuilt",
+                    tile.Get("corners") == "Round" && tile.Get("radius") == "16" && chip.Get("radius") == "12" && revs.Get("rim") != null && pit.Get("needle") == "Marker" &&
+                    !haloMain.Widgets.Contains(kink) && baseLine.W == 252 &&
+                    oldNeon.Design.AllWidgets().Any(w => w.Name == "Shift horizon") && !oldNeon.Design.AllWidgets().Any(w => w.Name == "Fuel ring"),
+                    tile.Get("corners", "") + " " + tile.Get("radius", "") + " / " + chip.Get("radius", ""));
             }
 
             // ---------------- touch
