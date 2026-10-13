@@ -441,6 +441,11 @@ namespace AlmostFastOverlays
             string Eval(string formula) => Expr.Text(Expr.Evaluate(formula, scope));
             Check("leaderboard formulas", Eval("standing(1, \"Name\")") == "L. HARTMANN" && Eval("standing(Position - 1, \"Number\")") == "05" &&
                 Eval("standing(99, \"Exists\")") == "false" && Eval("standing(8, \"GapText\")") == "+1 LAP" && Eval("GapToLeader") == "+5.94", Eval("standing(8, \"GapText\")"));
+            // Leader just over the line and a car not there yet: same lap. A whole lap behind on track: lapped.
+            Check("a car is a lap down only when a whole lap behind on track, not while it's yet to cross the line",
+                IRacingTelemetrySource.LapsDown(18, 0.01f, 17, 0.95f) == 0 && IRacingTelemetrySource.LapsDown(18, 0.05f, 17, 0.10f) == 0 &&
+                IRacingTelemetrySource.LapsDown(18, 0.50f, 17, 0.40f) == 1 && IRacingTelemetrySource.LapsDown(18, 0.60f, 16, 0.50f) == 2 &&
+                IRacingTelemetrySource.LapsDown(18, -1, 17, 0.95f) == 1);
             Check("sector formulas", Eval("seconds(sectortime(1))") == "29.904" && Eval("seconds(sectortime(2))") == "--.---" && Eval("laptime(IdealLap)") == "1:27.373" && Eval("Sector") == "2");
             Check("engine, tyre and system values", Eval("format(OilTemp, \"0\")") == (_units.Celsius ? "104" : "219") && Eval("format(tyre(\"RF\", \"Wear\"), \"0\")") == "88" &&
                 Eval("DrsText") == "OFF" && Expr.Num(Expr.Evaluate("CpuLoad", scope)) >= 0 && Expr.Num(Expr.Evaluate("MemoryLoad", scope)) > 0, Eval("format(OilTemp, \"0\")"));

@@ -321,6 +321,7 @@ namespace AlmostFastOverlays
                         foreach (StandingsEntry r in cls.Where(r => r.ClassPosition <= 0)) r.ClassPosition = ++n;
                     }
                 StandingsEntry mine = rows.FirstOrDefault(r => r.IsPlayer);
+                float DistanceOf(StandingsEntry r) => distances != null && r.CarIdx < distances.Length ? distances[r.CarIdx] : -1;
                 for (int k = 0; k < rows.Count; k++)
                 {
                     StandingsEntry row = rows[k];
@@ -329,7 +330,7 @@ namespace AlmostFastOverlays
                         // Outside a race the order is by best lap, and gaps are to the fastest lap.
                         row.GapToLeader = row.BestLap > 0 && rows[0].BestLap > 0 ? row.BestLap - rows[0].BestLap : 0;
                     }
-                    row.LapsBehind = race && rows.Count > 0 ? Math.Max(0, rows[0].Laps - row.Laps) : 0;
+                    row.LapsBehind = race && rows.Count > 0 ? LapsDown(rows[0].Laps, DistanceOf(rows[0]), row.Laps, DistanceOf(row)) : 0;
                     row.Interval = k == 0 ? 0 : Math.Max(0, row.GapToLeader - rows[k - 1].GapToLeader);
                     row.DeltaToPlayer = mine == null ? 0 : row.GapToLeader - mine.GapToLeader;
                 }
@@ -339,6 +340,17 @@ namespace AlmostFastOverlays
             {
                 return new StandingsEntry[0];
             }
+        }
+
+        /// <summary>
+        /// How many whole laps a car is behind the leader on track: laps completed plus the way round the current
+        /// lap (0 to 1, or below 0 when iRacing doesn't know). Lap counts alone go up as each car crosses the line,
+        /// so right after the leader crosses, every car still on its way there would read "+1 LAP".
+        /// </summary>
+        internal static int LapsDown(int leaderLaps, float leaderDistance, int laps, float distance)
+        {
+            if (leaderDistance < 0 || distance < 0) return Math.Max(0, leaderLaps - laps);
+            return Math.Max(0, (int)Math.Floor(leaderLaps + (double)leaderDistance - (laps + (double)distance)));
         }
 
         private static int CarNumberOrder(string number) => int.TryParse(number, out int n) ? n : int.MaxValue;
