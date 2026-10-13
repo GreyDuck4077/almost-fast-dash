@@ -177,7 +177,7 @@ namespace AlmostFastOverlays
                 .Number("dangerAt", "Danger from", "0.86", "Colors", 0, 1, 0.01)
                 .Color("track", "Track", "track", "Colors")
                 .Bool("zones", "Mark the zones on the track", "false", "Colors")
-                .Choice("needle", "Needle", "None", "Needle", "None", "Needle", "Line")
+                .Choice("needle", "Needle", "None", "Needle", "None", "Needle", "Line", "Marker")
                 .Color("needleColor", "Needle color", "accent", "Needle")
                 .Number("needleLength", "Needle length %", "100", "Needle", 20, 130)
                 .Number("needleWidth", "Needle width", "5", "Needle", 1, 24)
@@ -312,11 +312,21 @@ namespace AlmostFastOverlays
                 .Bool("fill", "Fill", "true", "Look")
                 .Uses(traces: true);
 
-            Define("laphistory", "Lap history", "Graphs", "", "Your last five laps as bars, best lap in purple.", 260, 120, WidgetPainters.LapHistory)
+            Define("laphistory", "Lap history", "Graphs", "", "Your recent laps, or this stint's green-flag laps as a lap-falloff chart: each column rises with how much slower the lap was than the best.", 260, 120, WidgetPainters.LapHistory)
+                .Choice("source", "Laps", "Recent laps", "Content", "Recent laps", "This stint")
+                .Number("laps", "How many", "5", "Content", 2, 40)
+                .Choice("style", "Style", "Rows", "Look", "Rows", "Columns")
+                .Bool("times", "Show times", "true", "Look")
+                .Number("range", "Full height (seconds, 0 auto)", "0", "Look", 0, 10, 0.05)
+                .Bool("showDelta", "Show time lost", "true", "Look")
+                .Number("labelSize", "Label size", "11", "Look", 6, 40)
+                .Number("gap", "Space between columns %", "35", "Look", 0, 90)
+                .Number("radius", "Column corners", "3", "Look", 0, 20)
                 .Color("color", "Bars", "accent", "Colors")
+                .Color("slowColor", "Slowest (Columns)", "bad", "Colors")
                 .Color("bestColor", "Best lap", "purple", "Colors")
                 .Color("textColor", "Times", "text", "Colors")
-                .Bool("times", "Show times", "true", "Look")
+                .Color("track", "Column track", "#00000000", "Colors")
                 .Font();
 
             Define("graph", "Graph", "Graphs", "", "A scrolling line of any value (or two) over the last few seconds: speed, revs, fuel, delta, pedals.", 300, 110, WidgetPainters.Graph)
@@ -383,6 +393,8 @@ namespace AlmostFastOverlays
             Rule("graph", "grid", on, "gridColor");
             Rule("graph", "label", set, "labelSize", "labelColor", "font");
             Rule("graph", "style", v => v != "Bars", "lineWidth");
+            Rule("laphistory", "style", v => v == "Rows", "times");
+            Rule("laphistory", "style", v => v == "Columns", "range", "showDelta", "labelSize", "gap", "radius", "slowColor", "track");
             foreach (WidgetType shaped in All.Where(x => x.Prop("bend") != null)) Rule(shaped.Id, "bend", nonZero, "peak");
             Rule("shape", "shape", v => v != "Line" && v != "Diagonal down" && v != "Diagonal up" && v != "Brackets" && v != "Chevron", "fill");
 

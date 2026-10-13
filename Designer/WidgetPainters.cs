@@ -554,10 +554,28 @@ namespace AlmostFastOverlays
             else
             {
                 Band(start, sweep, track, true, false, true);
-                if (zones && dangerAt > warnAt)
-                    Band(start + (float)(warnAt * sweep), (float)((Math.Min(1, dangerAt) - warnAt) * sweep), TrackAt(warnAt), false, false, true);
-                if (zones && dangerAt < 1)
-                    Band(start + (float)(dangerAt * sweep), (float)((1 - dangerAt) * sweep), TrackAt(1), false, false, true);
+                // The zones as a fine stripe along the outer rim of the track, as a printed redline is.
+                void Rim(double from, double to, Color color)
+                {
+                    if (to - from < 1e-4) return;
+                    float t = Math.Max(2, thickness * 0.3f);
+                    var rim = new ArcRing
+                    {
+                        Center = ring.Center, Thickness = t, Start = start + (float)(from * sweep), Sweep = (float)((to - from) * sweep),
+                        RadiusX = ring.RadiusX + (thickness - t) / 2, RadiusY = ring.RadiusY + (thickness - t) / 2
+                    };
+                    if (rim.Classic)
+                        using (var pen = new Pen(color, t)) g.DrawArc(pen, rim.Rect, rim.Start, rim.Sweep);
+                    else
+                        using (GraphicsPath path = rim.Band(rim.Start, rim.Sweep, false))
+                        using (var brush = new SolidBrush(color)) g.FillPath(brush, path);
+                }
+                if (zones)
+                {
+                    double warnFrom = Math.Max(0, Math.Min(1, warnAt)), dangerFrom = Math.Max(0, Math.Min(1, dangerAt));
+                    Rim(warnFrom, Math.Max(warnFrom, dangerFrom), Color.FromArgb(150, warn));
+                    Rim(dangerFrom, 1, Color.FromArgb(230, danger));
+                }
                 if (style == "Smooth")
                 {
                     float s = flash ? sweep : (float)(f * sweep);
@@ -609,6 +627,28 @@ namespace AlmostFastOverlays
         private static void ArcNeedle(WidgetContext c, ArcRing ring, float angle, float glow)
         {
             string needle = c.Choice("needle");
+            if (needle == "Marker")
+            {
+                // A bright cursor across the ring at the value, as on a digital cluster's sweep.
+                float half = ring.ThicknessAt(angle) * (float)Math.Max(0.2, c.Num("needleLength") / 100) / 2;
+                float w = (float)Math.Max(1, c.Num("needleWidth"));
+                Color mc = c.Color("needleColor");
+                using (var mark = new GraphicsPath())
+                {
+                    mark.AddLine(ring.At(angle, -half), ring.At(angle, half));
+                    using (var pen = new Pen(mc, w) { StartCap = LineCap.Round, EndCap = LineCap.Round })
+                    {
+                        if (glow > 0)
+                            using (GraphicsPath wide = (GraphicsPath)mark.Clone())
+                            {
+                                wide.Widen(pen);
+                                Paint.Glow(c.G, wide, mc, glow * 0.8f);
+                            }
+                        c.G.DrawPath(pen, mark);
+                    }
+                }
+                return;
+            }
             if (needle != "Needle" && needle != "Line") return;
             Graphics g = c.G;
             float share = (float)Math.Max(0.2, c.Num("needleLength") / 100), width = (float)Math.Max(1, c.Num("needleWidth"));
@@ -1302,14 +1342,22 @@ namespace AlmostFastOverlays
         {
             Graphics g = c.G;
             RectangleF b = c.B;
-            double[] laps = (c.T.RecentLapSeconds ?? new double[0]).Where(l => l > 0).ToArray();
+            bool stint = c.Choice("source") == "This stint";
+            int count = Math.Max(2, Math.Min(40, (int)Math.Round(c.Num("laps"))));
+            double[] laps = ((stint ? c.T.StintLapSeconds : c.T.RecentLapSeconds) ?? new double[0]).Where(l => l > 0).ToArray();
+            if (laps.Length > count) laps = laps.Skip(laps.Length - count).ToArray();
             if (laps.Length == 0)
             {
-                Paint.Text(g, c, "No laps yet", 13, false, c.Theme("muted"), b, StringAlignment.Center, "Middle", true, 0, Color.Empty, false);
+                Paint.Text(g, c, stint ? "No green laps yet" : "No laps yet", 13, false, c.Theme("muted"), b, StringAlignment.Center, "Middle", true, 0, Color.Empty, false);
+                return;
+            }
+            if (c.Choice("style") == "Columns")
+            {
+                LapColumns(c, laps, count, stint);
                 return;
             }
             double fastest = laps.Min(), slowest = laps.Max();
-            float rowH = b.Height / 5;
+            float rowH = b.Height / count;
             bool times = c.Bool("times");
             float textW = times ? Math.Min(b.Width * 0.42f, rowH * 4.6f) : 0;
             for (int i = 0; i < laps.Length; i++)
@@ -1324,6 +1372,46 @@ namespace AlmostFastOverlays
                 var track = new RectangleF(row.X + textW, row.Y + (rowH - barH) / 2, row.Width - textW, barH);
                 DashKit.Fill(g, track, c.Theme("track"), barH / 2);
                 DashKit.Fill(g, new RectangleF(track.X, track.Y, (float)(track.Width * share), barH), color, barH / 2);
+            }
+        }
+
+        /// <summary>
+        /// Lap falloff as columns, oldest on the left: each column rises with how much slower the lap was
+        /// than the best shown, blending toward the slow colour; the best lap is a short column in its own colour.
+        /// </summary>
+        private static void LapColumns(WidgetContext c, double[] laps, int count, bool stint)
+        {
+            Graphics g = c.G;
+            RectangleF b = c.B;
+            double best = laps.Min();
+            double range = c.Num("range");
+            // The automatic scale fits the laps from the best onward: the ones before it were still coming
+            // up to speed and simply stand full height.
+            if (range <= 0) range = Math.Max(0.3, (laps.Skip(Array.IndexOf(laps, best)).Max() - best) * 1.15);
+            bool labels = c.Bool("showDelta");
+            float size = (float)c.Num("labelSize");
+            float labelH = labels ? size * 1.5f : 0;
+            float slot = b.Width / count, gap = Math.Max(1.5f, slot * (float)c.Num("gap") / 100f), barW = Math.Max(1, slot - gap);
+            float top = b.Y + labelH, height = Math.Max(4, b.Bottom - top), stub = Math.Max(3, Math.Min(height * 0.06f, barW * 0.5f));
+            float radius = Math.Min(barW / 2, (float)c.Num("radius"));
+            Color color = c.Color("color"), slow = c.Color("slowColor"), bestColor = c.Color("bestColor"), track = c.Color("track");
+            bool everyLabel = slot >= size * 3.1f;
+            int bestAt = Array.IndexOf(laps, best);
+            Color warmUp = c.Theme("dim");
+            for (int i = 0; i < laps.Length; i++)
+            {
+                float x = b.X + i * slot + gap / 2;
+                if (track.A > 0) Paint.FillTop(g, new RectangleF(x, top, barW, height), track, radius);
+                double over = Math.Max(0, laps[i] - best);
+                bool isBest = over < 0.0005;
+                double share = Math.Min(1, over / range);
+                float h = isBest ? stub : stub + (height - stub) * (float)share;
+                // Laps before the best were still coming up to speed: shown, but dimmed, as they aren't falloff.
+                Color tone = isBest ? bestColor : stint && i < bestAt ? warmUp : Mix(color, slow, share);
+                Paint.FillTop(g, new RectangleF(x, b.Bottom - h, barW, h), tone, radius);
+                if (labels && (everyLabel || i == laps.Length - 1))
+                    Paint.Text(g, c, isBest ? (stint ? "BEST" : Fmt.LapTime(laps[i])) : "+" + over.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture), size, true,
+                        isBest ? bestColor : c.Color("textColor"), new RectangleF(x + barW / 2 - slot, b.Bottom - h - labelH, slot * 2, labelH), StringAlignment.Center, "Middle", true, 0, Color.Empty, false);
             }
         }
 
@@ -1654,6 +1742,26 @@ namespace AlmostFastOverlays
                 return p;
             }
             return Rounded(b, r);
+        }
+
+        /// <summary>A column with rounded top corners and a square foot, as a bar chart's bars stand on their axis.</summary>
+        public static void FillTop(Graphics g, RectangleF b, Color color, float r)
+        {
+            if (b.Width <= 0 || b.Height <= 0) return;
+            r = Math.Max(0, Math.Min(r, Math.Min(b.Width / 2, b.Height)));
+            using (var brush = new SolidBrush(color))
+            {
+                if (r < 0.5f) { g.FillRectangle(brush, b); return; }
+                using (var path = new GraphicsPath())
+                {
+                    path.AddArc(b.X, b.Y, r * 2, r * 2, 180, 90);
+                    path.AddArc(b.Right - r * 2, b.Y, r * 2, r * 2, 270, 90);
+                    path.AddLine(b.Right, b.Y + r, b.Right, b.Bottom);
+                    path.AddLine(b.Right, b.Bottom, b.X, b.Bottom);
+                    path.CloseFigure();
+                    g.FillPath(brush, path);
+                }
+            }
         }
 
         private static float Ascent(Font font)

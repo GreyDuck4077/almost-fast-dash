@@ -63,8 +63,8 @@ namespace AlmostFastOverlays
             classic.BrowLeds = BrowLedSettings.CreateDefault(BrowFunctions.BlindSpot);
             oldLights.Dashboards.Add(classic);
             oldLights.EnsureBuiltInDashboards();
-            DashboardSettings converted = oldLights.Dashboards[0];
-            Check("old light settings become layers, and are then dropped", oldLights.SchemaVersion == 8 && converted.Lights != null
+            DashboardSettings converted = classic;
+            Check("old light settings become layers, and are then dropped", oldLights.SchemaVersion == 9 && converted.Lights != null
                 && converted.Lights.Layers.Any(l => l.Effect == "revs" && l.Target == "shift" && l.Brightness == 40 && l.Get("direction", "") == "Start to end")
                 && converted.Lights.Layers.Any(l => l.Effect == "spotter" && l.Target == "brow-mirror") && converted.CenterLeds == null && converted.BrowLeds == null,
                 string.Join(", ", converted.Lights?.Layers.Select(l => l.Name) ?? new string[0]));
@@ -287,7 +287,7 @@ namespace AlmostFastOverlays
             old.EnsureBuiltInDashboards();
             DeviceSettings dv5 = old.General.Devices.FirstOrDefault(), lb10 = old.General.Devices.Skip(1).FirstOrDefault();
             Check("old DV-5 and LB-10 settings become set-up devices", old.General.Devices.Count == 2 && dv5.Port == "COM4" && dv5.UsbId == DevicePorts.Dv5 && dv5.Groups.Count == 3
-                && lb10.Port == "COM3" && lb10.LedCount == 20 && !lb10.Enabled && lb10.Groups.Single().To == 20 && old.General.LedPort == null && old.SchemaVersion == 8);
+                && lb10.Port == "COM3" && lb10.LedCount == 20 && !lb10.Enabled && lb10.Groups.Single().To == 20 && old.General.LedPort == null && old.SchemaVersion == 9);
             var named = new AppSettings { SchemaVersion = 6 };
             named.Dashboards.Add(DashboardSettings.CreateRoad());
             named.Dashboards[0].Lights.Layers.Add(new LightLayer { Name = "Brow rev lights", Target = "brow", Effect = "revs" });

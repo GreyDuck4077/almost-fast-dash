@@ -152,6 +152,13 @@ namespace AlmostFastOverlays
             Add("Timing", "IdealLap", "Your best sectors added up: the lap you could do. 0 until every sector has a time.", s =>
                 s.T.BestSectorTimes != null && s.T.BestSectorTimes.Length > 0 && s.T.BestSectorTimes.All(v => v > 0) ? s.T.BestSectorTimes.Sum() : 0.0, "laptime(IdealLap)");
 
+            Add("Timing", "StintBestLap", "Your fastest green-flag lap since the last pit stop; 0 until there is one.", s => Falloff.Best(s.T.StintLapSeconds), "laptime(StintBestLap)");
+            Add("Timing", "StintGreenLaps", "Green-flag laps since the last pit stop (caution and pit laps left out).", s => (double)(s.T.StintLapSeconds?.Length ?? 0));
+            Add("Timing", "Falloff", "Lap falloff: how much slower your last green lap was than the best of this stint, in seconds; -1 until there are two laps.",
+                s => Falloff.Total(s.T.StintLapSeconds), "Falloff < 0 ? \"--\" : \"+\" + format(Falloff, \"0.00\")");
+            Add("Timing", "FalloffPerLap", "How much slower each lap is getting since your best of the stint, in seconds per lap (the trend); 0 until there are three laps.",
+                s => Falloff.PerLap(s.T.StintLapSeconds), "signed(FalloffPerLap, 2)");
+
             // ---------------- More fuel
             Add("Fuel", "FuelCapacity", "Usable tank size in your unit, including any series fuel limit.", s => s.Units.Fuel(s.T.FuelCapacityLiters), "fuel(FuelCapacity)");
 

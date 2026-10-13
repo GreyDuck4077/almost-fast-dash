@@ -41,10 +41,10 @@ namespace AlmostFastOverlays
 
     internal sealed class AppSettings
     {
-        private const int CurrentSchema = 8;
+        private const int CurrentSchema = 9;
 
         public int SchemaVersion { get; set; }
-        public string DefaultDashboardId { get; set; } = "dashboard-apex";
+        public string DefaultDashboardId { get; set; } = DashboardSettings.RoadId;
         public GeneralSettings General { get; set; } = new GeneralSettings();
         public List<DashboardSettings> Dashboards { get; set; } = new List<DashboardSettings>();
 
@@ -90,6 +90,7 @@ namespace AlmostFastOverlays
                 if (SchemaVersion > 0 && SchemaVersion < 6) DevicesFromFixedSettings();
                 if (SchemaVersion > 0 && SchemaVersion < 7) RenameBrowLayers();
                 if (SchemaVersion > 0 && SchemaVersion < 8) ClassicLightsToLayers();
+                if (SchemaVersion > 0 && SchemaVersion < 9) AddFlagships();
                 SchemaVersion = CurrentSchema;
             }
             foreach (DeviceSettings device in General.Devices) device.Normalize();
@@ -101,6 +102,24 @@ namespace AlmostFastOverlays
             }
             foreach (DashboardSettings dashboard in Dashboards) dashboard.Normalize();
             if (!Dashboards.Any(d => d.Id == DefaultDashboardId)) DefaultDashboardId = Dashboards[0].Id;
+        }
+
+        /// <summary>
+        /// Schema 9: the flagship dashboards, Roady and Roundy, arrive and take over road and oval tracks.
+        /// Every existing dashboard stays as it was, apart from handing those track types over.
+        /// </summary>
+        private void AddFlagships()
+        {
+            if (Dashboards.Count == 0) return;
+            void Take(DashboardSettings flagship, params string[] types)
+            {
+                if (Dashboards.Any(d => d.Id == flagship.Id)) return;
+                foreach (DashboardSettings d in Dashboards) d.RaceTypes?.RemoveAll(types.Contains);
+                Dashboards.Insert(0, flagship);
+            }
+            Take(DashboardSettings.CreateOval(), Disciplines.Oval, Disciplines.DirtOval);
+            Take(DashboardSettings.CreateRoad(), Disciplines.Road, Disciplines.DirtRoad);
+            DefaultDashboardId = DashboardSettings.RoadId;
         }
 
         /// <summary>
@@ -127,21 +146,21 @@ namespace AlmostFastOverlays
             }
 
             // A new Oval design takes over the oval tracks, as the old Oval layout did.
-            if (!Dashboards.Any(d => string.Equals(d.Name, "Spotter", StringComparison.OrdinalIgnoreCase)))
+            if (!Dashboards.Any(d => string.Equals(d.Name, DesignTemplates.Oval.Name, StringComparison.OrdinalIgnoreCase)))
             {
                 foreach (DashboardSettings d in Dashboards)
                     d.RaceTypes?.RemoveAll(type => type == Disciplines.Oval || type == Disciplines.DirtOval);
-                Ensure("Spotter", DashboardSettings.CreateOval).RaceTypes.AddRange(new[] { Disciplines.Oval, Disciplines.DirtOval });
+                Ensure(DesignTemplates.Oval.Name, DashboardSettings.CreateOval).RaceTypes.AddRange(new[] { Disciplines.Oval, Disciplines.DirtOval });
             }
 
             foreach (string type in orphanTypes.Where(type => !Dashboards.Any(d => d.RaceTypes != null && d.RaceTypes.Contains(type))))
             {
                 bool oval = type == Disciplines.Oval || type == Disciplines.DirtOval;
-                DashboardSettings target = oval ? Ensure("Spotter", DashboardSettings.CreateOval) : Ensure("Apex", DashboardSettings.CreateRoad);
+                DashboardSettings target = oval ? Ensure(DesignTemplates.Oval.Name, DashboardSettings.CreateOval) : Ensure(DesignTemplates.Road.Name, DashboardSettings.CreateRoad);
                 target.RaceTypes.Add(type);
             }
             if (Dashboards.Count == 0) return;
-            if (defaultRetired) DefaultDashboardId = (Dashboards.FirstOrDefault(d => d.Name == "Apex") ?? Dashboards[0]).Id;
+            if (defaultRetired) DefaultDashboardId = (Dashboards.FirstOrDefault(d => d.Name == DesignTemplates.Road.Name) ?? Dashboards[0]).Id;
         }
 
         /// <summary>
@@ -280,10 +299,12 @@ namespace AlmostFastOverlays
             return created;
         }
 
+        public const string RoadId = "dashboard-roady", OvalId = "dashboard-roundy";
+
         /// <summary>The default road dashboard.</summary>
         public static DashboardSettings CreateRoad()
         {
-            DashboardSettings halo = Create("dashboard-apex", DesignTemplates.Road.Name, DesignTemplates.Road.Accent, Disciplines.Road, Disciplines.DirtRoad);
+            DashboardSettings halo = Create(RoadId, DesignTemplates.Road.Name, DesignTemplates.Road.Accent, Disciplines.Road, Disciplines.DirtRoad);
             halo.Design = DesignTemplates.Road.Create();
             halo.Lights = LightPresets.Refined();
             return halo;
@@ -292,7 +313,7 @@ namespace AlmostFastOverlays
         /// <summary>The default oval dashboard.</summary>
         public static DashboardSettings CreateOval()
         {
-            DashboardSettings oval = Create("dashboard-spotter", DesignTemplates.Oval.Name, DesignTemplates.Oval.Accent, Disciplines.Oval, Disciplines.DirtOval);
+            DashboardSettings oval = Create(OvalId, DesignTemplates.Oval.Name, DesignTemplates.Oval.Accent, Disciplines.Oval, Disciplines.DirtOval);
             oval.Design = DesignTemplates.Oval.Create();
             oval.Lights = LightPresets.SpotterFocus();
             return oval;

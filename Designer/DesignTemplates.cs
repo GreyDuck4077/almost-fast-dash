@@ -21,6 +21,10 @@ namespace AlmostFastOverlays
     {
         public static readonly List<DesignTemplate> All = new List<DesignTemplate>
         {
+            new DesignTemplate { Id = "roady", Name = "Roady", Accent = "#FF5A1F", Create = Roady,
+                Description = "The road flagship: a sweep of revs arching over a huge gear, shift colours from the car's own shift points, delta, pedals, bias and fuel." },
+            new DesignTemplate { Id = "roundy", Name = "Roundy", Accent = "#3D9BFF", OvalLights = true, Create = Roundy,
+                Description = "The oval flagship: curved blind-spot arcs, speed and gear in a rev ring, the cars around you and a lap-falloff chart of your stint." },
             new DesignTemplate { Id = "apex", Name = "Apex", Accent = "#2F8CFF", Create = Apex,
                 Description = "Road and GT: an arched LED rev bar, speed inside a rev ring, the track map and a live graph either side." },
             new DesignTemplate { Id = "twindial", Name = "Twin Dial", Accent = "#5AB4FF", Create = TwinDial,
@@ -40,8 +44,8 @@ namespace AlmostFastOverlays
         public static DesignTemplate Find(string id) => All.FirstOrDefault(t => t.Id == id);
 
         /// <summary>The road and oval dashboards a new install starts with.</summary>
-        public static DesignTemplate Road => Find("apex");
-        public static DesignTemplate Oval => Find("spotter");
+        public static DesignTemplate Road => Find("roady");
+        public static DesignTemplate Oval => Find("roundy");
 
         public static DashLayout Blank()
         {
@@ -173,6 +177,206 @@ namespace AlmostFastOverlays
             b.Visible("Notice != \"\"",
                 b.Panel("Notice", x, y, w, h, "style", "Tinted", "tint", tone, "radius", (h / 2).ToString(System.Globalization.CultureInfo.InvariantCulture)),
                 b.Text("Notice text", x, y, w, h, "=Notice", "size", (h * 0.42).ToString("0", System.Globalization.CultureInfo.InvariantCulture), "tracking", "1", "color", tone));
+        }
+
+        // ------------------------------------------------------------------ Roady
+
+        /// <summary>
+        /// The road flagship. A wide sweep of revs arches over the whole screen with the scale inside it and
+        /// a bright cursor at the revs. It turns amber at the car's shift point and red at the redline, and
+        /// flashes to shift. The gear stands huge under the arch. Delta and laps sit on the left, the race
+        /// on the right, and pedals, car settings and fuel along the bottom.
+        /// </summary>
+        private static DashLayout Roady()
+        {
+            var b = new Builder(t =>
+            {
+                t.Background = "#050506";
+                t.Background2 = "#1A0D06";
+                t.BackgroundStyle = "Bloom";
+                t.Panel = "#A00E0D0C";
+                t.PanelTop = "#B0161412";
+                t.Border = "#2A2420";
+                t.Track = "#1A1716";
+                t.Text = "#F5F2EE";
+                t.Muted = "#968C84";
+                t.Dim = "#4A433E";
+            });
+            b.Screen("Race");
+            const string top = "ceil(Redline / 1000)";
+            b.Add("arc", "Rev sweep", 17, 14, 820, 600, "value", "=Rpm / 1000", "max", "=Redline > 0 ? " + top + " : 8", "oval", "true", "style", "Smooth",
+                "start", "197", "sweep", "146", "thickness", "14", "colorMode", "Shift colors", "color", "#E9E4DE", "warnColor", "#FFB23F", "dangerColor", "accent",
+                "warnAt", "=ShiftRpm > 0 && Redline > 0 ? ShiftRpm * 0.93 / (" + top + " * 1000) : 0.8",
+                "dangerAt", "=ShiftRpm > 0 && Redline > 0 ? ShiftRpm / (" + top + " * 1000) : 0.9",
+                "zones", "true", "track", "#17130F", "ticks", "=Redline > 0 ? " + top + " : 8", "minorTicks", "4", "tickLength", "10", "tickColor", "#6E655E",
+                "numbers", "true", "numbersTo", "=Redline > 0 ? " + top + " : 8", "numberSize", "22", "numberColor", "text",
+                "needle", "Marker", "needleColor", "#FFFFFF", "needleLength", "130", "needleWidth", "4", "glow", "8", "flash", "=ShiftFlash", "flashColor", "accent");
+            b.Text("Rpm unit", 30, 262, 110, 14, "RPM x1000", "size", "10", "tracking", "2.5", "weight", "Regular", "color", "dim", "align", "Left");
+            b.Text("Clock", 24, 12, 120, 22, "=Clock", "size", "16", "align", "Left", "color", "muted");
+            b.Text("Incidents", 710, 12, 120, 22, "=Incidents + \"x\"", "size", "16", "align", "Right", "color", "=Incidents > 0 ? $warn : $muted");
+
+            b.Add("gear", "Gear", 332, 82, 190, 190, "size", "176", "neighbors", "false", "flashColor", "accent", "fxShadow", "6", "fxShadowY", "3");
+            b.Text("Speed", 337, 278, 180, 58, "=format(Speed, \"0\")", "size", "52");
+            b.Text("Speed unit", 337, 332, 180, 14, "=SpeedUnit", "size", "11", "tracking", "4", "weight", "Regular", "color", "muted");
+
+            // Left of the gear: the lap.
+            b.Label("Delta label", 140, 196, 180, "DELTA");
+            b.Text("Delta", 140, 210, 180, 50, "=signed(Delta, 2)", "size", "44", "align", "Left", "color", "=deltacolor(Delta)");
+            b.Add("bar", "Delta bar", 140, 264, 180, 4, "value", "=Delta", "min", "-1", "max", "1", "mode", "Center", "color", "good", "negColor", "bad", "track", "#221D19");
+            b.Metric("Last lap", 132, 280, 104, 56, "LAST", "=laptime(LastLap)", "inset", "8", "valueSize", "19", "labelSize", "10", "labelTracking", "2.5",
+                "valueColor", "=LastLapIsBest ? $purple : $text");
+            b.Metric("Best lap", 228, 280, 104, 56, "BEST", "=laptime(BestLap)", "inset", "8", "valueSize", "19", "labelSize", "10", "labelTracking", "2.5", "valueColor", "purple");
+
+            // Right of the gear: the race.
+            b.Label("Position label", 534, 196, 180, "POSITION", "Right");
+            b.Metric("Position", 534, 206, 180, 58, "", PositionText, "layout", "Value only", "align", "Right", "inset", "0", "valueSize", "44",
+                "unit", "=Starters > 0 ? \"/\" + Starters : \"\"", "unitColor", "dim");
+            b.Add("progress", "Race progress", 534, 264, 180, 4, "gap", "1", "color", "#E9E4DE");
+            b.Metric("Lap", 522, 280, 104, 56, "LAP", "=LapText", "inset", "8", "align", "Right", "valueSize", "19", "labelSize", "10", "labelTracking", "2.5");
+            b.Metric("Ahead", 618, 280, 104, 56, "AHEAD", "=AheadName == \"---\" ? \"--\" : \"-\" + format(AheadGap, \"0.0\")", "inset", "8", "align", "Right",
+                "valueSize", "19", "labelSize", "10", "labelTracking", "2.5", "valueColor", "good");
+
+            b.Add("shape", "Rule", 30, 352, 794, 2, "shape", "Line", "stroke", "#3A322C", "strokeWidth", "1");
+
+            // Along the bottom: pedals, the car's settings, fuel.
+            b.Panel("Pedals panel", 18, 366, 300, 104, "style", "Soft", "radius", "14");
+            b.Label("Pedals label", 34, 376, 200, "THROTTLE · BRAKE");
+            b.Add("graph", "Pedals", 28, 392, 280, 70, "value", "=Throttle", "value2", "=Brake", "min", "0", "max", "1", "seconds", "6", "style", "Area",
+                "lineWidth", "2", "color", "#E9E4DE", "color2", "accent", "gridColor", "#221D19");
+
+            b.Panel("Car panel", 328, 366, 198, 104, "style", "Soft", "radius", "14");
+            b.Metric("Bias", 334, 372, 62, 92, "BIAS", "=format(BrakeBias, \"0.0\")", "align", "Center", "valueSize", "20", "labelSize", "10", "labelTracking", "2");
+            b.Metric("TC", 396, 372, 62, 92, "TC", "=TractionControl < 0 ? \"--\" : format(TractionControl, \"0\")", "align", "Center", "valueSize", "20", "labelSize", "10", "labelTracking", "2");
+            b.Metric("ABS", 458, 372, 62, 92, "ABS", "=Abs < 0 ? \"--\" : format(Abs, \"0\")", "align", "Center", "valueSize", "20", "labelSize", "10", "labelTracking", "2",
+                "valueColor", "=AbsActive ? $accent : $text");
+
+            b.Panel("Fuel panel", 536, 366, 300, 104, "style", "Soft", "radius", "14");
+            b.Metric("Fuel", 540, 370, 150, 84, "FUEL", "=fuel(Fuel)", "valueSize", "28", "labelSize", "10", "labelTracking", "2.5", "unit", "=FuelUnit");
+            b.Metric("Fuel laps", 682, 370, 150, 84, "LAPS LEFT", FuelLaps, "align", "Right", "valueSize", "28", "labelSize", "10", "labelTracking", "2.5", "valueColor", FuelTone);
+            b.Add("bar", "Fuel level", 556, 454, 260, 4, "value", "=FuelPct", "color", "=FuelLapsLeft >= 0 && FuelLapsLeft < 2 ? $bad : #E9E4DE", "track", "#221D19");
+
+            b.Add("blindspot", "Car left", 2, 120, 6, 220, "side", "Left", "color", "accent", "offColor", "#00000000", "glow", "14");
+            b.Add("blindspot", "Car right", 846, 120, 6, 220, "side", "Right", "color", "accent", "offColor", "#00000000", "glow", "14");
+            Notice(b, 287, 312, 280, 34);
+
+            // Page 2 on a wheel button: the race order, the map and the sectors.
+            b.Screen("Timing");
+            b.Panel("Order panel", 18, 14, 410, 452, "style", "Soft", "radius", "14");
+            b.Label("Order label", 34, 26, 300, "RACE ORDER");
+            b.Add("standings", "Leaderboard", 26, 46, 394, 410, "rows", "10", "focus", "Top and me", "column", "Interval", "size", "16", "rowColor", "#80141210",
+                "highlight", "accent", "radius", "6");
+            b.Panel("Map panel", 438, 14, 398, 236, "style", "Soft", "radius", "14");
+            b.Label("Map label", 454, 26, 200, "TRACK");
+            b.Text("Map lap", 620, 22, 200, 20, "=\"LAP \" + LapText", "size", "14", "align", "Right", "color", "muted");
+            b.Add("trackmap", "Track map", 448, 44, 378, 198, "lineWidth", "6", "carSize", "9", "trackColor", "#2A2420", "edgeColor", "#00000000");
+            b.Panel("Sector panel", 438, 260, 398, 206, "style", "Soft", "radius", "14");
+            b.Label("Sector label", 454, 272, 300, "SECTORS · LAST LAP");
+            for (int s = 1; s <= 3; s++)
+            {
+                string last = "lastsectortime(" + s + ")";
+                b.Metric("S" + s, 446 + (s - 1) * 128, 290, 126, 84, "S" + s, "=seconds(" + last + ")", "align", "Center", "valueSize", "24", "labelSize", "11", "labelTracking", "2",
+                    "valueColor", "=" + last + " > 0 && " + last + " <= bestsectortime(" + s + ") + 0.0005 ? $purple : $text", "visible", s == 3 ? "SectorCount >= 3" : "");
+            }
+            b.Add("shape", "Sector rule", 458, 380, 358, 2, "shape", "Line", "stroke", "#2A2420", "strokeWidth", "1");
+            b.Metric("Ideal lap", 446, 388, 190, 70, "IDEAL LAP", "=IdealLap > 0 ? laptime(IdealLap) : \"--\"", "valueSize", "24", "labelSize", "11", "labelTracking", "2", "valueColor", "purple");
+            b.Metric("Session best", 640, 388, 190, 70, "SESSION BEST", "=laptime(SessionBestLap)", "align", "Right", "valueSize", "24", "labelSize", "11", "labelTracking", "2");
+
+            PitLane(b, "Soft");
+            return b.Layout;
+        }
+
+        // ------------------------------------------------------------------ Roundy
+
+        /// <summary>
+        /// The oval flagship. Curved blind-spot arcs frame the screen and light from front to back as a car
+        /// comes alongside. Speed and gear sit inside a rev ring in the middle. The cars around you are on
+        /// the left. On the right, the lap falloff chart shows each green lap of the stint rising with the
+        /// time it lost to your best. Position, laps to go, lap speed and fuel to the end run along the bottom.
+        /// </summary>
+        private static DashLayout Roundy()
+        {
+            var b = new Builder(t =>
+            {
+                t.Background = "#03060B";
+                t.Background2 = "#0A1A30";
+                t.BackgroundStyle = "Bloom";
+                t.Panel = "#A00A111C";
+                t.PanelTop = "#B0101A28";
+                t.Border = "#1C2A3C";
+                t.Track = "#121B27";
+            });
+            b.Screen("Race");
+            b.Add("blindspot", "Car left", 8, 30, 36, 420, "side", "Left", "bend", "-60", "thickness", "28", "color", "#FF3B30", "offColor", "#16202C", "glow", "20");
+            b.Add("blindspot", "Car right", 810, 30, 36, 420, "side", "Right", "bend", "60", "thickness", "28", "color", "#FF3B30", "offColor", "#16202C", "glow", "20");
+
+            b.Text("Lap", 300, 10, 254, 24, "=\"LAP \" + LapText", "size", "16", "tracking", "3", "color", "muted");
+
+            b.Add("arc", "Rev ring", 307, 40, 240, 240, "value", "=RevPct", "style", "Smooth", "start", "135", "sweep", "270", "thickness", "8",
+                "colorMode", "Shift colors", "color", "info", "warnColor", "warn", "dangerColor", "bad", "warnAt", "0.85", "dangerAt", "0.96", "track", "#101A26",
+                "ticks", "10", "minorTicks", "1", "tickLength", "6", "tickColor", "#33465E", "needle", "Marker", "needleColor", "#FFFFFF", "needleLength", "130",
+                "needleWidth", "3", "glow", "12", "flash", "=ShiftFlash");
+            b.Text("Speed", 332, 92, 190, 92, "=format(Speed, \"0\")", "size", "88", "fxShadow", "10", "fxShadowY", "4");
+            b.Text("Speed unit", 332, 182, 190, 16, "=SpeedUnit", "size", "12", "tracking", "4", "weight", "Regular", "color", "muted");
+            b.Panel("Gear pill", 387, 210, 80, 54, "style", "Tinted", "tint", "accent", "radius", "16");
+            b.Add("gear", "Gear", 387, 210, 80, 54, "size", "40", "neighbors", "false");
+
+            b.Panel("Around panel", 56, 40, 236, 262, "style", "Liquid", "radius", "18");
+            b.Label("Around label", 72, 52, 200, "AROUND YOU");
+            b.Add("relative", "Relative", 62, 70, 224, 226, "rows", "5", "size", "14", "showLicense", "false");
+
+            b.Panel("Falloff panel", 562, 40, 236, 262, "style", "Liquid", "radius", "18");
+            b.Label("Falloff label", 578, 52, 200, "LAP FALLOFF");
+            b.Text("Falloff", 578, 66, 110, 40, "=Falloff < 0 ? \"--\" : \"+\" + format(Falloff, \"0.00\")", "size", "32", "align", "Left",
+                "color", "=Falloff < 0 ? $text : Falloff < 0.15 ? $good : Falloff < 0.4 ? $warn : $bad");
+            b.Text("Falloff trend", 688, 66, 96, 40, "=StintGreenLaps < 3 ? \"\" : signed(FalloffPerLap, 2) + \"/LAP\"", "size", "14", "align", "Right", "color", "muted");
+            b.Add("laphistory", "Falloff chart", 574, 112, 212, 150, "source", "This stint", "laps", "12", "style", "Columns", "range", "0", "showDelta", "true",
+                "labelSize", "10", "gap", "34", "radius", "3", "color", "#2F7FE0", "slowColor", "#A8DBFF", "track", "#0E1621");
+            b.Text("Stint best", 578, 270, 206, 22, "=StintBestLap > 0 ? \"STINT BEST \" + laptime(StintBestLap) : \"STINT BEST --\"", "size", "12", "tracking", "1.5",
+                "weight", "Regular", "align", "Left", "color", "purple");
+
+            const double y = 314, h = 116, w = 179, step = 187.67;
+            // Four tiles, each a value with a line of detail under it.
+            void Tile(int i, string name, string label, string value, string note, string noteColor, params string[] metric)
+            {
+                double x = 56 + step * i;
+                b.Tile(name, x, y, w, h, label, value, "Liquid", metric).H = 84;
+                b.Text(name + " note", x + 16, y + 86, w - 32, 18, note, "size", "12", "weight", "Regular", "tracking", "1", "align", "Left", "color", noteColor);
+            }
+            Tile(0, "Position", "POSITION", PositionText,
+                "=StartPosition <= 0 ? \"\" : PositionsGained > 0 ? \"+\" + PositionsGained + \" FROM P\" + StartPosition : PositionsGained < 0 ? PositionsGained + \" FROM P\" + StartPosition : \"STARTED P\" + StartPosition",
+                "=PositionsGained > 0 ? $good : PositionsGained < 0 ? $bad : $muted", "valueSize", "34", "unit", "=Starters > 0 ? \"/\" + Starters : \"\"", "unitColor", "dim");
+            Tile(1, "To go", "=SessionType", "=RemainingText", "=GapToLeader == \"\" ? \"\" : \"LEADER \" + GapToLeader", "muted", "valueSize", "28");
+            Tile(2, "Last lap", "LAST LAP", "=laptime(LastLap)", "=LastLapSpeed > 0 ? format(LastLapSpeed, \"0.0\") + \" \" + SpeedUnit : \"\"", "info",
+                "valueSize", "28", "valueColor", "=LastLapIsBest ? $purple : $text");
+            Tile(3, "Refuel", "FUEL TO END", "=FuelToFinish < 0 ? \"--.-\" : FuelToFinish <= 0.05 ? \"NONE\" : \"+\" + fuel(FuelToFinish)",
+                "=FuelLapsLeft < 0 ? \"\" : format(FuelLapsLeft, \"0.0\") + \" LAPS IN TANK\"", "muted",
+                "valueSize", "28", "valueColor", "=FuelToFinish < 0 ? $text : FuelToFinish <= 0.05 ? $good : $warn");
+            b.Add("progress", "Race progress", 56, 444, 742, 6, "gap", "2");
+
+            b.Panel("Caution banner", 312, 266, 230, 36, "style", "Tinted", "tint", "warn", "radius", "18", "visible", "Caution");
+            b.Text("Caution", 312, 266, 230, 36, "CAUTION", "size", "18", "tracking", "4", "color", "warn", "visible", "Caution");
+            Notice(b, 312, 266, 230, 36);
+
+            // Page 2 on a wheel button: the race order and the stint.
+            b.Screen("Race order");
+            b.Panel("Order panel", 14, 14, 472, 452, "style", "Liquid", "radius", "18");
+            b.Label("Order label", 32, 28, 300, "RACE ORDER");
+            b.Add("standings", "Leaderboard", 24, 48, 452, 408, "rows", "11", "focus", "Top and me", "column", "Gap to leader", "showIRating", "true", "size", "16",
+                "rowColor", "#80101826", "radius", "8");
+            b.Panel("Stint panel", 496, 14, 344, 452, "style", "Liquid", "radius", "18");
+            b.Label("Stint label", 514, 28, 300, "THIS STINT");
+            b.Metric("Stint laps", 504, 44, 164, 70, "GREEN LAPS", "=StintGreenLaps", "valueSize", "28", "labelSize", "11", "labelTracking", "2");
+            b.Metric("Stint best", 668, 44, 164, 70, "STINT BEST", "=StintBestLap > 0 ? laptime(StintBestLap) : \"--\"", "align", "Right", "valueSize", "24",
+                "labelSize", "11", "labelTracking", "2", "valueColor", "purple");
+            b.Add("laphistory", "Stint laps", 514, 126, 308, 210, "source", "This stint", "laps", "16", "style", "Columns", "showDelta", "true", "labelSize", "10",
+                "gap", "34", "color", "#2F7FE0", "slowColor", "#A8DBFF", "track", "#0E1621");
+            b.Metric("Falloff", 504, 350, 164, 70, "FALLOFF", "=Falloff < 0 ? \"--\" : \"+\" + format(Falloff, \"0.00\")", "valueSize", "26", "labelSize", "11", "labelTracking", "2",
+                "valueColor", "=Falloff < 0 ? $text : Falloff < 0.15 ? $good : Falloff < 0.4 ? $warn : $bad");
+            b.Metric("Trend", 668, 350, 164, 70, "PER LAP", "=StintGreenLaps < 3 ? \"--\" : signed(FalloffPerLap, 2)", "align", "Right", "valueSize", "26", "labelSize", "11", "labelTracking", "2");
+            b.Text("Average", 514, 428, 308, 22, "=AverageLap > 0 ? \"AVERAGE LAP \" + laptime(AverageLap) : \"\"", "size", "12", "tracking", "1.5", "weight", "Regular", "align", "Left", "color", "muted");
+
+            PitLane(b, "Liquid");
+            return b.Layout;
         }
 
         // ------------------------------------------------------------------ Apex

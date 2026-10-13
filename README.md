@@ -7,11 +7,17 @@ alerts. One exe, no installer, no other software required.
 
 ## What it does
 
-- **Dashboards** on a wheel screen, made in a built-in designer. Six come ready
-  to use and are built only from the designer's own widgets, so any of them can
-  be changed or rebuilt by hand: **Apex** (road), **Twin Dial**, **Neon**,
-  **Ribbon**, **Spotter** (ovals) and **Race Display**. The dashboard can switch
-  by the session's track type, and a wheel button can page through screens.
+- **Dashboards** on a wheel screen, made in a built-in designer. Two flagships
+  lead the set:
+  - **Roady**, for road courses: a sweep of revs arched over a huge gear, shift
+    colours from the car's own shift points, plus delta, pedals, bias and fuel.
+  - **Roundy**, for ovals: curved blind-spot arcs, speed and gear in a rev ring,
+    the cars around you, and a lap-falloff chart of your stint.
+
+  **Apex**, **Twin Dial**, **Neon**, **Ribbon**, **Spotter** and **Race Display**
+  are also included. Every one is built only from the designer's own widgets,
+  so any of them can be changed or rebuilt by hand. The dashboard can switch by
+  the session's track type, and a wheel button can page through screens.
 - **LED devices** of any shape: the LEDs around a wheel screen, light bars, LED
   strips. Arduino boards on the common sim-racing LED protocol, Adalight strips
   and WLED controllers.

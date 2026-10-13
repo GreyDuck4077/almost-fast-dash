@@ -190,6 +190,7 @@ namespace AlmostFastOverlays
             _bases.Clear();
             ForgetStyled();
             ForgetFrame();
+            _areas.Clear();
         }
 
         private Bitmap RenderChanges(DashScreen screen, EvalScope scope, int previousGear, float progress)
@@ -211,7 +212,7 @@ namespace AlmostFastOverlays
                 hashes[widget.Id] = hash;
                 if (!redrawAll && (!_drawn.TryGetValue(widget.Id, out int before) || before != hash))
                 {
-                    dirty.Add(Rectangle.Intersect(full, Outward(Reach(widget))));
+                    foreach (RectangleF paints in Areas(widget)) dirty.Add(Rectangle.Intersect(full, Outward(paints)));
                     if (Timings != null)
                     {
                         Timings.TryGetValue("changed: " + widget.Name, out double times);
@@ -227,25 +228,30 @@ namespace AlmostFastOverlays
                 using (Graphics g = Graphics.FromImage(_frame))
                 {
                     DashKit.Prepare(g);
-                    // Areas are finished one at a time, so where two overlap the second simply redoes the overlap.
-                    foreach (Rectangle region in dirty)
+                    // All the areas are redone together, clipped to their union: each pixel is restored once and
+                    // each widget drawn once, however many areas it touches.
+                    using (var region = new Region(Rectangle.Empty))
                     {
-                        area += (long)region.Width * region.Height;
-                        g.SetClip(region);
-                        // Start the area again from the base image (background and fixed widgets), drawn 1:1.
-                        g.CompositingMode = CompositingMode.SourceCopy;
-                        g.DrawImageUnscaled(layer.Bitmap, 0, 0);
-                        g.CompositingMode = CompositingMode.SourceOver;
-                        foreach (DashWidget widget in screen.Widgets)
+                        foreach (Rectangle r in dirty)
                         {
-                            if (widget.Hidden || layer.Baked.Contains(widget.Id) || !Reach(widget).IntersectsWith(region)) continue;
-                            try
-                            {
-                                DrawWidget(g, widget, scope, previousGear, progress);
-                                Errors.Remove(widget.Id);
-                            }
-                            catch (Exception e) { Errors[widget.Id] = e.Message; }
+                            area += (long)r.Width * r.Height;
+                            region.Union(r);
                         }
+                        g.SetClip(region, CombineMode.Replace);
+                    }
+                    // Start the areas again from the base image (background and fixed widgets), drawn 1:1.
+                    g.CompositingMode = CompositingMode.SourceCopy;
+                    g.DrawImageUnscaled(layer.Bitmap, 0, 0);
+                    g.CompositingMode = CompositingMode.SourceOver;
+                    foreach (DashWidget widget in screen.Widgets)
+                    {
+                        if (widget.Hidden || layer.Baked.Contains(widget.Id) || !dirty.Any(r => Touches(widget, r))) continue;
+                        try
+                        {
+                            DrawWidget(g, widget, scope, previousGear, progress);
+                            Errors.Remove(widget.Id);
+                        }
+                        catch (Exception e) { Errors[widget.Id] = e.Message; }
                     }
                     g.ResetClip();
                 }
@@ -349,6 +355,83 @@ namespace AlmostFastOverlays
             return b;
         }
 
+        private readonly Dictionary<DashWidget, RectangleF[]> _areas = new Dictionary<DashWidget, RectangleF[]>();
+
+        /// <summary>
+        /// Where a widget can paint, as one or more boxes. Usually that is its <see cref="Reach"/>. A big arc
+        /// gauge only paints a strip along its ring, so it gives short boxes along the ring instead. A sweep
+        /// across the whole screen then redraws that strip and not everything inside the arch.
+        /// </summary>
+        private bool Touches(DashWidget widget, RectangleF region)
+        {
+            foreach (RectangleF area in Areas(widget))
+                if (area.IntersectsWith(region)) return true;
+            return false;
+        }
+
+        private RectangleF[] Areas(DashWidget widget)
+        {
+            if (_areas.TryGetValue(widget, out RectangleF[] known)) return known;
+            RectangleF[] areas = widget.Type == "arc" ? ArcStrips(widget) : null;
+            if (areas == null) areas = new[] { Reach(widget) };
+            _areas[widget] = areas;
+            return areas;
+        }
+
+        private static RectangleF[] ArcStrips(DashWidget widget)
+        {
+            WidgetType type = WidgetCatalog.Find("arc");
+            string Raw(string key) => widget.Get(key, type.Prop(key)?.Default) ?? "";
+            bool Fixed(params string[] keys) => keys.All(k => !Raw(k).StartsWith("="));
+            // Anything that can move the drawing about, or that draws across the face, needs the whole box.
+            if (!Fixed("start", "sweep", "thickness", "glow", "oval", "needle", "needleLength", "tickLength", "numberSize", "flipX", "flipY", "rotate")) return null;
+            string needle = Raw("needle");
+            if (needle == "Needle" || needle == "Line") return null;
+            if (Math.Abs(Expr.Num(Raw("rotate"))) > 0.01) return null;
+            if (new[] { "fxFill", "fxOutline", "fxShadow", "fxGlow" }.Any(k => { string v = widget.Get(k); return v != null && v != "0" && v != "None"; })) return null;
+            float N(string key) => (float)Expr.Num(Raw(key));
+            float thickness = N("thickness"), glow = Math.Max(0, N("glow")), start = N("start"), sweep = N("sweep");
+            if (Math.Abs(sweep) < 1) return null;
+            RectangleF b = widget.Bounds;
+            float margin = thickness / 2 + glow / 2 + 1;
+            bool oval = Expr.Bool(Raw("oval"));
+            float radius = Math.Max(4, Math.Min(b.Width, b.Height) / 2 - margin);
+            var ring = new ArcRing
+            {
+                Center = new PointF(b.X + b.Width / 2, b.Y + b.Height / 2), Thickness = thickness, Start = start, Sweep = sweep,
+                RadiusX = oval ? Math.Max(4, b.Width / 2 - margin) : radius, RadiusY = oval ? Math.Max(4, b.Height / 2 - margin) : radius
+            };
+            bool ticks = Raw("ticks").StartsWith("=") || Expr.Num(Raw("ticks")) > 0;
+            bool numbers = ticks && (Raw("numbers").StartsWith("=") || Expr.Bool(Raw("numbers")));
+            float marker = needle == "Marker" ? thickness * Math.Max(0, N("needleLength") / 100 - 1) / 2 + N("needleWidth") : 0;
+            // Out to the glow and the marker; in to the ticks and the numbers (a number is drawn 0.85 of its
+            // size inside the ticks and is at most two digits wide).
+            float outward = thickness / 2 + marker + glow + 3;
+            float inward = Math.Max(thickness / 2 + glow, thickness / 2 + 4 + (ticks ? N("tickLength") : 0) + (numbers ? N("numberSize") * 1.9f : 0)) + 3;
+            const float pad = 3;
+            float cap = thickness / 2 + glow;
+            int pieces = Math.Max(1, (int)Math.Ceiling(Math.Abs(sweep) / 10));
+            var strips = new RectangleF[pieces];
+            for (int i = 0; i < pieces; i++)
+            {
+                float a0 = start + sweep * i / pieces, a1 = start + sweep * (i + 1) / pieces;
+                float minX = float.MaxValue, minY = float.MaxValue, maxX = float.MinValue, maxY = float.MinValue;
+                foreach (float a in new[] { a0, (a0 + a1) / 2, a1 })
+                    foreach (PointF p in new[] { ring.At(a, outward), ring.At(a, -inward) })
+                    {
+                        minX = Math.Min(minX, p.X); maxX = Math.Max(maxX, p.X);
+                        minY = Math.Min(minY, p.Y); maxY = Math.Max(maxY, p.Y);
+                    }
+                // The round caps at the two ends reach past the ring's ends.
+                float grow = pad + (i == 0 || i == pieces - 1 ? cap : 0);
+                var strip = RectangleF.FromLTRB(minX - grow, minY - grow, maxX + grow, maxY + grow);
+                if (Expr.Bool(Raw("flipX"))) strip.X = b.Left + b.Right - strip.Right;
+                if (Expr.Bool(Raw("flipY"))) strip.Y = b.Top + b.Bottom - strip.Bottom;
+                strips[i] = strip;
+            }
+            return strips;
+        }
+
         /// <summary>A number setting that may be negative (such as a shadow offset); a formula counts as the given limit.</summary>
         private static float SignedNum(DashWidget widget, string key, float fallback, float formula)
         {
@@ -382,7 +465,7 @@ namespace AlmostFastOverlays
                             continue;
                         }
                     }
-                    liveBelow.Add(Reach(widget));
+                    liveBelow.AddRange(Areas(widget));
                 }
             }
             _bases[screen.Id] = layer;
@@ -456,7 +539,7 @@ namespace AlmostFastOverlays
                 {
                     case "gear": hash = hash * 31 + t.Gear * 7 + previousGear * 13 + (int)(progress * 1000) + t.MaxForwardGear * 3; break;
                     case "relative": hash = hash * 31 + RelativeHash(t); break;
-                    case "laphistory": hash = hash * 31 + (t.RecentLapSeconds?.Length ?? 0) * 17 + (int)(t.BestLapSeconds * 1000) + ArrayHash(t.RecentLapSeconds); break;
+                    case "laphistory": hash = hash * 31 + (t.RecentLapSeconds?.Length ?? 0) * 17 + (int)(t.BestLapSeconds * 1000) + ArrayHash(t.RecentLapSeconds) * 7 + ArrayHash(t.StintLapSeconds); break;
                     case "progress":
                         hash = hash * 31 + t.LapsCompleted * 13 + t.LapColorVersion + (int)t.SessionSecondsRemaining + t.TotalLaps * 7 + (int)t.ProgressMode;
                         // Which laps ran under yellow colours their blocks.

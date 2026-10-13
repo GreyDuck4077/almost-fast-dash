@@ -195,7 +195,7 @@ namespace AlmostFastOverlays
 
             // Redrawing only what changed must give exactly the frames a full redraw gives, across an animated lap:
             // on every template, and on one with the Style effects on moving and still widgets.
-            DashboardSettings styled = DashboardSettings.CreateDesigned(DesignTemplates.Road);
+            DashboardSettings styled = DashboardSettings.CreateDesigned(DesignTemplates.Find("apex"));
             void Style(string name, params string[] props)
             {
                 DashWidget w = styled.Design.Screens[0].Widgets.First(x => x.Name == name);
@@ -579,6 +579,27 @@ namespace AlmostFastOverlays
                     turned.X + "," + turned.Y + " " + turned.W + "x" + turned.H);
                 _screen.Widgets.Remove(turned);
                 Select(null);
+            }
+
+            // ---------------- lap falloff and the flagships
+            {
+                double[] stint = { 88.2, 87.5, 87.6, 87.9 };
+                Check("lap falloff is the last lap against the stint's best", Math.Abs(Falloff.Total(stint) - 0.4) < 1e-9 && Falloff.Total(new[] { 88.0 }) < 0);
+                Check("the falloff trend runs from the best lap on", Math.Abs(Falloff.PerLap(stint) - 0.2) < 1e-9 && Falloff.PerLap(new[] { 88.0, 87.0 }) == 0, Falloff.PerLap(stint).ToString("0.000"));
+
+                var older = new AppSettings { SchemaVersion = 8 };
+                DashboardSettings mine = DashboardSettings.CreateDesigned(DesignTemplates.Find("apex"));
+                mine.Id = "dashboard-mine";
+                mine.RaceTypes = new List<string> { Disciplines.Road, Disciplines.Oval };
+                older.Dashboards.Add(mine);
+                older.DefaultDashboardId = mine.Id;
+                older.EnsureBuiltInDashboards();
+                Check("an upgrade adds the flagships for road and oval and keeps the user's dashboards",
+                    older.Dashboards.Count == 3 && older.Dashboards[0].Id == DashboardSettings.RoadId && older.Dashboards[1].Id == DashboardSettings.OvalId &&
+                    older.Dashboards.Contains(mine) && mine.RaceTypes.Count == 0 && older.ResolveDashboard(Disciplines.Oval).Id == DashboardSettings.OvalId &&
+                    older.GetDefaultDashboard().Id == DashboardSettings.RoadId);
+                older.EnsureBuiltInDashboards();
+                Check("the flagships are added once", older.Dashboards.Count == 3);
             }
 
             // ---------------- several widgets resized together

@@ -178,6 +178,8 @@ namespace AlmostFastOverlays
         public double FuelPerLapAverage { get; set; } = -1;
         public int StintLaps { get; set; }
         public double[] RecentLapSeconds { get; set; } = new double[0];
+        /// <summary>Green-flag lap times of this stint, oldest first (no pit lane or caution laps): the lap falloff.</summary>
+        public double[] StintLapSeconds { get; set; } = new double[0];
         public RelativeDriver AheadDetail { get; set; }
         public RelativeDriver BehindDetail { get; set; }
         public int PlayerIRating { get; set; }
@@ -317,6 +319,14 @@ namespace AlmostFastOverlays
         private readonly System.Collections.Generic.List<double> _recentLaps = new System.Collections.Generic.List<double>();
         private int _stintLaps;
         private const int FuelAverageLaps = 5;
+        // Green-flag laps of this stint (no pit lane, no caution), for lap falloff. A lap's time is taken
+        // once iRacing updates LapLastLapTime, which can lag the lap counter by a few frames.
+        private readonly System.Collections.Generic.List<double> _stintGreenLaps = new System.Collections.Generic.List<double>();
+        private double[] _stintGreenArray = new double[0];
+        private bool _pendingLap, _pendingLapClean;
+        private double _pendingLapSeen;
+        private int _pendingLapAt;
+        private const int StintLapsKept = 40;
         private TelemetrySnapshot _latest = TelemetrySnapshot.Disconnected;
         private bool _listening;
         private bool _hasResetCounter;
@@ -450,6 +460,8 @@ namespace AlmostFastOverlays
             snapshot.FuelPerLapAverage = 2.46;
             snapshot.StintLaps = 8;
             snapshot.RecentLapSeconds = new[] { 88.412, 87.932, 88.105, 87.521, 87.932 };
+            // A stint wearing its tyres: up to speed on lap two, then a little slower each lap.
+            snapshot.StintLapSeconds = new[] { 88.204, 87.521, 87.566, 87.618, 87.652, 87.711, 87.748, 87.802, 87.861, 87.932 };
             snapshot.AheadDetail = new RelativeDriver { Name = snapshot.DriverAhead, CarNumber = "05", License = "B", LicenseColor = System.Drawing.Color.FromArgb(0, 164, 90), IRating = 2340 };
             snapshot.BehindDetail = new RelativeDriver { Name = snapshot.DriverBehind, CarNumber = "31", License = "A", LicenseColor = System.Drawing.Color.FromArgb(0, 120, 220), IRating = 3120 };
             snapshot.PlayerIRating = 2815;
@@ -665,6 +677,7 @@ namespace AlmostFastOverlays
                 _latest.FuelPerLapAverage = _fuelPerLap.Count > 0 ? Average(_fuelPerLap) : -1;
                 _latest.StintLaps = _stintLaps;
                 _latest.RecentLapSeconds = _recentLaps.ToArray();
+                _latest.StintLapSeconds = _stintGreenArray;
 
                 CarDetails[] details = sample.Telemetry.CarDetails;
                 _latest.AheadDetail = BuildRelative(details, aheadCar, driverAhead);
@@ -959,8 +972,24 @@ namespace AlmostFastOverlays
             {
                 _lapTouchedPit = true;
                 _stintLaps = 0;
+                if (_stintGreenLaps.Count > 0) SetStintLaps(clear: true);
+            }
+            if (_pendingLap && (Math.Abs(telemetry.LapLastLapTime - _pendingLapSeen) > 0.0005 || unchecked(TickNow - _pendingLapAt) > 1500))
+            {
+                _pendingLap = false;
+                if (_pendingLapClean && telemetry.LapLastLapTime > 0)
+                {
+                    _stintGreenLaps.Add(telemetry.LapLastLapTime);
+                    if (_stintGreenLaps.Count > StintLapsKept) _stintGreenLaps.RemoveAt(0);
+                    SetStintLaps(clear: false);
+                }
             }
             if (!lapCompleted) return;
+
+            _pendingLap = true;
+            _pendingLapClean = !_lapTouchedPit && !onPitRoad && !_currentLapHadYellow;
+            _pendingLapSeen = telemetry.LapLastLapTime;
+            _pendingLapAt = TickNow;
 
             if (!_lapTouchedPit && _fuelAtLapStart > 0)
             {
@@ -990,6 +1019,14 @@ namespace AlmostFastOverlays
             _fuelPerLap.Clear();
             _recentLaps.Clear();
             _stintLaps = 0;
+            _pendingLap = false;
+            SetStintLaps(clear: true);
+        }
+
+        private void SetStintLaps(bool clear)
+        {
+            if (clear) _stintGreenLaps.Clear();
+            _stintGreenArray = _stintGreenLaps.ToArray();
         }
 
         private void UpdateLapSummary(Telemetry telemetry, bool yellowActive)
