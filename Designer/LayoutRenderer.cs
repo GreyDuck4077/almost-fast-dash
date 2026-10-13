@@ -173,6 +173,7 @@ namespace AlmostFastOverlays
         {
             foreach (BaseLayer layer in _bases.Values) layer.Bitmap.Dispose();
             _bases.Clear();
+            ForgetStyled();
             ForgetFrame();
         }
 
@@ -320,6 +321,9 @@ namespace AlmostFastOverlays
                     margin += over * Math.Max(b.Width, b.Height) / 2 + Num("needleWidth", 5, 24);
                     break;
             }
+            // The Style effects reach past the drawing: a shadow by its blur and offset, a glow, an outline.
+            float offset = Math.Max(Math.Abs(SignedNum(widget, "fxShadowX", 0, 60)), Math.Abs(SignedNum(widget, "fxShadowY", 4, 60)));
+            margin += Math.Max(Math.Max(2 * Num("fxGlow", 0, 60), Num("fxShadow", 0, 60) > 0 ? 2 * Num("fxShadow", 0, 60) + offset : 0), Num("fxOutline", 0, 30)) + 2;
             if (Math.Abs(Expr.Num(widget.Get("rotate", "0")) % 360) > 0.01 || IsFormula(widget.Get("rotate", "0"), new PropDef { Kind = PropKind.Number }))
             {
                 // A turned widget can reach anywhere within the circle around its box.
@@ -328,6 +332,15 @@ namespace AlmostFastOverlays
             }
             b.Inflate(margin, margin);
             return b;
+        }
+
+        /// <summary>A number setting that may be negative (such as a shadow offset); a formula counts as the given limit.</summary>
+        private static float SignedNum(DashWidget widget, string key, float fallback, float formula)
+        {
+            string raw = widget.Get(key);
+            if (raw != null && raw.StartsWith("=")) return formula;
+            double v = Expr.Num(raw ?? fallback.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            return double.IsNaN(v) ? 0 : (float)v;
         }
 
         private BaseLayer Base(DashScreen screen, EvalScope scope)
@@ -420,6 +433,8 @@ namespace AlmostFastOverlays
                     hash = hash * 31 + (value is double d ? d.GetHashCode() : value is Color c ? c.ToArgb() : Expr.Text(value).GetHashCode());
                 }
                 TelemetrySnapshot t = scope.T;
+                // Several widgets look different while iRacing isn't connected.
+                hash = hash * 31 + (t.Connected ? 1 : 0);
                 // Data-heavy widgets read more than their properties show.
                 switch (widget.Type)
                 {
@@ -499,7 +514,8 @@ namespace AlmostFastOverlays
             bool flipX = context.Bool("flipX"), flipY = context.Bool("flipY");
             float rotate = (float)(context.Num("rotate") % 360);
             RectangleF b = context.B;
-            if (opacity >= 0.999)
+            LayerStyle style = LayerStyle.From(context);
+            if (opacity >= 0.999 && !style.Any)
             {
                 GraphicsState state = g.Save();
                 Turn(g, b, flipX, flipY, rotate);
@@ -510,29 +526,67 @@ namespace AlmostFastOverlays
                 return;
             }
 
-            // Partial opacity: draw into a layer and blend it, so overlapping parts fade together. The
-            // layer is centred on the widget and big enough for it at any angle.
-            const int pad = 48;
-            float span = Math.Abs(rotate) > 0.01f ? (float)Math.Sqrt(b.Width * b.Width + b.Height * b.Height) : 0;
-            int lw = (int)Math.Ceiling(Math.Max(b.Width, span)) + pad * 2, lh = (int)Math.Ceiling(Math.Max(b.Height, span)) + pad * 2;
-            float left = (float)Math.Round(b.X + b.Width / 2 - lw / 2f), top = (float)Math.Round(b.Y + b.Height / 2 - lh / 2f);
-            using (var layer = new Bitmap(lw, lh, PixelFormat.Format32bppArgb))
+            // Partial opacity or Style effects: draw into a layer first, so overlapping parts fade together
+            // and the effects can work on the drawn result. The finished picture (effects beneath, widget
+            // on top) is kept per widget and reused while the widget's fingerprint holds, so a styled
+            // widget that didn't change costs one image copy when something near it redraws.
+            int hash = WidgetHash(widget, scope, previousGear, progress);
+            if (!_styled.TryGetValue(widget.Id, out StyledPicture picture) || picture.Hash != hash)
             {
+                picture?.Bitmap.Dispose();
+                picture = Compose(widget, type, scope, previousGear, progress, style, b, flipX, flipY, rotate);
+                picture.Hash = hash;
+                _styled[widget.Id] = picture;
+            }
+            if (opacity >= 0.999) g.DrawImageUnscaled(picture.Bitmap, picture.At.X, picture.At.Y);
+            else
+                using (ImageAttributes attributes = LayerStyle.Fade((float)opacity))
+                    g.DrawImage(picture.Bitmap, picture.At, 0, 0, picture.At.Width, picture.At.Height, GraphicsUnit.Pixel, attributes);
+        }
+
+        private sealed class StyledPicture
+        {
+            public Bitmap Bitmap;
+            public Rectangle At;
+            public int Hash;
+        }
+
+        private readonly Dictionary<string, StyledPicture> _styled = new Dictionary<string, StyledPicture>();
+
+        /// <summary>Draws a widget into a layer exactly as big as it can reach, then lays its Style effects beneath it.</summary>
+        private StyledPicture Compose(DashWidget widget, WidgetType type, EvalScope scope, int previousGear, float progress, LayerStyle style,
+            RectangleF b, bool flipX, bool flipY, float rotate)
+        {
+            Rectangle at = Outward(Reach(widget));
+            if (at.Width < 1 || at.Height < 1) at = new Rectangle((int)b.X, (int)b.Y, Math.Max(1, (int)b.Width), Math.Max(1, (int)b.Height));
+            var composite = new Bitmap(at.Width, at.Height, PixelFormat.Format32bppArgb);
+            using (var layer = new Bitmap(at.Width, at.Height, PixelFormat.Format32bppArgb))
+            {
+                Matrix place;
                 using (Graphics lg = Graphics.FromImage(layer))
                 {
                     DashKit.Prepare(lg);
-                    lg.TranslateTransform(-left, -top);
+                    lg.TranslateTransform(-at.X, -at.Y);
                     Turn(lg, b, flipX, flipY, rotate);
+                    place = lg.Transform;
                     var inner = new WidgetContext(this, lg, scope, widget, type) { PreviousGear = previousGear, GearProgress = progress, FlipX = flipX, FlipY = flipY };
                     type.Draw(inner);
                 }
-                var matrix = new ColorMatrix { Matrix33 = (float)opacity };
-                using (var attributes = new ImageAttributes())
+                using (place)
+                using (Graphics cg = Graphics.FromImage(composite))
                 {
-                    attributes.SetColorMatrix(matrix);
-                    g.DrawImage(layer, new Rectangle((int)left, (int)top, lw, lh), 0, 0, lw, lh, GraphicsUnit.Pixel, attributes);
+                    var local = new Rectangle(0, 0, at.Width, at.Height);
+                    if (style.Any) style.Apply(cg, layer, b, place, local, 1f);
+                    cg.DrawImageUnscaled(layer, 0, 0);
                 }
             }
+            return new StyledPicture { Bitmap = composite, At = at };
+        }
+
+        private void ForgetStyled()
+        {
+            foreach (StyledPicture picture in _styled.Values) picture.Bitmap.Dispose();
+            _styled.Clear();
         }
 
         /// <summary>Mirrors and turns everything drawn next about the middle of a widget's box.</summary>
@@ -654,6 +708,7 @@ namespace AlmostFastOverlays
             _background?.Dispose();
             _frame?.Dispose();
             _frame = null;
+            ForgetStyled();
             _flags.Dispose();
             _waving?.Dispose();
         }

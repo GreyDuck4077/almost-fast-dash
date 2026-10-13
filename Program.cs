@@ -307,6 +307,25 @@ namespace AlmostFastOverlays
             using (var frame = DashboardRendererFactory.RenderPreview(new DashboardSettings { Layout = Layouts.Custom, Design = race, AccentColor = "#22D3EE" }, units, IRacingTelemetrySource.CreatePreviewSnapshot()))
                 frame.Save(Path.Combine(directory, "Race data.png"), System.Drawing.Imaging.ImageFormat.Png);
 
+            // The Style effects on a few widgets.
+            DashLayout effects = DesignTemplates.Blank();
+            void Add(string type, double x, double y, double w, double h, params string[] props)
+            {
+                DashWidget widget = WidgetCatalog.Create(type, x, y);
+                widget.W = w;
+                widget.H = h;
+                for (int i = 0; i + 1 < props.Length; i += 2) widget.Set(props[i], props[i + 1]);
+                effects.Screens[0].Widgets.Add(widget);
+            }
+            Add("panel", 30, 30, 360, 200, "fxShadow", "14", "fxShadowY", "10", "fxFill", "Gradient", "fxFillColor", "#1E293B", "fxFillColor2", "#0EA5E9", "fxFillAngle", "60", "fxFillAmount", "55");
+            Add("gear", 120, 40, 180, 170, "fxFill", "Gradient", "fxFillColor", "#FFFFFF", "fxFillColor2", "accent", "fxShadow", "6", "fxShadowY", "6", "neighbors", "false");
+            Add("text", 430, 40, 390, 80, "text", "OUTLINE", "size", "56", "color", "#FACC15", "fxOutline", "4", "fxOutlineColor", "#000000", "fxGlow", "14", "fxGlowColor", "#FACC15");
+            Add("metric", 430, 140, 390, 90, "label", "DELTA", "value", "=signed(Delta, 2)", "valueSize", "44", "valueColor", "good", "fxGlow", "10", "fxGlowColor", "good", "rotate", "-4");
+            Add("bar", 30, 280, 790, 40, "value", "0.72", "mode", "Segments", "segments", "30", "colorMode", "Gradient", "fxOutline", "1.5", "fxOutlineColor", "#FFFFFF", "fxShadow", "8", "fxShadowY", "5");
+            Add("arc", 300, 330, 260, 150, "style", "Smooth", "start", "180", "sweep", "180", "oval", "true", "thickness", "16", "fxGlow", "16", "fxGlowColor", "#A855F7", "fxFill", "Color", "fxFillColor", "#A855F7", "fxFillAmount", "60");
+            using (var frame = DashboardRendererFactory.RenderPreview(new DashboardSettings { Layout = Layouts.Custom, Design = effects, AccentColor = "#22D3EE" }, units, IRacingTelemetrySource.CreatePreviewSnapshot()))
+                frame.Save(Path.Combine(directory, "Style effects.png"), System.Drawing.Imaging.ImageFormat.Png);
+
             var gauges = new DashboardSettings { Layout = Layouts.Custom, Design = sheet, AccentColor = "#22D3EE" };
             foreach (var state in new[] { Tuple.Create("", IRacingTelemetrySource.CreatePreviewSnapshot()), Tuple.Create(" - Shift point", LightsWindow.Scenario("Shift point")) })
                 using (var frame = DashboardRendererFactory.RenderPreview(gauges, units, state.Item2))

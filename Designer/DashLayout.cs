@@ -40,6 +40,12 @@ namespace AlmostFastOverlays
             if (Screens.Count == 0) Screens.Add(new DashScreen { Name = "Main" });
             if (Images == null) Images = new Dictionary<string, string>();
             foreach (DashScreen screen in Screens) screen.Normalize();
+            // Images no widget uses any more (removed, or replaced) would otherwise stay in the design for good.
+            if (Images.Count > 0)
+            {
+                var used = new HashSet<string>(AllWidgets().SelectMany(w => w.Props.Values).Where(v => v != null && Images.ContainsKey(v)));
+                foreach (string id in Images.Keys.Where(id => !used.Contains(id)).ToList()) Images.Remove(id);
+            }
         }
 
         public IEnumerable<DashWidget> AllWidgets() => Screens.SelectMany(s => s.Widgets);

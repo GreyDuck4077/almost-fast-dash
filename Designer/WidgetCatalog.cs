@@ -353,6 +353,26 @@ namespace AlmostFastOverlays
 
             foreach (WidgetType type in All)
             {
+                // The shared Style tools (see LayerStyle), applied to whatever the widget draws.
+                type.Props.Add(new PropDef { Key = "fxFill", Label = "Recolor", Kind = PropKind.Choice, Default = "None", Group = "Style", Choices = LayerStyle.FillModes,
+                    Help = "Lays a colour, a gradient or an image over the widget's own pixels, keeping its shape." });
+                type.Props.Add(new PropDef { Key = "fxFillColor", Label = "Recolor with", Kind = PropKind.Color, Default = "accent", Group = "Style" });
+                type.Props.Add(new PropDef { Key = "fxFillColor2", Label = "Gradient to", Kind = PropKind.Color, Default = "bad", Group = "Style" });
+                type.Props.Add(new PropDef { Key = "fxFillAngle", Label = "Gradient angle", Kind = PropKind.Number, Default = "90", Group = "Style", Min = 0, Max = 360, Step = 5,
+                    Help = "0 runs left to right, 90 top to bottom." });
+                type.Props.Add(new PropDef { Key = "fxImage", Label = "Texture", Kind = PropKind.Image, Default = "", Group = "Style" });
+                type.Props.Add(new PropDef { Key = "fxFillAmount", Label = "Recolor strength %", Kind = PropKind.Number, Default = "100", Group = "Style", Min = 0, Max = 100 });
+                type.Props.Add(new PropDef { Key = "fxOutline", Label = "Outline", Kind = PropKind.Number, Default = "0", Group = "Style", Min = 0, Max = 20, Step = 0.5,
+                    Help = "A stroke around everything the widget draws: text, gauges, needles." });
+                type.Props.Add(new PropDef { Key = "fxOutlineColor", Label = "Outline color", Kind = PropKind.Color, Default = "background", Group = "Style" });
+                type.Props.Add(new PropDef { Key = "fxShadow", Label = "Drop shadow", Kind = PropKind.Number, Default = "0", Group = "Style", Min = 0, Max = 40,
+                    Help = "How soft the shadow is; 0 for none." });
+                type.Props.Add(new PropDef { Key = "fxShadowColor", Label = "Shadow color", Kind = PropKind.Color, Default = "#B4000000", Group = "Style" });
+                type.Props.Add(new PropDef { Key = "fxShadowX", Label = "Shadow across", Kind = PropKind.Number, Default = "0", Group = "Style", Min = -40, Max = 40 });
+                type.Props.Add(new PropDef { Key = "fxShadowY", Label = "Shadow down", Kind = PropKind.Number, Default = "4", Group = "Style", Min = -40, Max = 40 });
+                type.Props.Add(new PropDef { Key = "fxGlow", Label = "Outer glow", Kind = PropKind.Number, Default = "0", Group = "Style", Min = 0, Max = 40,
+                    Help = "A soft halo around the whole widget. (A gauge's own Glow lights only its lit parts.)" });
+                type.Props.Add(new PropDef { Key = "fxGlowColor", Label = "Glow color", Kind = PropKind.Color, Default = "accent", Group = "Style" });
                 type.Props.Add(new PropDef { Key = "flipX", Label = "Flip horizontally", Kind = PropKind.Bool, Default = "false", Group = "Transform",
                     Help = "Mirrors the widget left to right; text stays readable. A flipped copy beside the original makes a pair that meets in the middle." });
                 type.Props.Add(new PropDef { Key = "flipY", Label = "Flip vertically", Kind = PropKind.Bool, Default = "false", Group = "Transform", Help = "Mirrors the widget top to bottom; text stays readable." });
@@ -360,6 +380,14 @@ namespace AlmostFastOverlays
                     Help = "Turns the widget about its middle." });
                 type.Props.Add(new PropDef { Key = "visible", Label = "Show when", Kind = PropKind.Formula, Default = "", Group = "Visibility", Help = "A condition such as OnPitRoad or Fuel < 5. Empty means always." });
                 type.Props.Add(new PropDef { Key = "opacity", Label = "Opacity %", Kind = PropKind.Number, Default = "100", Group = "Visibility", Min = 0, Max = 100 });
+
+                Rule(type.Id, "fxFill", v => v == "Color" || v == "Gradient", "fxFillColor");
+                Rule(type.Id, "fxFill", v => v == "Gradient", "fxFillColor2", "fxFillAngle");
+                Rule(type.Id, "fxFill", v => v == "Image", "fxImage");
+                Rule(type.Id, "fxFill", v => v != "None", "fxFillAmount");
+                Rule(type.Id, "fxOutline", nonZero, "fxOutlineColor");
+                Rule(type.Id, "fxShadow", nonZero, "fxShadowColor", "fxShadowX", "fxShadowY");
+                Rule(type.Id, "fxGlow", nonZero, "fxGlowColor");
             }
         }
 

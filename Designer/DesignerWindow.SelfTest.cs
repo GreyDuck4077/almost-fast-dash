@@ -176,10 +176,25 @@ namespace AlmostFastOverlays
                 return count + " px within " + l + "," + t + " to " + r + "," + btm + " (largest difference " + most + "/255)";
             }
 
-            // Redrawing only what changed must give exactly the frames a full redraw gives, across an animated lap.
-            foreach (DesignTemplate template in DesignTemplates.All)
+            // Redrawing only what changed must give exactly the frames a full redraw gives, across an animated lap:
+            // on every template, and on one with the Style effects on moving and still widgets.
+            DashboardSettings styled = DashboardSettings.CreateDesigned(DesignTemplates.Find("halo"));
+            void Style(string name, params string[] props)
             {
-                DashboardSettings d = DashboardSettings.CreateDesigned(template);
+                DashWidget w = styled.Design.Screens[0].Widgets.First(x => x.Name == name);
+                for (int k = 0; k + 1 < props.Length; k += 2) w.Set(props[k], props[k + 1]);
+            }
+            Style("Gear", "fxShadow", "8", "fxShadowY", "6", "fxFill", "Gradient", "fxFillColor", "#FFFFFF", "fxFillColor2", "accent");
+            Style("RPM", "fxOutline", "2", "fxOutlineColor", "#000000");
+            Style("Rev lights left", "fxGlow", "12", "fxGlowColor", "accent");
+            Style("Last lap tile", "fxFill", "Color", "fxFillColor", "purple", "fxFillAmount", "40");
+            Style("Delta", "fxShadow", "4", "fxShadowX", "-3", "rotate", "8");
+            Style("Speed", "fxOutline", "1.5", "fxGlow", "6", "opacity", "70");
+            var lapDesigns = DesignTemplates.All.Select(t => Tuple.Create(t.Name, t.Id, DashboardSettings.CreateDesigned(t))).ToList();
+            lapDesigns.Add(Tuple.Create("Style effects", "styled", styled));
+            foreach (var template in lapDesigns.Select(e => new { Name = e.Item1, Id = e.Item2, Settings = e.Item3 }))
+            {
+                DashboardSettings d = template.Settings;
                 d.Design.FullScreenFlags = false;
                 var lap = new SyntheticTelemetry();
                 int mismatches = 0, frames = 0, rounded = 0;
@@ -398,6 +413,46 @@ namespace AlmostFastOverlays
             System.Drawing.RectangleF ringBounds;
             using (var band = ring.Band(135, 270, true)) ringBounds = band.GetBounds();
             Check("oval ring follows its box", ringBounds.Width > ringBounds.Height * 1.3f && ringBounds.Right < 150 + 120 + 11 && ringBounds.Bottom < 150 + 80 + 11);
+
+            // ---------------- Style effects on a single widget
+            {
+                var layout = DesignTemplates.Blank();
+                layout.Theme.BackgroundStyle = "Solid";
+                layout.Theme.Background = "#000000";
+                System.Drawing.Bitmap Frame(params string[] props)
+                {
+                    DashWidget w = WidgetCatalog.Create("text", 300, 200);
+                    w.W = 200; w.H = 60;
+                    w.Set("text", "88"); w.Set("size", "48"); w.Set("color", "#FFFFFF");
+                    for (int k = 0; k + 1 < props.Length; k += 2) w.Set(props[k], props[k + 1]);
+                    layout.Screens[0].Widgets.Clear();
+                    layout.Screens[0].Widgets.Add(w);
+                    using (var renderer = new LayoutRenderer(854, 480, new DashboardSettings { Layout = Layouts.Custom, Design = layout }, _units))
+                        return renderer.Render(IRacingTelemetrySource.CreatePreviewSnapshot(), false, 4, 1, layout.Screens[0]);
+                }
+                bool LitOutside(System.Drawing.Bitmap f) => Enumerable.Range(0, 40).Any(k => f.GetPixel(290 + k * 7, 196).ToArgb() != System.Drawing.Color.Black.ToArgb() || f.GetPixel(290 + k * 7, 266).ToArgb() != System.Drawing.Color.Black.ToArgb());
+                using (System.Drawing.Bitmap plainText = Frame())
+                using (System.Drawing.Bitmap shadow = Frame("fxShadow", "10", "fxShadowY", "30", "fxShadowColor", "#FF00A0FF"))
+                using (System.Drawing.Bitmap glow = Frame("fxGlow", "24", "fxGlowColor", "#FF0000"))
+                using (System.Drawing.Bitmap outline = Frame("fxOutline", "3", "fxOutlineColor", "#00FF00"))
+                using (System.Drawing.Bitmap recolor = Frame("fxFill", "Color", "fxFillColor", "#FF0000"))
+                {
+                    Check("plain text stays inside its box", !LitOutside(plainText));
+                    Check("a long shadow and a wide glow reach past the widget's box", LitOutside(shadow) && LitOutside(glow));
+                    Check("every effect changes the picture", Pixels(shadow) != Pixels(plainText) && Pixels(glow) != Pixels(plainText) && Pixels(outline) != Pixels(plainText) && Pixels(recolor) != Pixels(plainText));
+                    // Recolor paints the digits red but leaves the gaps between them untouched.
+                    int red = 0, other = 0;
+                    for (int py = 200; py < 260; py += 2)
+                        for (int px = 300; px < 500; px += 2)
+                        {
+                            System.Drawing.Color p = recolor.GetPixel(px, py);
+                            if (p.R > 200 && p.G < 60 && p.B < 60) red++;
+                            else if (p.ToArgb() != System.Drawing.Color.Black.ToArgb() && p.G > 120) other++;
+                        }
+                    Check("recolor paints only the widget's own pixels", red > 50 && other == 0, red + " red, " + other + " other");
+                    Check("outline is drawn in its colour", Enumerable.Range(0, 200).Any(k => outline.GetPixel(300 + k, 230).G > 200 && outline.GetPixel(300 + k, 230).R < 80));
+                }
+            }
 
             // ---------------- turned widgets on the canvas
             {
