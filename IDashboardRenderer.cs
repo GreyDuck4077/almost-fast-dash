@@ -11,7 +11,7 @@ namespace AlmostFastOverlays
     internal static class DashboardRendererFactory
     {
         public static IDashboardRenderer Create(int width, int height, DashboardSettings settings, UnitSystem units = null) =>
-            new LayoutRenderer(width, height, settings ?? DashboardSettings.CreateHalo(), units);
+            new LayoutRenderer(width, height, settings ?? DashboardSettings.CreateRoad(), units);
 
         /// <summary>Renders one representative frame without touching any hardware.</summary>
         public static Bitmap RenderPreview(DashboardSettings settings, UnitSystem units, TelemetrySnapshot snapshot = null)

@@ -187,7 +187,7 @@ namespace AlmostFastOverlays
             else if (scenario.StartsWith("designer"))
             {
                 AppSettings settings = SettingsStore.Load();
-                DashboardSettings dashboard = DashboardSettings.CreateDesigned(DesignTemplates.Find(scenario.Contains("oval") ? "oval" : "halo"));
+                DashboardSettings dashboard = DashboardSettings.CreateDesigned(DesignTemplates.Find(scenario.Contains("oval") ? "spotter" : "apex"));
                 var designer = new DesignerWindow(settings, dashboard, null) { Width = 1560, Height = 940 };
                 designer.Loaded += (s, e) => designer.Dispatcher.BeginInvoke(new Action(() => designer.PrepareSnapshot(scenario)), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
                 window = designer;
@@ -239,7 +239,7 @@ namespace AlmostFastOverlays
             var application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
             application.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("pack://application:,,,/AlmostFastDash;component/Theme.xaml") });
             AppSettings settings = SettingsStore.Load();
-            DashboardSettings dashboard = settings.AddDesignedDashboard(DesignTemplates.Find("halo"), "Self test");
+            DashboardSettings dashboard = settings.AddDesignedDashboard(DesignTemplates.Road, "Self test");
             var designer = new DesignerWindow(settings, dashboard, null) { Left = -4000, Top = 0, ShowActivated = false, WindowStartupLocation = WindowStartupLocation.Manual };
             int exit = 1;
             designer.Loaded += (s, e) => designer.Dispatcher.BeginInvoke(new Action(() =>
@@ -274,6 +274,15 @@ namespace AlmostFastOverlays
                 foreach (var state in states)
                     using (var frame = DashboardRendererFactory.RenderPreview(dashboard, units, state.Item2))
                         frame.Save(Path.Combine(directory, template.Name + state.Item1 + ".png"), System.Drawing.Imaging.ImageFormat.Png);
+                // Pages beyond the first, as a wheel button shows them.
+                var pages = dashboard.Design.Screens.Where(s => string.IsNullOrWhiteSpace(s.Condition)).ToList();
+                for (int page = 1; page < pages.Count; page++)
+                    using (var renderer = new LayoutRenderer(854, 480, dashboard, units))
+                    {
+                        renderer.StepPage(page);
+                        using (var frame = renderer.Render(IRacingTelemetrySource.CreatePreviewSnapshot(), false, 4, 1))
+                            frame.Save(Path.Combine(directory, template.Name + " - " + pages[page].Name + ".png"), System.Drawing.Imaging.ImageFormat.Png);
+                    }
             }
 
             // A sheet of the shaped gauges, at cruising revs and at the shift point.

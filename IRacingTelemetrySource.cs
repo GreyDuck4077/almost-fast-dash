@@ -258,6 +258,9 @@ namespace AlmostFastOverlays
         /// <summary>The kind of notice: Info, Good, Warning or Danger, for colouring it.</summary>
         public string NoticeKind { get; set; } = "";
 
+        /// <summary>Made-up data for previews (the designer, gallery cards), not a live session.</summary>
+        public bool IsPreview { get; set; }
+
         /// <summary>This track's traced outline, or null until a clean lap has been driven here.</summary>
         public TrackMap TrackMap { get; set; }
         /// <summary>How far through tracing the map the current lap is (0 to 1); -1 when not tracing.</summary>

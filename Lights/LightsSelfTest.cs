@@ -42,7 +42,7 @@ namespace AlmostFastOverlays
                 "Green flag", "Yellow flag", "White flag", "Blue flag", "Black flag", "Checkered flag", "Not connected" };
             foreach (LightPreset preset in LightPresets.All)
             {
-                LightProfile profile = preset.Create(DashboardSettings.CreateHalo());
+                LightProfile profile = preset.Create(DashboardSettings.CreateRoad());
                 var renderer = new LightRenderer(profile, "#2DD4BF", units, devices);
                 var errors = new List<string>();
                 int now = 0;
@@ -57,7 +57,7 @@ namespace AlmostFastOverlays
 
             // ---------------- settings from before light layers become layers, once
             var oldLights = new AppSettings { SchemaVersion = 7 };
-            var classic = DashboardSettings.CreateHalo();
+            var classic = DashboardSettings.CreateRoad();
             classic.Lights = null;
             classic.CenterLeds = new LedBankSettings { Function = "RPM", Pattern = "Left to right", Brightness = 40 };
             classic.BrowLeds = BrowLedSettings.CreateDefault(BrowFunctions.BlindSpot);
@@ -289,7 +289,7 @@ namespace AlmostFastOverlays
             Check("old DV-5 and LB-10 settings become set-up devices", old.General.Devices.Count == 2 && dv5.Port == "COM4" && dv5.UsbId == DevicePorts.Dv5 && dv5.Groups.Count == 3
                 && lb10.Port == "COM3" && lb10.LedCount == 20 && !lb10.Enabled && lb10.Groups.Single().To == 20 && old.General.LedPort == null && old.SchemaVersion == 8);
             var named = new AppSettings { SchemaVersion = 6 };
-            named.Dashboards.Add(DashboardSettings.CreateHalo());
+            named.Dashboards.Add(DashboardSettings.CreateRoad());
             named.Dashboards[0].Lights.Layers.Add(new LightLayer { Name = "Brow rev lights", Target = "brow", Effect = "revs" });
             named.EnsureBuiltInDashboards();
             Check("light layers aren't named after one device", named.Dashboards.SelectMany(d => d.Lights?.Layers ?? new List<LightLayer>()).All(l => !l.Name.StartsWith("Brow"))
@@ -308,7 +308,7 @@ namespace AlmostFastOverlays
             Check("known devices are recognised by USB ID or name", KnownDevices.Find(DevicePorts.Dv5, null) == KnownDevices.Dv5 && KnownDevices.Find(null, "SSG LB-10 v2") == KnownDevices.Lb10
                 && KnownDevices.Find("VID_2341&PID_0043", "My LEDs") == null);
             // ---------------- persistence
-            DashboardSettings saved = DashboardSettings.CreateHalo();
+            DashboardSettings saved = DashboardSettings.CreateRoad();
             saved.Lights = LightPresets.Refined();
             DashboardSettings loaded = SettingsStore.Clone(saved);
             loaded.Normalize();

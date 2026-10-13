@@ -97,17 +97,17 @@ namespace AlmostFastOverlays
                 using (IDashboardRenderer designed = DashboardRendererFactory.Create(854, 480, DashboardSettings.CreateDesigned(template), _units))
                     report.Add("INFO  " + template.Id + ": " + Time(designed).ToString("0.0") + " ms per frame");
             // Where the time goes in the flagship.
-            DashLayout halo = DesignTemplates.Find("halo").Create();
+            DashLayout halo = DesignTemplates.Road.Create();
             var costs = new List<string>();
             foreach (DashWidget widget in halo.Screens[0].Widgets.Concat(new DashWidget[] { null }))
             {
-                DashLayout single = DesignTemplates.Find("halo").Create();
+                DashLayout single = DesignTemplates.Road.Create();
                 single.Screens[0].Widgets = widget == null ? new List<DashWidget>() : new List<DashWidget> { widget };
                 using (var renderer = new LayoutRenderer(854, 480, new DashboardSettings { Layout = Layouts.Custom, Design = single, AccentColor = "#22D3EE" }, _units))
                     costs.Add((widget?.Name ?? "background only") + " " + Time(renderer).ToString("0.0"));
             }
             report.Add("INFO  halo cost by widget (ms): " + string.Join(", ", costs));
-            using (var profiled = new LayoutRenderer(854, 480, DashboardSettings.CreateDesigned(DesignTemplates.Find("halo")), _units) { Timings = new Dictionary<string, double>() })
+            using (var profiled = new LayoutRenderer(854, 480, DashboardSettings.CreateDesigned(DesignTemplates.Road), _units) { Timings = new Dictionary<string, double>() })
             {
                 TelemetrySnapshot snapshot = IRacingTelemetrySource.CreatePreviewSnapshot();
                 using (profiled.Render(snapshot, false, 4, 1)) { }
@@ -119,7 +119,7 @@ namespace AlmostFastOverlays
                     string.Join(", ", profiled.Timings.OrderByDescending(p => p.Value).Take(8).Select(p => p.Key + " " + (p.Value / 30).ToString("0.00"))));
             }
 
-            using (var designed = new LayoutRenderer(854, 480, DashboardSettings.CreateDesigned(DesignTemplates.Find("halo")), _units))
+            using (var designed = new LayoutRenderer(854, 480, DashboardSettings.CreateDesigned(DesignTemplates.Road), _units))
             {
                 TelemetrySnapshot snapshot = IRacingTelemetrySource.CreatePreviewSnapshot();
                 var watch = System.Diagnostics.Stopwatch.StartNew();
@@ -189,15 +189,15 @@ namespace AlmostFastOverlays
 
             // Redrawing only what changed must give exactly the frames a full redraw gives, across an animated lap:
             // on every template, and on one with the Style effects on moving and still widgets.
-            DashboardSettings styled = DashboardSettings.CreateDesigned(DesignTemplates.Find("halo"));
+            DashboardSettings styled = DashboardSettings.CreateDesigned(DesignTemplates.Road);
             void Style(string name, params string[] props)
             {
                 DashWidget w = styled.Design.Screens[0].Widgets.First(x => x.Name == name);
                 for (int k = 0; k + 1 < props.Length; k += 2) w.Set(props[k], props[k + 1]);
             }
             Style("Gear", "fxShadow", "8", "fxShadowY", "6", "fxFill", "Gradient", "fxFillColor", "#FFFFFF", "fxFillColor2", "accent");
-            Style("RPM", "fxOutline", "2", "fxOutlineColor", "#000000");
-            Style("Rev lights left", "fxGlow", "12", "fxGlowColor", "accent");
+            Style("Speed unit", "fxOutline", "2", "fxOutlineColor", "#000000");
+            Style("Rev ring", "fxGlow", "12", "fxGlowColor", "accent");
             Style("Last lap tile", "fxFill", "Color", "fxFillColor", "purple", "fxFillAmount", "40");
             Style("Delta", "fxShadow", "4", "fxShadowX", "-3", "rotate", "8");
             Style("Speed", "fxOutline", "1.5", "fxGlow", "6", "opacity", "70");
@@ -256,7 +256,7 @@ namespace AlmostFastOverlays
             }
 
             // Waving flags: the cloth moves with time, and the runtime is told to redraw it.
-            using (var waving = new LayoutRenderer(854, 480, DashboardSettings.CreateHalo(), _units))
+            using (var waving = new LayoutRenderer(854, 480, DashboardSettings.CreateRoad(), _units))
             {
                 TelemetrySnapshot green = IRacingTelemetrySource.CreatePreviewSnapshot(RacingFlag.Green);
                 waving.FlagClock = 0;

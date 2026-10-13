@@ -7,9 +7,11 @@ alerts. One exe, no installer, no other software required.
 
 ## What it does
 
-- **Dashboards** on a wheel screen, made in a built-in designer. Two come ready
-  to use: **Halo** (road) and **Oval** (oval), and the dashboard can switch
-  between them by the session's track type.
+- **Dashboards** on a wheel screen, made in a built-in designer. Six come ready
+  to use and are built only from the designer's own widgets, so any of them can
+  be changed or rebuilt by hand: **Apex** (road), **Twin Dial**, **Neon**,
+  **Ribbon**, **Spotter** (ovals) and **Race Display**. The dashboard can switch
+  by the session's track type, and a wheel button can page through screens.
 - **LED devices** of any shape: the LEDs around a wheel screen, light bars, LED
   strips. Arduino boards on the common sim-racing LED protocol, Adalight strips
   and WLED controllers.
@@ -85,6 +87,32 @@ Supported devices:
 - **WLED** controllers on your network, over WLED's real-time UDP protocol.
 
 Devices are found again by USB ID when Windows renumbers COM ports.
+
+## The designer
+
+Open **Design** on a dashboard. Drag widgets and ready-made blocks onto the
+screen; every setting can be a fixed value or a live formula (`ƒx`).
+
+- **Widgets**: text and values, the gear, bars and arc gauges (needles, ticks,
+  numbers), shift lights, the leaderboard, relative, tyres, a self-tracing track
+  map, live graphs of any value, flags, blind-spot bars, panels and shapes.
+- **Quick values**: one-click items for engine, lap, sectors, tyres, fuel, race,
+  leaderboard, notices and the PC.
+- **Shared tools** on every widget where they fit: shape (bend, taper, bulge,
+  slant), fill direction, flip and rotate, and style (recolour with a colour,
+  gradient or texture, outline, drop shadow, outer glow).
+- **Groups** (Ctrl+G) with a number formulas read as `Slot`: build one driver row
+  with `standing(Slot, "Name")`, then Ctrl+D copies it for the next place.
+- **Several widgets** selected show their shared settings, edited together;
+  Ctrl+Shift+C / Ctrl+Shift+V copies and pastes a widget's look.
+- **Screens**: a screen with a *Show when* condition takes over when it's true
+  (pit lane, caution); the others are pages a wheel button steps through.
+- **Export and import** a whole dashboard, with its images and lights, as one
+  `.afodash` file.
+
+The **track map** draws itself: drive one clean lap at a track and the app
+traces it from your speed and heading, then keeps it in `TrackMaps` for next
+time.
 
 ## Light profiles
 

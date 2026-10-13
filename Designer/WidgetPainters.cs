@@ -1152,6 +1152,16 @@ namespace AlmostFastOverlays
             if (c.Bool("grid")) Paint.Grid(g, b, c.Color("gridColor"));
             int n = history.Count;
             bool second = !string.IsNullOrWhiteSpace(c.Raw("value2"));
+            Func<int, double> firstAt = history.First, secondAt = history.Second;
+            if (n < 2 && c.T.IsPreview)
+            {
+                // A still preview has no history yet; show a representative trace around the current value.
+                double now1 = c.Num("value"), now2 = second ? c.Num("value2") : 0;
+                n = GraphHistory.Points;
+                firstAt = i => now1 * (0.8 + 0.2 * Math.Sin(i / 10.0) * Math.Cos(i / 27.0));
+                // A value at zero now (a pedal at rest) gets occasional presses; anything else drifts around its value.
+                secondAt = Math.Abs(now2) < 1e-6 ? (Func<int, double>)(i => 0.9 * Math.Pow(Math.Max(0, Math.Sin(i / 9.0 + 2)), 6)) : i => now2 * (0.9 + 0.1 * Math.Sin(i / 13.0 + 1));
+            }
             double lo = c.Num("min"), hi = c.Num("max");
             if (hi <= lo)
             {
@@ -1159,7 +1169,7 @@ namespace AlmostFastOverlays
                 lo = double.MaxValue;
                 hi = double.MinValue;
                 for (int i = 0; i < n; i++)
-                    foreach (double v in second ? new[] { history.First(i), history.Second(i) } : new[] { history.First(i) })
+                    foreach (double v in second ? new[] { firstAt(i), secondAt(i) } : new[] { firstAt(i) })
                         if (!double.IsNaN(v) && !double.IsInfinity(v)) { lo = Math.Min(lo, v); hi = Math.Max(hi, v); }
                 if (lo > hi) { lo = 0; hi = 1; }
                 double room = Math.Max(1e-6, (hi - lo) * 0.1);
@@ -1219,13 +1229,13 @@ namespace AlmostFastOverlays
             if (style == "Bars")
             {
                 float w = step * (second ? 0.42f : 0.8f);
-                Bars(history.First, first, step * 0.1f, w);
-                if (second) Bars(history.Second, other, step * 0.52f, w);
+                Bars(firstAt, first, step * 0.1f, w);
+                if (second) Bars(secondAt, other, step * 0.52f, w);
             }
             else
             {
-                if (second) Line(history.Second, other);
-                Line(history.First, first);
+                if (second) Line(secondAt, other);
+                Line(firstAt, first);
             }
 
             string label = c.Text("label");

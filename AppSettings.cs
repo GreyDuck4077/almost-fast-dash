@@ -44,7 +44,7 @@ namespace AlmostFastOverlays
         private const int CurrentSchema = 8;
 
         public int SchemaVersion { get; set; }
-        public string DefaultDashboardId { get; set; } = "dashboard-halo";
+        public string DefaultDashboardId { get; set; } = "dashboard-apex";
         public GeneralSettings General { get; set; } = new GeneralSettings();
         public List<DashboardSettings> Dashboards { get; set; } = new List<DashboardSettings>();
 
@@ -96,7 +96,7 @@ namespace AlmostFastOverlays
 
             if (Dashboards.Count == 0)
             {
-                Dashboards.Add(DashboardSettings.CreateHalo());
+                Dashboards.Add(DashboardSettings.CreateRoad());
                 Dashboards.Add(DashboardSettings.CreateOval());
             }
             foreach (DashboardSettings dashboard in Dashboards) dashboard.Normalize();
@@ -105,7 +105,7 @@ namespace AlmostFastOverlays
 
         /// <summary>
         /// Schema 5: the code-drawn dashboards are gone. Their track types move to the
-        /// Halo and Oval designs, which are added when the user has no design of that name.
+        /// road and oval designs, which are added when the user has no design of that name.
         /// </summary>
         private void ReplaceCodeLayouts()
         {
@@ -127,21 +127,21 @@ namespace AlmostFastOverlays
             }
 
             // A new Oval design takes over the oval tracks, as the old Oval layout did.
-            if (!Dashboards.Any(d => string.Equals(d.Name, "Oval", StringComparison.OrdinalIgnoreCase)))
+            if (!Dashboards.Any(d => string.Equals(d.Name, "Spotter", StringComparison.OrdinalIgnoreCase)))
             {
                 foreach (DashboardSettings d in Dashboards)
                     d.RaceTypes?.RemoveAll(type => type == Disciplines.Oval || type == Disciplines.DirtOval);
-                Ensure("Oval", DashboardSettings.CreateOval).RaceTypes.AddRange(new[] { Disciplines.Oval, Disciplines.DirtOval });
+                Ensure("Spotter", DashboardSettings.CreateOval).RaceTypes.AddRange(new[] { Disciplines.Oval, Disciplines.DirtOval });
             }
 
             foreach (string type in orphanTypes.Where(type => !Dashboards.Any(d => d.RaceTypes != null && d.RaceTypes.Contains(type))))
             {
                 bool oval = type == Disciplines.Oval || type == Disciplines.DirtOval;
-                DashboardSettings target = oval ? Ensure("Oval", DashboardSettings.CreateOval) : Ensure("Halo", DashboardSettings.CreateHalo);
+                DashboardSettings target = oval ? Ensure("Spotter", DashboardSettings.CreateOval) : Ensure("Apex", DashboardSettings.CreateRoad);
                 target.RaceTypes.Add(type);
             }
             if (Dashboards.Count == 0) return;
-            if (defaultRetired) DefaultDashboardId = (Dashboards.FirstOrDefault(d => d.Name == "Halo") ?? Dashboards[0]).Id;
+            if (defaultRetired) DefaultDashboardId = (Dashboards.FirstOrDefault(d => d.Name == "Apex") ?? Dashboards[0]).Id;
         }
 
         /// <summary>
@@ -182,7 +182,7 @@ namespace AlmostFastOverlays
         /// <summary>Puts a dashboard's lights and flag alerts back to their defaults.</summary>
         public void ResetDashboard(DashboardSettings dashboard)
         {
-            DashboardSettings factory = dashboard.Name == "Oval" ? DashboardSettings.CreateOval() : DashboardSettings.CreateHalo();
+            DashboardSettings factory = dashboard.RaceTypes != null && (dashboard.RaceTypes.Contains(Disciplines.Oval) || dashboard.RaceTypes.Contains(Disciplines.DirtOval)) ? DashboardSettings.CreateOval() : DashboardSettings.CreateRoad();
             dashboard.Lights = factory.Lights;
             dashboard.Alerts = factory.Alerts;
         }
@@ -274,15 +274,15 @@ namespace AlmostFastOverlays
         {
             DashboardSettings created = Create("dashboard-new", template.Name, template.Accent);
             created.Design = template.Create();
-            created.Lights = template.Id == "oval" ? LightPresets.SpotterFocus() : LightPresets.Refined();
+            created.Lights = template.OvalLights ? LightPresets.SpotterFocus() : LightPresets.Refined();
             return created;
         }
 
         /// <summary>The default road dashboard.</summary>
-        public static DashboardSettings CreateHalo()
+        public static DashboardSettings CreateRoad()
         {
-            DashboardSettings halo = Create("dashboard-halo", "Halo", "#22D3EE", Disciplines.Road, Disciplines.DirtRoad);
-            halo.Design = DesignTemplates.Find("halo").Create();
+            DashboardSettings halo = Create("dashboard-apex", DesignTemplates.Road.Name, DesignTemplates.Road.Accent, Disciplines.Road, Disciplines.DirtRoad);
+            halo.Design = DesignTemplates.Road.Create();
             halo.Lights = LightPresets.Refined();
             return halo;
         }
@@ -290,8 +290,8 @@ namespace AlmostFastOverlays
         /// <summary>The default oval dashboard.</summary>
         public static DashboardSettings CreateOval()
         {
-            DashboardSettings oval = Create("dashboard-oval", "Oval", "#FFB020", Disciplines.Oval, Disciplines.DirtOval);
-            oval.Design = DesignTemplates.Find("oval").Create();
+            DashboardSettings oval = Create("dashboard-spotter", DesignTemplates.Oval.Name, DesignTemplates.Oval.Accent, Disciplines.Oval, Disciplines.DirtOval);
+            oval.Design = DesignTemplates.Oval.Create();
             oval.Lights = LightPresets.SpotterFocus();
             return oval;
         }

@@ -443,6 +443,7 @@ namespace AlmostFastOverlays
                 };
             s.Standings = rows;
             s.TrackMap = TrackMap.Preview();
+            s.IsPreview = true;
             s.PlayerCarIdx = 3;
             s.CarLapDist = new[] { 0.62f, 0.55f, 0.47f, 0.455f, 0.43f, 0.0f, 0.21f, 0.83f };
         }

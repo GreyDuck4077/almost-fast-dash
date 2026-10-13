@@ -457,7 +457,11 @@ namespace AlmostFastOverlays
                     case "gear": hash = hash * 31 + t.Gear * 7 + previousGear * 13 + (int)(progress * 1000) + t.MaxForwardGear * 3; break;
                     case "relative": hash = hash * 31 + RelativeHash(t); break;
                     case "laphistory": hash = hash * 31 + (t.RecentLapSeconds?.Length ?? 0) * 17 + (int)(t.BestLapSeconds * 1000) + ArrayHash(t.RecentLapSeconds); break;
-                    case "progress": hash = hash * 31 + t.LapsCompleted * 13 + t.LapColorVersion + (int)t.SessionSecondsRemaining + t.TotalLaps * 7 + (int)t.ProgressMode; break;
+                    case "progress":
+                        hash = hash * 31 + t.LapsCompleted * 13 + t.LapColorVersion + (int)t.SessionSecondsRemaining + t.TotalLaps * 7 + (int)t.ProgressMode;
+                        // Which laps ran under yellow colours their blocks.
+                        if (t.YellowCompletedLaps != null) for (int i = 0; i < t.YellowCompletedLaps.Length; i++) if (t.YellowCompletedLaps[i]) hash = hash * 31 + i + 1;
+                        break;
                     case "blindspot": hash = hash * 31 + (int)t.LeftBlindSpot * 5 + (int)t.RightBlindSpot; break;
                     case "flag": hash = hash * 31 + (int)t.Flag; break;
                     case "standings": hash = hash * 31 + StandingsHash(t) + (int)(t.SessionBestLapSeconds * 1000); break;
