@@ -886,6 +886,22 @@ namespace AlmostFastOverlays
                 Check("Halo and Oval take the reworked designs, keeping their names, colours, track types and flag choices",
                     oldHalo.Design.AllWidgets().Any(w => w.Type == "traffic") && oldOval.Design.AllWidgets().Any(w => w.Type == "radar") && oldHalo.Name == "Halo" &&
                     oldHalo.AccentColor == "#30D158" && !oldHalo.Design.FlagFrame && oldOval.RaceTypes.Contains(Disciplines.Oval) && ownDesign.Design.AllWidgets().Count() == ownWidgets);
+
+                // Schema 17: brighter labels where the colour is still a template's; a colour of the user's own stays.
+                var dimmer = new AppSettings { SchemaVersion = 16 };
+                DashboardSettings dimOval = DashboardSettings.CreateDesigned(DesignTemplates.Find("oval")), ownColours = DashboardSettings.CreateDesigned(DesignTemplates.Find("blank"));
+                dimOval.Id = "dashboard-dim";
+                dimOval.Design.Theme.Muted = "#8DA0BF";
+                DashWidget caption = dimOval.Design.AllWidgets().First(w => w.Name == "Ahead lengths caption");
+                caption.Set("color", "dim");
+                caption.Set("size", "10");
+                ownColours.Id = "dashboard-colours";
+                ownColours.Design.Theme.Muted = "#123456";
+                dimmer.Dashboards.AddRange(new[] { dimOval, ownColours });
+                dimmer.EnsureBuiltInDashboards();
+                Check("labels brighten where the colour is still a template's, and a colour of your own stays",
+                    dimOval.Design.Theme.Muted == "#B6C5DD" && caption.Get("color") == "muted" && caption.Get("size") == "11" && ownColours.Design.Theme.Muted == "#123456",
+                    dimOval.Design.Theme.Muted + " " + caption.Get("color") + " " + caption.Get("size") + " " + ownColours.Design.Theme.Muted);
             }
 
             // ---------------- radar and traffic

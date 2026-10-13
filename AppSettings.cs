@@ -41,7 +41,7 @@ namespace AlmostFastOverlays
 
     internal sealed class AppSettings
     {
-        private const int CurrentSchema = 16;
+        private const int CurrentSchema = 17;
 
         public int SchemaVersion { get; set; }
         public string DefaultDashboardId { get; set; } = DashboardSettings.RoadId;
@@ -98,6 +98,7 @@ namespace AlmostFastOverlays
                 if (SchemaVersion >= 9 && SchemaVersion < 14) PolishFlagships();
                 if (SchemaVersion > 0 && SchemaVersion < 15) { RoundCutPanels(); RebuildNeon(); }
                 if (SchemaVersion > 0 && SchemaVersion < 16) ReworkHaloAndOval();
+                if (SchemaVersion > 0 && SchemaVersion < 17) BrighterLabels();
                 SchemaVersion = CurrentSchema;
             }
             foreach (DeviceSettings device in General.Devices) device.Normalize();
@@ -263,6 +264,32 @@ namespace AlmostFastOverlays
                 rebuilt.WavingFlags = old.WavingFlags;
                 rebuilt.FlagFrame = old.FlagFrame;
                 dashboard.Design = rebuilt;
+            }
+        }
+
+        /// <summary>
+        /// Schema 17: labels are easier to read. A design whose muted colour (labels and captions) is still the one
+        /// a template gave it takes the brighter version; a colour the user picked stays. The captions under
+        /// Halo's and Oval's big numbers move from the dim colour to the muted one, a size larger.
+        /// </summary>
+        private void BrighterLabels()
+        {
+            var brighter = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["#8190A4"] = "#A9B6C8", ["#968C84"] = "#BDB3AA", ["#8AA396"] = "#B2C7BB", ["#8DA0BF"] = "#B6C5DD", ["#AA9CDA"] = "#C2B6EC"
+            };
+            var captions = new HashSet<string> { "Ahead lengths caption", "Behind lengths caption", "Fuel laps caption", "Falloff caption", "Traffic label" };
+            foreach (DashboardSettings dashboard in Dashboards)
+            {
+                LayoutTheme theme = dashboard.Design?.Theme;
+                if (theme?.Muted != null && brighter.TryGetValue(theme.Muted.Trim(), out string lifted)) theme.Muted = lifted;
+                if (dashboard.Design?.Screens == null) continue;
+                foreach (DashWidget widget in dashboard.Design.AllWidgets())
+                {
+                    if (widget.Type != "text" || !captions.Contains(widget.Name) || widget.Get("color", "") != "dim") continue;
+                    widget.Set("color", "muted");
+                    if (widget.Get("size", "") == "10") widget.Set("size", "11");
+                }
             }
         }
 

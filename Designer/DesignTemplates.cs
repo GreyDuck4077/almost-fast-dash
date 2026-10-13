@@ -141,7 +141,7 @@ namespace AlmostFastOverlays
             theme.Border = "#1E2A3A";
             theme.Track = "#141C27";
             theme.Text = "#EEF3FA";
-            theme.Muted = "#8190A4";
+            theme.Muted = "#A9B6C8";
             theme.Dim = "#3A4656";
             theme.Good = "#26D980";
             theme.Bad = "#FF3D55";
@@ -209,7 +209,7 @@ namespace AlmostFastOverlays
                 t.Border = "#2A2420";
                 t.Track = "#1A1716";
                 t.Text = "#F5F2EE";
-                t.Muted = "#968C84";
+                t.Muted = "#BDB3AA";
                 t.Dim = "#4A433E";
             });
             b.Screen("Race");
@@ -441,7 +441,7 @@ namespace AlmostFastOverlays
                 t.PanelTop = "#B00E1E17";
                 t.Border = "#1B3327";
                 t.Track = "#0E1B15";
-                t.Muted = "#8AA396";
+                t.Muted = "#B2C7BB";
                 t.Dim = "#3A5145";
             });
             b.Screen("Race");
@@ -496,7 +496,7 @@ namespace AlmostFastOverlays
                     "align", "Left", "color", "muted"),
                 b.Text("Falloff", 32, 244, 130, 44, "=Falloff < 0 ? \"--\" : \"+\" + format(Falloff, \"0.00\")", "size", "36", "align", "Left",
                     "color", "=Falloff < 0 ? $text : Falloff < 0.15 ? $good : Falloff < 0.4 ? $warn : $bad"),
-                b.Text("Falloff caption", 34, 288, 130, 14, "LAP FALLOFF", "size", "10", "tracking", "2.2", "weight", "Regular", "align", "Left", "color", "dim"),
+                b.Text("Falloff caption", 34, 288, 130, 14, "LAP FALLOFF", "size", "11", "tracking", "2.2", "weight", "Regular", "align", "Left", "color", "muted"),
                 b.Text("Falloff trend", 34, 310, 130, 18, "=StintGreenLaps < 3 ? \"\" : signed(FalloffPerLap, 2) + \" PER LAP\"", "size", "12", "tracking", "1",
                     "weight", "Regular", "align", "Left", "color", "muted"),
                 b.Text("Stint best", 34, 330, 130, 18, "=StintBestLap > 0 ? \"BEST \" + laptime(StintBestLap) : \"\"", "size", "12", "tracking", "1",
@@ -528,7 +528,7 @@ namespace AlmostFastOverlays
             b.Visible("tap(\"fuel\") == 0",
                 b.Label("Fuel label", 604, 226, 200, "FUEL"),
                 b.Text("Fuel laps", 602, 242, 110, 48, FuelLaps, "size", "42", "align", "Left", "color", FuelTone),
-                b.Text("Fuel laps caption", 604, 290, 110, 14, "LAPS LEFT", "size", "10", "tracking", "2.2", "weight", "Regular", "align", "Left", "color", "dim"),
+                b.Text("Fuel laps caption", 604, 290, 110, 14, "LAPS LEFT", "size", "11", "tracking", "2.2", "weight", "Regular", "align", "Left", "color", "muted"),
                 b.Metric("Fuel to add", 712, 230, 118, 60, "TO ADD", FuelToAdd, "align", "Right", "inset", "8", "valueSize", "20", "labelSize", "10", "labelTracking", "2",
                     "unit", FuelToAddUnit, "unitSize", "11", "valueColor", FuelToAddTone),
                 b.Metric("Fuel per lap", 712, 284, 118, 56, "=FuelEstimate ? \"PER LAP · EST\" : \"PER LAP\"", "=FuelPerLap > 0 ? fuel(FuelPerLap) : \"--\"", "align", "Right",
@@ -545,7 +545,7 @@ namespace AlmostFastOverlays
             b.Panel("Traffic panel", 16, 376, 822, 90, "style", "Liquid", "radius", "18");
             b.Label("Behind label", 34, 388, 200, "BEHIND");
             b.Label("Ahead label", 620, 388, 200, "AHEAD", "Right");
-            b.Label("Traffic label", 327, 388, 200, "TRAFFIC  ·  8 S EACH WAY", "Center", "dim").Set("visible", "FasterClassBehind < 0");
+            b.Label("Traffic label", 327, 388, 200, "TRAFFIC  ·  8 S EACH WAY", "Center", "muted").Set("visible", "FasterClassBehind < 0");
             b.Text("Faster class", 277, 384, 300, 20, "=(FasterClass != \"\" ? FasterClass : \"FASTER CLASS\") + \" CLOSING  ·  \" + format(FasterClassBehind, \"0.0\") + \" S\"",
                 "size", "13", "tracking", "2", "color", "warn", "visible", "FasterClassBehind >= 0");
             b.Add("traffic", "Traffic", 30, 410, 794, 44, "seconds", "8");
@@ -595,7 +595,7 @@ namespace AlmostFastOverlays
                 t.PanelTop = "#B00E1F42";
                 t.Border = "#1B3463";
                 t.Track = "#0D1B33";
-                t.Muted = "#8DA0BF";
+                t.Muted = "#B6C5DD";
                 t.Dim = "#3B4E6E";
             });
             b.Screen("Race");
@@ -648,7 +648,7 @@ namespace AlmostFastOverlays
                     "=(FuelToFinish < 0 ? \"MEASURING\" : FuelToFinish <= 0.05 ? \"MAKES THE FINISH\" : \"ADD \" + fuel(FuelToFinish) + \" \" + FuelUnit) + (FuelEstimate && FuelToFinish >= 0 ? \" · EST\" : \"\")",
                     "size", "12", "tracking", "1.5", "align", "Right", "color", "=FuelToFinish < 0 ? $muted : FuelToFinish <= 0.05 ? $good : $warn"),
                 b.Text("Fuel laps", 598, 358, 120, 54, FuelLaps, "size", "46", "align", "Left", "color", FuelTone),
-                b.Text("Fuel laps caption", 600, 410, 120, 14, "LAPS OF FUEL", "size", "10", "tracking", "2.2", "weight", "Regular", "align", "Left", "color", "dim"),
+                b.Text("Fuel laps caption", 600, 410, 120, 14, "LAPS OF FUEL", "size", "11", "tracking", "2.2", "weight", "Regular", "align", "Left", "color", "muted"),
                 b.Metric("In tank", 706, 362, 124, 60, "IN TANK", "=fuel(Fuel)", "align", "Right", "inset", "8", "valueSize", "22", "labelSize", "10", "labelTracking", "2",
                     "unit", "=FuelUnit", "unitSize", "11"),
                 b.Add("bar", "Fuel level", 600, 434, 220, 4, "value", "=FuelPct", "color", "=FuelLapsLeft >= 0 && FuelLapsLeft < 2 ? $bad : accent", "track", "#0F1E36"));
@@ -691,7 +691,7 @@ namespace AlmostFastOverlays
             b.Text(side + " driver", x + 96, y + 11, 142, 18, "=" + side + "Name == \"---\" ? \"\" : \"#\" + " + side + "Number + \"  \" + " + side + "Name",
                 "size", "12", "weight", "Regular", "align", "Right", "color", "muted");
             b.Text(side + " lengths", x + 16, y + 32, 140, 62, "=" + lengths + " < 0 ? \"--\" : format(" + lengths + ", \"0.0\")", "size", "56", "align", "Left");
-            b.Text(side + " lengths caption", x + 18, y + 92, 160, 14, "CAR LENGTHS", "size", "10", "tracking", "2.5", "weight", "Regular", "align", "Left", "color", "dim");
+            b.Text(side + " lengths caption", x + 18, y + 92, 160, 14, "CAR LENGTHS", "size", "11", "tracking", "2.5", "weight", "Regular", "align", "Left", "color", "muted");
             b.Text(side + " seconds", x + 148, y + 50, 90, 30, "=" + side + "Name == \"---\" ? \"\" : format(" + side + "Gap, \"0.00\") + \"s\"", "size", "22", "align", "Right");
             string catching = ahead ? "$good" : "$warn", opening = ahead ? "$warn" : "$good";
             b.Text(side + " trend", x + 18, y + 110, 220, 16,
@@ -847,7 +847,7 @@ namespace AlmostFastOverlays
                 t.Border = "#3A2470";
                 t.Track = "#1A1036";
                 t.Text = "#F7F3FF";
-                t.Muted = "#AA9CDA";
+                t.Muted = "#C2B6EC";
                 t.Dim = "#5C4D8E";
                 t.Info = "#22D3EE";
                 t.Purple = "#F0ABFC";
