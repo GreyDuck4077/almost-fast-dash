@@ -239,18 +239,18 @@ namespace AlmostFastOverlays
             b.Add("shape", "Rule", 30, 352, 794, 2, "shape", "Line", "stroke", "#3A322C", "strokeWidth", "1");
 
             // Along the bottom: pedals, the car's settings, fuel.
-            b.Panel("Pedals panel", 18, 366, 300, 104, "style", "Soft", "radius", "14");
+            b.Panel("Pedals panel", 18, 366, 300, 104, "style", "Liquid", "radius", "14");
             b.Label("Pedals label", 34, 376, 200, "THROTTLE · BRAKE");
             b.Add("graph", "Pedals", 28, 392, 280, 70, "value", "=Throttle", "value2", "=Brake", "min", "0", "max", "1", "seconds", "6", "style", "Area",
                 "lineWidth", "2", "color", "#E9E4DE", "color2", "accent", "gridColor", "#221D19");
 
-            b.Panel("Car panel", 328, 366, 198, 104, "style", "Soft", "radius", "14");
+            b.Panel("Car panel", 328, 366, 198, 104, "style", "Liquid", "radius", "14");
             b.Metric("Bias", 334, 372, 62, 92, "BIAS", "=format(BrakeBias, \"0.0\")", "align", "Center", "valueSize", "20", "labelSize", "10", "labelTracking", "2");
             b.Metric("TC", 396, 372, 62, 92, "TC", "=TractionControl < 0 ? \"--\" : format(TractionControl, \"0\")", "align", "Center", "valueSize", "20", "labelSize", "10", "labelTracking", "2");
             b.Metric("ABS", 458, 372, 62, 92, "ABS", "=Abs < 0 ? \"--\" : format(Abs, \"0\")", "align", "Center", "valueSize", "20", "labelSize", "10", "labelTracking", "2",
                 "valueColor", "=AbsActive ? $accent : $text");
 
-            b.Panel("Fuel panel", 536, 366, 300, 104, "style", "Soft", "radius", "14");
+            b.Panel("Fuel panel", 536, 366, 300, 104, "style", "Liquid", "radius", "14");
             b.Metric("Fuel", 540, 370, 150, 84, "FUEL", "=fuel(Fuel)", "valueSize", "28", "labelSize", "10", "labelTracking", "2.5", "unit", "=FuelUnit");
             b.Metric("Fuel laps", 682, 370, 150, 84, "LAPS LEFT", FuelLaps, "align", "Right", "valueSize", "28", "labelSize", "10", "labelTracking", "2.5", "valueColor", FuelTone);
             b.Add("bar", "Fuel level", 556, 454, 260, 4, "value", "=FuelPct", "color", "=FuelLapsLeft >= 0 && FuelLapsLeft < 2 ? $bad : #E9E4DE", "track", "#221D19");
@@ -261,15 +261,15 @@ namespace AlmostFastOverlays
 
             // Page 2 on a wheel button: the race order, the map and the sectors.
             b.Screen("Timing");
-            b.Panel("Order panel", 18, 14, 410, 452, "style", "Soft", "radius", "14");
+            b.Panel("Order panel", 18, 14, 410, 452, "style", "Liquid", "radius", "14");
             b.Label("Order label", 34, 26, 300, "RACE ORDER");
             b.Add("standings", "Leaderboard", 26, 46, 394, 410, "rows", "10", "focus", "Top and me", "column", "Interval", "size", "16", "rowColor", "#80141210",
                 "highlight", "accent", "radius", "6");
-            b.Panel("Map panel", 438, 14, 398, 236, "style", "Soft", "radius", "14");
+            b.Panel("Map panel", 438, 14, 398, 236, "style", "Liquid", "radius", "14");
             b.Label("Map label", 454, 26, 200, "TRACK");
             b.Text("Map lap", 620, 22, 200, 20, "=\"LAP \" + LapText", "size", "14", "align", "Right", "color", "muted");
             b.Add("trackmap", "Track map", 448, 44, 378, 198, "lineWidth", "6", "carSize", "9", "trackColor", "#2A2420", "edgeColor", "#00000000");
-            b.Panel("Sector panel", 438, 260, 398, 206, "style", "Soft", "radius", "14");
+            b.Panel("Sector panel", 438, 260, 398, 206, "style", "Liquid", "radius", "14");
             b.Label("Sector label", 454, 272, 300, "SECTORS · LAST LAP");
             for (int s = 1; s <= 3; s++)
             {
@@ -281,7 +281,7 @@ namespace AlmostFastOverlays
             b.Metric("Ideal lap", 446, 388, 190, 70, "IDEAL LAP", "=IdealLap > 0 ? laptime(IdealLap) : \"--\"", "valueSize", "24", "labelSize", "11", "labelTracking", "2", "valueColor", "purple");
             b.Metric("Session best", 640, 388, 190, 70, "SESSION BEST", "=laptime(SessionBestLap)", "align", "Right", "valueSize", "24", "labelSize", "11", "labelTracking", "2");
 
-            PitLane(b, "Soft");
+            PitLane(b, "Liquid");
             return b.Layout;
         }
 

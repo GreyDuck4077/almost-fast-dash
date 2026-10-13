@@ -41,7 +41,7 @@ namespace AlmostFastOverlays
 
     internal sealed class AppSettings
     {
-        private const int CurrentSchema = 10;
+        private const int CurrentSchema = 11;
 
         public int SchemaVersion { get; set; }
         public string DefaultDashboardId { get; set; } = DashboardSettings.RoadId;
@@ -92,6 +92,7 @@ namespace AlmostFastOverlays
                 if (SchemaVersion > 0 && SchemaVersion < 8) ClassicLightsToLayers();
                 if (SchemaVersion > 0 && SchemaVersion < 9) AddFlagships();
                 if (SchemaVersion == 9) RedesignRoundy();
+                if (SchemaVersion >= 9 && SchemaVersion < 11) GlassRoady();
                 SchemaVersion = CurrentSchema;
             }
             foreach (DeviceSettings device in General.Devices) device.Normalize();
@@ -133,6 +134,16 @@ namespace AlmostFastOverlays
             var widgets = roundy?.Design?.Screens?.FirstOrDefault()?.Widgets;
             if (widgets == null || !widgets.Any(w => w.Name == "Around panel") || !widgets.Any(w => w.Name == "Falloff panel")) return;
             roundy.Design = DesignTemplates.Oval.Create();
+        }
+
+        /// <summary>Schema 11: Roady's panels became Liquid glass, as Roundy's are. Nothing else in it changes.</summary>
+        private void GlassRoady()
+        {
+            DashboardSettings roady = Dashboards.FirstOrDefault(d => d.Id == DashboardSettings.RoadId);
+            if (roady?.Design?.Screens == null) return;
+            foreach (DashScreen screen in roady.Design.Screens)
+                foreach (DashWidget widget in screen.Widgets ?? new List<DashWidget>())
+                    if (widget.Type == "panel" && widget.Get("style") == "Soft") widget.Set("style", "Liquid");
         }
 
         /// <summary>

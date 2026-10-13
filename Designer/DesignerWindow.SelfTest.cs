@@ -666,6 +666,13 @@ namespace AlmostFastOverlays
                 firstRoundy.Dashboards.Add(edited);
                 firstRoundy.Dashboards.Add(boxed);
                 firstRoundy.EnsureBuiltInDashboards();
+                var softRoady = new AppSettings { SchemaVersion = 10 };
+                DashboardSettings soft = DashboardSettings.CreateRoad();
+                foreach (DashWidget w in soft.Design.Screens.SelectMany(sc => sc.Widgets).Where(w => w.Type == "panel" && w.Get("style") == "Liquid")) w.Set("style", "Soft");
+                softRoady.Dashboards.Add(soft);
+                softRoady.EnsureBuiltInDashboards();
+                Check("Roady's panels become Liquid glass once", soft.Design.Screens.SelectMany(sc => sc.Widgets).Count(w => w.Type == "panel" && w.Get("style") == "Liquid") >= 7
+                    && !soft.Design.Screens.SelectMany(sc => sc.Widgets).Any(w => w.Get("style") == "Soft"));
                 Check("the first Roundy takes the redesign", !boxed.Design.Screens[0].Widgets.Any(w => w.Name == "Around panel") && boxed.Design.Screens[0].Widgets.Any(w => w.Name == "Rev dial"));
             }
 
