@@ -307,6 +307,14 @@ namespace AlmostFastOverlays
             };
             if (!string.IsNullOrWhiteSpace(widget.Get("visible")))
                 name.ToolTip = "Shows when " + widget.Get("visible");
+            if (!string.IsNullOrEmpty(widget.Group))
+            {
+                // Grouped widgets carry their group's name (and Slot) in a quiet second colour.
+                name.Inlines.Clear();
+                name.Inlines.Add(new System.Windows.Documents.Run(string.IsNullOrWhiteSpace(widget.Name) ? type?.Name : widget.Name));
+                name.Inlines.Add(new System.Windows.Documents.Run("  " + widget.GroupName + (widget.Slot != 0 ? " · " + widget.Slot.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) : ""))
+                    { Foreground = (Brush)FindResource("Brush.TextTertiary"), FontSize = 11 });
+            }
             Grid.SetColumn(name, 1);
             grid.Children.Add(name);
 

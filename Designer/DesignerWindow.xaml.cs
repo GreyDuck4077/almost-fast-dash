@@ -50,7 +50,7 @@ namespace AlmostFastOverlays
         private string _pendingCommitLabel;
         private static string _clipboard;
 
-        private enum DragMode { None, Move, Resize, Marquee }
+        private enum DragMode { None, Move, Resize, Marquee, Rotate }
         private DragMode _drag;
         private Point _dragStart;
         private int _handle;
@@ -334,6 +334,17 @@ namespace AlmostFastOverlays
             if (_selection.Count == 1 && !_selection[0].Locked)
             {
                 Rect r = RectOf(_selection[0]);
+                if (CanRotate(_selection[0]))
+                {
+                    Point knob = RotateHandlePoint(_selection[0]);
+                    Point stem = Turn(new Point(r.X + r.Width / 2, r.Y), Center(r), Angle(_selection[0]));
+                    Overlay.Children.Add(new Line { X1 = stem.X, Y1 = stem.Y, X2 = knob.X, Y2 = knob.Y, Stroke = accent, StrokeThickness = 1.2 * Px, IsHitTestVisible = false });
+                    double d = 11 * Px;
+                    var dial = new Ellipse { Width = d, Height = d, Fill = Brushes.White, Stroke = accent, StrokeThickness = 1.5 * Px, ToolTip = "Drag to rotate · Shift snaps to 15°" };
+                    Canvas.SetLeft(dial, knob.X - d / 2);
+                    Canvas.SetTop(dial, knob.Y - d / 2);
+                    Overlay.Children.Add(dial);
+                }
                 foreach (Point p in HandlePoints(_selection[0]))
                 {
                     double size = 8 * Px;
@@ -444,9 +455,26 @@ namespace AlmostFastOverlays
             return HandlePoints(r).Select(p => Turn(p, Center(r), angle)).ToArray();
         }
 
+        /// <summary>Where the rotate handle sits: above the top edge's middle, turned with the widget.</summary>
+        private Point RotateHandlePoint(DashWidget w)
+        {
+            Rect r = RectOf(w);
+            return Turn(new Point(r.X + r.Width / 2, r.Y - 26 * Px), Center(r), Angle(w));
+        }
+
+        /// <summary>The rotate handle shows unless a formula turns the widget.</summary>
+        private static bool CanRotate(DashWidget w) => !(w.Get("rotate", "0") ?? "").StartsWith("=");
+
+        private const int RotateHandle = 8;
+
         private int HandleAt(Point p)
         {
             if (_selection.Count != 1 || _selection[0].Locked) return -1;
+            if (CanRotate(_selection[0]))
+            {
+                Point knob = RotateHandlePoint(_selection[0]);
+                if (Math.Abs(knob.X - p.X) <= 8 * Px && Math.Abs(knob.Y - p.Y) <= 8 * Px) return RotateHandle;
+            }
             Point[] points = HandlePoints(_selection[0]);
             double reach = 7 * Px;
             for (int i = 0; i < points.Length; i++)
@@ -494,6 +522,13 @@ namespace AlmostFastOverlays
             bool additive = (Keyboard.Modifiers & (ModifierKeys.Shift | ModifierKeys.Control)) != 0;
 
             int handle = HandleAt(p);
+            if (handle == RotateHandle)
+            {
+                _drag = DragMode.Rotate;
+                _originals = _selection.ToDictionary(w => w, RectOf);
+                Overlay.CaptureMouse();
+                return;
+            }
             if (handle >= 0)
             {
                 _drag = DragMode.Resize;
@@ -506,18 +541,25 @@ namespace AlmostFastOverlays
             DashWidget hit = WidgetAt(p);
             if (hit != null)
             {
+                // A click takes a widget's whole group; a double-click picks out just that widget.
                 if (e.ClickCount == 2)
                 {
                     Select(hit);
                     FocusPrimaryEditor();
                     return;
                 }
+                List<DashWidget> members = GroupOf(hit);
                 if (additive)
                 {
-                    if (_selection.Contains(hit)) _selection.Remove(hit); else _selection.Add(hit);
+                    if (_selection.Contains(hit)) _selection.RemoveAll(members.Contains); else _selection.AddRange(members.Where(m => !_selection.Contains(m)));
                     SelectionChanged();
                 }
-                else if (!_selection.Contains(hit)) Select(hit);
+                else if (!_selection.Contains(hit))
+                {
+                    _selection.Clear();
+                    _selection.AddRange(members);
+                    SelectionChanged();
+                }
                 if (_selection.Contains(hit))
                 {
                     _drag = DragMode.Move;
@@ -545,8 +587,8 @@ namespace AlmostFastOverlays
                 {
                     int handle = HandleAt(p);
                     // Handles keep pointing the way they face on a turned widget.
-                    int turned = handle < 0 ? -1 : ((handle + (int)Math.Round(Angle(_selection[0]) / 45)) % 8 + 8) % 8;
-                    Overlay.Cursor = handle >= 0 ? HandleCursors[turned] : WidgetAt(p) != null ? Cursors.SizeAll : Cursors.Arrow;
+                    int turned = handle < 0 || handle == RotateHandle ? -1 : ((handle + (int)Math.Round(Angle(_selection[0]) / 45)) % 8 + 8) % 8;
+                    Overlay.Cursor = handle == RotateHandle ? Cursors.Hand : handle >= 0 ? HandleCursors[turned] : WidgetAt(p) != null ? Cursors.SizeAll : Cursors.Arrow;
                     DashWidget hover = WidgetAt(p);
                     if (hover != _hover) { _hover = hover; UpdateOverlay(); }
                     return;
@@ -557,6 +599,19 @@ namespace AlmostFastOverlays
                 case DragMode.Resize:
                     DoResize(p, free, (Keyboard.Modifiers & ModifierKeys.Shift) != 0);
                     break;
+                case DragMode.Rotate:
+                {
+                    // The angle from the widget's middle to the pointer, measured from straight up; Shift snaps to 15°.
+                    DashWidget w = _selection[0];
+                    Point middle = Center(_originals[w]);
+                    double angle = Math.Atan2(p.Y - middle.Y, p.X - middle.X) * 180 / Math.PI + 90;
+                    angle = (Keyboard.Modifiers & ModifierKeys.Shift) != 0 ? Math.Round(angle / 15) * 15 : Math.Round(angle);
+                    angle = ((angle + 180) % 360 + 360) % 360 - 180;
+                    w.Set("rotate", angle.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                    _dragChanged = true;
+                    CursorText.Text = "Rotate " + angle + "°";
+                    break;
+                }
                 case DragMode.Marquee:
                     _marquee = new Rect(_dragStart, p);
                     _selection.Clear();
@@ -575,9 +630,9 @@ namespace AlmostFastOverlays
             Overlay.ReleaseMouseCapture();
             _guides.Clear();
             if (mode == DragMode.Marquee) SelectionChanged();
-            else if ((mode == DragMode.Move || mode == DragMode.Resize) && _dragChanged)
+            else if ((mode == DragMode.Move || mode == DragMode.Resize || mode == DragMode.Rotate) && _dragChanged)
             {
-                Commit(mode == DragMode.Move ? "Move" : "Resize");
+                Commit(mode == DragMode.Move ? "Move" : mode == DragMode.Rotate ? "Rotate" : "Resize");
                 RefreshInspector();
             }
             UpdateOverlay();
@@ -783,8 +838,53 @@ namespace AlmostFastOverlays
             UpdateOverlay();
         }
 
+        /// <summary>A widget's whole group on this screen (just the widget when it isn't grouped).</summary>
+        private List<DashWidget> GroupOf(DashWidget widget) =>
+            string.IsNullOrEmpty(widget.Group) ? new List<DashWidget> { widget }
+                : _screen.Widgets.Where(w => w.Group == widget.Group && !w.Hidden && !w.Locked).ToList();
+
+        /// <summary>The selection is exactly one whole group.</summary>
+        private bool SelectionIsOneGroup(out string group)
+        {
+            group = _selection.Count > 0 ? _selection[0].Group : null;
+            string id = group;
+            return !string.IsNullOrEmpty(id) && _selection.All(w => w.Group == id) && _screen.Widgets.Count(w => w.Group == id) == _selection.Count;
+        }
+
+        private void GroupSelection()
+        {
+            if (_selection.Count < 2) { StatusText.Text = "Select two or more widgets to group them."; return; }
+            string id = DashScreen.NewId("g");
+            int number = _screen.Widgets.Select(w => w.Group).Where(g => !string.IsNullOrEmpty(g)).Distinct().Count() + 1;
+            foreach (DashWidget w in _selection) { w.Group = id; w.GroupName = "Group " + number; w.Slot = 0; }
+            Commit("Group");
+            SelectionChanged();
+            StatusText.Text = "Grouped " + _selection.Count + " widgets. Set the group's Slot to number it, and use Slot in its formulas.";
+        }
+
+        private void Ungroup()
+        {
+            if (!_selection.Any(w => !string.IsNullOrEmpty(w.Group))) return;
+            foreach (DashWidget w in _selection) { w.Group = ""; w.GroupName = ""; w.Slot = 0; }
+            Commit("Ungroup");
+            SelectionChanged();
+        }
+
+        /// <summary>New widgets coming onto the screen (pasted, from a block) get groups of their own, not the ones they were copied from.</summary>
+        private void FreshGroups(IEnumerable<DashWidget> widgets)
+        {
+            var renamed = new Dictionary<string, string>();
+            foreach (DashWidget w in widgets)
+            {
+                if (string.IsNullOrEmpty(w.Group)) continue;
+                if (!renamed.TryGetValue(w.Group, out string id)) renamed[w.Group] = id = DashScreen.NewId("g");
+                w.Group = id;
+            }
+        }
+
         internal void AddWidgets(IList<DashWidget> widgets, string label)
         {
+            if (widgets.Any(w => !string.IsNullOrEmpty(w.Group) && _screen.Widgets.Any(s => s.Group == w.Group))) FreshGroups(widgets);
             foreach (DashWidget w in widgets)
             {
                 w.X = Math.Round(Math.Max(-w.W + 10, Math.Min(CanvasW - 10, w.X)));
@@ -819,17 +919,56 @@ namespace AlmostFastOverlays
         private List<DashWidget> DuplicateSelection(double offset = 16)
         {
             if (_selection.Count == 0) return null;
+            // A whole group copies as the next one: just below it, numbered one higher (P1's card becomes P2's).
+            bool nextInGroup = SelectionIsOneGroup(out _);
+            Rect bounds = Union(_selection);
             var copies = _screen.Widgets.Where(_selection.Contains).Select(w =>
             {
                 DashWidget copy = SettingsStore.Clone(w);
                 copy.Id = DashScreen.NewId("w");
-                copy.X += offset;
-                copy.Y += offset;
+                copy.X += nextInGroup ? 0 : offset;
+                copy.Y += nextInGroup ? Math.Round(bounds.Height + 6) : offset;
+                if (nextInGroup) copy.Slot = w.Slot + 1;
                 copy.Locked = false;
                 return copy;
             }).ToList();
+            FreshGroups(copies);
             AddWidgets(copies, "Duplicate");
+            if (nextInGroup) StatusText.Text = "Copied the group as Slot " + copies[0].Slot + ".";
             return copies;
+        }
+
+        // ------------------------------------------------------------------ copy and paste style
+
+        private static readonly HashSet<string> StyleGroups = new HashSet<string> { "Style", "Colors", "Effects", "Type" };
+        private Dictionary<string, string> _copiedStyle;
+
+        /// <summary>Copies the selected widget's look: its Style effects, colors, glow and type settings.</summary>
+        private void CopyStyle()
+        {
+            if (_selection.Count != 1) { StatusText.Text = "Select one widget to copy its style."; return; }
+            DashWidget source = _selection[0];
+            WidgetType type = WidgetCatalog.Find(source.Type);
+            if (type == null) return;
+            _copiedStyle = type.Props.Where(p => StyleGroups.Contains(p.Group)).ToDictionary(p => p.Key, p => source.Get(p.Key, p.Default));
+            StatusText.Text = "Copied the style of " + source.Name + ". Select widgets and press Ctrl+Shift+V to paste it.";
+        }
+
+        /// <summary>Pastes a copied style onto the selection, wherever a widget has the same setting.</summary>
+        private void PasteStyle()
+        {
+            if (_copiedStyle == null || _selection.Count == 0) return;
+            int changed = 0;
+            foreach (DashWidget w in _selection)
+            {
+                WidgetType type = WidgetCatalog.Find(w.Type);
+                if (type == null) continue;
+                foreach (KeyValuePair<string, string> pair in _copiedStyle)
+                    if (type.Prop(pair.Key) is PropDef def && StyleGroups.Contains(def.Group)) { w.Set(pair.Key, pair.Value); changed++; }
+            }
+            Commit("Paste style");
+            RefreshInspector();
+            StatusText.Text = "Pasted the style onto " + _selection.Count + (_selection.Count == 1 ? " widget." : " widgets.");
         }
 
         private void CopySelection()
@@ -1281,6 +1420,10 @@ namespace AlmostFastOverlays
                 case Key.Z when ctrl: if (shift) Redo(); else Undo(); break;
                 case Key.Y when ctrl: Redo(); break;
                 case Key.D when ctrl: DuplicateSelection(); break;
+                case Key.G when ctrl && shift: Ungroup(); break;
+                case Key.G when ctrl: GroupSelection(); break;
+                case Key.C when ctrl && shift: CopyStyle(); break;
+                case Key.V when ctrl && shift: PasteStyle(); break;
                 case Key.C when ctrl: CopySelection(); break;
                 case Key.X when ctrl: CopySelection(); DeleteSelection(); break;
                 case Key.V when ctrl: Paste(); break;

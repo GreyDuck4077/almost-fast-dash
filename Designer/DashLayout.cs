@@ -152,6 +152,14 @@ namespace AlmostFastOverlays
         public bool Hidden { get; set; }
         /// <summary>Locked widgets cannot be selected on the canvas.</summary>
         public bool Locked { get; set; }
+        /// <summary>
+        /// The group this widget belongs to (empty when none), its name, and its number: formulas in the
+        /// group read it as Slot, so one driver card can be copied for P1, P2, P3 by changing one number.
+        /// Every widget in a group carries the same three values.
+        /// </summary>
+        public string Group { get; set; } = "";
+        public string GroupName { get; set; } = "";
+        public double Slot { get; set; }
         public Dictionary<string, string> Props { get; set; } = new Dictionary<string, string>();
 
         public string Get(string key, string fallback = null) =>
@@ -167,6 +175,8 @@ namespace AlmostFastOverlays
         {
             if (string.IsNullOrWhiteSpace(Id)) Id = DashScreen.NewId("w");
             if (Props == null) Props = new Dictionary<string, string>();
+            if (Group == null) Group = "";
+            if (GroupName == null) GroupName = "";
             if (string.IsNullOrWhiteSpace(Type)) Type = "text";
             // Older designs: bars had a "fill from the other end" switch and shift lights their own
             // pattern names; both are now the shared fill direction.

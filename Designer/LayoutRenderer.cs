@@ -435,6 +435,7 @@ namespace AlmostFastOverlays
             {
                 WidgetType type = WidgetCatalog.Find(widget.Type);
                 if (type == null) return 0;
+                scope = ForWidget(scope, widget);
                 // A hidden widget draws nothing, whatever its other values do.
                 string visible = widget.Get("visible", "");
                 if (!string.IsNullOrWhiteSpace(visible) && !Expr.Bool(Expr.Evaluate(Strip(visible), scope))) return 1;
@@ -469,6 +470,10 @@ namespace AlmostFastOverlays
                 return hash;
             }
         }
+
+        /// <summary>A grouped widget sees its group's number as Slot.</summary>
+        internal static EvalScope ForWidget(EvalScope scope, DashWidget widget) =>
+            string.IsNullOrEmpty(widget.Group) ? scope : scope.WithSlot(widget.Slot);
 
         private readonly Dictionary<string, GraphHistory> _graphs = new Dictionary<string, GraphHistory>();
 
@@ -553,6 +558,7 @@ namespace AlmostFastOverlays
         {
             WidgetType type = WidgetCatalog.Find(widget.Type);
             if (type == null) return;
+            scope = ForWidget(scope, widget);
             var context = new WidgetContext(this, g, scope, widget, type) { PreviousGear = previousGear, GearProgress = progress };
             string visible = widget.Get("visible", "");
             if (!string.IsNullOrWhiteSpace(visible) && !Expr.Bool(Expr.Evaluate(Strip(visible), scope))) return;

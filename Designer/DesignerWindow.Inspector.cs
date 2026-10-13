@@ -180,7 +180,64 @@ namespace AlmostFastOverlays
             arrange.Children.Add(ActionButton("", "Delete", DeleteSelection));
             arrange.Children.Add(ActionButton("", "Save as block", SaveSelectionAsBlock));
             arrange.Children.Add(ActionButton("", "Lock", ToggleLock));
+            bool oneGroup = SelectionIsOneGroup(out _);
+            if (!oneGroup) arrange.Children.Add(ActionButton("", "Group  Ctrl+G", GroupSelection));
             Inspector.Children.Add(arrange);
+
+            if (oneGroup)
+            {
+                DashWidget first = _selection[0];
+                Inspector.Children.Add(SectionTitle("Group"));
+                var groupName = new TextBox { Text = first.GroupName, MaxLength = 40 };
+                groupName.TextChanged += (s, e) => { foreach (DashWidget w in _selection) w.GroupName = groupName.Text.Trim(); CommitSoon("Rename group"); RefreshLayers(); };
+                Inspector.Children.Add(LabeledRow("Name", groupName));
+                var slot = new TextBox { Text = first.Slot.ToString("0.##", CultureInfo.InvariantCulture), FontFamily = (FontFamily)FindResource("Font.Mono"), FontSize = 12, Width = 70, HorizontalAlignment = HorizontalAlignment.Left };
+                slot.TextChanged += (s, e) =>
+                {
+                    if (!double.TryParse(slot.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double v)) return;
+                    foreach (DashWidget w in _selection) w.Slot = v;
+                    RequestRender();
+                    CommitSoon("Group slot");
+                };
+                AttachWheel(slot, 1, v => slot.Text = v.ToString("0.##", CultureInfo.InvariantCulture));
+                Inspector.Children.Add(LabeledRow("Slot", slot));
+                Inspector.Children.Add(Caption("Formulas in this group read this number as Slot, for example standing(Slot, \"Name\") for a driver card. " +
+                    "Ctrl+D copies the group just below with the next Slot: build P1 once, then copy it for P2, P3 and on. Double-click a widget to edit it alone.", 6));
+                var groupActions = new WrapPanel { Margin = new Thickness(0, 8, 0, 0) };
+                groupActions.Children.Add(ActionButton("", "Copy as next Slot", () => DuplicateSelection()));
+                groupActions.Children.Add(ActionButton("", "Ungroup", Ungroup));
+                Inspector.Children.Add(groupActions);
+            }
+
+            // Settings every selected widget has, edited together.
+            List<WidgetType> types = _selection.Select(w => WidgetCatalog.Find(w.Type)).Where(t => t != null).Distinct().ToList();
+            if (types.Count > 0 && types.Count == _selection.Select(w => w.Type).Distinct().Count())
+            {
+                List<PropDef> common = types[0].Props.Where(p => p.Key != "visible" && types.All(t => t.Prop(p.Key) is PropDef other && other.Kind == p.Kind)).ToList();
+                if (common.Count > 0)
+                {
+                    Inspector.Children.Add(SectionTitle(types.Count == 1 ? "Settings (all " + _selection.Count + ")" : "Shared settings"));
+                    Inspector.Children.Add(Caption("Changes here apply to every selected widget.", 0));
+                    foreach (IGrouping<string, PropDef> group in common.GroupBy(p => p.Group))
+                    {
+                        var content = new StackPanel { Visibility = Visibility.Collapsed };
+                        var title = new TextBlock { Text = group.Key.ToUpperInvariant() + "  ›", Style = (Style)FindResource("T.Overline") };
+                        var header = new Border { Child = title, Background = Brushes.Transparent, Cursor = Cursors.Hand, Margin = new Thickness(0, 14, 0, 6) };
+                        header.MouseLeftButtonUp += (s, e) =>
+                        {
+                            bool open = content.Visibility != Visibility.Visible;
+                            // Rows are built when a group first opens; most multi-selections only need one or two.
+                            if (open && content.Children.Count == 0)
+                                foreach (PropDef def in group) content.Children.Add(PropertyRow(_selection[0], def, _selection.ToList()));
+                            content.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
+                            title.Text = group.Key.ToUpperInvariant() + (open ? "  ˅" : "  ›");
+                            if (open) Motion.FadeIn(content);
+                        };
+                        Inspector.Children.Add(header);
+                        Inspector.Children.Add(content);
+                    }
+                }
+            }
 
             // Shared show-when for the whole group.
             Inspector.Children.Add(SectionTitle("Show when (all selected)"));
@@ -285,6 +342,9 @@ namespace AlmostFastOverlays
             header.Children.Add(more);
             Inspector.Children.Add(header);
             Inspector.Children.Add(Caption(type.Description, 8));
+            if (!string.IsNullOrEmpty(widget.Group))
+                Inspector.Children.Add(Caption("In " + widget.GroupName + (widget.Slot != 0 ? " (Slot " + widget.Slot.ToString("0.##", CultureInfo.InvariantCulture) + ")" : "") +
+                    ". Click the group on the canvas to select all of it.", 6));
             if (_renderer != null && _renderer.Errors.TryGetValue(widget.Id, out string error))
                 Inspector.Children.Add(new TextBlock { Text = "⚠ " + error, Foreground = (Brush)FindResource("Brush.Danger"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0) });
 
@@ -396,9 +456,16 @@ namespace AlmostFastOverlays
 
         // ------------------------------------------------------------------ property rows
 
-        private FrameworkElement PropertyRow(DashWidget widget, PropDef def)
+        /// <summary>
+        /// One setting's row. With <paramref name="together"/> (several selected widgets) it shows their
+        /// shared value, or "mixed" when they differ, and an edit applies to all of them.
+        /// </summary>
+        private FrameworkElement PropertyRow(DashWidget widget, PropDef def, IList<DashWidget> together = null)
         {
+            IList<DashWidget> targets = together ?? new[] { widget };
             string raw = widget.Get(def.Key, def.Default) ?? "";
+            bool mixed = targets.Any(t => (t.Get(def.Key, def.Default) ?? "") != raw);
+            if (mixed && !raw.StartsWith("=")) raw = def.Default ?? "";
             bool alwaysFormula = def.Kind == PropKind.Formula;
             bool isFormula = alwaysFormula || raw.StartsWith("=");
 
@@ -408,7 +475,7 @@ namespace AlmostFastOverlays
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(32) });
             var label = new TextBlock
             {
-                Text = def.Label, VerticalAlignment = isFormula ? VerticalAlignment.Top : VerticalAlignment.Center, Margin = new Thickness(0, isFormula ? 7 : 0, 8, 0),
+                Text = mixed ? def.Label + " (mixed)" : def.Label, VerticalAlignment = isFormula ? VerticalAlignment.Top : VerticalAlignment.Center, Margin = new Thickness(0, isFormula ? 7 : 0, 8, 0),
                 Foreground = (Brush)FindResource(raw == def.Default ? "Brush.TextSecondary" : "Brush.Text"), TextWrapping = TextWrapping.Wrap,
                 ToolTip = def.Help
             };
@@ -416,10 +483,11 @@ namespace AlmostFastOverlays
 
             void Apply(string value, bool structural = false)
             {
-                widget.Set(def.Key, value);
+                foreach (DashWidget target in targets) target.Set(def.Key, value);
                 if (structural) _rendererDirty = true;
                 WidgetType owner = WidgetCatalog.Find(widget.Type);
-                if (owner != null && owner.Props.Any(p => p.DependsOn == def.Key)) UpdateApplicableRows(widget, owner);
+                if (together == null && owner != null && owner.Props.Any(p => p.DependsOn == def.Key)) UpdateApplicableRows(widget, owner);
+                label.Text = def.Label;
                 label.Foreground = (Brush)FindResource(value == def.Default ? "Brush.TextSecondary" : "Brush.Text");
                 RequestRender();
                 CommitSoon("Edit " + def.Label.ToLowerInvariant());
@@ -428,7 +496,8 @@ namespace AlmostFastOverlays
             FrameworkElement editor;
             if (isFormula)
             {
-                var box = new FormulaBox(this, LayoutRenderer.Strip(raw), CurrentScope, def.Help);
+                // Formula results shown in the box use the widget's own Slot when it's in a numbered group.
+                var box = new FormulaBox(this, LayoutRenderer.Strip(raw), () => LayoutRenderer.ForWidget(CurrentScope(), widget), def.Help);
                 box.Changed += text => Apply(text.Trim().Length == 0 ? (alwaysFormula ? "" : def.Default) : "=" + text.Trim());
                 _liveFormulas.Add(box);
                 editor = box;

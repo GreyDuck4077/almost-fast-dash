@@ -14,6 +14,17 @@ namespace AlmostFastOverlays
         /// </summary>
         private static readonly DateTime TestNow = new DateTime(2026, 1, 1, 12, 0, 0);
 
+        /// <summary>The first control of a type inside a (not yet shown) piece of UI.</summary>
+        private static T FindChild<T>(System.Windows.DependencyObject root) where T : System.Windows.DependencyObject
+        {
+            foreach (object child in System.Windows.LogicalTreeHelper.GetChildren(root))
+            {
+                if (child is T found) return found;
+                if (child is System.Windows.DependencyObject inner && FindChild<T>(inner) is T deeper) return deeper;
+            }
+            return null;
+        }
+
         internal List<string> RunSelfTest(string scratchFolder)
         {
             var report = new List<string>();
@@ -489,6 +500,58 @@ namespace AlmostFastOverlays
                     Check("recolor paints only the widget's own pixels", red > 50 && other == 0, red + " red, " + other + " other");
                     Check("outline is drawn in its colour", Enumerable.Range(0, 200).Any(k => outline.GetPixel(300 + k, 230).G > 200 && outline.GetPixel(300 + k, 230).R < 80));
                 }
+            }
+
+            // ---------------- groups, slots, style copying and editing together
+            {
+                DashWidget name = WidgetCatalog.Create("text", 600, 300), plate = WidgetCatalog.Create("panel", 590, 296);
+                name.W = 200; name.H = 30; plate.W = 220; plate.H = 40;
+                name.Set("text", "=standing(Slot, \"Name\")");
+                _screen.Widgets.Add(plate);
+                _screen.Widgets.Add(name);
+                _selection.Clear(); _selection.Add(plate); _selection.Add(name);
+                GroupSelection();
+                Check("group: widgets share a group", !string.IsNullOrEmpty(name.Group) && name.Group == plate.Group);
+                Select(null);
+                // A click on one member takes the whole group.
+                Check("a click selects the whole group", GroupOf(name).Count == 2);
+                _selection.Clear(); _selection.AddRange(GroupOf(name));
+                foreach (DashWidget w in _selection) w.Slot = 1;
+                List<DashWidget> next = DuplicateSelection();
+                Check("copying a group makes the next Slot, just below", next != null && next.Count == 2 && next.All(w => w.Slot == 2 && w.Group != name.Group) && next.Min(w => w.Y) > plate.Y + plate.H);
+                var groupLayout = DesignTemplates.Blank();
+                groupLayout.Screens[0].Widgets.AddRange(new[] { name }.Concat(next.Where(w => w.Type == "text")));
+                using (var renderer = new LayoutRenderer(854, 480, new DashboardSettings { Layout = Layouts.Custom, Design = groupLayout }, _units))
+                {
+                    EvalScope s = renderer.Scope(IRacingTelemetrySource.CreatePreviewSnapshot(), false);
+                    Check("Slot reads each group's own number", Expr.Text(Expr.Evaluate("standing(Slot, \"Name\")", LayoutRenderer.ForWidget(s, name))) == "L. HARTMANN" &&
+                        Expr.Text(Expr.Evaluate("standing(Slot, \"Name\")", LayoutRenderer.ForWidget(s, next.First(w => w.Type == "text")))) == "S. OKAFOR");
+                }
+                // Copy and paste style.
+                name.Set("color", "#FF0000"); name.Set("fxGlow", "6");
+                Select(name);
+                CopyStyle();
+                DashWidget other = next.First(w => w.Type == "text");
+                Select(other);
+                PasteStyle();
+                Check("paste style copies colour and effects, not content", other.Get("color") == "#FF0000" && other.Get("fxGlow") == "6" && other.Get("text") == name.Get("text"));
+                // Editing several together.
+                _selection.Clear(); _selection.Add(name); _selection.Add(other);
+                RefreshInspector();
+                System.Windows.FrameworkElement row = PropertyRow(name, WidgetCatalog.Find("text").Prop("size"), _selection.ToList());
+                var sizeBox = FindChild<System.Windows.Controls.TextBox>(row);
+                if (sizeBox != null) sizeBox.Text = "41";
+                Check("one edit changes every selected widget", name.Get("size") == "41" && other.Get("size") == "41");
+                // The rotate handle sets a turn.
+                Select(plate);
+                _originals = new Dictionary<DashWidget, System.Windows.Rect> { [plate] = RectOf(plate) };
+                _drag = DragMode.Rotate;
+                Check("the rotate handle sits above the widget", RotateHandlePoint(plate).Y < plate.Y);
+                FlushPendingCommit();
+                foreach (DashWidget w in new[] { name, plate }.Concat(next)) _screen.Widgets.Remove(w);
+                _drag = DragMode.None;
+                Select(null);
+                Commit("Self-test cleanup");
             }
 
             // ---------------- turned widgets on the canvas
