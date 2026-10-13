@@ -592,7 +592,7 @@ namespace AlmostFastOverlays
                     shape.AddRectangle(new System.Drawing.RectangleF(50, 50, 300, 200));
                     var settings = new GlassSettings { Frost = 0, Depth = 14, Refraction = 1, Shine = 0.7f, Dispersion = 0, Light = 270, Tint = System.Drawing.Color.FromArgb(0, 0, 0, 0) };
                     var watch = System.Diagnostics.Stopwatch.StartNew();
-                    using (System.Drawing.Bitmap pane = LiquidGlass.Render(backdrop, sw, sh, new System.Drawing.Rectangle(50, 50, 300, 200), shape, settings))
+                    using (System.Drawing.Bitmap pane = LiquidGlass.Render(backdrop, new System.Drawing.Rectangle(0, 0, sw, sh), new System.Drawing.Rectangle(50, 50, 300, 200), shape, settings))
                     {
                         double ms = watch.Elapsed.TotalMilliseconds;
                         System.Drawing.Color top = pane.GetPixel(150, 1), bottom = pane.GetPixel(150, 198), middle = pane.GetPixel(150, 100), plain = pane.GetPixel(0, 100), mid = pane.GetPixel(150, 100);
@@ -610,6 +610,33 @@ namespace AlmostFastOverlays
                         report.Add("INFO  a 300x200 pane of Liquid Glass takes " + ms.ToString("0.0") + " ms to make (then it is kept)");
                     }
                 }
+            }
+
+            {
+                // A fixed widget beneath a pane shows through it, frosted.
+                System.Drawing.Color Through(bool withShape)
+                {
+                    DashLayout layout = DesignTemplates.Blank();
+                    layout.Theme.BackgroundStyle = "Solid";
+                    layout.Theme.Background = "#000000";
+                    if (withShape)
+                    {
+                        DashWidget square = WidgetCatalog.Create("shape", 100, 100);
+                        square.W = 160; square.H = 160;
+                        square.Set("fill", "#FF00FF");
+                        layout.Screens[0].Widgets.Add(square);
+                    }
+                    DashWidget pane = WidgetCatalog.Create("panel", 50, 50);
+                    pane.W = 300; pane.H = 250;
+                    pane.Set("style", "Liquid");
+                    layout.Screens[0].Widgets.Add(pane);
+                    using (var renderer = new LayoutRenderer(854, 480, new DashboardSettings { Layout = Layouts.Custom, Design = layout, AccentColor = "#22D3EE" }, _units))
+                    using (System.Drawing.Bitmap frame = renderer.Render(IRacingTelemetrySource.CreatePreviewSnapshot(), false, 4, 1))
+                        return frame.GetPixel(180, 180);
+                }
+                System.Drawing.Color plainGlass = Through(false), overShape = Through(true);
+                Check("a fixed widget beneath liquid glass shows through it", overShape.R > plainGlass.R + 40 && overShape.B > plainGlass.B + 40 && overShape.G < overShape.R - 30,
+                    plainGlass + " / " + overShape);
             }
 
             // ---------------- lap falloff and the flagships

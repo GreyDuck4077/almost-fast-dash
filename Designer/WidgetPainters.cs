@@ -41,15 +41,12 @@ namespace AlmostFastOverlays
                         var at = Rectangle.FromLTRB((int)Math.Floor(extent.Left) - 1, (int)Math.Floor(extent.Top) - 1, (int)Math.Ceiling(extent.Right) + 1, (int)Math.Ceiling(extent.Bottom) + 1);
                         if (at.Width * at.Height <= 2_000_000)
                         {
-                            Bitmap pane = c.Renderer.Glass(at, path, new GlassSettings
+                            Bitmap pane = c.Renderer.Glass(c.Widget, c.Scope, at, path, new GlassSettings
                             {
                                 Frost = (float)c.Num("glassFrost"), Depth = (float)c.Num("glassDepth"), Refraction = (float)c.Num("glassRefraction") / 100,
                                 Shine = (float)c.Num("glassShine") / 100, Dispersion = (float)c.Num("glassDispersion") / 100, Light = (float)c.Num("glassLight"), Tint = fill
                             });
                             g.DrawImageUnscaled(pane, at.X, at.Y);
-                            using (var rimPen = new LinearGradientBrush(Paint.Grow(b, 0, 1), Color.FromArgb(28, 255, 255, 255), Color.FromArgb(8, 255, 255, 255), 90f))
-                            using (var pen = new Pen(rimPen, 1f))
-                                g.DrawPath(pen, path);
                             bw = 0;
                             break;
                         }

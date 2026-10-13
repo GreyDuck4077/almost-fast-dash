@@ -730,28 +730,51 @@ namespace AlmostFastOverlays
         }
 
         private readonly Dictionary<string, Bitmap> _glass = new Dictionary<string, Bitmap>();
-        private int[] _backdrop;
-        private string _backdropKey;
 
         /// <summary>
-        /// A pane of Liquid Glass over the screen's background, made once per shape, place and setting and then
-        /// kept. The renderer owns it: callers must not dispose it.
+        /// A pane of Liquid Glass, made once per shape, place, setting and backdrop and then kept. The backdrop
+        /// is the screen's background with every fixed widget beneath the pane (images, shapes, gradients,
+        /// other panes). Live widgets are left out: the glass would have to be made again every frame. The
+        /// renderer owns the bitmap: callers must not dispose it.
         /// </summary>
-        internal Bitmap Glass(Rectangle at, GraphicsPath shape, GlassSettings settings)
+        internal Bitmap Glass(DashWidget pane, EvalScope scope, Rectangle at, GraphicsPath shape, GlassSettings settings)
         {
-            Background();
-            if (_backdrop == null || _backdropKey != _backgroundKey)
-            {
-                _backdrop = LiquidGlass.Pixels(_background);
-                _backdropKey = _backgroundKey;
-                ForgetGlass();
-            }
+            Bitmap background = Background();
+            int margin = LiquidGlass.Margin(settings);
+            Rectangle area = Rectangle.Intersect(Rectangle.Inflate(at, margin, margin), new Rectangle(0, 0, _width, _height));
+            if (area.Width < 1 || area.Height < 1) area = new Rectangle(Math.Max(0, Math.Min(_width - 1, at.X)), Math.Max(0, Math.Min(_height - 1, at.Y)), 1, 1);
+            var beneath = new List<DashWidget>();
+            DashScreen screen = _layout.Screens.FirstOrDefault(s => s.Widgets.Contains(pane));
+            if (screen != null)
+                foreach (DashWidget widget in screen.Widgets)
+                {
+                    if (widget == pane) break;
+                    if (!widget.Hidden && Still(widget) && Touches(widget, area)) beneath.Add(widget);
+                }
+
             int outline = 17;
             foreach (PointF p in shape.PathPoints) outline = outline * 31 + (int)Math.Round(p.X * 8) * 7 + (int)Math.Round(p.Y * 8);
-            string key = at + "|" + outline + "|" + shape.PointCount + "|" + settings.Key;
-            if (_glass.TryGetValue(key, out Bitmap pane)) return pane;
+            int under = 0;
+            foreach (DashWidget widget in beneath) under = under * 31 + widget.Id.GetHashCode() * 7 + WidgetHash(widget, scope, 0, 1);
+            string key = at + "|" + outline + "|" + shape.PointCount + "|" + settings.Key + "|" + _backgroundKey + "|" + under;
+            if (_glass.TryGetValue(key, out Bitmap made)) return made;
             if (_glass.Count >= 64) ForgetGlass();
-            return _glass[key] = LiquidGlass.Render(_backdrop, _width, _height, at, shape, settings);
+
+            int[] backdrop;
+            using (var behind = new Bitmap(area.Width, area.Height, PixelFormat.Format32bppArgb))
+            {
+                using (Graphics g = Graphics.FromImage(behind))
+                {
+                    DashKit.Prepare(g);
+                    g.TranslateTransform(-area.X, -area.Y);
+                    g.DrawImageUnscaled(background, 0, 0);
+                    foreach (DashWidget widget in beneath)
+                        try { DrawWidget(g, widget, scope, 0, 1); }
+                        catch { }
+                }
+                backdrop = LiquidGlass.Pixels(behind);
+            }
+            return _glass[key] = LiquidGlass.Render(backdrop, area, at, shape, settings);
         }
 
         private void ForgetGlass()
