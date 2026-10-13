@@ -10,6 +10,11 @@ namespace AlmostFastOverlays
 {
     // A self-contained reader for iRacing's shared-memory telemetry
     // (Local\IRSDKMemMapFileName) and its YAML session string.
+    //
+    // The memory layout and the flag, warning and spotter definitions below follow the iRacing SDK's
+    // irsdk_defines.h, Copyright (c) 2013, iRacing.com Motorsport Simulations, LLC, under the BSD
+    // 3-Clause licence reproduced in CREDITS.md. The class names keep the shape of iRacingSDK.Net
+    // (Dean Netherton, GPL-3.0), which the app used before it was standalone; the code is new.
 
     [Flags]
     internal enum SessionFlags : uint

@@ -9,9 +9,10 @@ namespace AlmostFastOverlays
 {
     /// <summary>
     /// LEDs on an Arduino-based board that speaks the common sim-racing LED serial
-    /// protocol: the SSG DV-5 and LB-10, and boards flashed with the same widely used
-    /// firmware. Packets are 01 01 FF length payload CRC-8; payload 03 'N' asks the
-    /// board its name, 03 '6' sets colour runs.
+    /// protocol, the one SimHub's Arduino firmware uses: the SSG DV-5 and LB-10, and boards
+    /// flashed with the same widely used firmware. Packets are 01 01 FF length payload CRC-8;
+    /// payload 03 'N' asks the board its name, 03 '6' sets colour runs. No SimHub code is
+    /// used (see CREDITS.md).
     /// </summary>
     internal sealed class ArduinoLedController : IDisposable
     {

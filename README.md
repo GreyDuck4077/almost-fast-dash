@@ -307,3 +307,16 @@ Almost Fast Dash is free and open-source software under the
 it, including commercially. If you distribute it or anything built from it, you
 must release that complete source code under the same license, so it stays open
 for everyone.
+
+## Credits
+
+Almost Fast Dash includes no third-party code, but it builds on other people's
+published work: the iRacing SDK's telemetry format, iRacingSDK.Net (which the
+app used before it went standalone), VoCore's open M-PRO screen driver, and the
+SimHub, Adalight and WLED LED protocols. [CREDITS.md](CREDITS.md) says exactly
+what was used from each, how the screen protocol was first worked out, and
+reproduces the iRacing SDK's licence notice.
+
+iRacing is a registered trademark of iRacing.com Motorsport Simulations, LLC.
+Almost Fast Dash is an independent project, not affiliated with or endorsed by
+iRacing, SimHub, VoCore or any hardware maker named here.

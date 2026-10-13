@@ -6,7 +6,9 @@
 // Protocol: "Ada", LED count - 1 (high byte, low byte), checksum (high ^ low ^ 0x55),
 // then red, green, blue for every LED.
 //
-// Part of Almost Fast Dash, GPL-3.0-or-later.
+// Part of Almost Fast Dash, GPL-3.0-or-later. Written for this project; it speaks
+// Adafruit's Adalight protocol (github.com/adafruit/Adalight) and uses the FastLED
+// library (MIT, github.com/FastLED/FastLED), which is installed separately.
 
 #include <FastLED.h>
 

@@ -17,7 +17,9 @@ namespace AlmostFastOverlays
 
     /// <summary>
     /// Drives the DV-5's M-PRO screen (a VoCore-family panel, USB C872:1004)
-    /// directly through Windows' built-in WinUSB driver.
+    /// directly through Windows' built-in WinUSB driver. The commands match VoCore's own
+    /// open-source M-PRO driver (mpro.c in github.com/Vonger/mpro_drm, GPL-2.0-or-later);
+    /// CREDITS.md explains how they were first worked out.
     /// </summary>
     internal sealed class Dv5Screen : IDisposable
     {
