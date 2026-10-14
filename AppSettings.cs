@@ -48,9 +48,12 @@ namespace AlmostFastOverlays
         public GeneralSettings General { get; set; } = new GeneralSettings();
         public List<DashboardSettings> Dashboards { get; set; } = new List<DashboardSettings>();
 
+        /// <summary>A new install's settings: the built-in dashboards, units for the PC's region and the welcome card.</summary>
         public static AppSettings CreateDefault()
         {
             var settings = new AppSettings();
+            settings.General.UseRegionUnits(System.Globalization.RegionInfo.CurrentRegion);
+            settings.General.ShowWelcome = true;
             settings.EnsureBuiltInDashboards();
             return settings;
         }
@@ -540,6 +543,25 @@ namespace AlmostFastOverlays
         public int LastScreenHeight { get; set; }
         public bool AutoSwitchByDiscipline { get; set; } = true;
         public bool DiagnosticsEnabled { get; set; } = true;
+
+        /// <summary>
+        /// The Dashboards page shows the getting-started steps. Only a new install turns this on, so an upgrade never
+        /// shows them; it goes off when the dashboard is first started or the card is dismissed.
+        /// </summary>
+        public bool ShowWelcome { get; set; }
+
+        /// <summary>
+        /// Units for the region Windows is set to: mph, gallons and °F where those are the norm (the US), mph with
+        /// liters and °C in the UK, and km/h, liters and °C everywhere else.
+        /// </summary>
+        public void UseRegionUnits(System.Globalization.RegionInfo region)
+        {
+            bool british = region.TwoLetterISORegionName == "GB";
+            bool imperial = !region.IsMetric && !british;
+            SpeedUnit = imperial || british ? "MPH" : "KPH";
+            FuelUnit = imperial ? "Gallons" : "Liters";
+            TemperatureUnit = imperial ? "Fahrenheit" : "Celsius";
+        }
 
         // Before schema 6 the DV-5 and LB-10 were fixed settings. They are read once to
         // build Devices and then cleared; nothing else uses them.

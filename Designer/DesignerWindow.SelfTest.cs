@@ -802,6 +802,21 @@ namespace AlmostFastOverlays
                 System.IO.File.WriteAllText(SettingsStore.FilePath, good);
                 foreach (string unreadable in System.IO.Directory.GetFiles(System.IO.Path.GetDirectoryName(SettingsStore.FilePath), "settings.json.unreadable-*"))
                     System.IO.File.Delete(unreadable);
+
+                // A new install's units match its region, and only a new install shows the welcome card.
+                GeneralSettings UnitsFor(string region)
+                {
+                    var general = new GeneralSettings();
+                    general.UseRegionUnits(new System.Globalization.RegionInfo(region));
+                    return general;
+                }
+                GeneralSettings us = UnitsFor("US"), uk = UnitsFor("GB"), de = UnitsFor("DE");
+                Check("a new install's units match its region (US, UK, elsewhere)",
+                    us.SpeedUnit == "MPH" && us.FuelUnit == "Gallons" && us.TemperatureUnit == "Fahrenheit" &&
+                    uk.SpeedUnit == "MPH" && uk.FuelUnit == "Liters" && uk.TemperatureUnit == "Celsius" &&
+                    de.SpeedUnit == "KPH" && de.FuelUnit == "Liters" && de.TemperatureUnit == "Celsius");
+                // Settings saved before the welcome card don't have the field, so they read as a fresh GeneralSettings.
+                Check("only a new install shows the welcome card", AppSettings.CreateDefault().General.ShowWelcome && !new GeneralSettings().ShowWelcome);
             }
 
             // ---------------- the instrument finish

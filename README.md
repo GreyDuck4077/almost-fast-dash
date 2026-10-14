@@ -191,6 +191,10 @@ false positive can be reported to the antivirus maker.
 
 ### First run
 
+A welcome card on the Dashboards page walks you through these steps and ticks
+each one off as you go. Units start out to match your Windows region; change
+them under **Settings**.
+
 1. Close other dashboard software, such as SimHub. Only one program at a time
    can drive a wheel screen or an LED board. The Devices page tells you when
    another program has a device's port.
@@ -260,8 +264,8 @@ dashboard does behind the main figures:
 - The app connects to the internet only to check for new versions, if you turn
   that on (it asks GitHub for the latest release). It also talks to any WLED
   controllers you add, on your own network.
-- Diagnostic logs, if you turn them on, stay in the `Logs` folder next to the
-  exe and contain no names or account details.
+- Diagnostic logs (on unless you turn them off) stay in the `Logs` folder next
+  to the exe and contain no names or account details.
 
 ## Documentation
 

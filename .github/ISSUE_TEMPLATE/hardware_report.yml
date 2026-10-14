@@ -1,0 +1,64 @@
+name: Hardware report
+description: Tell us how the app works with your wheel screen or LED device, good or bad.
+labels: ["hardware"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Only a few devices have been tested on real hardware so far (see [Compatibility](https://github.com/Sota4077/almost-fast-dash#compatibility)).
+        A report on yours, even "it all just worked", helps everyone with the same device.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind of device?
+      options:
+        - Wheel screen
+        - LEDs on a wheel or wheel screen (Arduino board)
+        - Light bar (Arduino board)
+        - Adalight strip
+        - WLED controller
+        - Something else
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Make and model
+      placeholder: "e.g. an ESP32 running WLED 0.15 with a 60-LED strip"
+    validations:
+      required: true
+  - type: input
+    id: firmware
+    attributes:
+      label: Firmware or protocol
+      description: What the device runs, if you know.
+      placeholder: "e.g. SimHub-protocol Arduino sketch, the bundled Adalight sketch, WLED 0.15"
+  - type: input
+    id: leds
+    attributes:
+      label: Shape and LED count
+      placeholder: "e.g. LEDs around a screen: 4 left, 8 top, 4 right"
+  - type: checkboxes
+    id: worked
+    attributes:
+      label: What worked?
+      options:
+        - label: Add device found it
+        - label: Mapping the LEDs worked
+        - label: The right LEDs light up in the preview
+        - label: The lights work during a race
+        - label: The wheel screen shows the dashboard
+        - label: Touch works
+  - type: textarea
+    id: notes
+    attributes:
+      label: What didn't work, or anything else
+      description: Error messages, odd behaviour, photos.
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: Shown at the bottom of the app's sidebar.
+      placeholder: "3.53"
+    validations:
+      required: true

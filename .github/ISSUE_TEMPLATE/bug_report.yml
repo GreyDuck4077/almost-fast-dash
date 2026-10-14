@@ -1,0 +1,63 @@
+name: Bug report
+description: Something doesn't work, shows the wrong thing, or crashes.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this. The more of the details below you can give, the faster it can be fixed.
+        If Windows won't run the app at all, see [Windows protected your PC](https://github.com/Sota4077/almost-fast-dash#windows-protected-your-pc) first.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Shown at the bottom of the app's sidebar.
+      placeholder: "3.53"
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you saw, and what you expected to see instead. A photo of the wheel screen helps a lot.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to make it happen
+      description: The steps that lead to it, if you know them.
+      placeholder: |
+        1. Open Dashboards › Roady
+        2. Start a race at …
+        3. …
+  - type: input
+    id: dashboard
+    attributes:
+      label: Dashboard and session
+      description: Which dashboard (and page) was showing, and the kind of session.
+      placeholder: "Oval, during a race at Iowa"
+  - type: textarea
+    id: hardware
+    attributes:
+      label: Wheel screen and LED devices
+      description: Your wheel screen, and each LED device with how it's connected.
+      placeholder: |
+        Wheel screen: VoCore-family M-PRO, 854×480
+        LEDs: Arduino LED board on COM5, WLED strip at 192.168.1.40
+  - type: dropdown
+    id: windows
+    attributes:
+      label: Windows
+      options:
+        - Windows 11
+        - Windows 10
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: |
+        If the app crashed, attach `Logs\crash.log` and `settings-error.txt` from the app's folder, if they're there. For odd lights, attach the newest files from its `Logs` folder.
+        They contain no names or account details. Drag files into this box to attach them.

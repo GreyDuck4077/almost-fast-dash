@@ -1,0 +1,22 @@
+name: Idea
+description: Suggest something that would make the app better for your racing.
+labels: ["idea"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Almost Fast Dash is focused on wheel-screen dashboards and LEDs for iRacing. Ideas in that space are very welcome.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What would it help with?
+      description: The moment in a race, or in setting up, where you'd use it.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea
+      description: What you'd like to see. Sketches and photos of other dashboards are welcome.
+    validations:
+      required: true

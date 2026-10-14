@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Windows won't run the app
+    url: https://github.com/Sota4077/almost-fast-dash#windows-protected-your-pc
+    about: The exe isn't code-signed. Here's how to run it, and how to check your download.
+  - name: User guide
+    url: https://github.com/Sota4077/almost-fast-dash/blob/main/docs/guide.md
+    about: Setting up devices, the designer, light profiles and troubleshooting.

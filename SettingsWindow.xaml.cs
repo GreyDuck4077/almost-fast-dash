@@ -71,9 +71,11 @@ namespace AlmostFastOverlays
             {
                 if (!_dashboardOperationInProgress) RefreshDashboardStatus();
                 if (SettingsPage.Visibility == Visibility.Visible) RefreshDeviceStatus();
+                if (GalleryPage.Visibility == Visibility.Visible) RefreshWelcome();
             };
             _statusTimer.Start();
             RefreshDashboardStatus();
+            RefreshWelcome();
 
             Version version = Assembly.GetExecutingAssembly().GetName().Version;
             VersionText.Text = $"Version {version.Major}.{version.Minor} · Changes save automatically";
@@ -985,6 +987,7 @@ namespace AlmostFastOverlays
             SetStatus("Running", "Brush.Success");
             SetRunButton(StartButton, StartIcon, false, "Restart the dashboard");
             StopButton.IsEnabled = true;
+            EndWelcome();
             string active = null, discipline = null;
             try
             {

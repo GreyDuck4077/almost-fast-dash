@@ -11,6 +11,21 @@
             <Setter Property="Margin" Value="0,2"/>
             <Setter Property="MinHeight" Value="40"/>
         </Style>
+        <!-- A numbered step on the welcome card; turns to a tick when it's done -->
+        <Style x:Key="StepBadge" TargetType="Border">
+            <Setter Property="Width" Value="28"/>
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="CornerRadius" Value="14"/>
+            <Setter Property="Background" Value="{StaticResource Brush.SurfaceRaised}"/>
+            <Setter Property="Margin" Value="0,0,12,0"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
+        </Style>
+        <Style x:Key="StepMark" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{StaticResource Brush.TextSecondary}"/>
+        </Style>
     </Window.Resources>
 
     <Grid>
@@ -121,6 +136,50 @@
                             </StackPanel>
                         </Button>
                     </Grid>
+                    <!-- A new install's first steps, each with its live state (SettingsWindow.Welcome.cs) -->
+                    <Border x:Name="WelcomeCard" Style="{StaticResource Card}" Margin="0,0,0,24" Visibility="Collapsed">
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="Welcome to Almost Fast Dash" Style="{StaticResource T.Title}"/>
+                                    <TextBlock Text="Three steps to your first race. Everything saves as you go." Style="{StaticResource T.Caption}" Margin="0,4,0,0"/>
+                                </StackPanel>
+                                <Button Grid.Column="1" Style="{StaticResource Btn.Ghost}" Content="Got it" VerticalAlignment="Top" Click="WelcomeDismiss_Click"/>
+                            </Grid>
+                            <UniformGrid Columns="3" Margin="0,20,0,0">
+                                <DockPanel Margin="0,0,24,0">
+                                    <Border x:Name="WelcomeScreenBadge" Style="{StaticResource StepBadge}" DockPanel.Dock="Left">
+                                        <TextBlock x:Name="WelcomeScreenMark" Text="1" Style="{StaticResource StepMark}"/>
+                                    </Border>
+                                    <StackPanel>
+                                        <TextBlock Text="Plug in your wheel screen" Style="{StaticResource T.Label}"/>
+                                        <TextBlock x:Name="WelcomeScreenText" Style="{StaticResource T.Caption}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                </DockPanel>
+                                <DockPanel Margin="0,0,24,0">
+                                    <Border x:Name="WelcomeLedBadge" Style="{StaticResource StepBadge}" DockPanel.Dock="Left">
+                                        <TextBlock x:Name="WelcomeLedMark" Text="2" Style="{StaticResource StepMark}"/>
+                                    </Border>
+                                    <StackPanel>
+                                        <TextBlock Text="Add your LED devices" Style="{StaticResource T.Label}"/>
+                                        <TextBlock x:Name="WelcomeLedText" Style="{StaticResource T.Caption}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                        <Button Content="Add a device" HorizontalAlignment="Left" Margin="0,10,0,0" Click="WelcomeAddDevice_Click"/>
+                                    </StackPanel>
+                                </DockPanel>
+                                <DockPanel>
+                                    <Border Style="{StaticResource StepBadge}" DockPanel.Dock="Left">
+                                        <TextBlock Text="3" Style="{StaticResource StepMark}"/>
+                                    </Border>
+                                    <StackPanel>
+                                        <TextBlock Text="Start the dashboard" Style="{StaticResource T.Label}"/>
+                                        <TextBlock Style="{StaticResource T.Caption}" TextWrapping="Wrap" Margin="0,4,0,0"
+                                                   Text="Press the start button at the top. It keeps running in the background, even with this window closed."/>
+                                    </StackPanel>
+                                </DockPanel>
+                            </UniformGrid>
+                        </StackPanel>
+                    </Border>
                     <WrapPanel x:Name="DashboardCards" SizeChanged="DashboardCards_SizeChanged"/>
                 </StackPanel>
             </ScrollViewer>
@@ -397,6 +456,18 @@
                         <StackPanel>
                             <TextBlock Text="Wheel screen" Style="{StaticResource T.Title}"/>
                             <TextBlock Text="The screen on your wheel. It can be driven by only one program at a time, so close other dashboard software while this runs." Style="{StaticResource T.Caption}" Margin="0,4,0,18"/>
+                            <Grid Style="{StaticResource Row}">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Text="Status" Style="{StaticResource T.Label}"/>
+                                    <TextBlock Text="Whether the app can see your wheel screen." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                </StackPanel>
+                                <DockPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <Ellipse x:Name="ScreenStatusDot" DockPanel.Dock="Left" Width="9" Height="9" Margin="0,0,12,0" VerticalAlignment="Center" Fill="{StaticResource Brush.TextTertiary}"/>
+                                    <TextBlock x:Name="ScreenStatusText" Style="{StaticResource T.Secondary}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                                </DockPanel>
+                            </Grid>
+                            <Border Style="{StaticResource Divider}"/>
                             <Grid Style="{StaticResource Row}">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">

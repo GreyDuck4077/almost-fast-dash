@@ -13,7 +13,11 @@ installed it yet, start with [Installing](../README.md#installing).
 
 ## Dashboards
 
-The **Dashboards** page shows every dashboard you have. On each card:
+The **Dashboards** page shows every dashboard you have. On a new install, a
+welcome card at the top lists the first steps. It goes once you start the
+dashboard, or when you click **Got it**.
+
+On each dashboard's card:
 
 - **Customize** opens the dashboard's page, with a live preview of the screen
   and your LEDs, its light profile and its track types.
@@ -190,7 +194,8 @@ once, for ten seconds.
 
 ## Settings
 
-- **Units** for speed, fuel and temperature.
+- **Units** for speed, fuel and temperature. A new install picks them to match
+  your Windows region.
 - **Fuel safety margin**: none, ½, 1 or 2 laps, added to *fuel to add*.
 - The page the app opens on.
 - **Minimize to the system tray**.
@@ -199,13 +204,14 @@ once, for ten seconds.
 - **Check for new versions**: when the app opens, it asks GitHub whether a
   newer release is out and shows a link to it. This is off until you turn it
   on.
-- **Diagnostic logs**: small logs, in `Logs` next to the exe, of blind-spot
-  decisions and which light layer lit which LEDs. Use them to look into an odd
-  light after a race. No names or account details are recorded.
+- **Diagnostic logs** (on by default): small logs, in `Logs` next to the exe,
+  of blind-spot decisions and which light layer lit which LEDs. Use them to
+  look into an odd light after a race. No names or account details are
+  recorded.
 
-**Devices › Wheel screen** has the screen's brightness, and **Performance**
-shows the frames a second, drawing time and sending time measured on the
-wheel.
+**Devices › Wheel screen** shows whether the app can see your screen and sets
+its brightness. **Performance** shows the frames a second, drawing time and
+sending time measured on the wheel.
 
 ### Your settings are safe
 
@@ -225,9 +231,14 @@ check the Devices page, which says when another program has a device's port.
 can't supply enough power. Leave the device's power setting on the PC's USB
 port (the app then limits brightness), or plug the device into a powered hub.
 
-**A light came on and you don't know why.** Turn on **Settings › Diagnostic
-logs**. After the race, the light log in `Logs` lists which layer lit which
-LEDs, and when.
+**The wheel screen shows nothing.** Check **Devices › Wheel screen › Status**.
+*Not found* means Windows can't see it: check the USB cable, and close other
+dashboard software. Only VoCore-family M-PRO screens can be driven for now
+(see [Compatibility](../README.md#compatibility)).
+
+**A light came on and you don't know why.** Check **Settings › Diagnostic
+logs** is on (it is unless you turned it off). After the race, the light log
+in `Logs` lists which layer lit which LEDs, and when.
 
 **Windows won't run the app.** See
 ["Windows protected your PC"](../README.md#windows-protected-your-pc).
