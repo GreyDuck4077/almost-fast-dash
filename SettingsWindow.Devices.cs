@@ -97,7 +97,7 @@ namespace AlmostFastOverlays
             string performance = _dashboardRunning ? ScreenStats.Read() : null;
             ScreenPerformance.Text = performance != null ? char.ToUpper(performance[0]) + performance.Substring(1) + "."
                 : _dashboardRunning ? "Measuring… figures appear a few seconds after the screen starts drawing." : "Start the dashboard to measure how it keeps up.";
-            RefreshScreenStatus(performance != null);
+            RefreshScreenStatus();
             if (_deviceStatus.Count == 0) return;
             // Live states only while something is driving the devices; otherwise just whether each is plugged in.
             Dictionary<string, DeviceStatus.Entry> live = _dashboardRunning || _mirror.Active ? DeviceStatus.Read() : null;

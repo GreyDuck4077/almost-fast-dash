@@ -43,10 +43,32 @@ namespace AlmostFastOverlays
         {
             try
             {
-                if (WheelScreen.IsPresent()) return new Size(WheelScreen.Width, WheelScreen.Height);
+                if (WheelScreen.IsPresent()) return LastScreen(out _);
             }
             catch { }
             return null;
+        }
+
+        /// <summary>
+        /// The wheel screen the dashboard last connected to: its picture size, and its model in <paramref name="model"/>.
+        /// Until one has connected, the 5" M-PRO.
+        /// </summary>
+        public static Size LastScreen(out string model)
+        {
+            model = ScreenModel.FiveInch.Name;
+            var size = new Size(ScreenModel.FiveInch.Width, ScreenModel.FiveInch.Height);
+            try
+            {
+                string[] lines = System.IO.File.ReadAllLines(ScreenSender.InfoPath);
+                string[] parts = lines.Length > 1 ? lines[1].Split('x') : new string[0];
+                if (parts.Length == 2 && int.TryParse(parts[0], out int width) && int.TryParse(parts[1], out int height) && width > 0 && height > 0)
+                {
+                    model = lines[0];
+                    size = new Size(width, height);
+                }
+            }
+            catch { }
+            return size;
         }
 
         /// <summary>

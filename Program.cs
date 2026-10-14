@@ -10,10 +10,10 @@ namespace AlmostFastOverlays
 {
     internal static class Program
     {
-        private const int RefreshIntervalMilliseconds = 50;
+        /// <summary>A frame every 33 ms (30 a second) while racing, whenever something on the dashboard changed.</summary>
+        private const int RefreshIntervalMilliseconds = 33;
         /// <summary>How often the screen is checked while iRacing isn't running; the waiting screen barely changes.</summary>
         private const int IdleRefreshMilliseconds = 250;
-        private const int ReconnectDelayMilliseconds = 2000;
         private const int GearTransitionMilliseconds = 420;
         private const int GearTransitionFrames = 14;
         private static readonly ManualResetEventSlim StopRequested = new ManualResetEventSlim(false);
@@ -65,6 +65,8 @@ namespace AlmostFastOverlays
                 File.WriteAllLines(controllerReport, lines.DefaultIfEmpty("No game controllers found."));
                 return 0;
             }
+            // A test pattern on the wheel screen through the dashboard's own sending code, with an optional report.
+            if (args.Contains("--screen-test")) return ScreenTest.Run(ParseOption(args, "--screen-test"));
             string liveReport = ParseOption(args, "--live-check");
             if (liveReport != null) return LiveCheck.Run(liveReport, int.TryParse(ParseOption(args, liveReport), out int liveSeconds) ? liveSeconds : 20);
             string uiScenario = ParseOption(args, "--ui-snapshot");
@@ -498,145 +500,153 @@ namespace AlmostFastOverlays
         {
             // While iRacing isn't connected, the settings window's live preview can show on the wheel.
             var preview = new PreviewRequest();
-            // The LEDs run on their own loop, so they keep working while the screen reconnects.
+            var stats = new ScreenStats();
+            MonitorOutput monitor = null;
+            // The LEDs and the wheel screen each have a thread of their own: the screen connects, reconnects and
+            // sends by itself, so this loop only decides what to draw and when, and draws the next frame while
+            // the last one is still being sent.
             using (new LightLoop(() => preview.Apply(telemetry.GetSnapshot()), () => runtime.Settings, () => runtime.Dashboard, diagnostics.RecordLight))
-            while (!ShouldStop())
+            using (var wheel = new ScreenSender(() => runtime.Settings.General, stats))
             {
                 try
                 {
-                    using (var screen = new WheelScreen())
+                    DateTime nextSettingsCheckUtc = DateTime.MinValue;
+                    // The dashboard's own fingerprint of everything it shows: it redraws only when that changes.
+                    int? lastDrawn = null;
+                    int wheelGeneration = 0;
+                    MonitorOutput lastMonitor = null;
+                    bool? lastTelemetryConnection = null;
+                    int lastObservedGear = int.MinValue;
+                    int transitionFromGear = 0;
+                    DateTime gearTransitionStartedUtc = DateTime.MinValue;
+                    bool pageButtonHeld = false, backButtonHeld = false;
+
+                    while (!ShouldStop())
                     {
-                        var connection = screen.Connect(runtime.Settings.General.ScreenBrightness);
-                        Console.WriteLine("Screen connected: " + connection.ModelName);
-                        Console.WriteLine("Display ID: " + connection.DisplayId);
-                        DateTime nextSettingsCheckUtc = DateTime.MinValue;
+                        long frameStart = System.Diagnostics.Stopwatch.GetTimestamp();
+                        TelemetrySnapshot snapshot = preview.Apply(telemetry.GetSnapshot());
 
-                        // The dashboard's own fingerprint of everything it shows: it redraws only when that changes.
-                        int? lastDrawn = null;
-                        bool? lastTelemetryConnection = null;
-                        int lastObservedGear = int.MinValue;
-                        int transitionFromGear = 0;
-                        DateTime gearTransitionStartedUtc = DateTime.MinValue;
-                        bool pageButtonHeld = false, backButtonHeld = false;
-                        var stats = new ScreenStats();
-
-                        while (!ShouldStop())
+                        // Pick up saved settings and switch dashboards when the track type changes, without
+                        // restarting the process; and follow the display chosen for the dashboard (or unplugged).
+                        if (DateTime.UtcNow >= nextSettingsCheckUtc)
                         {
-                            long frameStart = System.Diagnostics.Stopwatch.GetTimestamp();
-                            TelemetrySnapshot snapshot = preview.Apply(telemetry.GetSnapshot());
+                            nextSettingsCheckUtc = DateTime.UtcNow.AddSeconds(1);
+                            if (runtime.Refresh(preview.Active ? null : snapshot.Discipline, preview.Active ? preview.DashboardId : null))
+                            {
+                                telemetry.ApplyAlertSettings(runtime.Dashboard.Alerts);
+                                lastDrawn = null;
+                                Console.WriteLine("Dashboard: " + runtime.Dashboard.Name);
+                            }
+                            monitor = MonitorOutput.Follow(monitor, runtime.Settings.General.MonitorDevice);
+                        }
+                        wheel.SetBrightness(runtime.Settings.General.ScreenBrightness);
 
-                            // Pick up saved settings and switch dashboards when the
-                            // track type changes, without restarting the process.
-                            if (DateTime.UtcNow >= nextSettingsCheckUtc)
+                        bool shiftFlashOn = snapshot.ShiftAlert && ((Environment.TickCount / 140) & 1) == 0;
+                        if (snapshot.Connected)
+                        {
+                            if (lastObservedGear == int.MinValue)
+                                lastObservedGear = snapshot.Gear;
+                            else if (snapshot.Gear != lastObservedGear)
                             {
-                                nextSettingsCheckUtc = DateTime.UtcNow.AddSeconds(1);
-                                if (runtime.Refresh(preview.Active ? null : snapshot.Discipline, preview.Active ? preview.DashboardId : null))
-                                {
-                                    telemetry.ApplyAlertSettings(runtime.Dashboard.Alerts);
-                                    screen.SetBrightness(runtime.Settings.General.ScreenBrightness);
-                                    lastDrawn = null;
-                                    Console.WriteLine("Dashboard: " + runtime.Dashboard.Name);
-                                }
+                                transitionFromGear = lastObservedGear;
+                                lastObservedGear = snapshot.Gear;
+                                gearTransitionStartedUtc = DateTime.UtcNow;
                             }
+                        }
+                        else
+                        {
+                            lastObservedGear = int.MinValue;
+                            gearTransitionStartedUtc = DateTime.MinValue;
+                        }
 
-                            bool shiftFlashOn = snapshot.ShiftAlert &&
-                                ((Environment.TickCount / 140) & 1) == 0;
-                            if (snapshot.Connected)
-                            {
-                                if (lastObservedGear == int.MinValue)
-                                    lastObservedGear = snapshot.Gear;
-                                else if (snapshot.Gear != lastObservedGear)
-                                {
-                                    transitionFromGear = lastObservedGear;
-                                    lastObservedGear = snapshot.Gear;
-                                    gearTransitionStartedUtc = DateTime.UtcNow;
-                                }
-                            }
-                            else
-                            {
-                                lastObservedGear = int.MinValue;
-                                gearTransitionStartedUtc = DateTime.MinValue;
-                            }
+                        double transitionElapsed = gearTransitionStartedUtc == DateTime.MinValue
+                            ? GearTransitionMilliseconds
+                            : (DateTime.UtcNow - gearTransitionStartedUtc).TotalMilliseconds;
+                        float gearProgress = (float)Math.Min(1, transitionElapsed / GearTransitionMilliseconds);
+                        int gearAnimationFrame = gearProgress < 1 ? (int)(gearProgress * GearTransitionFrames) : -1;
+                        if (lastTelemetryConnection != snapshot.Connected)
+                        {
+                            Console.WriteLine(snapshot.Connected ? "iRacing telemetry connected." : "Waiting for iRacing telemetry...");
+                            lastTelemetryConnection = snapshot.Connected;
+                        }
 
-                            double transitionElapsed = gearTransitionStartedUtc == DateTime.MinValue
-                                ? GearTransitionMilliseconds
-                                : (DateTime.UtcNow - gearTransitionStartedUtc).TotalMilliseconds;
-                            float gearProgress = (float)Math.Min(1, transitionElapsed / GearTransitionMilliseconds);
-                            int gearAnimationFrame = gearProgress < 1
-                                ? (int)(gearProgress * GearTransitionFrames)
-                                : -1;
-                            if (lastTelemetryConnection != snapshot.Connected)
-                            {
-                                Console.WriteLine(snapshot.Connected
-                                    ? "iRacing telemetry connected."
-                                    : "Waiting for iRacing telemetry...");
-                                lastTelemetryConnection = snapshot.Connected;
-                            }
+                        // A wheel button steps through the dashboard's pages.
+                        DashLayout design = runtime.Dashboard.Design;
+                        if (design != null && (!string.IsNullOrEmpty(design.PageButton) || !string.IsNullOrEmpty(design.PageBackButton)))
+                        {
+                            Dictionary<string, uint> buttons = WheelButtons.Read();
+                            bool next = WheelButtons.IsDown(buttons, design.PageButton), back = WheelButtons.IsDown(buttons, design.PageBackButton);
+                            if (next && !pageButtonHeld) runtime.Renderer.StepPage(1);
+                            if (back && !backButtonHeld) runtime.Renderer.StepPage(-1);
+                            pageButtonHeld = next;
+                            backButtonHeld = back;
+                        }
 
-                            // A wheel button steps through the dashboard's pages.
-                            DashLayout design = runtime.Dashboard.Design;
-                            if (design != null && (!string.IsNullOrEmpty(design.PageButton) || !string.IsNullOrEmpty(design.PageBackButton)))
-                            {
-                                Dictionary<string, uint> buttons = WheelButtons.Read();
-                                bool next = WheelButtons.IsDown(buttons, design.PageButton), back = WheelButtons.IsDown(buttons, design.PageBackButton);
-                                if (next && !pageButtonHeld) runtime.Renderer.StepPage(1);
-                                if (back && !backButtonHeld) runtime.Renderer.StepPage(-1);
-                                pageButtonHeld = next;
-                                backButtonHeld = back;
-                            }
-                            // Taps on a touch screen move tap zones on to their next view.
-                            while (screen.TryTakeTap(out System.Drawing.Point tap))
-                            {
-                                System.Drawing.Size built = runtime.Dashboard.ScreenSize();
-                                // A dashboard of another size is fitted to the screen: undo that fit for the tap.
-                                double scale = Math.Min(WheelScreen.Width / (double)built.Width, WheelScreen.Height / (double)built.Height);
-                                double x = (tap.X - (WheelScreen.Width - built.Width * scale) / 2) / scale, y = (tap.Y - (WheelScreen.Height - built.Height * scale) / 2) / scale;
-                                if (runtime.Renderer.Tap(x, y, snapshot)) Console.WriteLine("Tap at " + Math.Round(x) + ", " + Math.Round(y));
-                            }
-                            int current = runtime.Renderer.StateHash(snapshot, shiftFlashOn, gearAnimationFrame);
-                            if (current != lastDrawn)
+                        // Taps on a touch wheel screen, or clicks and touches on the monitor, move tap zones on to their next view.
+                        System.Drawing.Size built = runtime.Dashboard.ScreenSize();
+                        void Tap(double x, double y)
+                        {
+                            if (runtime.Renderer.Tap(x, y, snapshot)) Console.WriteLine("Tap at " + Math.Round(x) + ", " + Math.Round(y));
+                        }
+                        while (wheel.TryTakeTap(out System.Drawing.Point tap))
+                        {
+                            // A dashboard of another size is fitted to the screen: undo that fit for the tap.
+                            System.Drawing.Size screen = wheel.Size;
+                            double scale = Math.Min(screen.Width / (double)built.Width, screen.Height / (double)built.Height);
+                            Tap((tap.X - (screen.Width - built.Width * scale) / 2) / scale, (tap.Y - (screen.Height - built.Height * scale) / 2) / scale);
+                        }
+                        if (monitor != null)
+                            while (monitor.TryTakeTap(out System.Drawing.PointF share)) Tap(share.X * built.Width, share.Y * built.Height);
+
+                        // A screen that has just connected, or a monitor just opened, needs a whole frame.
+                        if (wheel.Generation != wheelGeneration || monitor != lastMonitor)
+                        {
+                            wheelGeneration = wheel.Generation;
+                            lastMonitor = monitor;
+                            lastDrawn = null;
+                        }
+
+                        bool waiting = false;
+                        int current = runtime.Renderer.StateHash(snapshot, shiftFlashOn, gearAnimationFrame);
+                        if ((wheel.Connected || monitor != null) && current != lastDrawn)
+                        {
+                            // Drawn only once every screen showing it can take it, so no frame is drawn just to be
+                            // replaced; that also means it's the newest state when it goes.
+                            if ((!wheel.Connected || wheel.Ready) && (monitor == null || monitor.Ready))
                             {
                                 int previousGear = gearProgress < 1 ? transitionFromGear : snapshot.Gear;
                                 long drawStart = System.Diagnostics.Stopwatch.GetTimestamp();
-                                using (var bitmap = runtime.Renderer.Render(
-                                    snapshot, shiftFlashOn, previousGear, gearProgress))
+                                // The renderer's own bitmap (SharedOutput): each screen copies it straight away.
+                                System.Drawing.Bitmap frame = runtime.Renderer.Render(snapshot, shiftFlashOn, previousGear, gearProgress);
+                                stats.Drawn((System.Diagnostics.Stopwatch.GetTimestamp() - drawStart) * 1000.0 / System.Diagnostics.Stopwatch.Frequency);
+                                if (wheel.Connected)
                                 {
-                                    long sendStart = System.Diagnostics.Stopwatch.GetTimestamp();
                                     // A dashboard built for another screen size is fitted to this one, never stretched.
-                                    if (bitmap.Width == WheelScreen.Width && bitmap.Height == WheelScreen.Height) screen.Draw(bitmap);
-                                    else using (var fitted = ScreenSizes.Fit(bitmap, WheelScreen.Width, WheelScreen.Height)) screen.Draw(fitted);
-                                    long sendEnd = System.Diagnostics.Stopwatch.GetTimestamp();
-                                    double toMs = 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-                                    stats.Frame((sendStart - drawStart) * toMs, (sendEnd - sendStart) * toMs);
+                                    System.Drawing.Size size = wheel.Size;
+                                    if (frame.Width == size.Width && frame.Height == size.Height) wheel.Submit(frame);
+                                    else using (var fitted = ScreenSizes.Fit(frame, size.Width, size.Height)) wheel.Submit(fitted);
                                 }
+                                // The monitor fits any size itself, on the graphics card.
+                                monitor?.Submit(frame);
                                 lastDrawn = current;
                             }
-
-                            // Gear changes and waving flags animate, so they get a faster refresh.
-                            // A steady pace: wait out what's left of the frame's time rather than a fixed pause after the
-                            // work, so drawing and sending don't stretch the gap between frames.
-                            int period = gearProgress < 1 ? 25 : snapshot.Flag != RacingFlag.None ? 33
-                                : snapshot.Connected ? RefreshIntervalMilliseconds : IdleRefreshMilliseconds;
-                            double spent = (System.Diagnostics.Stopwatch.GetTimestamp() - frameStart) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-                            StopRequested.Wait(Math.Max(2, period - (int)spent));
+                            else waiting = true;
                         }
+
+                        // Gear changes and waving flags animate, so they get a faster refresh. A steady pace: wait out
+                        // what's left of the frame's time, not a fixed pause after the work.
+                        int period = gearProgress < 1 ? 25 : snapshot.Flag != RacingFlag.None ? 33
+                            : snapshot.Connected ? RefreshIntervalMilliseconds : IdleRefreshMilliseconds;
+                        double spent = (System.Diagnostics.Stopwatch.GetTimestamp() - frameStart) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+                        if (!waiting) StopRequested.Wait(Math.Max(2, period - (int)spent));
+                        // A frame is due but a screen is still sending the last: draw the moment it's taken.
+                        else if (wheel.Connected && !wheel.Ready) wheel.WaitReady(period);
+                        else StopRequested.Wait(2);
                     }
                 }
-                catch (Exception exception)
+                finally
                 {
-                    if (ShouldStop()) return;
-                    Console.Error.WriteLine("Screen connection lost: " + exception.Message);
-                    Console.Error.WriteLine("Retrying in 2 seconds...");
-                    // Keep following settings and track type so the lights stay right meanwhile.
-                    try
-                    {
-                        TelemetrySnapshot live = telemetry.GetSnapshot();
-                        preview.Apply(live);
-                        bool previewing = !live.Connected && preview.Active;
-                        if (runtime.Refresh(previewing ? null : live.Discipline, previewing ? preview.DashboardId : null)) telemetry.ApplyAlertSettings(runtime.Dashboard.Alerts);
-                    }
-                    catch { }
-                    StopRequested.Wait(ReconnectDelayMilliseconds);
+                    monitor?.Dispose();
                 }
             }
         }
@@ -708,7 +718,7 @@ namespace AlmostFastOverlays
                 // Tap views stay put while the same dashboard is redrawn after a settings change, and start
                 // again from the first view on another dashboard.
                 if (_tapsFor != Dashboard.Id) { _taps.Clear(); _tapsFor = Dashboard.Id; }
-                return new LayoutRenderer(size.Width, size.Height, Dashboard, new UnitSystem(Settings.General)) { Taps = _taps };
+                return new LayoutRenderer(size.Width, size.Height, Dashboard, new UnitSystem(Settings.General)) { Taps = _taps, SharedOutput = true };
             }
 
             private readonly Dictionary<string, int> _taps = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);

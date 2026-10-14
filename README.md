@@ -39,9 +39,12 @@
 - **Numbers you can trust.** Gaps come from iRacing's own timing estimates and
   fuel from clean green-flag laps. Every piece of text is checked for size and
   contrast. See [how the numbers are worked out](#how-the-numbers-are-worked-out).
-- **Light on your PC.** One small exe, with no installer, no background service
-  and no account. The dashboard redraws only what changed, usually in a
-  millisecond or two.
+- **Fast and light on your PC.** One small exe, with no installer, no
+  background service and no account. The dashboard redraws only what changed,
+  and sends the wheel screen only those parts. It draws the next frame while
+  the last one is still being sent, at up to 30 frames a second.
+- **Any display.** Drive a VoCore M-PRO wheel screen directly, or show the
+  dashboard full screen on an HDMI dash screen or a spare monitor.
 - **Free and open.** GPL-3.0, with no account, no ads and no tracking.
 
 ## Dashboards
@@ -125,7 +128,7 @@ with a tab that names it. The checkered flag shows your result.
     <td width="50%" valign="top"><img src="docs/images/app-lights.png" alt="Light designer"><br><strong>Light designer</strong>: layers of effects with conditions and priorities.</td>
   </tr>
   <tr>
-    <td width="50%" valign="top"><img src="docs/images/app-devices.png" alt="Devices page"><br><strong>Devices</strong>: set up each LED device once, in its real shape.</td>
+    <td width="50%" valign="top"><img src="docs/images/app-devices.png" alt="Devices page"><br><strong>Devices</strong>: set up each LED device once, in its real shape, and choose your screens.</td>
     <td width="50%" valign="top"><img src="docs/images/app-dashboard-page.png" alt="A dashboard's page with the live preview"><br><strong>Live preview</strong>: see any moment of a race on screen and on your LEDs.</td>
   </tr>
 </table>
@@ -218,15 +221,19 @@ hasn't been tried yet, and what you can only design for:
 | | Status |
 | --- | --- |
 | **Sim** | iRacing only. |
-| **Wheel screens driven** | VoCore-family "M-PRO" USB screens at 854×480 (USB C872:1004), including touch. Tested on one such wheel screen. No other screen is driven yet. |
-| **Designing for other sizes** | Any resolution from 64×64 to 3840×3840. A design for another size is fitted onto the driven screen without stretching. This doesn't make the app drive a screen of that size. |
+| **Wheel screens tested** | VoCore's 5" M-PRO USB screen at 854×480 (USB C872:1004), including touch, sending whole frames and changed areas. |
+| **Wheel screens supported, not yet tested here** | VoCore's other M-PRO screens: 4", 4.3", 5" OLED, 6.8", 3.4" and 10". Each reports its model, and the app uses the sizes from VoCore's own driver. |
+| **Monitors** | Any display other than your main one, such as an HDMI dash screen or a spare monitor. The dashboard is shown full screen, scaled to fit by the graphics card. |
+| **Designing for other sizes** | Any resolution from 64×64 to 3840×3840. A design for another size is fitted onto the screen it's shown on without stretching. |
 | **LED boards tested** | The LEDs around a wheel screen and a light bar, both on SSG firmware (the sim-racing LED serial protocol). |
 | **LED devices supported, not yet tested here** | Other Arduino boards on the same serial protocol, Adalight strips (`Firmware\Adalight`), WLED controllers over UDP. |
 | **Windows** | 10 and 11, with .NET Framework 4.8 (built into Windows). |
 
-Tried it on something that isn't in the tested rows? Please
-[open an issue](https://github.com/Sota4077/almost-fast-dash/issues) with what
-worked and what didn't.
+Tried it on something that isn't in the tested rows? Please send a
+[hardware report](https://github.com/Sota4077/almost-fast-dash/issues/new?template=hardware_report.yml)
+with what worked and what didn't. With the dashboard stopped,
+`AlmostFastDash.exe --screen-test report.txt` shows a test pattern on a wheel
+screen and notes its model.
 
 ## How the numbers are worked out
 

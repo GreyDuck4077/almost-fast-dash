@@ -6,6 +6,7 @@ installed it yet, start with [Installing](../README.md#installing).
 - [Dashboards](#dashboards)
 - [Flags](#flags)
 - [Devices](#devices)
+- [Screens](#screens)
 - [The designer](#the-designer)
 - [Light profiles](#light-profiles)
 - [Settings](#settings)
@@ -111,6 +112,50 @@ their USB ID when Windows renumbers COM ports.
 See [Compatibility](../README.md#compatibility) for what has been tested on
 real hardware.
 
+## Screens
+
+The running dashboard can show on a wheel screen, a monitor, or both at once.
+Both are set up at the bottom of the **Devices** page.
+
+### The wheel screen
+
+The app drives VoCore's M-PRO USB screens directly. Each one reports its model
+(4", 4.3", 5", 5" OLED, 6.8", 3.4" or 10"), so the dashboard knows its size.
+The **Wheel screen** card shows:
+
+- **Status:** showing the dashboard, plugged in, or not found.
+- **Screen brightness:** the backlight.
+- **Performance:** frames a second, and the time to draw and send each one,
+  measured on the wheel.
+- **Send only what changed:** each frame sends just the parts of the screen
+  that moved, often a tenth of the screen or less, so the screen keeps up at a
+  much higher frame rate. It's on unless you turn it off. If parts of your
+  screen ever stop updating, turn it off and please send a
+  [hardware report](https://github.com/Sota4077/almost-fast-dash/issues/new?template=hardware_report.yml).
+
+The dashboard draws the next frame while the last one is still being sent, at
+up to 30 frames a second, and only when something on it changed.
+
+To check a screen, stop the dashboard and run
+`AlmostFastDash.exe --screen-test report.txt`. It shows a title, numbered
+squares in each corner and the middle, then a sliding bar, sent as whole
+frames and then as only what changed. It writes the screen's model and both
+frame rates to the report.
+
+### Dashboard on a monitor
+
+**Dashboard on a monitor › Display** shows the running dashboard full screen on
+another display, such as an HDMI dash screen or a spare monitor. Any display
+except your main one can be chosen.
+
+- It's scaled to fit by the graphics card, without stretching. For the
+  sharpest picture, design the dashboard at the display's resolution.
+- It never becomes the active window, so the game keeps the keyboard and
+  mouse.
+- Clicks and touches on it work like taps on a touch wheel screen.
+- If the display is unplugged, the dashboard comes back on it when it's
+  plugged in again.
+
 ## The designer
 
 Dashboards are data, not code: a theme plus one or more screens of widgets. Open
@@ -209,9 +254,8 @@ once, for ten seconds.
   look into an odd light after a race. No names or account details are
   recorded.
 
-**Devices › Wheel screen** shows whether the app can see your screen and sets
-its brightness. **Performance** shows the frames a second, drawing time and
-sending time measured on the wheel.
+The wheel screen and the monitor have their own settings on the **Devices**
+page (see [Screens](#screens)).
 
 ### Your settings are safe
 
@@ -235,6 +279,11 @@ port (the app then limits brightness), or plug the device into a powered hub.
 *Not found* means Windows can't see it: check the USB cable, and close other
 dashboard software. Only VoCore-family M-PRO screens can be driven for now
 (see [Compatibility](../README.md#compatibility)).
+
+**Parts of the wheel screen stop updating.** Turn off **Devices › Wheel
+screen › Send only what changed**, so every frame is sent whole. Then please
+send a [hardware report](https://github.com/Sota4077/almost-fast-dash/issues/new?template=hardware_report.yml)
+with your screen's model (from `--screen-test`).
 
 **A light came on and you don't know why.** Check **Settings › Diagnostic
 logs** is on (it is unless you turned it off). After the race, the light log

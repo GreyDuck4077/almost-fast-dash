@@ -16,32 +16,88 @@ namespace AlmostFastOverlays
     }
 
     /// <summary>
-    /// Drives the DV-5's M-PRO screen (a VoCore-family panel, USB C872:1004)
-    /// directly through Windows' built-in WinUSB driver. The commands match VoCore's own
-    /// open-source M-PRO driver (mpro.c in github.com/Vonger/mpro_drm, GPL-2.0-or-later);
-    /// CREDITS.md explains how they were first worked out.
+    /// One of VoCore's M-PRO screens: its panel's own size, and whether a landscape picture goes onto it turned a
+    /// quarter (most panels are portrait). Every model answers to the same USB ID and says which it is when asked;
+    /// the models and sizes are those in VoCore's open driver (mpro.c).
+    /// </summary>
+    internal sealed class ScreenModel
+    {
+        public string Name { get; private set; }
+        public int PanelWidth { get; private set; }
+        public int PanelHeight { get; private set; }
+
+        /// <summary>A portrait panel: the landscape picture goes onto it turned a quarter.</summary>
+        public bool Turned => PanelWidth < PanelHeight;
+
+        /// <summary>The picture's size, landscape on a portrait panel.</summary>
+        public int Width => Turned ? PanelHeight : PanelWidth;
+        public int Height => Turned ? PanelWidth : PanelHeight;
+
+        /// <summary>
+        /// Whole frames go with the original draw command, which the 5" LCD's panels expect 320 bytes of padding
+        /// after (all but the D500FPC931A-A, version 3). Every other model, and any part of a frame, goes with the
+        /// draw command that names its area.
+        /// </summary>
+        public bool WholeFrameCommand { get; private set; }
+        public int FramePadding { get; private set; }
+
+        /// <summary>The 5" LCD at 854×480, the screen this app was built on.</summary>
+        public static readonly ScreenModel FiveInch = new ScreenModel { Name = "5\" M-PRO", PanelWidth = 480, PanelHeight = 854, WholeFrameCommand = true, FramePadding = 320 };
+
+        /// <summary>The model a screen reports (its screen and version answers).</summary>
+        public static ScreenModel For(uint screen, uint version)
+        {
+            switch (screen)
+            {
+                case 0x00000005: return new ScreenModel { Name = "5\" M-PRO", PanelWidth = 480, PanelHeight = 854, WholeFrameCommand = true, FramePadding = (version & 0xFF) == 3 ? 0 : 320 };
+                case 0x00001005: return new ScreenModel { Name = "5\" OLED M-PRO", PanelWidth = 720, PanelHeight = 1280 };
+                case 0x00000304: return new ScreenModel { Name = "4.3\" M-PRO", PanelWidth = 480, PanelHeight = 800 };
+                case 0x00000004:
+                case 0x00000104:
+                case 0x00000B04: return new ScreenModel { Name = "4\" M-PRO", PanelWidth = 480, PanelHeight = 800 };
+                case 0x00000007: return new ScreenModel { Name = "6.8\" M-PRO", PanelWidth = 800, PanelHeight = 480 };
+                case 0x00000403: return new ScreenModel { Name = "3.4\" M-PRO", PanelWidth = 800, PanelHeight = 800 };
+                case 0x0000000A: return new ScreenModel { Name = "10\" M-PRO", PanelWidth = 1024, PanelHeight = 600 };
+                // No answer at all: treat it as the 5", as the app always has.
+                case 0xFFFFFFFF: return FiveInch;
+                // A model newer than this list: VoCore's driver assumes a 480×800 panel.
+                default: return new ScreenModel { Name = "M-PRO", PanelWidth = 480, PanelHeight = 800 };
+            }
+        }
+    }
+
+    /// <summary>
+    /// Drives VoCore's M-PRO screens (USB C872:1004) directly through Windows' built-in WinUSB driver: a whole
+    /// frame, or just an area that changed. The commands match VoCore's own open-source M-PRO driver (mpro.c in
+    /// github.com/Vonger/mpro_drm, GPL-2.0-or-later); CREDITS.md explains how they were first worked out.
+    /// FrameEncoder turns pictures into the panel's pixels.
     /// </summary>
     internal sealed class WheelScreen : IDisposable
     {
-        public const int Width = 854;
-        public const int Height = 480;
-
         private const ushort VendorId = 0xC872;
         private const ushort ProductId = 0x1004;
         private const byte VendorOut = 0x40;
         private const byte VendorIn = 0xC0;
         private const uint TransferTimeoutMilliseconds = 2000;
-        private const int FrameBytes = Width * Height * 2;
 
         // Generic USB device interface, used when the WinUSB install did not record its own GUID.
         private static readonly Guid UsbDeviceInterface = new Guid("A5DCBF10-6530-11D2-901F-00C04FB951ED");
 
-        private readonly byte[] _argb = new byte[Width * Height * 4];
-        private byte[] _transfer = new byte[FrameBytes];
+        private readonly byte[] _drawWhole = new byte[6], _drawArea = new byte[12];
         private SafeFileHandle _file;
         private IntPtr _usb = IntPtr.Zero;
         private byte _bulkOut;
         private bool _connected;
+
+        /// <summary>The model connected (the 5" until one is).</summary>
+        public ScreenModel Model { get; private set; } = ScreenModel.FiveInch;
+
+        /// <summary>The picture's size on this screen.</summary>
+        public int Width => Model.Width;
+        public int Height => Model.Height;
+
+        /// <summary>Bytes a whole frame needs: the panel's pixels (two bytes each) and any padding after them.</summary>
+        public int FrameLength => Model.PanelWidth * Model.PanelHeight * 2 + Model.FramePadding;
 
         public ConnectionResult Connect(int brightnessPercent = 100)
         {
@@ -57,22 +113,19 @@ namespace AlmostFastOverlays
             _bulkOut = FindBulkOutPipe();
             uint timeout = TransferTimeoutMilliseconds;
             Native.WinUsb_SetPipePolicy(_usb, _bulkOut, Native.PipeTransferTimeout, 4, ref timeout);
-            StartTouch();
 
             uint screen = Query(new byte[] { 0x51, 0x02, 0x04, 0x1F, 0xFC });
-            uint code = Query(new byte[] { 0x51, 0x02, 0x04, 0x1F, 0xF8 });
-            // The D500FPC931A-A panel (code 3) takes exactly one frame; the other
-            // 854x480 panels expect 320 bytes of padding after it.
-            int padding = (code & 0xFF) == 3 ? 0 : 320;
-            _transfer = new byte[FrameBytes + padding];
+            uint version = Query(new byte[] { 0x51, 0x02, 0x04, 0x1F, 0xF8 });
+            Model = ScreenModel.For(screen, version);
+            StartTouch();
 
             Control(VendorOut, 0xB0, new byte[] { 0x00, 0x29 }); // leave sleep mode
             _connected = true;
             SetBrightness(brightnessPercent);
             return new ConnectionResult
             {
-                ModelName = "M-PRO 854x480",
-                DisplayId = $"screen 0x{screen:X}, code 0x{code & 0xFF:X2}"
+                ModelName = Model.Name + ", " + Width + " × " + Height,
+                DisplayId = $"screen 0x{screen:X}, version 0x{version & 0xFF:X2}"
             };
         }
 
@@ -83,66 +136,64 @@ namespace AlmostFastOverlays
             Control(VendorOut, 0xB0, new byte[] { 0x00, 0x51, 0x02, 0x00, 0x00, 0x00, (byte)(clamped * 255 / 100), 0x00 });
         }
 
-        public void Draw(Bitmap bitmap)
+        /// <summary>A whole frame: the panel's pixels from FrameEncoder, in a buffer at least FrameLength long.</summary>
+        public void SendFrame(byte[] panel)
         {
-            if (!_connected)
+            if (!Model.WholeFrameCommand)
             {
-                throw new InvalidOperationException("The screen is not connected.");
+                SendArea(new Rectangle(0, 0, Model.PanelWidth, Model.PanelHeight), panel);
+                return;
             }
-
-            if (bitmap.Width != Width || bitmap.Height != Height)
-            {
-                throw new ArgumentException($"Frame must be {Width}x{Height}.", nameof(bitmap));
-            }
-
-            ConvertToRgb565(bitmap, _argb, _transfer);
-            Control(VendorOut, 0xB0, new byte[]
-            {
-                0x00, 0x2C, FrameBytes & 0xFF, (FrameBytes >> 8) & 0xFF, (FrameBytes >> 16) & 0xFF, 0x00
-            });
-            if (!Native.WinUsb_WritePipe(_usb, _bulkOut, _transfer, (uint)_transfer.Length, out uint written, IntPtr.Zero) ||
-                written != _transfer.Length)
-            {
-                throw new InvalidOperationException("The screen rejected the frame.", new Win32Exception());
-            }
+            int pixels = Model.PanelWidth * Model.PanelHeight * 2;
+            _drawWhole[0] = 0x00;
+            _drawWhole[1] = 0x2C;
+            _drawWhole[2] = (byte)pixels;
+            _drawWhole[3] = (byte)(pixels >> 8);
+            _drawWhole[4] = (byte)(pixels >> 16);
+            Control(VendorOut, 0xB0, _drawWhole);
+            Write(panel, FrameLength);
         }
 
-        private static void ConvertToRgb565(Bitmap bitmap, byte[] source, byte[] destination)
+        /// <summary>
+        /// Part of a frame: an area of the panel (in the panel's own pixels) and its pixels row by row. This is
+        /// VoCore's draw command that names the area: its length, then its left, top and width.
+        /// </summary>
+        public void SendArea(Rectangle area, byte[] pixels)
         {
-            var rectangle = new Rectangle(0, 0, Width, Height);
-            BitmapData data = bitmap.LockBits(rectangle, ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
-            try
-            {
-                int sourceLength = Math.Abs(data.Stride) * Height;
-                if (sourceLength > source.Length)
-                    throw new InvalidOperationException("Unexpected bitmap stride.");
-                Marshal.Copy(data.Scan0, source, 0, sourceLength);
+            int length = area.Width * area.Height * 2;
+            _drawArea[0] = 0x00;
+            _drawArea[1] = 0x2C;
+            _drawArea[2] = (byte)length;
+            _drawArea[3] = (byte)(length >> 8);
+            _drawArea[4] = (byte)(length >> 16);
+            _drawArea[5] = 0x00;
+            _drawArea[6] = (byte)area.X;
+            _drawArea[7] = (byte)(area.X >> 8);
+            _drawArea[8] = (byte)area.Y;
+            _drawArea[9] = (byte)(area.Y >> 8);
+            _drawArea[10] = (byte)area.Width;
+            _drawArea[11] = (byte)(area.Width >> 8);
+            Control(VendorOut, 0xB0, _drawArea);
+            Write(pixels, length);
+        }
 
-                for (int y = 0; y < Height; y++)
-                {
-                    int sourceRow = y * data.Stride;
-                    for (int x = 0; x < Width; x++)
-                    {
-                        int sourceIndex = sourceRow + (x * 4);
-                        int blue = source[sourceIndex];
-                        int green = source[sourceIndex + 1];
-                        int red = source[sourceIndex + 2];
-                        ushort pixel = (ushort)(((red >> 3) << 11) | ((green >> 2) << 5) | (blue >> 3));
-                        // The DV-5 exposes an 854x480 logical surface, but its M-PRO
-                        // controller scans a 480x854 portrait panel. Rotate the logical
-                        // frame counterclockwise into that physical transport order.
-                        int physicalX = y;
-                        int physicalY = Width - 1 - x;
-                        int destinationIndex = ((physicalY * Height) + physicalX) * 2;
-                        destination[destinationIndex] = (byte)(pixel & 0xff);
-                        destination[destinationIndex + 1] = (byte)(pixel >> 8);
-                    }
-                }
-            }
-            finally
-            {
-                bitmap.UnlockBits(data);
-            }
+        /// <summary>A whole picture at this screen's size, encoded and sent (for blanking and tests; the dashboard uses ScreenSender).</summary>
+        public void Draw(Bitmap bitmap)
+        {
+            if (bitmap.Width != Width || bitmap.Height != Height)
+                throw new ArgumentException($"Frame must be {Width}x{Height}.", nameof(bitmap));
+            var pixels = new int[Width * Height];
+            FrameEncoder.Copy(bitmap, pixels);
+            var panel = new byte[FrameLength];
+            FrameEncoder.Encode(pixels, Width, new Rectangle(0, 0, Width, Height), Model, panel);
+            SendFrame(panel);
+        }
+
+        private void Write(byte[] buffer, int length)
+        {
+            if (!_connected) throw new InvalidOperationException("The screen is not connected.");
+            if (!Native.WinUsb_WritePipe(_usb, _bulkOut, buffer, (uint)length, out uint written, IntPtr.Zero) || written != length)
+                throw new InvalidOperationException("The screen rejected the frame.", new Win32Exception());
         }
 
         /// <summary>Sends a vendor query and reads back the 32-bit answer that follows its status byte.</summary>
@@ -197,13 +248,13 @@ namespace AlmostFastOverlays
         /// <summary>Whether the screen reports touches (it has an interrupt channel for them).</summary>
         public bool HasTouch { get; private set; }
 
-        /// <summary>The next tap since the last call, in the 854×480 picture's pixels.</summary>
+        /// <summary>The next tap since the last call, in the picture's pixels.</summary>
         public bool TryTakeTap(out Point tap) => _taps.TryDequeue(out tap);
 
         /// <summary>
         /// Reads the touch panel on its own thread. While a finger is down the screen sends a report every
-        /// 8 ms or so: a byte with the number of touches, then the first touch's position on the portrait
-        /// panel (X and Y as 12-bit numbers, the top bits of X sharing a byte with the event flags). A short
+        /// 8 ms or so: a byte with the number of touches, then the first touch's position on the panel
+        /// (X and Y as 12-bit numbers, the top bits of X sharing a byte with the event flags). A short
         /// touch that hardly moves counts as a tap, so a hand brushing or resting on the glass doesn't.
         /// </summary>
         private void StartTouch()
@@ -219,11 +270,12 @@ namespace AlmostFastOverlays
             Native.WinUsb_SetPipePolicy(_usb, touchIn, Native.PipeTransferTimeout, 4, ref timeout);
             _touchRunning = true;
             IntPtr usb = _usb;
-            _touchThread = new System.Threading.Thread(() => ReadTouches(usb, touchIn)) { IsBackground = true, Name = "Touch", Priority = System.Threading.ThreadPriority.BelowNormal };
+            ScreenModel model = Model;
+            _touchThread = new System.Threading.Thread(() => ReadTouches(usb, touchIn, model)) { IsBackground = true, Name = "Touch", Priority = System.Threading.ThreadPriority.BelowNormal };
             _touchThread.Start();
         }
 
-        private void ReadTouches(IntPtr usb, byte pipe)
+        private void ReadTouches(IntPtr usb, byte pipe, ScreenModel model)
         {
             var report = new byte[64];
             bool down = false;
@@ -237,7 +289,7 @@ namespace AlmostFastOverlays
                     if (Marshal.GetLastWin32Error() != 121) System.Threading.Thread.Sleep(100);
                     continue;
                 }
-                if (!ReadTouch(report, (int)got, out bool touching, out Point at)) continue;
+                if (!ReadTouch(report, (int)got, model, out bool touching, out Point at)) continue;
                 if (touching)
                 {
                     last = at;
@@ -252,8 +304,8 @@ namespace AlmostFastOverlays
             }
         }
 
-        /// <summary>One touch report: whether a finger is down, and where on the 854×480 picture.</summary>
-        internal static bool ReadTouch(byte[] report, int length, out bool touching, out Point at)
+        /// <summary>One touch report: whether a finger is down, and where on the picture.</summary>
+        internal static bool ReadTouch(byte[] report, int length, ScreenModel model, out bool touching, out Point at)
         {
             touching = false;
             at = Point.Empty;
@@ -262,8 +314,10 @@ namespace AlmostFastOverlays
             touching = report[2] > 0 && (report[3] & 0xC0) != 0x40;
             if (!touching) return true;
             int panelX = ((report[3] & 0x0F) << 8) | report[4], panelY = ((report[5] & 0x0F) << 8) | report[6];
-            // The panel is portrait; the picture is turned a quarter onto it (see ConvertToRgb565).
-            at = new Point(Math.Max(0, Math.Min(Width - 1, Width - 1 - panelY)), Math.Max(0, Math.Min(Height - 1, panelX)));
+            // On a portrait panel the picture is turned a quarter (see FrameEncoder): the panel's height runs
+            // right to left across the picture.
+            int x = model.Turned ? model.Width - 1 - panelY : panelX, y = model.Turned ? panelX : panelY;
+            at = new Point(Math.Max(0, Math.Min(model.Width - 1, x)), Math.Max(0, Math.Min(model.Height - 1, y)));
             return true;
         }
 
@@ -274,7 +328,7 @@ namespace AlmostFastOverlays
             _touchThread = null;
         }
 
-        /// <summary>Whether the screen is plugged in, without opening it.</summary>
+        /// <summary>Whether a screen is plugged in, without opening it.</summary>
         public static bool IsPresent() => FindDevicePath() != null;
 
         private static string FindDevicePath()
@@ -318,8 +372,7 @@ namespace AlmostFastOverlays
             {
                 try
                 {
-                    // The M-PRO controller retains its last frame after the USB
-                    // connection closes, so explicitly blank it on shutdown.
+                    // The M-PRO controller keeps its last frame after the USB connection closes, so blank it.
                     using (var blank = new Bitmap(Width, Height, PixelFormat.Format32bppArgb))
                     using (Graphics graphics = Graphics.FromImage(blank))
                     {

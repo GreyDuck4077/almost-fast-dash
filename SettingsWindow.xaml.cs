@@ -693,6 +693,8 @@ namespace AlmostFastOverlays
             GeneralSettings general = _settings.General;
             ScreenBrightness.Value = general.ScreenBrightness;
             ScreenBrightnessValue.Text = general.ScreenBrightness + "%";
+            SendChangesToggle.IsChecked = general.SendChangesOnly;
+            FillMonitors();
             SpeedKph.IsChecked = string.Equals(general.SpeedUnit, "KPH", StringComparison.OrdinalIgnoreCase);
             SpeedMph.IsChecked = SpeedKph.IsChecked != true;
             FuelGallons.IsChecked = string.Equals(general.FuelUnit, "Gallons", StringComparison.OrdinalIgnoreCase);

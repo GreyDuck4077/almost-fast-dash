@@ -5,6 +5,37 @@ English. Every version is on the
 [releases page](https://github.com/Sota4077/almost-fast-dash/releases) with
 its exe and checksum.
 
+## 3.54 · 2026-10-13
+
+The screen pipeline, rebuilt for speed.
+
+- **Only what changed goes to the wheel screen.** Each frame is compared with
+  the last in small tiles, and only the changed areas are sent, using VoCore's
+  draw command that names an area. On the Oval dashboard with the radar
+  moving, that's about a tenth of the screen per frame instead of all of it.
+  Checked on a 5" screen with a recorded test.
+- **Drawing and sending happen at once.** The screen sends on its own thread,
+  so the next frame is drawn while the last one is still going down the cable.
+  Even whole frames now go at 43 a second in the screen test. Sending one used
+  to take about 31 ms, so 32 a second at best.
+- **Up to 30 frames a second** while racing (it was 20), still only when
+  something on the dashboard changed.
+- **The radar draws about 30% faster**, looking the same:
+  - the soft pool under each car is drawn once and reused;
+  - the road, rings and edge lines are drawn once for the radar's box.
+- **No new 1.6 MB picture every frame.** The renderer reuses one, so memory
+  stays flat while racing.
+- **Every M-PRO screen.** The 4", 4.3", 5" OLED, 6.8", 3.4" and 10" models
+  are recognised from what the screen reports, at their own sizes, with touch.
+  Only the 5" has been tested so far.
+- **Dashboard on a monitor.** Show the running dashboard full screen on any
+  other display, such as an HDMI dash screen or a spare monitor. The graphics
+  card scales it, it never takes the keyboard or mouse from the game, and taps
+  work on it.
+- **Devices page:** a *Send only what changed* switch (on by default), the
+  monitor choice, and the screen's model in its status.
+- `--screen-test` shows a test pattern on the wheel screen and measures it.
+
 ## 3.53 · 2026-10-13
 
 - **A welcome card for new installs.** The Dashboards page lists the three

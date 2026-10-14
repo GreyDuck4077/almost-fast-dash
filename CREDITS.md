@@ -69,6 +69,13 @@ and [vocore.io](https://vocore.io/screen.html). Those sources cover:
 - wake (`00 29`), frame write (`00 2C`) and backlight (`00 51`);
 - the 320 bytes of padding that most 5-inch panels expect after a frame.
 
+Two later features come straight from VoCore's open driver, not from SimHub:
+
+- sending only the parts of a frame that changed, using the frame write that
+  names an area (`00 2C` with the area's left, top and width);
+- the panel size of every M-PRO model (4", 4.3", 5", 5" OLED, 6.8", 3.4" and
+  10"), chosen by the model the screen reports.
+
 No code from SimHub or from VoCore's driver is included.
 
 ## LED protocols

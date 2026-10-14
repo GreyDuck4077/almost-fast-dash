@@ -1,4 +1,3 @@
-using System;
 using System.Windows;
 using Brush = System.Windows.Media.Brush;
 
@@ -6,25 +5,10 @@ namespace AlmostFastOverlays
 {
     /// <summary>
     /// What a new user needs to know first: the welcome card's three steps (plug in the wheel screen, add LED
-    /// devices, start the dashboard) with each one's live state, and whether the wheel screen can be seen at all.
+    /// devices, start the dashboard), each with its live state.
     /// </summary>
     public partial class SettingsWindow
     {
-        private bool _screenPresent;
-        private DateTime _screenCheckedAt = DateTime.MinValue;
-
-        /// <summary>Whether the wheel screen is plugged in, looked up at most every two seconds.</summary>
-        private bool ScreenPresent()
-        {
-            if (DateTime.UtcNow - _screenCheckedAt < TimeSpan.FromSeconds(2)) return _screenPresent;
-            _screenCheckedAt = DateTime.UtcNow;
-            try { _screenPresent = WheelScreen.IsPresent(); }
-            catch { _screenPresent = false; }
-            return _screenPresent;
-        }
-
-        private static string ScreenSize => WheelScreen.Width + " × " + WheelScreen.Height;
-
         /// <summary>The welcome card, while it's wanted: each step marked done as it is.</summary>
         private void RefreshWelcome()
         {
@@ -65,29 +49,6 @@ namespace AlmostFastOverlays
         {
             NavSettings.IsChecked = true;
             OpenDeviceSetup(null);
-        }
-
-        /// <summary>The wheel screen's status on the Devices page: showing the dashboard, plugged in, or not found.</summary>
-        private void RefreshScreenStatus(bool drawing)
-        {
-            string text, tone;
-            if (!ScreenPresent())
-            {
-                text = "Not found. Check it's plugged in by USB. VoCore-family M-PRO screens are supported.";
-                tone = "Brush.Warning";
-            }
-            else if (_dashboardRunning)
-            {
-                text = drawing ? "Connected · " + ScreenSize + " · showing the dashboard" : "Connecting…";
-                tone = drawing ? "Brush.Success" : "Brush.Warning";
-            }
-            else
-            {
-                text = "Plugged in · " + ScreenSize + " · not in use right now";
-                tone = "Brush.TextTertiary";
-            }
-            ScreenStatusText.Text = text;
-            ScreenStatusDot.Fill = (Brush)FindResource(tone);
         }
     }
 }

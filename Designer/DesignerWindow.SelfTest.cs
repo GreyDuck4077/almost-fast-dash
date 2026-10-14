@@ -1034,13 +1034,81 @@ namespace AlmostFastOverlays
             {
                 // Reports the wheel screen sent while it was tapped at its top-left, top-right and bottom-right, then lifted.
                 byte[] Report(params byte[] start) => start.Concat(new byte[] { 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }).ToArray();
-                WheelScreen.ReadTouch(Report(0, 0, 1, 0x80, 0x48, 0x03, 0x28), 14, out bool downA, out System.Drawing.Point topLeft);
-                WheelScreen.ReadTouch(Report(0, 0, 1, 0x80, 0x2E, 0x00, 0x2D), 14, out bool downB, out System.Drawing.Point topRight);
-                WheelScreen.ReadTouch(Report(0, 0, 1, 0x81, 0xB4, 0x00, 0x25), 14, out bool downC, out System.Drawing.Point bottomRight);
-                WheelScreen.ReadTouch(Report(0, 0, 0, 0x40, 0x48, 0x03, 0x28), 14, out bool lifted, out _);
+                WheelScreen.ReadTouch(Report(0, 0, 1, 0x80, 0x48, 0x03, 0x28), 14, ScreenModel.FiveInch, out bool downA, out System.Drawing.Point topLeft);
+                WheelScreen.ReadTouch(Report(0, 0, 1, 0x80, 0x2E, 0x00, 0x2D), 14, ScreenModel.FiveInch, out bool downB, out System.Drawing.Point topRight);
+                WheelScreen.ReadTouch(Report(0, 0, 1, 0x81, 0xB4, 0x00, 0x25), 14, ScreenModel.FiveInch, out bool downC, out System.Drawing.Point bottomRight);
+                WheelScreen.ReadTouch(Report(0, 0, 0, 0x40, 0x48, 0x03, 0x28), 14, ScreenModel.FiveInch, out bool lifted, out _);
                 Check("touch reports read as the corners that were tapped", downA && downB && downC && !lifted &&
                     topLeft == new System.Drawing.Point(45, 72) && topRight == new System.Drawing.Point(808, 46) && bottomRight == new System.Drawing.Point(816, 436),
                     topLeft + " " + topRight + " " + bottomRight);
+                // A landscape panel's touches need no turning.
+                WheelScreen.ReadTouch(Report(0, 0, 1, 0x80, 0x48, 0x00, 0x28), 14, ScreenModel.For(0x7, 0), out bool downWide, out System.Drawing.Point wide);
+                Check("touches on a landscape panel read straight across", downWide && wide == new System.Drawing.Point(72, 40), wide.ToString());
+
+                // ---------------- sending to the screen
+                var random = new Random(5);
+                int[] Picture(int w, int h)
+                {
+                    var pixels = new int[w * h];
+                    for (int i = 0; i < pixels.Length; i++) pixels[i] = random.Next() | unchecked((int)0xFF000000);
+                    return pixels;
+                }
+                ScreenModel five = ScreenModel.FiveInch;
+                int[] picture = Picture(five.Width, five.Height);
+                // The original whole-frame conversion, pixel by pixel: RGB565, turned a quarter onto the portrait panel.
+                var reference = new byte[five.Width * five.Height * 2];
+                for (int row = 0; row < five.Height; row++)
+                    for (int column = 0; column < five.Width; column++)
+                    {
+                        int c = picture[row * five.Width + column];
+                        int pixel = (((c >> 16) & 0xFF) >> 3 << 11) | (((c >> 8) & 0xFF) >> 2 << 5) | ((c & 0xFF) >> 3);
+                        int index = ((five.Width - 1 - column) * five.Height + row) * 2;
+                        reference[index] = (byte)pixel;
+                        reference[index + 1] = (byte)(pixel >> 8);
+                    }
+                var encoded = new byte[five.Width * five.Height * 2 + five.FramePadding];
+                FrameEncoder.Encode(picture, five.Width, new System.Drawing.Rectangle(0, 0, five.Width, five.Height), five, encoded);
+                Check("a whole frame encodes exactly as the screen takes it", reference.SequenceEqual(encoded.Take(reference.Length)));
+
+                // Any part, put where Encode says it goes on the panel, matches the whole frame there.
+                bool PartsLand(ScreenModel model)
+                {
+                    int[] pixels = Picture(model.Width, model.Height);
+                    var whole = new byte[model.PanelWidth * model.PanelHeight * 2];
+                    FrameEncoder.Encode(pixels, model.Width, new System.Drawing.Rectangle(0, 0, model.Width, model.Height), model, whole);
+                    var part = new byte[whole.Length];
+                    foreach (System.Drawing.Rectangle area in new[] { new System.Drawing.Rectangle(0, 0, 16, 16), new System.Drawing.Rectangle(37, 5, 101, 64), new System.Drawing.Rectangle(model.Width - 48, model.Height - 32, 48, 32) })
+                    {
+                        System.Drawing.Rectangle panel = FrameEncoder.Encode(pixels, model.Width, area, model, part);
+                        if (panel.Width * panel.Height != area.Width * area.Height) return false;
+                        for (int row = 0; row < panel.Height; row++)
+                            for (int column = 0; column < panel.Width * 2; column++)
+                                if (part[row * panel.Width * 2 + column] != whole[((panel.Y + row) * model.PanelWidth + panel.X) * 2 + column]) return false;
+                    }
+                    return true;
+                }
+                Check("parts of a frame land where they belong on portrait and landscape panels",
+                    PartsLand(five) && PartsLand(ScreenModel.For(0x7, 0)) && PartsLand(ScreenModel.For(0x1005, 0)) && PartsLand(ScreenModel.For(0x403, 0)));
+
+                // Nothing changed; two small changes far apart; most of the screen.
+                int[] shown = (int[])picture.Clone(), next = (int[])picture.Clone();
+                bool nothing = FrameEncoder.Changes(next, shown, five.Width, five.Height).Count == 0;
+                next[10 * five.Width + 20] ^= 1;
+                next[400 * five.Width + 700] ^= 1;
+                List<System.Drawing.Rectangle> two = FrameEncoder.Changes(next, shown, five.Width, five.Height);
+                bool small = two.Count == 2 && two.Any(r => r.Contains(20, 10) && r.Width * r.Height <= 256) && two.Any(r => r.Contains(700, 400) && r.Width * r.Height <= 256);
+                for (int i = 0; i < next.Length * 3 / 4; i++) next[i] ^= 1;
+                List<System.Drawing.Rectangle> most = FrameEncoder.Changes(next, shown, five.Width, five.Height);
+                Check("only what changed is sent, and most of the screen goes as a whole frame",
+                    nothing && small && most.Count == 1 && most[0] == new System.Drawing.Rectangle(0, 0, five.Width, five.Height), string.Join(" ", two));
+
+                // Every M-PRO model a screen can report.
+                ScreenModel oled = ScreenModel.For(0x1005, 0), wide68 = ScreenModel.For(0x7, 0), ten = ScreenModel.For(0xA, 0), newer = ScreenModel.For(0x99, 0);
+                Check("M-PRO models: their sizes, which way the picture goes, and the 5\"'s padding",
+                    five.Width == 854 && five.Height == 480 && five.Turned && ScreenModel.For(0x5, 0).FramePadding == 320 && ScreenModel.For(0x5, 3).FramePadding == 0 &&
+                    oled.Width == 1280 && oled.Height == 720 && oled.Turned && !oled.WholeFrameCommand &&
+                    wide68.Width == 800 && wide68.Height == 480 && !wide68.Turned && ten.Width == 1024 && ten.Height == 600 &&
+                    newer.Width == 800 && newer.Height == 480 && ScreenModel.For(0xFFFFFFFF, 0) == five);
 
                 DashboardSettings roady = DashboardSettings.CreateDesigned(DesignTemplates.Road);
                 using (var renderer = new LayoutRenderer(854, 480, roady, _units))

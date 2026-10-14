@@ -102,45 +102,57 @@ namespace AlmostFastOverlays
             GraphicsState state = g.Save();
             g.SetClip(b, CombineMode.Intersect);
 
-            Color road = c.Color("roadColor");
-            if (road.A > 0)
+            Color road = c.Color("roadColor"), ring = c.Color("ringColor"), lines = c.Color("laneColor");
+            bool rings = c.Bool("rings"), lanes = c.Bool("lanes");
+            // The road, its range rings and its edge lines never move: they're drawn once into a picture for this
+            // box and laid down each frame.
+            string still = string.Join("|", b, range, c.Num("tilt"), road.ToArgb(), rings, ring.ToArgb(), lanes, lines.ToArgb());
+            Still(g, still, b, s =>
             {
-                float edge = LaneWidth * 2.5f;
-                PointF[] area = cam.Polygon(new[] { new PointF(-edge, (float)far), new PointF(edge, (float)far), new PointF(edge, (float)near), new PointF(-edge, (float)near) });
-                using (var brush = new LinearGradientBrush(new RectangleF(b.X, b.Y - 1, b.Width, b.Height + 2), road, road, 90f))
+                if (road.A > 0)
                 {
-                    brush.InterpolationColors = new ColorBlend
+                    float edge = LaneWidth * 2.5f;
+                    PointF[] area = cam.Polygon(new[] { new PointF(-edge, (float)far), new PointF(edge, (float)far), new PointF(edge, (float)near), new PointF(-edge, (float)near) });
+                    using (var brush = new LinearGradientBrush(new RectangleF(b.X, b.Y - 1, b.Width, b.Height + 2), road, road, 90f))
                     {
-                        Colors = new[] { Color.FromArgb(0, road), road, road, Color.FromArgb(0, road) },
-                        Positions = new[] { 0f, 0.2f, 0.88f, 1f }
-                    };
-                    g.FillPolygon(brush, area);
-                }
-            }
-
-            if (c.Bool("rings"))
-            {
-                Color ring = c.Color("ringColor");
-                for (int n = 1; n <= Math.Ceiling(range); n++)
-                {
-                    double r = n * L;
-                    // Only whole rings: one cut off by the box's sides would look broken.
-                    if (cam.F * r / cam.D > b.Width / 2 - 2) break;
-                    var points = new PointF[72];
-                    for (int i = 0; i < points.Length; i++)
-                    {
-                        double a = i * 2 * Math.PI / points.Length;
-                        points[i] = cam.At(r * Math.Cos(a), r * Math.Sin(a));
+                        brush.InterpolationColors = new ColorBlend
+                        {
+                            Colors = new[] { Color.FromArgb(0, road), road, road, Color.FromArgb(0, road) },
+                            Positions = new[] { 0f, 0.2f, 0.88f, 1f }
+                        };
+                        s.FillPolygon(brush, area);
                     }
-                    int alpha = (int)(ring.A * (1 - 0.5 * (n - 1) / Math.Max(1, range)));
-                    using (var pen = new Pen(Color.FromArgb(Math.Max(0, alpha), ring), Math.Max(1f, cam.Scale(0) * 0.06f)))
-                        g.DrawPolygon(pen, points);
                 }
-            }
+                if (rings)
+                    for (int n = 1; n <= Math.Ceiling(range); n++)
+                    {
+                        double r = n * L;
+                        // Only whole rings: one cut off by the box's sides would look broken.
+                        if (cam.F * r / cam.D > b.Width / 2 - 2) break;
+                        var points = new PointF[72];
+                        for (int i = 0; i < points.Length; i++)
+                        {
+                            double a = i * 2 * Math.PI / points.Length;
+                            points[i] = cam.At(r * Math.Cos(a), r * Math.Sin(a));
+                        }
+                        int alpha = (int)(ring.A * (1 - 0.5 * (n - 1) / Math.Max(1, range)));
+                        using (var pen = new Pen(Color.FromArgb(Math.Max(0, alpha), ring), Math.Max(1f, cam.Scale(0) * 0.06f)))
+                            s.DrawPolygon(pen, points);
+                    }
+                if (lanes)
+                    foreach (float k in new[] { -2.5f, 2.5f })
+                        for (double m = near; m < far; m += 2)
+                        {
+                            PointF a = cam.At(k * LaneWidth, m), z = cam.At(k * LaneWidth, m + 2.05);
+                            float f = Fade((a.Y + z.Y) / 2);
+                            if (f <= 0) continue;
+                            using (var pen = new Pen(Color.FromArgb((int)(lines.A * f), lines), Math.Max(1.5f, cam.Scale(m + 1) * 0.16f)))
+                                s.DrawLine(pen, a, z);
+                        }
+            });
 
-            if (c.Bool("lanes"))
+            if (lanes)
             {
-                Color lines = c.Color("laneColor");
                 // Lane dashes slide past as you drive (by your distance round the lap).
                 const double Dash = 3.0, Period = 7.5;
                 double travelled = c.Bool("moving") && t.TrackLengthMiles > 0 ? t.LapFraction * t.TrackLengthMiles * 1609.344 : 0;
@@ -152,15 +164,6 @@ namespace AlmostFastOverlays
                         float f = Fade((a.Y + z.Y) / 2);
                         if (f <= 0) continue;
                         using (var pen = new Pen(Color.FromArgb((int)(lines.A * f), lines), Math.Max(1.2f, cam.Scale(m + Dash / 2) * 0.13f)) { StartCap = LineCap.Round, EndCap = LineCap.Round })
-                            g.DrawLine(pen, a, z);
-                    }
-                foreach (float k in new[] { -2.5f, 2.5f })
-                    for (double m = near; m < far; m += 2)
-                    {
-                        PointF a = cam.At(k * LaneWidth, m), z = cam.At(k * LaneWidth, m + 2.05);
-                        float f = Fade((a.Y + z.Y) / 2);
-                        if (f <= 0) continue;
-                        using (var pen = new Pen(Color.FromArgb((int)(lines.A * f), lines), Math.Max(1.5f, cam.Scale(m + 1) * 0.16f)))
                             g.DrawLine(pen, a, z);
                     }
             }
@@ -277,18 +280,15 @@ namespace AlmostFastOverlays
                     g.Restore(placed);
                 }
 
-                // Glow or shadow on the road beneath it.
+                // Glow or shadow on the road beneath it: a soft pool, drawn once and laid down through the camera.
                 Layer(0, () =>
                 {
+                    Color centre = glowSize > 0 && glow.A > 0 ? Color.FromArgb(150, glow) : Color.FromArgb(130, 0, 0, 0);
                     var under = new RectangleF(-hw - glowSize, -hl - glowSize, CarWide + glowSize * 2, CarLong + glowSize * 2);
-                    using (GraphicsPath pool = DashKit.Rounded(under, hw + glowSize))
-                    using (var brush = new PathGradientBrush(pool)
-                    {
-                        CenterColor = glowSize > 0 && glow.A > 0 ? Color.FromArgb(150, glow) : Color.FromArgb(130, 0, 0, 0),
-                        SurroundColors = new[] { Color.FromArgb(0, glowSize > 0 && glow.A > 0 ? glow : Color.Black) },
-                        FocusScales = new PointF(0.55f, 0.75f)
-                    })
-                        g.FillPath(brush, pool);
+                    InterpolationMode before = g.InterpolationMode;
+                    g.InterpolationMode = InterpolationMode.Bilinear;
+                    g.DrawImage(Pool(centre, glowSize), under);
+                    g.InterpolationMode = before;
                 });
 
                 // The sides, built up from the road: darker low down.
@@ -347,6 +347,85 @@ namespace AlmostFastOverlays
                             StringAlignment.Center, "Middle", true, 0, Color.Empty, false);
                 }
             }
+        }
+
+        /// <summary>Still parts of radars, by what they look like, for this thread.</summary>
+        [ThreadStatic] private static Dictionary<string, Bitmap> _stills;
+
+        /// <summary>
+        /// Draws what <paramref name="draw"/> draws in the box: from a picture made the first time, when the widget is
+        /// drawn upright at full size on whole pixels (the same pixels, laid down in one go), or straight onto the
+        /// screen otherwise (turned, scaled, or between pixels).
+        /// </summary>
+        private static void Still(Graphics g, string key, RectangleF b, Action<Graphics> draw)
+        {
+            float[] m;
+            using (Matrix transform = g.Transform) m = transform.Elements;
+            bool Whole(float v) => Math.Abs(v - Math.Round(v)) < 0.001f;
+            if (m[0] != 1 || m[1] != 0 || m[2] != 0 || m[3] != 1 || !Whole(m[4]) || !Whole(m[5]) || !Whole(b.X) || !Whole(b.Y))
+            {
+                draw(g);
+                return;
+            }
+            if (_stills == null) _stills = new Dictionary<string, Bitmap>();
+            if (!_stills.TryGetValue(key, out Bitmap still))
+            {
+                if (_stills.Count > 8)
+                {
+                    foreach (Bitmap old in _stills.Values) old.Dispose();
+                    _stills.Clear();
+                }
+                still = new Bitmap((int)Math.Ceiling(b.Width), (int)Math.Ceiling(b.Height), System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+                using (Graphics s = Graphics.FromImage(still))
+                {
+                    DashKit.Prepare(s);
+                    s.TranslateTransform(-b.X, -b.Y);
+                    draw(s);
+                }
+                _stills[key] = still;
+            }
+            g.DrawImageUnscaled(still, (int)Math.Round(b.X), (int)Math.Round(b.Y));
+        }
+
+        /// <summary>The pools under cars, by colour and size, for this thread (renderers on different threads keep their own).</summary>
+        [ThreadStatic] private static Dictionary<long, Bitmap> _pools;
+
+        /// <summary>
+        /// The soft pool under a car, as a picture: a gradient from <paramref name="centre"/> to nothing at a rounded
+        /// edge <paramref name="spread"/> metres round the car. Filled once at 16 pixels a metre and then drawn under
+        /// each car through the camera, which looks the same (it's all soft gradient) for a fifth of the work of
+        /// filling the gradient every frame.
+        /// </summary>
+        private static Bitmap Pool(Color centre, float spread)
+        {
+            if (_pools == null) _pools = new Dictionary<long, Bitmap>();
+            long key = ((long)centre.ToArgb() << 32) | (uint)Math.Round(spread * 1000);
+            if (_pools.TryGetValue(key, out Bitmap pool)) return pool;
+            if (_pools.Count > 24)
+            {
+                foreach (Bitmap old in _pools.Values) old.Dispose();
+                _pools.Clear();
+            }
+            const float PerMetre = 16;
+            float hl = CarLong / 2, hw = CarWide / 2;
+            var under = new RectangleF(-hw - spread, -hl - spread, CarWide + spread * 2, CarLong + spread * 2);
+            pool = new Bitmap((int)Math.Ceiling(under.Width * PerMetre), (int)Math.Ceiling(under.Height * PerMetre), System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+            using (Graphics g = Graphics.FromImage(pool))
+            using (GraphicsPath edge = DashKit.Rounded(under, hw + spread))
+            using (var brush = new PathGradientBrush(edge)
+            {
+                CenterColor = centre,
+                SurroundColors = new[] { Color.FromArgb(0, centre) },
+                FocusScales = new PointF(0.55f, 0.75f)
+            })
+            {
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                g.ScaleTransform(pool.Width / under.Width, pool.Height / under.Height);
+                g.TranslateTransform(-under.X, -under.Y);
+                g.FillPath(brush, edge);
+            }
+            _pools[key] = pool;
+            return pool;
         }
 
         /// <summary>A car's outline from above in metres, nose up: rounder at the front than the back.</summary>

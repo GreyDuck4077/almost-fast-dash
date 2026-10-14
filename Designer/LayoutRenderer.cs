@@ -144,7 +144,7 @@ namespace AlmostFastOverlays
             {
                 // The flag covers everything, so the dashboard isn't drawn; it is redrawn in full when the flag goes.
                 ForgetFrame();
-                var cover = new Bitmap(_width, _height, PixelFormat.Format32bppArgb);
+                Bitmap cover = SharedOutput ? Output() : new Bitmap(_width, _height, PixelFormat.Format32bppArgb);
                 DrawFlag(cover, flags.Takeover, t, now);
                 return cover;
             }
@@ -260,7 +260,14 @@ namespace AlmostFastOverlays
         /// </summary>
         public bool RedrawChangesOnly { get; set; } = true;
 
-        private Bitmap _frame;
+        /// <summary>
+        /// Render hands back the same bitmap every time instead of a new copy: it belongs to the renderer, isn't
+        /// to be disposed, and holds the frame only until the next Render. The wheel runtime copies each frame
+        /// straight on to its screens, so this saves a 1.6 MB allocation (and the garbage) every frame.
+        /// </summary>
+        internal bool SharedOutput { get; set; }
+
+        private Bitmap _frame, _output;
         private DashScreen _frameScreen;
         private bool _frameConnected;
         private Dictionary<string, int> _drawn = new Dictionary<string, int>();
@@ -349,8 +356,25 @@ namespace AlmostFastOverlays
             _drawn = hashes;
             _frameScreen = screen;
             _frameConnected = scope.T.Connected;
-            return _frame.Clone(full, PixelFormat.Format32bppArgb);
+            if (!SharedOutput) return _frame.Clone(full, PixelFormat.Format32bppArgb);
+            // A straight copy of the pixels into the one output bitmap (flag frames go on it, never on _frame).
+            Bitmap output = Output();
+            BitmapData from = _frame.LockBits(full, ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+            BitmapData to = output.LockBits(full, ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
+            try
+            {
+                long bytes = (long)from.Stride * _height;
+                unsafe { Buffer.MemoryCopy((void*)from.Scan0, (void*)to.Scan0, bytes, bytes); }
+            }
+            finally
+            {
+                _frame.UnlockBits(from);
+                output.UnlockBits(to);
+            }
+            return output;
         }
+
+        private Bitmap Output() => _output ?? (_output = new Bitmap(_width, _height, PixelFormat.Format32bppArgb));
 
         private static Rectangle Outward(RectangleF r) =>
             Rectangle.FromLTRB((int)Math.Floor(r.Left), (int)Math.Floor(r.Top), (int)Math.Ceiling(r.Right), (int)Math.Ceiling(r.Bottom));
@@ -1095,6 +1119,8 @@ namespace AlmostFastOverlays
             _background?.Dispose();
             _frame?.Dispose();
             _frame = null;
+            _output?.Dispose();
+            _output = null;
             ForgetStyled();
             _flags.Dispose();
             _waving?.Dispose();

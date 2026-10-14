@@ -14,12 +14,14 @@
     <UseWPF>true</UseWPF>
     <AssemblyName>AlmostFastDash</AssemblyName>
     <Product>Almost Fast Dash</Product>
-    <Version>3.53.0</Version>
+    <Version>3.54.0</Version>
     <RootNamespace>AlmostFastOverlays</RootNamespace>
     <DebugType>none</DebugType>
     <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
     <!-- Nothing needs an .exe.config: no binding redirects, and .NET 4.8 is the only runtime. -->
     <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
+    <!-- Pointer code turns frames into the screen's pixel format (FrameEncoder.cs). -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>

@@ -489,6 +489,34 @@
                                 <TextBlock x:Name="ScreenPerformance" Grid.Column="1" Style="{StaticResource T.Secondary}" TextWrapping="Wrap" VerticalAlignment="Center"
                                            Text="Start the dashboard to measure how it keeps up."/>
                             </Grid>
+                            <Border Style="{StaticResource Divider}"/>
+                            <Grid Style="{StaticResource Row}">
+                                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Text="Send only what changed" Style="{StaticResource T.Label}"/>
+                                    <TextBlock Text="Each frame sends just the parts of the screen that moved, so the screen keeps up at a much higher frame rate. Turn it off only if parts of the screen stop updating." Style="{StaticResource T.Caption}" Margin="0,3,0,0" TextWrapping="Wrap"/>
+                                </StackPanel>
+                                <CheckBox x:Name="SendChangesToggle" Grid.Column="1" Style="{StaticResource Switch}" VerticalAlignment="Center" Checked="SendChanges_Click" Unchecked="SendChanges_Click"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- The dashboard on another display (MonitorOutput.cs) -->
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="Dashboard on a monitor" Style="{StaticResource T.Title}"/>
+                            <TextBlock Text="Show the running dashboard full screen on a second display, such as an HDMI dash screen or a spare monitor. It stays on that display and never takes the keyboard or mouse from the game. Taps and clicks on it work like taps on a touch wheel screen." Style="{StaticResource T.Caption}" TextWrapping="Wrap" Margin="0,4,0,18"/>
+                            <Grid Style="{StaticResource Row}">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Text="Display" Style="{StaticResource T.Label}"/>
+                                    <TextBlock Text="Any display but your main one." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <ComboBox x:Name="MonitorPicker" Width="300" SelectionChanged="MonitorPicker_Changed"/>
+                                    <TextBlock x:Name="MonitorNote" Style="{StaticResource T.Caption}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="16,0,0,0"/>
+                                </StackPanel>
+                            </Grid>
                         </StackPanel>
                     </Border>
                 </StackPanel>

@@ -38,6 +38,19 @@ own assemblies.
   redraws only widgets whose state changed. Painters must stay inside their
   widget's bounds and only narrow the clip, never replace it. The self-test
   compares incremental frames with full redraws.
+- **Send as little as possible, and in parallel.** USB is the wheel screen's
+  bottleneck: a whole 854×480 frame is about 820 KB. So:
+  - The dashboard loop draws on its own thread.
+  - `ScreenSender` sends on another, so the next frame is drawn while the last
+    one is still going down the cable.
+  - `FrameEncoder` compares each frame with the last one sent in 16-pixel
+    tiles, and joins the changed tiles into a few rectangles where one costs
+    less to send than two.
+  - Only those rectangles are encoded (RGB565, turned a quarter onto portrait
+    panels) and sent, with VoCore's draw command that names an area. When most
+    of the screen changed, a whole frame goes instead.
+  - The renderer hands back one reused bitmap instead of a new 1.6 MB copy
+    per frame.
 - **Readable at a glance.** Text is at least 16 px on an 854×480 screen (14 in
   dense tables), at least 4.5:1 contrast against what's behind it, and never
   runs into other text. The dashboard audit enforces this as drawn.
@@ -52,7 +65,10 @@ own assemblies.
 | `IRacingSdk.cs` | Reads iRacing's shared-memory telemetry and YAML session string. |
 | `IRacingTelemetrySource.cs` | Turns iRacing's data into a `TelemetrySnapshot`: gaps, fuel, the race order, and the preview snapshots. |
 | `Radar.cs` | `RadarTracker`: places nearby cars along the track and works out their lanes. |
-| `WheelScreen.cs` | Drives VoCore-family M-PRO screens through WinUSB. |
+| `WheelScreen.cs` | Drives VoCore's M-PRO screens through WinUSB: every model's size, whole frames and areas, touch. |
+| `ScreenSender.cs`, `FrameEncoder.cs` | Sending to the wheel screen on its own thread: finding what changed, encoding it and reconnecting. |
+| `MonitorOutput.cs` | The dashboard full screen on another display. |
+| `ScreenStats.cs`, `ScreenTest.cs` | The screen's measured performance, and the `--screen-test` pattern. |
 | `LedDevices.cs`, `ArduinoLedController.cs`, `LedLayout.cs` | LED devices: the serial, Adalight and WLED protocols, and each device's shape. |
 | `WheelButtons.cs` | Wheel and button-box buttons through Windows' joystick interface. |
 | `AppSettings.cs` | Settings, schema migrations, and saving with backups. |
@@ -95,6 +111,7 @@ the radar can only be checked in a live session with `--live-check`.
 | `--render-flags <folder>` | Saves every flag screen, each flag that stays out stepping aside to its frame, and every dashboard framed for a caution and for the final lap. |
 | `--audit-dashboards <report.txt>` | Checks every template and saved dashboard, as drawn on every screen and tap view, for text that's too small, too faint or runs into other text. Exits with 1 when it finds anything. |
 | `--ui-snapshot <scenario> <file.png>` | Opens a window in a scripted state and saves a picture of it. |
+| `--screen-test [report.txt]` | With the dashboard stopped: a test pattern on the wheel screen (a whole frame, numbered squares sent as areas, then a sliding bar sent as whole frames and as only what changed). Reports the screen's model and both frame rates. |
 | `--led-soak <COM port> <LED count> [--fast]` | Streams fast-changing frames to an LED board for 90 seconds and reports whether it kept up. |
 | `--light-frames <report.txt>` | Writes each dashboard's LED colours through a rev sweep and the preview states. |
 | `--designer-selftest <report.txt>` | Runs the end-to-end checks. They write settings next to the exe, so run them from a copy. |

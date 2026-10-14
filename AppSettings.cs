@@ -524,6 +524,12 @@ namespace AlmostFastOverlays
         public List<DeviceSettings> Devices { get; set; } = new List<DeviceSettings>();
 
         public int ScreenBrightness { get; set; } = 100;
+
+        /// <summary>The wheel screen is sent only the parts of each frame that changed (much less to send). Off sends every frame whole.</summary>
+        public bool SendChangesOnly { get; set; } = true;
+
+        /// <summary>The display (Windows' name, such as \\.\DISPLAY2) the running dashboard is also shown on, full screen; empty for none.</summary>
+        public string MonitorDevice { get; set; }
         public string SpeedUnit { get; set; } = "MPH";
         public string FuelUnit { get; set; } = "Liters";
         /// <summary>"Celsius" or "Fahrenheit"; empty follows the speed unit (km/h gives Celsius), as before it could be chosen.</summary>
