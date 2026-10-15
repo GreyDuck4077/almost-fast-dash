@@ -32,6 +32,48 @@ namespace AlmostFastOverlays
         public static RectangleF Grow(RectangleF r, float x, float y) => new RectangleF(r.X - x, r.Y - y, r.Width + x * 2, r.Height + y * 2);
         public static RectangleF Offset(RectangleF r, float x, float y) => new RectangleF(r.X + x, r.Y + y, r.Width, r.Height);
 
+        /// <summary>Pictures of widgets' still parts, by what they look like, for this thread (renderers on others keep their own).</summary>
+        [ThreadStatic] private static Dictionary<string, Bitmap> _stills;
+
+        /// <summary>
+        /// Draws what <paramref name="draw"/> draws within <paramref name="area"/>: from a picture made the first time,
+        /// when the widget is drawn upright at full size on whole pixels (the same pixels, laid down in one go), or
+        /// straight onto the screen otherwise (turned or scaled, in the designer, or while the dashboard audit notes
+        /// its text). <paramref name="key"/> must name everything the drawing depends on.
+        /// </summary>
+        public static void Still(WidgetContext c, string key, Rectangle area, Action<Graphics> draw)
+        {
+            Graphics g = c.G;
+            float[] m;
+            using (Matrix transform = g.Transform) m = transform.Elements;
+            bool Whole(float v) => Math.Abs(v - Math.Round(v)) < 0.001f;
+            LayoutRenderer renderer = c.Renderer;
+            if (renderer == null || !renderer.CacheStatic || renderer.TextLog != null || renderer.SkipText ||
+                m[0] != 1 || m[1] != 0 || m[2] != 0 || m[3] != 1 || !Whole(m[4]) || !Whole(m[5]) || area.Width <= 0 || area.Height <= 0)
+            {
+                draw(g);
+                return;
+            }
+            if (_stills == null) _stills = new Dictionary<string, Bitmap>();
+            if (!_stills.TryGetValue(key, out Bitmap still))
+            {
+                if (_stills.Count >= 24)
+                {
+                    foreach (Bitmap old in _stills.Values) old.Dispose();
+                    _stills.Clear();
+                }
+                still = new Bitmap(area.Width, area.Height, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+                using (Graphics s = Graphics.FromImage(still))
+                {
+                    DashKit.Prepare(s);
+                    s.TranslateTransform(-area.X, -area.Y);
+                    draw(s);
+                }
+                _stills[key] = still;
+            }
+            g.DrawImageUnscaled(still, area.X, area.Y);
+        }
+
         public static GraphicsPath Rounded(RectangleF b, float r)
         {
             if (r <= 0.5f || b.Width < 2 || b.Height < 2)
@@ -70,6 +112,9 @@ namespace AlmostFastOverlays
                     using (Graphics sg = Graphics.FromImage(small))
                     {
                         sg.SmoothingMode = SmoothingMode.AntiAlias;
+                        // Pixel centres the same way the picture is stretched back (half-way, below), or the glow
+                        // would land half a small pixel down and to the right: several screen pixels for a big glow.
+                        sg.PixelOffsetMode = PixelOffsetMode.HighQuality;
                         sg.ScaleTransform(scale, scale);
                         sg.TranslateTransform(-area.X, -area.Y);
                         Color core = Color.FromArgb((int)Math.Min(255, color.A * intensity), color);
@@ -158,7 +203,7 @@ namespace AlmostFastOverlays
                     foreach (Run run in runs.Where(r => r.Text.Trim().Length > 0))
                         c.Renderer.TextLog.Add(new DrawnText
                         {
-                            Widget = c.Widget, Text = string.Concat(runs.Select(r => r.Text)), Size = run.Font.Size * Math.Abs(placed.Elements[3]), Color = run.Color, Ink = ink
+                            Widget = c.Widget, Text = string.Concat(runs.Select(r => r.Text)), Size = run.Font.Size * Math.Abs(placed.Elements[3]), Color = run.Color, Ink = ink, Box = box
                         });
                 }
             if (c.Renderer?.SkipText == true) return;

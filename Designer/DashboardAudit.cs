@@ -15,6 +15,8 @@ namespace AlmostFastOverlays
         public float Size;
         public Color Color;
         public RectangleF Ink;
+        /// <summary>The box the text was laid out in: its letters should stay inside it.</summary>
+        public RectangleF Box;
     }
 
     /// <summary>
@@ -78,6 +80,14 @@ namespace AlmostFastOverlays
                             double ratio = Ratio(Over(text.Color, back), back), needed = text.Size >= LargeText ? LargeContrast : Contrast;
                             if (ratio < needed)
                                 findings.Add(new Finding { Screen = where, Widget = name, Text = text.Text, Problem = "contrast " + ratio.ToString("0.0") + ":1, needs " + needed + ":1" });
+                            // Letters past the widget's own box are cut off or drawn under its neighbours (a turned widget's
+                            // text is placed before turning, so it can't be judged this way).
+                            if (text.Widget != null && (!double.TryParse(text.Widget.Get("rotate", "0"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double turn) || Math.Abs(turn) < 0.01) &&
+                                !RectangleF.Inflate(text.Widget.Bounds, 2, 2).Contains(text.Ink))
+                                findings.Add(new Finding { Screen = where, Widget = name, Text = text.Text, Problem = "reaches past the widget's edge" });
+                            // Letters below or above the box they were laid out in: cut off, or covered by what's next to them.
+                            else if (!text.Box.IsEmpty && (text.Ink.Bottom > text.Box.Bottom + 2 || text.Ink.Top < text.Box.Top - 2))
+                                findings.Add(new Finding { Screen = where, Widget = name, Text = text.Text, Problem = "taller than the space it was given" });
                         }
                         // Two pieces of text whose letters run into each other (a few pixels' grace for the space round letters).
                         var pieces = drawn.Where(d => d.Color.A >= 40).GroupBy(d => d.Ink.ToString() + d.Text).Select(g => g.First()).ToList();
@@ -138,7 +148,25 @@ namespace AlmostFastOverlays
         /// A colour moved just far enough toward white (on a dark background) or black (on a light one) to stand out
         /// from it by <paramref name="ratio"/>; unchanged when it already does. Keeps its hue as far as it can.
         /// </summary>
-        public static Color Readable(Color color, Color background, double ratio = Contrast)
+        public static Color Readable(Color color, Color background, double ratio = Contrast) =>
+            Remember(color, background, ratio, -1, () => MakeReadable(color, background, ratio));
+
+        /// <summary>
+        /// Painters ask for the same few colours every frame, and each answer takes some searching: answers are kept
+        /// (per thread, as renderers on different threads draw at once).
+        /// </summary>
+        [ThreadStatic] private static Dictionary<Tuple<int, int, double, float>, Color> _answers;
+
+        private static Color Remember(Color color, Color background, double ratio, float share, Func<Color> work)
+        {
+            if (_answers == null) _answers = new Dictionary<Tuple<int, int, double, float>, Color>();
+            var key = Tuple.Create(color.ToArgb(), background.ToArgb(), ratio, share);
+            if (_answers.TryGetValue(key, out Color known)) return known;
+            if (_answers.Count > 4096) _answers.Clear();
+            return _answers[key] = work();
+        }
+
+        private static Color MakeReadable(Color color, Color background, double ratio)
         {
             background = Color.FromArgb(255, background);
             if (Ratio(Over(color, background), background) >= ratio) return color;
@@ -156,7 +184,10 @@ namespace AlmostFastOverlays
         /// A colour dimmed toward the background by up to <paramref name="share"/>, as far as it can go while still
         /// standing out from it by <paramref name="ratio"/>: dimmer, but never unreadable.
         /// </summary>
-        public static Color Dimmed(Color color, Color background, float share, double ratio = Contrast)
+        public static Color Dimmed(Color color, Color background, float share, double ratio = Contrast) =>
+            Remember(color, background, ratio, share, () => MakeDimmed(color, background, share, ratio));
+
+        private static Color MakeDimmed(Color color, Color background, float share, double ratio)
         {
             background = Color.FromArgb(255, background);
             color = Readable(color, background, ratio);
@@ -169,12 +200,12 @@ namespace AlmostFastOverlays
         }
 
         /// <summary>The better of dark ink or white for text on a fill.</summary>
-        public static Color InkOn(Color fill)
+        public static Color InkOn(Color fill) => Remember(fill, Color.Empty, 0, -2, () =>
         {
             Color dark = Color.FromArgb(10, 12, 16);
-            fill = Color.FromArgb(255, fill);
-            return Ratio(dark, fill) >= Ratio(Color.White, fill) ? dark : Color.White;
-        }
+            Color solid = Color.FromArgb(255, fill);
+            return Ratio(dark, solid) >= Ratio(Color.White, solid) ? dark : Color.White;
+        });
 
         /// <summary>Text colour laid over what is behind it.</summary>
         internal static Color Over(Color fore, Color back)

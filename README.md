@@ -42,7 +42,7 @@
 - **Fast and light on your PC.** One small exe, with no installer, no
   background service and no account. The dashboard redraws only what changed,
   and sends the wheel screen only those parts. It draws the next frame while
-  the last one is still being sent, at up to 30 frames a second.
+  the last one is still being sent, at up to 60 frames a second.
 - **Any display.** Drive a VoCore M-PRO wheel screen directly, or show the
   dashboard full screen on an HDMI dash screen or a spare monitor.
 - **Free and open.** GPL-3.0, with no account, no ads and no tracking.

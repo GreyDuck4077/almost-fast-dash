@@ -125,6 +125,8 @@ The **Wheel screen** card shows:
 
 - **Status:** showing the dashboard, plugged in, or not found.
 - **Screen brightness:** the backlight.
+- **Frame rate:** at most 60 frames a second while racing (the default), or
+  30 to use less of your PC.
 - **Performance:** frames a second, and the time to draw and send each one,
   measured on the wheel.
 - **Send only what changed:** each frame sends just the parts of the screen
@@ -134,7 +136,9 @@ The **Wheel screen** card shows:
   [hardware report](https://github.com/Sota4077/almost-fast-dash/issues/new?template=hardware_report.yml).
 
 The dashboard draws the next frame while the last one is still being sent, at
-up to 30 frames a second, and only when something on it changed.
+up to the frame rate you chose, and only when something on it changed. How
+many frames a second actually reach the screen depends on how much of it
+changes: whole frames go at about 43 a second on a 5" screen.
 
 To check a screen, stop the dashboard and run
 `AlmostFastDash.exe --screen-test report.txt`. It shows a title, numbered

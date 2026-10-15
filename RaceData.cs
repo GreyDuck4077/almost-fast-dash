@@ -438,26 +438,40 @@ namespace AlmostFastOverlays
                 new TyreCorner { Name = "LR", TempOuter = 80, TempMiddle = 84, TempInner = 87, WearOuter = 0.94, WearMiddle = 0.95, WearInner = 0.93, PressureKpa = 158 },
                 new TyreCorner { Name = "RR", TempOuter = 86, TempMiddle = 90, TempInner = 92, WearOuter = 0.9, WearMiddle = 0.92, WearInner = 0.91, PressureKpa = 159 }
             };
-            string[] names = { "L. HARTMANN", "S. OKAFOR", "J. MILLER", "YOU", "M. CARTER", "A. DUBOIS", "K. TANAKA", "R. ALVES" };
-            string[] numbers = { "7", "12", "05", "22", "31", "44", "9", "88" };
-            int[] ratings = { 4410, 3890, 2340, 2815, 3120, 2650, 1980, 1180 };
-            double[] gaps = { 0, 3.12, 5.48, 5.94, 6.76, 11.2, 14.9, 31.6 };
-            double[] bests = { 87.118, 87.402, 87.655, 87.521, 87.733, 88.012, 88.240, 89.105 };
+            // A full 22-car field in race order. The first seven keep car slots 0-6 and R. Alves (lapped, P17) keeps
+            // slot 7, matching the radar and relative previews; the rest of the field takes slots 8-21.
+            string[] names = { "L. HARTMANN", "S. OKAFOR", "J. MILLER", "YOU", "M. CARTER", "A. DUBOIS", "K. TANAKA", "D. ROSSI", "T. NGUYEN",
+                "P. SILVA", "E. LINDQVIST", "H. SATO", "C. BAUER", "F. MORENO", "B. KOVAC", "G. WALSH", "R. ALVES", "O. HAYES", "V. PETROV",
+                "I. CASTRO", "W. ZHANG", "N. BRANDT" };
+            int[] slots = { 0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 7, 17, 18, 19, 20, 21 };
+            string[] numbers = { "7", "12", "05", "22", "31", "44", "9", "27", "3", "18", "61", "14", "21", "50", "73", "11", "88", "2", "66", "19", "8", "95" };
+            int[] ratings = { 4410, 3890, 2340, 2815, 3120, 2650, 1980, 3350, 2910, 2480, 2205, 3015, 1890, 2120, 1760, 1645, 1180, 1530, 1395, 1310, 1240, 1050 };
+            double[] gaps = { 0, 3.12, 5.48, 5.94, 6.76, 11.2, 14.9, 16.35, 18.02, 21.47, 24.81, 27.36, 30.12, 33.95, 38.4, 44.73, 91.6, 96.2, 101.8,
+                108.3, 117.5, 186.9 };
+            double[] bests = { 87.118, 87.402, 87.655, 87.521, 87.733, 88.012, 88.24, 88.183, 88.317, 88.402, 88.561, 88.498, 88.702, 88.815, 88.934,
+                89.067, 89.105, 89.288, 89.41, 89.623, 89.87, 90.214 };
+            int[] lapsDown = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2 };
             var rows = new StandingsEntry[names.Length];
             for (int i = 0; i < rows.Length; i++)
+            {
+                int rating = ratings[i];
                 rows[i] = new StandingsEntry
                 {
-                    Position = i + 1, ClassPosition = i + 1, CarIdx = i, Name = names[i], CarNumber = numbers[i], IRating = ratings[i], CarName = "911 GT3 R",
-                    ClassName = "GT3", ClassColor = Color.FromArgb(255, 218, 89), License = ratings[i] > 3000 ? "A" : "B",
-                    LicenseColor = ratings[i] > 3000 ? Color.FromArgb(0, 120, 220) : Color.FromArgb(0, 164, 90),
-                    LastLap = bests[i] + 0.31, BestLap = bests[i], Laps = i == 7 ? 8 : 9, LapsBehind = i == 7 ? 1 : 0,
+                    Position = i + 1, ClassPosition = i + 1, CarIdx = slots[i], Name = names[i], CarNumber = numbers[i], IRating = rating, CarName = "911 GT3 R",
+                    ClassName = "GT3", ClassColor = Color.FromArgb(255, 218, 89), License = rating > 3000 ? "A" : rating > 2000 ? "B" : rating > 1500 ? "C" : "D",
+                    LicenseColor = rating > 3000 ? Color.FromArgb(0, 120, 220) : rating > 2000 ? Color.FromArgb(0, 164, 90) : rating > 1500 ? Color.FromArgb(235, 190, 0) : Color.FromArgb(230, 120, 20),
+                    LastLap = bests[i] + 0.31, BestLap = bests[i], Laps = 9 - lapsDown[i], LapsBehind = lapsDown[i],
                     GapToLeader = gaps[i], Interval = i == 0 ? 0 : gaps[i] - gaps[i - 1], DeltaToPlayer = gaps[i] - gaps[3], IsPlayer = i == 3, InPits = i == 5
                 };
+            }
             s.Standings = rows;
             s.TrackMap = TrackMap.Preview();
             s.IsPreview = true;
             s.PlayerCarIdx = 3;
-            s.CarLapDist = new[] { 0.62f, 0.55f, 0.47f, 0.455f, 0.43f, 0.0f, 0.21f, 0.83f };
+            // By car slot. Only the cars around you (slots 1, 2 and 4) sit inside the traffic widgets' windows; the
+            // rest of the field is spread around the lap, clear of them.
+            s.CarLapDist = new[] { 0.62f, 0.55f, 0.47f, 0.455f, 0.43f, 0.0f, 0.21f, 0.83f, 0.665f, 0.70f, 0.735f, 0.775f, 0.865f, 0.90f, 0.94f,
+                0.975f, 0.04f, 0.085f, 0.13f, 0.17f, 0.25f, 0.285f };
         }
     }
 }

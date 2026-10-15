@@ -50,24 +50,83 @@ namespace AlmostFastOverlays
         };
 
         /// <summary>
-        /// Recolors the drawn layer in place and paints the shadow, glow and outline beneath where the
-        /// layer goes (<paramref name="at"/>). <paramref name="place"/> maps the widget's box into the layer.
+        /// The finished picture: the drawn layer (recoloured in place) over its outline, glow and shadow. The
+        /// effects are worked out on the pixels themselves and laid together in one pass, premultiplied like the
+        /// layer, instead of each being drawn through GDI+ as a picture of its own: several times less work for a
+        /// widget that changes every frame. <paramref name="place"/> maps the widget's box into the layer.
         /// </summary>
-        public void Apply(Graphics g, Bitmap layer, RectangleF box, Matrix place, Rectangle at, float opacity)
+        public unsafe Bitmap Compose(Bitmap layer, RectangleF box, Matrix place)
         {
             int w = layer.Width, h = layer.Height;
-            int[] pixels = Read(layer);
             if (Recolors)
             {
+                int[] pixels = Read(layer);
                 RecolorPixels(pixels, w, h, box, place);
                 Write(layer, pixels);
             }
-            if (Shadow <= 0 && Glow <= 0 && Outline <= 0) return;
-            var alpha = new byte[pixels.Length];
-            for (int i = 0; i < pixels.Length; i++) alpha[i] = (byte)((uint)pixels[i] >> 24);
-            if (Shadow > 0) Blurred(g, alpha, w, h, at, ShadowColor, Shadow, ShadowX, ShadowY, opacity);
-            if (Glow > 0) Blurred(g, alpha, w, h, at, GlowColor, Glow, 0, 0, opacity);
-            if (Outline > 0) Stroke(g, alpha, w, h, at, opacity);
+            var whole = new Rectangle(0, 0, w, h);
+            var composite = new Bitmap(w, h, PixelFormat.Format32bppPArgb);
+            BitmapData from = layer.LockBits(whole, ImageLockMode.ReadOnly, PixelFormat.Format32bppPArgb);
+            BitmapData to = composite.LockBits(whole, ImageLockMode.WriteOnly, PixelFormat.Format32bppPArgb);
+            try
+            {
+                uint[] under = null;
+                if (Shadow > 0 || Glow > 0 || Outline > 0)
+                {
+                    // The silhouette every effect is made from.
+                    var alpha = new byte[w * h];
+                    for (int y = 0; y < h; y++)
+                    {
+                        uint* row = (uint*)((byte*)from.Scan0 + (long)y * from.Stride);
+                        for (int x = 0; x < w; x++) alpha[y * w + x] = (byte)(row[x] >> 24);
+                    }
+                    // Built up from the bottom: the shadow, the glow over it, the outline over both.
+                    under = new uint[w * h];
+                    if (Shadow > 0) Blurred(under, alpha, w, h, ShadowColor, Shadow, ShadowX, ShadowY);
+                    if (Glow > 0) Blurred(under, alpha, w, h, GlowColor, Glow, 0, 0);
+                    if (Outline > 0) Stroke(under, alpha, w, h);
+                }
+                for (int y = 0; y < h; y++)
+                {
+                    uint* top = (uint*)((byte*)from.Scan0 + (long)y * from.Stride), result = (uint*)((byte*)to.Scan0 + (long)y * to.Stride);
+                    for (int x = 0; x < w; x++) result[x] = under == null ? top[x] : Over(top[x], under[y * w + x]);
+                }
+            }
+            finally
+            {
+                layer.UnlockBits(from);
+                composite.UnlockBits(to);
+            }
+            return composite;
+        }
+
+        /// <summary>A premultiplied pixel over another.</summary>
+        private static uint Over(uint top, uint bottom)
+        {
+            uint a = top >> 24;
+            if (a == 255 || bottom == 0) return top;
+            if (a == 0) return bottom;
+            uint keep = 255 - a;
+            return (a + Scale(bottom >> 24, keep)) << 24
+                | (((top >> 16) & 255) + Scale((bottom >> 16) & 255, keep)) << 16
+                | (((top >> 8) & 255) + Scale((bottom >> 8) & 255, keep)) << 8
+                | ((top & 255) + Scale(bottom & 255, keep));
+        }
+
+        /// <summary><paramref name="value"/> × <paramref name="by"/> / 255, rounded: exact, without a division.</summary>
+        private static uint Scale(uint value, uint by)
+        {
+            uint t = value * by + 128;
+            return (t + (t >> 8)) >> 8;
+        }
+
+        /// <summary>A colour at every opacity from 0 to 255, premultiplied.</summary>
+        private static uint[] Shades(Color color)
+        {
+            var shades = new uint[256];
+            for (uint a = 1; a < 256; a++)
+                shades[a] = a << 24 | Scale(color.R, a) << 16 | Scale(color.G, a) << 8 | Scale(color.B, a);
+            return shades;
         }
 
         private void RecolorPixels(int[] pixels, int w, int h, RectangleF box, Matrix place)
@@ -115,20 +174,27 @@ namespace AlmostFastOverlays
         private static int Blend(int from, int to, float t) => (int)(from + (to - from) * t + 0.5f);
 
         /// <summary>
-        /// The silhouette, softened: averaged down to a small grid (block size from the softness),
-        /// smoothed once more, then drawn scaled back up so the bilinear stretch finishes the blur.
+        /// The silhouette, softened, laid over <paramref name="under"/>: averaged down to a small grid (block size
+        /// from the softness), smoothed once more, then stretched back up with bilinear sampling, which finishes
+        /// the blur. Offset by <paramref name="dx"/>, <paramref name="dy"/>.
         /// </summary>
-        private static void Blurred(Graphics g, byte[] alpha, int w, int h, Rectangle at, Color color, float size, float dx, float dy, float opacity)
+        private static unsafe void Blurred(uint[] under, byte[] alpha, int w, int h, Color color, float size, float dx, float dy)
         {
             int k = Math.Max(1, (int)Math.Round(size / 1.6f));
             int sw = (w + k - 1) / k + 2, sh = (h + k - 1) / k + 2;
             // Block averages, with a one-cell border of nothing so the blur can spread outward.
             var small = new float[sw * sh];
-            for (int y = 0; y < h; y++)
-            {
-                int row = (y / k + 1) * sw, src = y * w;
-                for (int x = 0; x < w; x++) small[row + x / k + 1] += alpha[src + x];
-            }
+            var cellOf = new int[w];
+            for (int x = 0; x < w; x++) cellOf[x] = x / k + 1;
+            fixed (float* sums = small)
+            fixed (byte* source = alpha)
+            fixed (int* cells = cellOf)
+                for (int y = 0; y < h; y++)
+                {
+                    float* row = sums + (y / k + 1) * sw;
+                    byte* from = source + y * w;
+                    for (int x = 0; x < w; x++) row[cells[x]] += from[x];
+                }
             float block = k * k;
             // One 3x3 box pass on the small grid evens out the blocks.
             var soft = new float[sw * sh];
@@ -146,30 +212,52 @@ namespace AlmostFastOverlays
                             if (xx >= 0 && xx < sw) sum += small[yy * sw + xx];
                         }
                     }
-                    soft[y * sw + x] = sum / (9 * block);
+                    soft[y * sw + x] = Math.Min(255, sum / (9 * block) * color.A / 255f);
                 }
-            float strength = color.A / 255f * opacity;
-            int rgb = color.R << 16 | color.G << 8 | color.B;
-            var tinted = new int[sw * sh];
-            for (int i = 0; i < tinted.Length; i++)
+            // The grid again with enough empty cells round it that the offset can never sample past its edge.
+            int padX = (int)Math.Ceiling(Math.Abs(dx) / k) + 2, padY = (int)Math.Ceiling(Math.Abs(dy) / k) + 2;
+            int pw = sw + padX * 2;
+            var grid = new float[pw * (sh + padY * 2)];
+            for (int y = 0; y < sh; y++) Array.Copy(soft, y * sw, grid, (y + padY) * pw + padX, sw);
+            // Each small cell covers k by k layer pixels, and the border cell sits just outside the layer: a pixel's
+            // centre falls at (x + 0.5 - origin) / k - 0.5 in cells.
+            float originX = dx - k, originY = dy - k;
+            var columns = new int[w];
+            var across = new float[w];
+            for (int x = 0; x < w; x++)
             {
-                int a = (int)Math.Min(255, soft[i] * strength + 0.5f);
-                tinted[i] = a << 24 | rgb;
+                float u = (x + 0.5f - originX) / k - 0.5f;
+                int column = (int)Math.Floor(u);
+                columns[x] = column + padX;
+                across[x] = u - column;
             }
-            using (var bitmap = new Bitmap(sw, sh, PixelFormat.Format32bppArgb))
-            {
-                Write(bitmap, tinted);
-                GraphicsState state = g.Save();
-                g.InterpolationMode = InterpolationMode.HighQualityBilinear;
-                g.PixelOffsetMode = PixelOffsetMode.HighQuality;
-                // Each small cell covers k by k layer pixels, and the border cell sits just outside the layer.
-                g.DrawImage(bitmap, new RectangleF(at.X - k + dx, at.Y - k + dy, sw * k, sh * k), new RectangleF(0, 0, sw, sh), GraphicsUnit.Pixel);
-                g.Restore(state);
-            }
+            uint[] shades = Shades(color);
+            fixed (float* cells = grid, weights = across)
+            fixed (int* starts = columns)
+            fixed (uint* tints = shades, result = under)
+                for (int y = 0; y < h; y++)
+                {
+                    float v = (y + 0.5f - originY) / k - 0.5f;
+                    int row = (int)Math.Floor(v);
+                    float down = v - row;
+                    float* upper = cells + (row + padY) * pw, lower = upper + pw;
+                    uint* line = result + y * w;
+                    for (int x = 0; x < w; x++)
+                    {
+                        int c = starts[x];
+                        float a00 = upper[c], a01 = upper[c + 1], a10 = lower[c], a11 = lower[c + 1];
+                        if (a00 + a01 + a10 + a11 <= 0) continue;
+                        float t = weights[x], top = a00 + (a01 - a00) * t, bottom = a10 + (a11 - a10) * t;
+                        int a = (int)(top + (bottom - top) * down + 0.5f);
+                        if (a <= 0) continue;
+                        uint shade = tints[a > 255 ? 255 : a];
+                        line[x] = line[x] == 0 ? shade : Over(shade, line[x]);
+                    }
+                }
         }
 
-        /// <summary>An outline: the silhouette grown by the outline width in every direction (a round brush), in the outline colour.</summary>
-        private void Stroke(Graphics g, byte[] alpha, int w, int h, Rectangle at, float opacity)
+        /// <summary>An outline: the silhouette grown by the outline width in every direction (a round brush), in the outline colour, over <paramref name="under"/>.</summary>
+        private void Stroke(uint[] under, byte[] alpha, int w, int h)
         {
             float radius = Outline;
             int reach = (int)Math.Ceiling(radius);
@@ -192,15 +280,12 @@ namespace AlmostFastOverlays
                         if (rows[source + x] > grown[target + x]) grown[target + x] = rows[source + x];
                 }
             }
-            float strength = OutlineColor.A / 255f * opacity;
-            int rgb = OutlineColor.R << 16 | OutlineColor.G << 8 | OutlineColor.B;
-            var tinted = new int[grown.Length];
+            uint[] shades = Shades(OutlineColor);
+            uint strength = OutlineColor.A;
             for (int i = 0; i < grown.Length; i++)
-                if (grown[i] > 0) tinted[i] = (int)(grown[i] * strength + 0.5f) << 24 | rgb;
-            using (var bitmap = new Bitmap(w, h, PixelFormat.Format32bppArgb))
             {
-                Write(bitmap, tinted);
-                g.DrawImageUnscaled(bitmap, at.X, at.Y);
+                uint a = Scale(grown[i], strength);
+                if (a > 0) under[i] = under[i] == 0 ? shades[a] : Over(shades[a], under[i]);
             }
         }
 

@@ -612,8 +612,10 @@ namespace AlmostFastOverlays
             if (rim == null || rim.Value.A == 0) return;
             float width = (float)Math.Max(0.5, Math.Min(4, c.Num("rimWidth")));
             int steps = Math.Max(8, (int)Math.Ceiling(Math.Abs(ring.Sweep) / 1.5f));
-            using (var pen = new Pen(rim.Value, width) { LineJoin = LineJoin.Round, StartCap = LineCap.Round, EndCap = LineCap.Round })
-                foreach (float side in new[] { 1f, -1f })
+            Pen Stroke() => new Pen(rim.Value, width) { LineJoin = LineJoin.Round, StartCap = LineCap.Round, EndCap = LineCap.Round };
+            foreach (float side in new[] { 1f, -1f })
+            {
+                PointF[] Line()
                 {
                     var points = new PointF[steps + 1];
                     for (int i = 0; i <= steps; i++)
@@ -621,8 +623,25 @@ namespace AlmostFastOverlays
                         float a = ring.Start + ring.Sweep * i / steps;
                         points[i] = ring.At(a, side * (ring.ThicknessAt(a) / 2 + BezelGap + width / 2));
                     }
-                    c.G.DrawLines(pen, points);
+                    return points;
                 }
+                if (c.Renderer == null)
+                {
+                    using (Pen pen = Stroke()) c.G.DrawLines(pen, Line());
+                    continue;
+                }
+                // The line's outline is worked out once (its shape only changes with the ring's) and filled each frame.
+                string key = string.Join("|", "bezel", ring.Center, ring.RadiusX, ring.RadiusY, ring.Thickness, ring.Taper, ring.Start, ring.Sweep, width, side);
+                GraphicsPath outline = c.Renderer.Shape(key, () =>
+                {
+                    var path = new GraphicsPath();
+                    path.AddLines(Line());
+                    using (Pen pen = Stroke()) path.Widen(pen);
+                    path.FillMode = FillMode.Winding;
+                    return path;
+                });
+                using (var brush = new SolidBrush(rim.Value)) c.G.FillPath(brush, outline);
+            }
         }
 
         /// <summary>
@@ -645,6 +664,8 @@ namespace AlmostFastOverlays
             float Inside(float angle) => -ring.ThicknessAt(angle) / 2 - 4 - bezel;
             bool lighting = litTo >= 0;
             Color Dim(Color color, int share) => Color.FromArgb(color.A * share / 100, color);
+            // Marks of the same colour and weight go in one shape and are drawn together, not one at a time.
+            var marks = new Dictionary<long, GraphicsPath>();
             for (int i = 0; i <= total; i++)
             {
                 float a = ring.Start + ring.Sweep * i / total;
@@ -653,8 +674,15 @@ namespace AlmostFastOverlays
                 Color color = !lighting ? tickColor : at <= litTo + 1e-6 ? colorAt(at) : Dim(tickColor, 55);
                 if (!isMajor) color = Dim(color, 70);
                 float edge = Inside(a), len = isMajor ? tickLength : tickLength * 0.55f;
-                using (var pen = new Pen(color, isMajor ? 2 : 1)) g.DrawLine(pen, ring.At(a, edge), ring.At(a, edge - len));
+                long kind = (long)(uint)color.ToArgb() << 1 | (isMajor ? 1L : 0L);
+                if (!marks.TryGetValue(kind, out GraphicsPath path)) marks[kind] = path = new GraphicsPath();
+                path.StartFigure();
+                path.AddLine(ring.At(a, edge), ring.At(a, edge - len));
             }
+            foreach (KeyValuePair<long, GraphicsPath> kind in marks)
+                using (GraphicsPath path = kind.Value)
+                using (var pen = new Pen(Color.FromArgb((int)(kind.Key >> 1)), (kind.Key & 1) == 1 ? 2 : 1))
+                    g.DrawPath(pen, path);
             if (!c.Bool("numbers")) return;
             double from = c.Num("numbersFrom"), to = c.Num("numbersTo");
             float size = (float)c.Num("numberSize");
@@ -932,7 +960,7 @@ namespace AlmostFastOverlays
             Color valueColor = text;
             switch (column)
             {
-                case "Interval": value = r.Position == 1 ? "" : r.LapsBehind > 0 && r.Interval <= 0 ? RaceFields.GapText(r) : "+" + r.Interval.ToString("0.00"); break;
+                case "Interval": value = r.Position == 1 ? "LEADER" : r.LapsBehind > 0 && r.Interval <= 0 ? RaceFields.GapText(r) : "+" + r.Interval.ToString("0.00"); break;
                 case "Delta to me": value = r.IsPlayer ? "" : (r.DeltaToPlayer > 0 ? "+" : "") + r.DeltaToPlayer.ToString("0.00"); valueColor = r.IsPlayer ? text : r.DeltaToPlayer < 0 ? c.Theme("good") : c.Theme("warn"); break;
                 case "Last lap": value = Fmt.LapTime(r.LastLap); break;
                 case "Best lap":
@@ -984,9 +1012,23 @@ namespace AlmostFastOverlays
             Color Heat(double celsius) => double.IsNaN(celsius) ? c.Theme("track") : c.Scope.Units.Temperature(celsius) < cool ? c.Color("coolColor") : c.Scope.Units.Temperature(celsius) > hot ? c.Color("hotColor") : c.Color("okColor");
             string Temp(double celsius) => double.IsNaN(celsius) ? "--" : c.Scope.Units.Temperature(celsius).ToString("0") + "°";
 
+            var lines = new List<string>();
+            if (c.Bool("showWear")) lines.Add(tyre == null || double.IsNaN(tyre.Wear) ? "--%" : (tyre.Wear * 100).ToString("0") + "%");
+            if (c.Bool("showPressure"))
+            {
+                double p = tyre == null ? double.NaN : RaceFields.Pressure(c.Scope.Units, tyre.PressureKpa / 100);
+                lines.Add(double.IsNaN(p) ? "--" : p.ToString(c.Scope.Units.Metric ? "0.00" : "0.0") + " " + RaceFields.PressureLabel(c.Scope.Units).ToLowerInvariant());
+            }
+            bool temps = c.Bool("showTemps");
             float pad = Math.Max(6, b.Height * 0.06f), y = b.Y + pad;
+            float detailSize = Math.Max(c.MinDenseText, size * 0.55f), detailHeight = detailSize * 1.25f;
+            // The detail line only where it fits whole below the temperature and tread (never cut off at the
+            // cell's edge); the tread strips take the room that's left.
+            float below = b.Bottom - pad - (temps ? y + size * 1.4f + 4 + 4 : y);
+            bool details = lines.Count > 0 && below >= detailHeight;
+
             Paint.Text(g, c, name, Math.Max(c.MinText, size * 0.5f), false, label, new RectangleF(b.X + pad, y, b.Width - pad * 2, Math.Max(c.MinText, size * 0.5f) * 1.2f), StringAlignment.Near, "Top", true, 0, Color.Empty, false);
-            if (c.Bool("showTemps"))
+            if (temps)
             {
                 double avg = tyre?.Temp ?? double.NaN;
                 Paint.Text(g, c, Temp(avg), size, true, double.IsNaN(avg) ? label : Heat(avg), new RectangleF(b.X + pad, y, b.Width - pad * 2, size * 1.3f), StringAlignment.Far, "Top", true, 0, Color.Empty, false);
@@ -995,20 +1037,14 @@ namespace AlmostFastOverlays
                 bool left = name[0] == 'L';
                 double[] across = tyre == null ? new[] { double.NaN, double.NaN, double.NaN }
                     : left ? new[] { tyre.TempOuter, tyre.TempMiddle, tyre.TempInner } : new[] { tyre.TempInner, tyre.TempMiddle, tyre.TempOuter };
-                float stripH = Math.Max(4, Math.Min(size * 0.45f, b.Bottom - y - pad - size * 0.8f)), seg = (b.Width - pad * 2 - 8) / 3;
+                float room = b.Bottom - pad - y - (details ? detailHeight + 4 : 0);
+                float stripH = Math.Max(4, Math.Min(size * 0.45f, room)), seg = (b.Width - pad * 2 - 8) / 3;
                 for (int k = 0; k < 3; k++)
                     DashKit.Fill(g, new RectangleF(b.X + pad + k * (seg + 4), y, seg, stripH), Heat(across[k]), Math.Min(3, stripH / 2));
                 y += stripH + 4;
             }
-            var lines = new List<string>();
-            if (c.Bool("showWear")) lines.Add(tyre == null || double.IsNaN(tyre.Wear) ? "--%" : (tyre.Wear * 100).ToString("0") + "%");
-            if (c.Bool("showPressure"))
-            {
-                double p = tyre == null ? double.NaN : RaceFields.Pressure(c.Scope.Units, tyre.PressureKpa / 100);
-                lines.Add(double.IsNaN(p) ? "--" : p.ToString(c.Scope.Units.Metric ? "0.00" : "0.0") + " " + RaceFields.PressureLabel(c.Scope.Units).ToLowerInvariant());
-            }
-            if (lines.Count > 0)
-                Paint.Text(g, c, string.Join("  ", lines), Math.Max(c.MinDenseText, size * 0.55f), false, label, new RectangleF(b.X + pad, y, b.Width - pad * 2, Math.Max(Math.Max(c.MinDenseText, size * 0.55f) * 1.25f, b.Bottom - pad - y)), StringAlignment.Near, "Middle", true, 0, Color.Empty, false);
+            if (details)
+                Paint.Text(g, c, string.Join("  ", lines), detailSize, false, label, new RectangleF(b.X + pad, y, b.Width - pad * 2, Math.Max(detailHeight, b.Bottom - pad - y)), StringAlignment.Near, "Middle", true, 0, Color.Empty, false);
         }
 
         public static void BlindSpot(WidgetContext c)

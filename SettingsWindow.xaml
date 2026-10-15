@@ -483,6 +483,20 @@
                             <Grid Style="{StaticResource Row}">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/></Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Text="Frame rate" Style="{StaticResource T.Label}"/>
+                                    <TextBlock Text="Frames a second while racing, at most. 30 uses less of your PC." Style="{StaticResource T.Caption}" Margin="0,3,0,0" TextWrapping="Wrap"/>
+                                </StackPanel>
+                                <Border Grid.Column="1" Style="{StaticResource Segmented}" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton x:Name="FrameRate60" Style="{StaticResource Segment}" GroupName="FrameRate" Content="60" Checked="FrameRate_Changed"/>
+                                        <RadioButton x:Name="FrameRate30" Style="{StaticResource Segment}" GroupName="FrameRate" Content="30" Checked="FrameRate_Changed"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                            <Border Style="{StaticResource Divider}"/>
+                            <Grid Style="{StaticResource Row}">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
                                     <TextBlock Text="Performance" Style="{StaticResource T.Label}"/>
                                     <TextBlock Text="Measured on the wheel while the dashboard runs." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
                                 </StackPanel>

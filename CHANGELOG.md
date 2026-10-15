@@ -5,6 +5,38 @@ English. Every version is on the
 [releases page](https://github.com/Sota4077/almost-fast-dash/releases) with
 its exe and checksum.
 
+## 3.55 · 2026-10-15
+
+Faster drawing, 60 frames a second, and a polish pass over every template.
+
+- **Dashboards draw about 40% faster.** Across the ten templates, a frame of
+  the animated lap now takes 3.3 ms on average, down from 5.6 ms. Neon went
+  from 9.7 to 6.2 ms and Oval from 8.4 to 4.6. Where the time went:
+  - a widget's state is worked out once per frame, not twice;
+  - the background under changed widgets is copied back directly;
+  - a widget repainted only because a neighbour changed is copied from its
+    last picture;
+  - shadows, glows and outlines are mixed by the app's own compositor;
+  - gauge rims are built once and reused, and their ticks drawn in a few
+    batches instead of one at a time.
+- **Up to 60 frames a second** while racing (it was 30), still only when
+  something on the dashboard changed. *Devices › Wheel screen › Frame rate*
+  sets 60 or 30; 30 uses less of your PC.
+- **Glows sit where they should.** Every glow was drawn a few pixels down and
+  to the right of what lit it, so lit text and pills looked lopsided. Glows
+  are now centred, and the big gear number lost a faint grey ghost beside it.
+- **Tyre cells fit on small panels.** When there isn't room for the wear and
+  pressure line, it's left out instead of being cut off at the bottom.
+- **Full race order in previews.** The designer's preview race now has the
+  whole 22-car field it claims, so leaderboards fill their panels and track
+  maps show the whole field.
+- **Leaderboards say LEADER** in the interval column for P1, instead of
+  leaving it blank.
+- **The readability audit checks more:** it now also catches text that
+  reaches past its widget's edge, and text taller than the space it was given.
+  Every template and saved dashboard passes.
+- `--profile-dashboards` times every dashboard through the animated lap.
+
 ## 3.54 · 2026-10-13
 
 The screen pipeline, rebuilt for speed.

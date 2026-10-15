@@ -17,9 +17,12 @@ namespace AlmostFastOverlays
         private int _version;
         private int _lastTraceTick = -1, _lastDeltaTick = -1;
 
+        /// <summary>Seconds into the lap; the real time since it started unless set (the profiler steps it a frame at a time).</summary>
+        internal Func<double> Clock { get; set; }
+
         public TelemetrySnapshot Next(out bool shiftFlash, out int previousGear, out float gearProgress)
         {
-            double t = (DateTime.UtcNow - _start).TotalSeconds;
+            double t = Clock?.Invoke() ?? (DateTime.UtcNow - _start).TotalSeconds;
             double cycle = t % 16.0;
 
             // Accelerate through gears 2-6 for 11 s, brake hard for 3 s, coast 2 s.

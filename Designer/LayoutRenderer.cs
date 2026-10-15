@@ -267,6 +267,27 @@ namespace AlmostFastOverlays
         /// </summary>
         internal bool SharedOutput { get; set; }
 
+        /// <summary>
+        /// The fingerprints StateHash works out are used again by the Render that follows for the same telemetry,
+        /// instead of evaluating every widget's formulas twice a frame. Only for the wheel runtime, where nothing
+        /// changes between the two; the designer edits widgets in between.
+        /// </summary>
+        internal bool ReuseFingerprints { get; set; }
+
+        private readonly Dictionary<string, int> _fingerprints = new Dictionary<string, int>();
+        private TelemetrySnapshot _fingerprintsFor;
+        private bool _fingerprintsFlash;
+
+        /// <summary>A widget's fingerprint: the one StateHash just worked out for this telemetry when there is one.</summary>
+        private int Fingerprint(DashWidget widget, EvalScope scope, int previousGear, float progress)
+        {
+            // The gear's fingerprint follows its change animation, which StateHash doesn't have.
+            if (ReuseFingerprints && widget.Type != "gear" && ReferenceEquals(scope.T, _fingerprintsFor) && scope.ShiftFlashOn == _fingerprintsFlash &&
+                _fingerprints.TryGetValue(widget.Id, out int known))
+                return known;
+            return WidgetHash(widget, scope, previousGear, progress);
+        }
+
         private Bitmap _frame, _output;
         private DashScreen _frameScreen;
         private bool _frameConnected;
@@ -297,6 +318,7 @@ namespace AlmostFastOverlays
             if (_frame == null) _frame = new Bitmap(_width, _height, PixelFormat.Format32bppArgb);
             bool redrawAll = _frameScreen != screen || _frameConnected != scope.T.Connected;
 
+            long started = Timings != null ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
             // Fingerprint every live widget; the ones that changed mark their reach as dirty.
             var hashes = new Dictionary<string, int>(screen.Widgets.Count);
             var dirty = new List<Rectangle>();
@@ -304,7 +326,7 @@ namespace AlmostFastOverlays
             {
                 if (widget.Hidden || layer.Baked.Contains(widget.Id)) continue;
                 int hash;
-                try { hash = WidgetHash(widget, scope, previousGear, progress); }
+                try { hash = Fingerprint(widget, scope, previousGear, progress); }
                 catch { hash = Environment.TickCount; }
                 hashes[widget.Id] = hash;
                 if (!redrawAll && (!_drawn.TryGetValue(widget.Id, out int before) || before != hash))
@@ -319,14 +341,20 @@ namespace AlmostFastOverlays
             }
             if (redrawAll) dirty = new List<Rectangle> { full };
             else dirty = Merge(dirty, full);
+            Time("(fingerprints)", ref started);
 
             long area = 0;
             if (dirty.Count > 0)
+            {
+                // Start the areas again from the base image (background and fixed widgets): a straight copy of its
+                // pixels, row by row.
+                Restore(layer.Bitmap, dirty);
+                Time("(background restored)", ref started);
                 using (Graphics g = Graphics.FromImage(_frame))
                 {
                     DashKit.Prepare(g);
-                    // All the areas are redone together, clipped to their union: each pixel is restored once and
-                    // each widget drawn once, however many areas it touches.
+                    // All the areas are redone together, clipped to their union: each widget is drawn once,
+                    // however many areas it touches.
                     using (var region = new Region(Rectangle.Empty))
                     {
                         foreach (Rectangle r in dirty)
@@ -336,22 +364,23 @@ namespace AlmostFastOverlays
                         }
                         g.SetClip(region, CombineMode.Replace);
                     }
-                    // Start the areas again from the base image (background and fixed widgets), drawn 1:1.
-                    g.CompositingMode = CompositingMode.SourceCopy;
-                    g.DrawImageUnscaled(layer.Bitmap, 0, 0);
-                    g.CompositingMode = CompositingMode.SourceOver;
                     foreach (DashWidget widget in screen.Widgets)
                     {
                         if (widget.Hidden || layer.Baked.Contains(widget.Id) || !dirty.Any(r => Touches(widget, r))) continue;
                         try
                         {
-                            DrawWidget(g, widget, scope, previousGear, progress);
+                            // A widget redrawn only because something near it changed (its own fingerprint held)
+                            // goes from its finished picture: one image copy instead of drawing it again.
+                            bool steady = !redrawAll && _drawn.TryGetValue(widget.Id, out int before) && before == hashes[widget.Id];
+                            DrawWidget(g, widget, scope, previousGear, progress, steady);
                             Errors.Remove(widget.Id);
                         }
                         catch (Exception e) { Errors[widget.Id] = e.Message; }
+                        Time(widget.Name ?? widget.Id, ref started);
                     }
                     g.ResetClip();
                 }
+            }
             LastRedrawShare = (double)area / ((long)_width * _height);
             _drawn = hashes;
             _frameScreen = screen;
@@ -371,10 +400,46 @@ namespace AlmostFastOverlays
                 _frame.UnlockBits(from);
                 output.UnlockBits(to);
             }
+            Time("(copied out)", ref started);
             return output;
         }
 
+        /// <summary>With Timings on (the profiler), adds the time since <paramref name="since"/> under a name and restarts it.</summary>
+        private void Time(string name, ref long since)
+        {
+            if (Timings == null) return;
+            long now = System.Diagnostics.Stopwatch.GetTimestamp();
+            Timings.TryGetValue(name, out double sum);
+            Timings[name] = sum + (now - since) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+            since = now;
+        }
+
         private Bitmap Output() => _output ?? (_output = new Bitmap(_width, _height, PixelFormat.Format32bppArgb));
+
+        /// <summary>Copies the base image's pixels into the frame over each area (the same as drawing it there 1:1, much cheaper).</summary>
+        private void Restore(Bitmap from, List<Rectangle> areas)
+        {
+            foreach (Rectangle area in areas)
+            {
+                if (area.Width <= 0 || area.Height <= 0) continue;
+                BitmapData source = from.LockBits(area, ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+                BitmapData target = _frame.LockBits(area, ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
+                try
+                {
+                    long row = (long)area.Width * 4;
+                    unsafe
+                    {
+                        for (int y = 0; y < area.Height; y++)
+                            Buffer.MemoryCopy((byte*)source.Scan0 + (long)y * source.Stride, (byte*)target.Scan0 + (long)y * target.Stride, row, row);
+                    }
+                }
+                finally
+                {
+                    from.UnlockBits(source);
+                    _frame.UnlockBits(target);
+                }
+            }
+        }
 
         private static Rectangle Outward(RectangleF r) =>
             Rectangle.FromLTRB((int)Math.Floor(r.Left), (int)Math.Floor(r.Top), (int)Math.Ceiling(r.Right), (int)Math.Ceiling(r.Bottom));
@@ -622,8 +687,19 @@ namespace AlmostFastOverlays
                 int hash = screen.Id.GetHashCode();
                 hash = hash * 31 + gearAnimationFrame;
                 hash = hash * 31 + (scope.T.Connected ? 1 : 0);
+                if (ReuseFingerprints)
+                {
+                    _fingerprints.Clear();
+                    _fingerprintsFor = scope.T;
+                    _fingerprintsFlash = shiftFlashOn;
+                }
                 foreach (DashWidget widget in screen.Widgets)
-                    if (!widget.Hidden) hash = hash * 31 + WidgetHash(widget, scope, 0, 1);
+                {
+                    if (widget.Hidden) continue;
+                    int fingerprint = WidgetHash(widget, scope, 0, 1);
+                    if (ReuseFingerprints) _fingerprints[widget.Id] = fingerprint;
+                    hash = hash * 31 + fingerprint;
+                }
                 return hash * 31 + flagHash;
             }
         }
@@ -804,7 +880,9 @@ namespace AlmostFastOverlays
 
         internal static string Strip(string raw) => raw != null && raw.StartsWith("=") ? raw.Substring(1) : raw;
 
-        private void DrawWidget(Graphics g, DashWidget widget, EvalScope scope, int previousGear, float progress)
+        /// <param name="steady">The widget's fingerprint held since the last frame: it's being redrawn only because
+        /// something near it changed, so its finished picture can be laid down instead of drawing it again.</param>
+        private void DrawWidget(Graphics g, DashWidget widget, EvalScope scope, int previousGear, float progress, bool steady = false)
         {
             WidgetType type = WidgetCatalog.Find(widget.Type);
             if (type == null) return;
@@ -823,7 +901,7 @@ namespace AlmostFastOverlays
             // image, because something live sits beneath it, is kept as a finished picture: redrawing it
             // when something near it changes is then one image copy instead of drawing it again.
             bool still = CacheStatic && Still(widget);
-            if (opacity >= 0.999 && !style.Any && !still)
+            if (opacity >= 0.999 && !style.Any && !still && !(steady && CacheStatic))
             {
                 GraphicsState state = g.Save();
                 Turn(g, b, flipX, flipY, rotate);
@@ -838,8 +916,9 @@ namespace AlmostFastOverlays
             // Partial opacity or Style effects: draw into a layer first, so overlapping parts fade together
             // and the effects can work on the drawn result. The finished picture (effects beneath, widget
             // on top) is kept per widget and reused while the widget's fingerprint holds, so a styled
-            // widget that didn't change costs one image copy when something near it redraws.
-            int hash = WidgetHash(widget, scope, previousGear, progress);
+            // widget that didn't change costs one image copy when something near it redraws. Plain widgets that held
+            // still since the last frame are kept the same way.
+            int hash = Fingerprint(widget, scope, previousGear, progress);
             if (!_styled.TryGetValue(widget.Id, out StyledPicture picture) || picture.Hash != hash)
             {
                 picture?.Bitmap.Dispose();
@@ -886,28 +965,26 @@ namespace AlmostFastOverlays
             Rectangle at = Outward(Reach(widget));
             if (at.Width < 1 || at.Height < 1) at = new Rectangle((int)b.X, (int)b.Y, Math.Max(1, (int)b.Width), Math.Max(1, (int)b.Height));
             // Premultiplied pictures blend back exactly; see-through panels would lose precision otherwise.
-            var composite = new Bitmap(at.Width, at.Height, PixelFormat.Format32bppPArgb);
-            using (var layer = new Bitmap(at.Width, at.Height, PixelFormat.Format32bppPArgb))
+            var layer = new Bitmap(at.Width, at.Height, PixelFormat.Format32bppPArgb);
+            Matrix place;
+            using (Graphics lg = Graphics.FromImage(layer))
             {
-                Matrix place;
-                using (Graphics lg = Graphics.FromImage(layer))
-                {
-                    DashKit.Prepare(lg);
-                    lg.TranslateTransform(-at.X, -at.Y);
-                    Turn(lg, b, flipX, flipY, rotate);
-                    place = lg.Transform;
-                    var inner = new WidgetContext(this, lg, scope, widget, type) { PreviousGear = previousGear, GearProgress = progress, FlipX = flipX, FlipY = flipY };
-                    type.Draw(inner);
-                }
-                using (place)
-                using (Graphics cg = Graphics.FromImage(composite))
-                {
-                    var local = new Rectangle(0, 0, at.Width, at.Height);
-                    if (style.Any) style.Apply(cg, layer, b, place, local, 1f);
-                    cg.DrawImageUnscaled(layer, 0, 0);
-                }
+                DashKit.Prepare(lg);
+                lg.TranslateTransform(-at.X, -at.Y);
+                Turn(lg, b, flipX, flipY, rotate);
+                place = lg.Transform;
+                var inner = new WidgetContext(this, lg, scope, widget, type) { PreviousGear = previousGear, GearProgress = progress, FlipX = flipX, FlipY = flipY };
+                type.Draw(inner);
             }
-            return new StyledPicture { Bitmap = composite, At = at };
+            // No effects to lay beneath it: the layer is the finished picture.
+            if (!style.Any)
+            {
+                place.Dispose();
+                return new StyledPicture { Bitmap = layer, At = at };
+            }
+            using (layer)
+            using (place)
+                return new StyledPicture { Bitmap = style.Compose(layer, b, place), At = at };
         }
 
         private readonly Dictionary<string, Bitmap> _glass = new Dictionary<string, Bitmap>();

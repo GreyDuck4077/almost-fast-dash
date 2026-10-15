@@ -10,8 +10,6 @@ namespace AlmostFastOverlays
 {
     internal static class Program
     {
-        /// <summary>A frame every 33 ms (30 a second) while racing, whenever something on the dashboard changed.</summary>
-        private const int RefreshIntervalMilliseconds = 33;
         /// <summary>How often the screen is checked while iRacing isn't running; the waiting screen barely changes.</summary>
         private const int IdleRefreshMilliseconds = 250;
         private const int GearTransitionMilliseconds = 420;
@@ -65,6 +63,8 @@ namespace AlmostFastOverlays
                 File.WriteAllLines(controllerReport, lines.DefaultIfEmpty("No game controllers found."));
                 return 0;
             }
+            string profileReport = ParseOption(args, "--profile-dashboards");
+            if (profileReport != null) return DashboardProfiler.Run(profileReport);
             // A test pattern on the wheel screen through the dashboard's own sending code, with an optional report.
             if (args.Contains("--screen-test")) return ScreenTest.Run(ParseOption(args, "--screen-test"));
             string liveReport = ParseOption(args, "--live-check");
@@ -633,10 +633,11 @@ namespace AlmostFastOverlays
                             else waiting = true;
                         }
 
-                        // Gear changes and waving flags animate, so they get a faster refresh. A steady pace: wait out
-                        // what's left of the frame's time, not a fixed pause after the work.
-                        int period = gearProgress < 1 ? 25 : snapshot.Flag != RacingFlag.None ? 33
-                            : snapshot.Connected ? RefreshIntervalMilliseconds : IdleRefreshMilliseconds;
+                        // At the frame rate chosen in Settings (60 a second unless 30 is chosen), 40 at least while the gear
+                        // changes. A steady pace: wait out what's left of the frame's time, not a fixed pause after the work.
+                        int frameTime = runtime.Settings.General.FrameRate == 30 ? 33 : 16;
+                        int period = gearProgress < 1 ? Math.Min(frameTime, 25)
+                            : snapshot.Flag != RacingFlag.None || snapshot.Connected ? frameTime : IdleRefreshMilliseconds;
                         double spent = (System.Diagnostics.Stopwatch.GetTimestamp() - frameStart) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
                         if (!waiting) StopRequested.Wait(Math.Max(2, period - (int)spent));
                         // A frame is due but a screen is still sending the last: draw the moment it's taken.
@@ -718,7 +719,7 @@ namespace AlmostFastOverlays
                 // Tap views stay put while the same dashboard is redrawn after a settings change, and start
                 // again from the first view on another dashboard.
                 if (_tapsFor != Dashboard.Id) { _taps.Clear(); _tapsFor = Dashboard.Id; }
-                return new LayoutRenderer(size.Width, size.Height, Dashboard, new UnitSystem(Settings.General)) { Taps = _taps, SharedOutput = true };
+                return new LayoutRenderer(size.Width, size.Height, Dashboard, new UnitSystem(Settings.General)) { Taps = _taps, SharedOutput = true, ReuseFingerprints = true };
             }
 
             private readonly Dictionary<string, int> _taps = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);

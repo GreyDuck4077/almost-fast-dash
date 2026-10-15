@@ -528,6 +528,9 @@ namespace AlmostFastOverlays
         /// <summary>The wheel screen is sent only the parts of each frame that changed (much less to send). Off sends every frame whole.</summary>
         public bool SendChangesOnly { get; set; } = true;
 
+        /// <summary>Frames a second while racing, at most (drawn only when something changed): 60, or 30 to use less of the PC.</summary>
+        public int FrameRate { get; set; } = 60;
+
         /// <summary>The display (Windows' name, such as \\.\DISPLAY2) the running dashboard is also shown on, full screen; empty for none.</summary>
         public string MonitorDevice { get; set; }
         public string SpeedUnit { get; set; } = "MPH";

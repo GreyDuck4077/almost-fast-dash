@@ -38,6 +38,20 @@ own assemblies.
   redraws only widgets whose state changed. Painters must stay inside their
   widget's bounds and only narrow the clip, never replace it. The self-test
   compares incremental frames with full redraws.
+- **Draw each frame cheaply.** A frame has a few milliseconds at 60 a second,
+  so `LayoutRenderer`:
+  - works out each widget's state fingerprint once per frame and reuses it to
+    decide what changed;
+  - copies the background back under changed widgets with a plain memory copy;
+  - redraws a widget that only overlaps a changed one from its finished
+    picture instead of painting it again;
+  - mixes layer effects (shadows, glows, outlines) with its own compositor in
+    `LayerStyle.Compose`, not GDI+.
+
+  Painters can keep dense, unchanging artwork with `Paint.Still` and reusable
+  geometry with `Renderer.Shape`. Measure with `--profile-dashboards` before and
+  after: drawing a large cached picture that's mostly empty can cost as much as
+  drawing the shapes, so a cache only pays off for dense content.
 - **Send as little as possible, and in parallel.** USB is the wheel screen's
   bottleneck: a whole 854×480 frame is about 820 KB. So:
   - The dashboard loop draws on its own thread.
@@ -109,7 +123,8 @@ the radar can only be checked in a live session with `--live-check`.
 | `--render-templates <folder>` | Saves a picture of every template in each of its states, plus the second views and other screen sizes. |
 | `--render-dashboards <folder>` | Saves a picture of every dashboard in `settings.json`, in each state and on each page. |
 | `--render-flags <folder>` | Saves every flag screen, each flag that stays out stepping aside to its frame, and every dashboard framed for a caution and for the final lap. |
-| `--audit-dashboards <report.txt>` | Checks every template and saved dashboard, as drawn on every screen and tap view, for text that's too small, too faint or runs into other text. Exits with 1 when it finds anything. |
+| `--audit-dashboards <report.txt>` | Checks every template and saved dashboard, as drawn on every screen and tap view, for text that's too small, too faint, runs into other text, reaches past its widget's edge or is taller than its space. Exits with 1 when it finds anything. |
+| `--profile-dashboards <report.txt>` | Times every template and saved dashboard drawing 480 frames of the animated lap, as the wheel draws them. Reports each one's median, mean and slowest frames, and the widgets that took the time. |
 | `--ui-snapshot <scenario> <file.png>` | Opens a window in a scripted state and saves a picture of it. |
 | `--screen-test [report.txt]` | With the dashboard stopped: a test pattern on the wheel screen (a whole frame, numbered squares sent as areas, then a sliding bar sent as whole frames and as only what changed). Reports the screen's model and both frame rates. |
 | `--led-soak <COM port> <LED count> [--fast]` | Streams fast-changing frames to an LED board for 90 seconds and reports whether it kept up. |

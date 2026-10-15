@@ -694,6 +694,8 @@ namespace AlmostFastOverlays
             ScreenBrightness.Value = general.ScreenBrightness;
             ScreenBrightnessValue.Text = general.ScreenBrightness + "%";
             SendChangesToggle.IsChecked = general.SendChangesOnly;
+            FrameRate30.IsChecked = general.FrameRate == 30;
+            FrameRate60.IsChecked = general.FrameRate != 30;
             FillMonitors();
             SpeedKph.IsChecked = string.Equals(general.SpeedUnit, "KPH", StringComparison.OrdinalIgnoreCase);
             SpeedMph.IsChecked = SpeedKph.IsChecked != true;

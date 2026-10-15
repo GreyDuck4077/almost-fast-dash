@@ -440,7 +440,8 @@ namespace AlmostFastOverlays
             Check("every quick value draws (" + QuickValues.All().Count() + ")", quickErrors.Count == 0, string.Join("; ", quickErrors.Take(3)));
             string Eval(string formula) => Expr.Text(Expr.Evaluate(formula, scope));
             Check("leaderboard formulas", Eval("standing(1, \"Name\")") == "L. HARTMANN" && Eval("standing(Position - 1, \"Number\")") == "05" &&
-                Eval("standing(99, \"Exists\")") == "false" && Eval("standing(8, \"GapText\")") == "+1 LAP" && Eval("GapToLeader") == "+5.94", Eval("standing(8, \"GapText\")"));
+                Eval("standing(99, \"Exists\")") == "false" && Eval("standing(8, \"GapText\")") == "+16.35" && Eval("standing(17, \"GapText\")") == "+1 LAP" &&
+                Eval("standing(22, \"GapText\")") == "+2 LAPS" && Eval("GapToLeader") == "+5.94", Eval("standing(17, \"GapText\")"));
             // Leader just over the line and a car not there yet: same lap. A whole lap behind on track: lapped.
             Check("a car is a lap down only when a whole lap behind on track, not while it's yet to cross the line",
                 IRacingTelemetrySource.LapsDown(18, 0.01f, 17, 0.95f) == 0 && IRacingTelemetrySource.LapsDown(18, 0.05f, 17, 0.10f) == 0 &&
@@ -1023,7 +1024,7 @@ namespace AlmostFastOverlays
 
                 // A prototype 2.5 seconds behind a GT car is a faster class closing.
                 TelemetrySnapshot traffic = IRacingTelemetrySource.CreatePreviewSnapshot();
-                traffic.Standings = traffic.Standings.Concat(new[] { new StandingsEntry { CarIdx = 8, Position = 9, ClassName = "LMP2", ClassColor = System.Drawing.Color.RoyalBlue, BestLap = 80.1, CarNumber = "30" } }).ToArray();
+                traffic.Standings = traffic.Standings.Concat(new[] { new StandingsEntry { CarIdx = traffic.CarLapDist.Length, Position = traffic.Standings.Length + 1, ClassName = "LMP2", ClassColor = System.Drawing.Color.RoyalBlue, BestLap = 80.1, CarNumber = "30" } }).ToArray();
                 traffic.CarLapDist = traffic.CarLapDist.Concat(new[] { (float)(0.455 - 2.5 / traffic.ReferenceLapSeconds) }).ToArray();
                 double faster = RadarPainters.FasterClassBehind(traffic, out string fasterClass);
                 Check("traffic: a faster class 2.5 s behind is flagged", Math.Abs(faster - 2.5) < 0.1 && fasterClass == "LMP2", faster.ToString("0.00") + " " + fasterClass);

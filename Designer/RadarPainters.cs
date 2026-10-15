@@ -107,7 +107,7 @@ namespace AlmostFastOverlays
             // The road, its range rings and its edge lines never move: they're drawn once into a picture for this
             // box and laid down each frame.
             string still = string.Join("|", b, range, c.Num("tilt"), road.ToArgb(), rings, ring.ToArgb(), lanes, lines.ToArgb());
-            Still(g, still, b, s =>
+            Paint.Still(c, "radar|" + still, Rectangle.Round(b), s =>
             {
                 if (road.A > 0)
                 {
@@ -349,44 +349,6 @@ namespace AlmostFastOverlays
             }
         }
 
-        /// <summary>Still parts of radars, by what they look like, for this thread.</summary>
-        [ThreadStatic] private static Dictionary<string, Bitmap> _stills;
-
-        /// <summary>
-        /// Draws what <paramref name="draw"/> draws in the box: from a picture made the first time, when the widget is
-        /// drawn upright at full size on whole pixels (the same pixels, laid down in one go), or straight onto the
-        /// screen otherwise (turned, scaled, or between pixels).
-        /// </summary>
-        private static void Still(Graphics g, string key, RectangleF b, Action<Graphics> draw)
-        {
-            float[] m;
-            using (Matrix transform = g.Transform) m = transform.Elements;
-            bool Whole(float v) => Math.Abs(v - Math.Round(v)) < 0.001f;
-            if (m[0] != 1 || m[1] != 0 || m[2] != 0 || m[3] != 1 || !Whole(m[4]) || !Whole(m[5]) || !Whole(b.X) || !Whole(b.Y))
-            {
-                draw(g);
-                return;
-            }
-            if (_stills == null) _stills = new Dictionary<string, Bitmap>();
-            if (!_stills.TryGetValue(key, out Bitmap still))
-            {
-                if (_stills.Count > 8)
-                {
-                    foreach (Bitmap old in _stills.Values) old.Dispose();
-                    _stills.Clear();
-                }
-                still = new Bitmap((int)Math.Ceiling(b.Width), (int)Math.Ceiling(b.Height), System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
-                using (Graphics s = Graphics.FromImage(still))
-                {
-                    DashKit.Prepare(s);
-                    s.TranslateTransform(-b.X, -b.Y);
-                    draw(s);
-                }
-                _stills[key] = still;
-            }
-            g.DrawImageUnscaled(still, (int)Math.Round(b.X), (int)Math.Round(b.Y));
-        }
-
         /// <summary>The pools under cars, by colour and size, for this thread (renderers on different threads keep their own).</summary>
         [ThreadStatic] private static Dictionary<long, Bitmap> _pools;
 
@@ -420,6 +382,8 @@ namespace AlmostFastOverlays
             })
             {
                 g.SmoothingMode = SmoothingMode.AntiAlias;
+                // Pixel centres as the picture is laid down (DashKit.Prepare), so the pool sits exactly under the car.
+                g.PixelOffsetMode = PixelOffsetMode.HighQuality;
                 g.ScaleTransform(pool.Width / under.Width, pool.Height / under.Height);
                 g.TranslateTransform(-under.X, -under.Y);
                 g.FillPath(brush, edge);

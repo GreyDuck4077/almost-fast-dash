@@ -71,6 +71,13 @@ namespace AlmostFastOverlays
             Save();
         }
 
+        private void FrameRate_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_loading) return;
+            _settings.General.FrameRate = FrameRate30.IsChecked == true ? 30 : 60;
+            Save();
+        }
+
         /// <summary>
         /// The displays the dashboard can go on (Off, then every display but the main one), with the chosen one
         /// kept in the list while it's unplugged. Filled again whenever Windows' displays change.
