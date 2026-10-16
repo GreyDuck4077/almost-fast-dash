@@ -34,6 +34,11 @@
 - **Made for the screen on your wheel.** Ten ready-made dashboards, each built
   with the same designer you get, so you can change any of them or build your
   own from scratch.
+- **A designer you already know how to use.** Laid out like an image editor:
+  tools on the left, Properties and Layers always in view. Draw with a pen,
+  shapes, gradients and patterns; mask with clipping, fades and blend modes;
+  repeat anything in rows or around a dial. Keep what you build as modules to
+  reuse and share, and drive any setting with live data.
 - **Lights that make sense.** Rev lights from each car's own shift points,
   flags, blind spots, the pit limiter and alerts. They're layered with
   priorities and conditions, on any LED device you own.
@@ -124,11 +129,22 @@ with a tab that names it. The checkered flag shows your result.
 <p align="center">
   <img src="docs/images/app-designer.png" alt="The dashboard designer">
 </p>
-<p align="center"><em>The designer: drag widgets onto the screen. Any setting can be a fixed value or a live formula.</em></p>
+<p align="center"><em>The designer: drag widgets onto the screen, or draw your own. Any setting can be a fixed value or a live formula.</em></p>
 
 <table>
   <tr>
-    <td width="50%" valign="top"><img src="docs/images/app-dashboards.png" alt="Dashboards page"><br><strong>Dashboards</strong>: pick, customise and start a dashboard.</td>
+    <td width="50%" valign="top"><img src="docs/images/app-masks.png" alt="Clipping masks, fades and blends"><br><strong>Masks</strong>: stripes clipped to an outline make a kerb; a gradient fills a gear digit; light spills, fades and blends.</td>
+    <td width="50%" valign="top"><img src="docs/images/app-repeat.png" alt="Repeat in rows and around a circle"><br><strong>Repeat</strong>: one tick becomes a dial, one light a shift-light row, one number a dial's scale.</td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top"><img src="docs/images/app-modules.png" alt="Modules in the Library"><br><strong>Modules</strong>: keep what you build, place it anywhere, share it as a file, and recolor it in a click.</td>
+    <td width="50%" valign="top"><img src="docs/images/app-drawing.png" alt="Drawing tools"><br><strong>Drawing</strong>: a pen, polygons and stars, gradient and pattern fills, carbon fiber and brushed metal.</td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td width="50%" valign="top"><img src="docs/images/app-dashboards.png" alt="Dashboards page"><br><strong>Dashboards</strong>: pick, customize and start a dashboard.</td>
     <td width="50%" valign="top"><img src="docs/images/app-lights.png" alt="Light designer"><br><strong>Light designer</strong>: layers of effects with conditions and priorities.</td>
   </tr>
   <tr>

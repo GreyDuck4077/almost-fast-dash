@@ -31,7 +31,7 @@ namespace AlmostFastOverlays
         {
             yield return new DesignBlock
             {
-                Folder = "Cards", Name = "Stat card", Icon = "", Description = "A soft panel with a labelled live value.",
+                Folder = "Cards", Name = "Stat card", Icon = "", Description = "A soft panel with a labeled live value.",
                 Create = () => new List<DashWidget>
                 {
                     W("panel", "Card", 0, 0, 170, 74),

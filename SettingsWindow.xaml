@@ -54,20 +54,20 @@
                 </StackPanel>
 
                 <StackPanel DockPanel.Dock="Top">
-                    <RadioButton x:Name="NavGallery" Style="{StaticResource Nav.Item}" GroupName="Nav" Checked="NavGallery_Checked" Click="NavGallery_Click">
+                    <RadioButton x:Name="NavGallery" AutomationProperties.Name="Dashboards" Style="{StaticResource Nav.Item}" GroupName="Nav" Checked="NavGallery_Checked" Click="NavGallery_Click">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Style="{StaticResource T.Icon}" Text="&#xE8A9;" Margin="0,0,12,0"/>
                             <TextBlock Text="Dashboards" VerticalAlignment="Center"/>
                         </StackPanel>
                     </RadioButton>
                     <StackPanel x:Name="DashboardSubNav" Visibility="Collapsed" Margin="0,0,0,6"/>
-                    <RadioButton x:Name="NavSettings" Style="{StaticResource Nav.Item}" GroupName="Nav" Checked="NavSettings_Checked">
+                    <RadioButton x:Name="NavSettings" AutomationProperties.Name="Devices" Style="{StaticResource Nav.Item}" GroupName="Nav" Checked="NavSettings_Checked">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Style="{StaticResource T.Icon}" Text="&#xE772;" Margin="0,0,12,0"/>
                             <TextBlock Text="Devices" VerticalAlignment="Center"/>
                         </StackPanel>
                     </RadioButton>
-                    <RadioButton x:Name="NavApp" Style="{StaticResource Nav.Item}" GroupName="Nav" Checked="NavApp_Checked">
+                    <RadioButton x:Name="NavApp" AutomationProperties.Name="Settings" Style="{StaticResource Nav.Item}" GroupName="Nav" Checked="NavApp_Checked">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Style="{StaticResource T.Icon}" Text="&#xE713;" Margin="0,0,12,0"/>
                             <TextBlock Text="Settings" VerticalAlignment="Center"/>
@@ -156,7 +156,7 @@
                             <TextBlock Style="{StaticResource T.Secondary}" Margin="0,6,0,0" MaxWidth="640" HorizontalAlignment="Left"
                                        Text="Choose what your dashboard shows, on your wheel screen or your PC. The default dashboard is used unless another one is assigned to the session's track type."/>
                         </StackPanel>
-                        <Button x:Name="NewDashboardButton" Grid.Column="1" VerticalAlignment="Top" Click="NewDashboard_Click">
+                        <Button x:Name="NewDashboardButton" AutomationProperties.Name="New dashboard" Grid.Column="1" VerticalAlignment="Top" Click="NewDashboard_Click">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource T.Icon}" Text="&#xE710;" FontSize="12" Margin="0,0,8,0"/>
                                 <TextBlock Text="New dashboard" VerticalAlignment="Center"/>

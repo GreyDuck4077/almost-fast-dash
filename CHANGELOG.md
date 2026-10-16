@@ -5,6 +5,16 @@ English. Every version is on the
 [releases page](https://github.com/Sota4077/almost-fast-dash/releases) with
 its exe and checksum.
 
+## 3.70 · 2026-10-16
+
+- **Every button has a name** screen readers and Windows automation can read:
+  the designer's tool rail, toolbar, align and layer buttons, the sidebar and
+  New dashboard. (Icon buttons used to come up blank.)
+- The README shows off the designer: masks, Repeat, modules and drawing.
+- The last UK spellings are gone (kilometers, labeled).
+- Checked by hand, live: guides dragged out of a ruler and back, the
+  eyedropper picking from the canvas, and Repeat making copies.
+
 ## 3.69 · 2026-10-16
 
 The app comes alive.

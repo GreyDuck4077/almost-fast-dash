@@ -318,6 +318,7 @@ namespace AlmostFastOverlays
             content.Children.Add(Glyph(glyph, 12));
             content.Children.Add(new TextBlock { Text = text, Margin = new Thickness(6, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center });
             var button = new Button { Content = content, Margin = new Thickness(0, 0, 6, 6), Height = 32, Padding = new Thickness(10, 0, 10, 0) };
+            System.Windows.Automation.AutomationProperties.SetName(button, text);
             button.Click += (s, e) => action();
             return button;
         }
@@ -339,6 +340,7 @@ namespace AlmostFastOverlays
                 };
                 string how = item.How;
                 button.Click += (s, e) => AlignSelection(how);
+                System.Windows.Automation.AutomationProperties.SetName(button, item.Tip);
                 bar.Children.Add(button);
             }
             return bar;

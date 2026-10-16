@@ -460,6 +460,7 @@ namespace AlmostFastOverlays
                 Style = (Style)FindResource("Btn.Ghost"), Width = 26, Height = 24, Padding = new Thickness(0), ToolTip = tip,
                 Content = Glyph(glyph, 12, active ? "Brush.Warning" : "Brush.TextTertiary")
             };
+            System.Windows.Automation.AutomationProperties.SetName(button, tip);
             button.Click += (s, e) => { action(); e.Handled = true; };
             return button;
         }

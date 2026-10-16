@@ -30,7 +30,7 @@ namespace AlmostFastOverlays
             Add("Car", "Speed", "Speed in your chosen unit (MPH or km/h).", s => s.T.Connected ? s.Units.Speed(s.T.SpeedMph) : 0, "format(Speed, \"0\")");
             Add("Car", "SpeedUnit", "\"MPH\" or \"KM/H\".", s => s.Units.SpeedLabel);
             Add("Car", "SpeedMph", "Speed in miles per hour.", s => s.T.SpeedMph);
-            Add("Car", "SpeedKph", "Speed in kilometres per hour.", s => s.T.SpeedMph * 1.609344);
+            Add("Car", "SpeedKph", "Speed in kilometers per hour.", s => s.T.SpeedMph * 1.609344);
             Add("Car", "Gear", "Gear number: -1 reverse, 0 neutral.", s => (double)s.T.Gear, "gear(Gear)");
             Add("Car", "GearText", "Gear as shown on a wheel: R, N, 1, 2...", s => s.T.Connected ? Fmt.Gear(s.T.Gear) : "-");
             Add("Car", "MaxGear", "Number of forward gears, once known.", s => (double)s.T.MaxForwardGear);

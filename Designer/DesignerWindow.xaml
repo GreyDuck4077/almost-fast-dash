@@ -7,6 +7,8 @@
         UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
     <Window.Resources>
         <Style x:Key="Tool" TargetType="Button" BasedOn="{StaticResource Btn.Ghost}">
+            <!-- Icon buttons are named by their tooltip for screen readers and automation. -->
+            <Setter Property="AutomationProperties.Name" Value="{Binding ToolTip, RelativeSource={RelativeSource Self}}"/>
             <Setter Property="Height" Value="32"/>
             <Setter Property="MinWidth" Value="32"/>
             <Setter Property="Padding" Value="8,0"/>
@@ -43,6 +45,7 @@
         </Style>
         <!-- A tool on the left rail (one at a time), and the rail's panel switch -->
         <Style x:Key="RailTool" TargetType="RadioButton">
+            <Setter Property="AutomationProperties.Name" Value="{Binding ToolTip, RelativeSource={RelativeSource Self}}"/>
             <Setter Property="Width" Value="40"/>
             <Setter Property="Height" Value="40"/>
             <Setter Property="Margin" Value="0,0,0,4"/>
@@ -71,6 +74,7 @@
             </Setter>
         </Style>
         <Style x:Key="RailToggle" TargetType="ToggleButton">
+            <Setter Property="AutomationProperties.Name" Value="{Binding ToolTip, RelativeSource={RelativeSource Self}}"/>
             <Setter Property="Width" Value="40"/>
             <Setter Property="Height" Value="40"/>
             <Setter Property="Margin" Value="0,0,0,4"/>

@@ -165,6 +165,7 @@ namespace AlmostFastOverlays
                 };
                 item.Checked += (s, e) => { if (!_buildingDashboardNav && !(EditorPage.Visibility == Visibility.Visible && d == _dashboard)) ShowEditor(d); };
                 item.ContextMenu = DashboardMenu(d);
+                System.Windows.Automation.AutomationProperties.SetName(item, d.Name);
                 DashboardSubNav.Children.Add(item);
             }
             _buildingDashboardNav = false;
