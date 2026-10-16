@@ -498,6 +498,13 @@ namespace AlmostFastOverlays
                 type.Props.Add(new PropDef { Key = "fxGlow", Label = "Outer glow", Kind = PropKind.Number, Default = "0", Group = "Style", Min = 0, Max = 40,
                     Help = "A soft halo around the whole widget. (A gauge's own Glow lights only its lit parts.)" });
                 type.Props.Add(new PropDef { Key = "fxGlowColor", Label = "Glow color", Kind = PropKind.Color, Default = "accent", Group = "Style" });
+                type.Props.Add(new PropDef { Key = "fxFade", Label = "Fade", Kind = PropKind.Choice, Default = "None", Group = "Style", Choices = LayerStyle.FadeModes,
+                    Help = "Fades the widget out toward an edge, the sides, the edges or all round, like a gradient mask." });
+                type.Props.Add(new PropDef { Key = "fxFadeLength", Label = "Fade length %", Kind = PropKind.Number, Default = "35", Group = "Style", Min = 2, Max = 100 });
+                type.Props.Add(new PropDef { Key = "fxBlend", Label = "Blend", Kind = PropKind.Choice, Default = "Normal", Group = "Style", Choices = LayerStyle.BlendModes,
+                    Help = "How it mixes with what's beneath: Screen and Add brighten, for light and glows; Multiply darkens, for shade; Overlay adds contrast." });
+                type.Props.Add(new PropDef { Key = "clip", Label = "Clip to the layer below", Kind = PropKind.Bool, Default = "false", Group = "Visibility",
+                    Help = "Shows only where the layer below is drawn, like a clipping mask: a pattern inside an outline, a texture inside text. Several layers in a row can clip to the same one. Alt-click a layer to switch it." });
                 type.Props.Add(new PropDef { Key = "flipX", Label = "Flip horizontally", Kind = PropKind.Bool, Default = "false", Group = "Transform",
                     Help = "Mirrors the widget left to right; text stays readable. A flipped copy beside the original makes a pair that meets in the middle." });
                 type.Props.Add(new PropDef { Key = "flipY", Label = "Flip vertically", Kind = PropKind.Bool, Default = "false", Group = "Transform", Help = "Mirrors the widget top to bottom; text stays readable." });
@@ -518,6 +525,7 @@ namespace AlmostFastOverlays
                 Rule(type.Id, "fxOutline", nonZero, "fxOutlineColor");
                 Rule(type.Id, "fxShadow", nonZero, "fxShadowColor", "fxShadowX", "fxShadowY");
                 Rule(type.Id, "fxGlow", nonZero, "fxGlowColor");
+                Rule(type.Id, "fxFade", v => v != "None", "fxFadeLength");
                 Rule(type.Id, "tapName", set, "tapViews", "tapDots");
             }
         }

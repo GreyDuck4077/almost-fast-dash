@@ -1282,6 +1282,86 @@ namespace AlmostFastOverlays
                 Check("drawing: Recolor with a pattern paints any widget in it", redStripe && blueStripe, "red " + redStripe + ", blue " + blueStripe);
             }
 
+            // ---------------- masks: clipping, fades and blending
+            {
+                DashWidget Box(DashScreen on, string name, double x, double y, double w, double h, params string[] props)
+                {
+                    DashWidget s = WidgetCatalog.Create("shape", x, y);
+                    s.Name = name; s.W = w; s.H = h;
+                    s.Set("radius", "0"); s.Set("strokeWidth", "0");
+                    for (int i = 0; i + 1 < props.Length; i += 2) s.Set(props[i], props[i + 1]);
+                    on.Widgets.Add(s);
+                    return s;
+                }
+                System.Drawing.Bitmap Draw(DashLayout layout, TelemetrySnapshot snapshot = null, bool changesOnly = true)
+                {
+                    using (var renderer = new LayoutRenderer(layout.Width, layout.Height, new DashboardSettings { Layout = Layouts.Custom, Design = layout }, _units) { RedrawChangesOnly = changesOnly })
+                    using (System.Drawing.Bitmap frame = renderer.Render(snapshot ?? IRacingTelemetrySource.CreatePreviewSnapshot(), false, 4, 1, layout.Screens[0]))
+                        return new System.Drawing.Bitmap(frame);
+                }
+                var clipping = new DashLayout { Width = 100, Height = 100 };
+                clipping.Theme.BackgroundStyle = "None";
+                clipping.Screens.Add(new DashScreen { Name = "Main" });
+                DashWidget clipBase = Box(clipping.Screens[0], "Base", 0, 0, 50, 100, "fill", "#FF0000");
+                DashWidget stripes = Box(clipping.Screens[0], "Over", 0, 0, 100, 100, "fill", "#0000FF", "clip", "true");
+                DashWidget second = Box(clipping.Screens[0], "Over too", 0, 60, 100, 40, "fill", "#00FF00", "clip", "true");
+                System.Drawing.Color firstInside, firstOutside, secondInside, secondOutside;
+                using (System.Drawing.Bitmap frame = Draw(clipping))
+                {
+                    firstInside = frame.GetPixel(25, 30); firstOutside = frame.GetPixel(75, 30);
+                    secondInside = frame.GetPixel(25, 80); secondOutside = frame.GetPixel(75, 80);
+                }
+                Check("masks: a clipped layer shows only where the layer below is drawn, and two in a row share it",
+                    firstInside.B > 240 && firstInside.R < 20 && firstOutside.A == 0 && secondInside.G > 240 && secondOutside.A == 0,
+                    firstInside + " " + firstOutside + " " + secondInside + " " + secondOutside);
+                clipBase.Hidden = true;
+                System.Drawing.Color hiddenBase;
+                using (System.Drawing.Bitmap frame = Draw(clipping)) hiddenBase = frame.GetPixel(25, 30);
+                clipBase.Hidden = false;
+                Check("masks: hiding the base hides what clips to it", hiddenBase.A == 0, hiddenBase.ToString());
+
+                // A base that comes and goes with live data: redrawing only what changed matches a full redraw.
+                clipBase.Set("visible", "=!OnPitRoad");
+                TelemetrySnapshot racing = IRacingTelemetrySource.CreatePreviewSnapshot(), pitting = IRacingTelemetrySource.CreatePitLanePreviewSnapshot();
+                int mismatched = 0;
+                using (var incremental = new LayoutRenderer(100, 100, new DashboardSettings { Layout = Layouts.Custom, Design = clipping }, _units) { FixedNow = TestNow, FlagClock = 0 })
+                using (var whole = new LayoutRenderer(100, 100, new DashboardSettings { Layout = Layouts.Custom, Design = clipping }, _units) { FixedNow = TestNow, FlagClock = 0, RedrawChangesOnly = false })
+                    foreach (TelemetrySnapshot snapshot in new[] { racing, pitting, racing, pitting })
+                        using (System.Drawing.Bitmap a = incremental.Render(snapshot, false, snapshot.Gear, 1, clipping.Screens[0]))
+                        using (System.Drawing.Bitmap b = whole.Render(snapshot, false, snapshot.Gear, 1, clipping.Screens[0]))
+                            if (Pixels(a) != Pixels(b)) mismatched++;
+                Check("masks: a clipped layer follows its base appearing and going, redrawing only what changed", mismatched == 0, mismatched + " of 4 frames differ");
+                clipBase.Set("visible", "");
+
+                // A fade to the left: clear at the left edge, solid past the fade.
+                var fading = new DashLayout { Width = 100, Height = 40 };
+                fading.Theme.BackgroundStyle = "None";
+                fading.Screens.Add(new DashScreen { Name = "Main" });
+                Box(fading.Screens[0], "Faded", 0, 0, 100, 40, "fill", "#FFFFFF", "fxFade", "Left", "fxFadeLength", "40");
+                int edge, middle, solid;
+                using (System.Drawing.Bitmap frame = Draw(fading)) { edge = frame.GetPixel(1, 20).A; middle = frame.GetPixel(20, 20).A; solid = frame.GetPixel(80, 20).A; }
+                Check("masks: a fade runs from clear at its edge to solid", edge < 20 && middle > 60 && middle < 200 && solid == 255, edge + " " + middle + " " + solid);
+
+                // Blend modes on black and white beneath.
+                uint white = 0xFFFFFFFF, black = 0xFF000000, red = 0xFFFF0000;
+                Check("masks: Multiply keeps a colour on white and black on black; Screen keeps a colour on black; Add brightens",
+                    LayoutRenderer.BlendPixel(white, red, "Multiply") == red && LayoutRenderer.BlendPixel(black, red, "Multiply") == black &&
+                    LayoutRenderer.BlendPixel(black, red, "Screen") == red && LayoutRenderer.BlendPixel(0xFF404040, 0xFF404040, "Add") == 0xFF808080,
+                    LayoutRenderer.BlendPixel(white, red, "Multiply").ToString("X8") + " " + LayoutRenderer.BlendPixel(0xFF404040, 0xFF404040, "Add").ToString("X8"));
+                var blending = new DashLayout { Width = 100, Height = 50 };
+                blending.Theme.BackgroundStyle = "Solid";
+                blending.Theme.Background = "#000000";
+                blending.Screens.Add(new DashScreen { Name = "Main" });
+                Box(blending.Screens[0], "White", 0, 0, 50, 50, "fill", "#FFFFFF");
+                Box(blending.Screens[0], "Shade", 0, 0, 100, 50, "fill", "#4080FF", "fxBlend", "Multiply");
+                Box(blending.Screens[0], "Light", 0, 40, 100, 10, "fill", "#404040", "fxBlend", "Screen");
+                System.Drawing.Color onWhite, onBlack, screened;
+                using (System.Drawing.Bitmap frame = Draw(blending)) { onWhite = frame.GetPixel(25, 20); onBlack = frame.GetPixel(75, 20); screened = frame.GetPixel(75, 45); }
+                Check("masks: blended layers mix with what's beneath them as drawn",
+                    Math.Abs(onWhite.R - 0x40) < 3 && Math.Abs(onWhite.B - 0xFF) < 3 && onBlack.R < 3 && onBlack.B < 3 && Math.Abs(screened.R - 0x40) < 3,
+                    onWhite + " " + onBlack + " " + screened);
+            }
+
             // ---------------- the formula reference
             {
                 // It's made from the live lists, so it covers everything; these keep its own parts complete and working.

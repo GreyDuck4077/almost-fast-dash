@@ -767,6 +767,8 @@ namespace AlmostFastOverlays
                     menu.Items.Add(MenuItem("Convert to path", null, () => ConvertToPath(shape)));
                     menu.Items.Add(new Separator());
                 }
+                bool allClipped = _selection.All(w => Expr.Bool(w.Get("clip", "false")));
+                menu.Items.Add(MenuItem(allClipped ? "Release clipping mask" : "Clip to layer below", "Ctrl+Alt+G", () => ToggleClip(_selection.ToList())));
                 menu.Items.Add(MenuItem("Duplicate", "Ctrl+D", () => DuplicateSelection()));
                 menu.Items.Add(MenuItem("Copy", "Ctrl+C", CopySelection));
                 menu.Items.Add(MenuItem("Delete", "Del", DeleteSelection));
@@ -1607,6 +1609,7 @@ namespace AlmostFastOverlays
                 case Key.Z when ctrl: if (shift) Redo(); else Undo(); break;
                 case Key.Y when ctrl: Redo(); break;
                 case Key.D when ctrl: DuplicateSelection(); break;
+                case Key.G when ctrl && (Keyboard.Modifiers & ModifierKeys.Alt) != 0: ToggleClip(_selection); break;
                 case Key.G when ctrl && shift: Ungroup(); break;
                 case Key.G when ctrl: GroupSelection(); break;
                 case Key.C when ctrl && shift: CopyStyle(); break;
@@ -1631,7 +1634,44 @@ namespace AlmostFastOverlays
             DashWidget Find(string name) => _screen.Widgets.FirstOrDefault(w => w.Name == name);
             if (scenario.Contains("theme")) TabTheme.IsChecked = true;
 
-            if (scenario.Contains("drawing"))
+            if (scenario.Contains("masks"))
+            {
+                // Clipping masks, fades and blending, for the snapshots and the guide.
+                _screen.Widgets.Clear();
+                DashWidget Layer(string name, string kind, double x, double y, double w, double h, params string[] props)
+                {
+                    DashWidget s = WidgetCatalog.Create(kind == "text" ? "text" : "shape", x, y);
+                    s.Name = name; s.W = w; s.H = h;
+                    if (kind != "text") { s.Set("shape", kind); s.Set("strokeWidth", "0"); s.Set("radius", "0"); }
+                    for (int i = 0; i + 1 < props.Length; i += 2) s.Set(props[i], props[i + 1]);
+                    _screen.Widgets.Add(s);
+                    return s;
+                }
+                // A rectangle's outline with stripes clipped to it: a kerb.
+                Layer("Outline", "Rectangle", 24, 24, 300, 150, "radius", "16", "fill", "", "stroke", "#FFFFFF", "strokeWidth", "12");
+                Layer("Stripes", "Rectangle", 10, 10, 330, 180, "fillStyle", "Pattern", "pattern", "Stripes", "fill", "#FF3B30", "fill2", "#FFFFFF",
+                    "patternScale", "150", "patternAngle", "45", "clip", "true");
+                // A gear digit filled with a gradient and a sheen, both clipped to the digit.
+                Layer("Gear", "text", 350, 0, 200, 220, "text", "7", "size", "200", "color", "#FFFFFF");
+                Layer("Gradient", "Rectangle", 350, 0, 200, 220, "fillStyle", "Linear", "fill", "#22D3EE", "fill2", "#A855F7", "fillAngle", "90", "clip", "true");
+                Layer("Sheen", "Ellipse", 330, -60, 200, 160, "fillStyle", "Radial", "fill", "#FFFFFF", "fill2", "", "clip", "true", "fxBlend", "Screen", "opacity", "70");
+                // A panel with light spilling over it, added and kept inside the panel.
+                Layer("Panel", "Rectangle", 580, 24, 196, 150, "radius", "18", "fillStyle", "Pattern", "pattern", "Carbon", "fill", "#3A3F48", "fill2", "#0B0C0F", "patternAngle", "0");
+                Layer("Light", "Ellipse", 640, -20, 220, 170, "fillStyle", "Radial", "fill", "#FF7A00", "fill2", "", "clip", "true", "fxBlend", "Add");
+                // Fades.
+                Layer("Fade right", "Rectangle", 24, 236, 360, 28, "fill", "#2DD4BF", "fxFade", "Right", "fxFadeLength", "70");
+                Layer("Fade sides", "Rectangle", 24, 286, 360, 6, "fill", "#FFFFFF", "fxFade", "Sides", "fxFadeLength", "45");
+                Layer("Fade bottom", "Rectangle", 24, 316, 360, 140, "radius", "14", "fillStyle", "Pattern", "pattern", "Honeycomb", "fill", "#2DD4BF", "fill2", "#10202A",
+                    "patternScale", "80", "patternAngle", "0", "fxFade", "Bottom", "fxFadeLength", "80");
+                // Multiply tints what's under it; Screen lightens.
+                Layer("Tiles", "Rectangle", 420, 236, 356, 220, "radius", "14", "fillStyle", "Pattern", "pattern", "Checks", "fill", "#F8FAFC", "fill2", "#64748B", "patternScale", "120");
+                Layer("Tint", "Ellipse", 440, 256, 180, 180, "fill", "#F43F5E", "fxBlend", "Multiply");
+                Layer("Glow", "Ellipse", 576, 256, 180, 180, "fill", "#1D4ED8", "fxBlend", "Screen");
+                _rendererDirty = true;
+                Select(_screen.Widgets.First(w => w.Name == "Stripes"));
+                RequestRender();
+            }
+            else if (scenario.Contains("drawing"))
             {
                 // What the drawing tools make, for the snapshots and the guide.
                 _screen.Widgets.Clear();

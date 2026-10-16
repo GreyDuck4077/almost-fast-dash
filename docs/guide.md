@@ -243,7 +243,8 @@ The workspace is laid out like an image editor:
 - **Layers** below Properties, always there, with the top layer first:
   - drag to reorder, double-click to rename, lock and hide;
   - buttons to bring forward, send back, group, duplicate and delete;
-  - drag the line above the list to give Properties or Layers more room.
+  - drag the line above the list to give Properties or Layers more room;
+  - Alt-click a layer to clip it to the layer below (see Masks).
 - **Drawing.** Shapes and pen paths share their look:
   - **Fill:** a colour, a linear or radial gradient, or a pattern in two
     colours: stripes, checks, dots, carbon fibre, honeycomb, grid or brushed
@@ -261,6 +262,22 @@ The workspace is laid out like an image editor:
     brushed metal look machined.
 
   ![Drawn shapes, patterns and pen paths](images/app-drawing.png)
+- **Masks.** Ways to let one layer shape another:
+  - **Clipping:** Alt-click a layer in Layers (or press Ctrl+Alt+G, or
+    right-click › Clip to layer below) and it shows only where the layer
+    beneath it is drawn. It indents in Layers, with an arrow down to that
+    layer. Draw a rectangle outline, put a striped rectangle over it and clip
+    it: only the outline is striped. A gradient clipped to a gear digit fills
+    the digit. Several layers in a row can clip to the same layer, and they
+    hide and show with it. Alt-click again to release.
+  - **Fade**, in Style: fades a widget out towards an edge, both sides, top
+    and bottom, every edge, or from the middle outwards, over the length you
+    set.
+  - **Blend**, in Style: mixes a widget with what's beneath it. Multiply
+    tints, Screen and Add lighten (glows and light spills), and Overlay adds
+    contrast.
+
+  ![Clipping, fades and blends](images/app-masks.png)
 - **Library** beside the tools. The grid button on the rail hides and shows it.
   Drag widgets and ready-made blocks onto the screen:
   - **Widgets**: text and values, the gear, bars and arc gauges (needles,

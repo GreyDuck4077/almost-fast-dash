@@ -338,6 +338,18 @@ namespace AlmostFastOverlays
             }
             Grid.SetColumn(name, 1);
             grid.Children.Add(name);
+            // A clipped layer sits indented, with an arrow down to the layer it shows through, as in an image editor.
+            if (Expr.Bool(widget.Get("clip", "false")))
+            {
+                DashWidget clipBase = ClipBaseOf(widget);
+                grid.Margin = new Thickness(16, 0, 0, 0);
+                typeIcon.Text = "\u21B4";
+                typeIcon.FontFamily = (FontFamily)FindResource("Font.Ui");
+                typeIcon.FontSize = 17;
+                typeIcon.Foreground = (Brush)FindResource("Brush.Accent");
+                name.ToolTip = clipBase == null ? "Set to clip, but there's no layer below to clip to"
+                    : "Clipped to " + (string.IsNullOrWhiteSpace(clipBase.Name) ? clipBase.Type : clipBase.Name) + ": shows only where it's drawn. Alt-click to release.";
+            }
 
             var toggles = new StackPanel { Orientation = Orientation.Horizontal };
             if (!string.IsNullOrWhiteSpace(widget.Get("visible")))
@@ -385,6 +397,12 @@ namespace AlmostFastOverlays
             {
                 if (down == null) return;
                 down = null;
+                // Alt-click clips a layer to the one below it, or releases it, as in an image editor.
+                if ((Keyboard.Modifiers & ModifierKeys.Alt) != 0)
+                {
+                    ToggleClip(new[] { widget });
+                    return;
+                }
                 if ((Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Shift)) != 0)
                 {
                     if (_selection.Contains(widget)) _selection.Remove(widget); else if (!widget.Locked) _selection.Add(widget);
@@ -408,6 +426,34 @@ namespace AlmostFastOverlays
                 RequestRender();
             };
             return row;
+        }
+
+        /// <summary>The layer a clipped layer shows through: the nearest below it that isn't clipped itself.</summary>
+        private DashWidget ClipBaseOf(DashWidget widget)
+        {
+            for (int i = _screen.Widgets.IndexOf(widget) - 1; i >= 0; i--)
+                if (!Expr.Bool(_screen.Widgets[i].Get("clip", "false"))) return _screen.Widgets[i];
+            return null;
+        }
+
+        /// <summary>Clips layers to the layer below them, or releases them when they all are already.</summary>
+        private void ToggleClip(IEnumerable<DashWidget> widgets)
+        {
+            List<DashWidget> list = widgets.Where(w => w != null).ToList();
+            if (list.Count == 0) return;
+            bool release = list.All(w => Expr.Bool(w.Get("clip", "false")));
+            if (!release && list.Any(w => _screen.Widgets.IndexOf(w) == 0))
+            {
+                StatusText.Text = "The bottom layer has nothing below it to clip to.";
+                return;
+            }
+            foreach (DashWidget w in list) w.Set("clip", release ? "false" : "true");
+            Commit(release ? "Release clipping" : "Clip to layer below");
+            RefreshLayers();
+            RefreshInspector();
+            RequestRender();
+            StatusText.Text = release ? "Released: shows in full again."
+                : "Clipped: shows only where the layer below is drawn. Alt-click the layer (or Ctrl+Alt+G) to release.";
         }
 
         private Button SmallToggle(string glyph, string tip, bool active, Action action)

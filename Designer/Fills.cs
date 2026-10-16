@@ -22,8 +22,11 @@ namespace AlmostFastOverlays
 
         private static readonly Dictionary<string, Bitmap> Tiles = new Dictionary<string, Bitmap>();
 
-        /// <summary>A brush for a fill over <paramref name="box"/>.</summary>
-        public static Brush Brush(string style, Color a, Color b, float angle, string pattern, float scalePercent, float patternAngle, RectangleF box)
+        /// <summary>
+        /// A brush for a fill over <paramref name="box"/>. A radial gradient reaches the box's corners, or, for a
+        /// <paramref name="round"/> shape (an ellipse, polygon or star, all inside the box's ellipse), its edge.
+        /// </summary>
+        public static Brush Brush(string style, Color a, Color b, float angle, string pattern, float scalePercent, float patternAngle, RectangleF box, bool round = false)
         {
             switch (style)
             {
@@ -31,8 +34,9 @@ namespace AlmostFastOverlays
                     return new LinearGradientBrush(RectangleF.Inflate(box, 1, 1), a, b, angle);
                 case "Radial":
                 {
-                    // An ellipse round the box's corners, so the whole box is inside the gradient.
-                    float rx = box.Width * 0.7072f + 1, ry = box.Height * 0.7072f + 1;
+                    // An ellipse round the box's corners, so the whole box is inside the gradient; a round shape's own edge.
+                    float reach = round ? 0.5f : 0.7072f;
+                    float rx = box.Width * reach + 1, ry = box.Height * reach + 1;
                     PointF middle = new PointF(box.X + box.Width / 2, box.Y + box.Height / 2);
                     using (var path = new GraphicsPath())
                     {

@@ -1585,8 +1585,9 @@ namespace AlmostFastOverlays
             if (fill.HasValue && !open)
             {
                 Color second = c.OptionalColor("fill2") ?? Color.FromArgb(0, fill.Value);
+                string kind = c.Choice("shape");
                 using (Brush brush = Fills.Brush(c.Choice("fillStyle"), fill.Value, second, (float)c.Num("fillAngle"), c.Choice("pattern"),
-                    (float)c.Num("patternScale"), (float)c.Num("patternAngle"), b))
+                    (float)c.Num("patternScale"), (float)c.Num("patternAngle"), b, kind == "Ellipse" || kind == "Polygon" || kind == "Star"))
                     g.FillPath(brush, shaped);
             }
             if (sw > 0)

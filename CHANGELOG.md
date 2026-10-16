@@ -5,6 +5,25 @@ English. Every version is on the
 [releases page](https://github.com/Sota4077/almost-fast-dash/releases) with
 its exe and checksum.
 
+## 3.63 · 2026-10-16
+
+Masks: clip one layer to another, fade widgets out, and blend them with what's
+beneath.
+
+- **Clipping masks:** Alt-click a layer (or Ctrl+Alt+G, or right-click › Clip
+  to layer below) and it shows only where the layer beneath it is drawn, as in
+  an image editor. A striped rectangle clipped to a rectangle outline makes a
+  kerb; a gradient clipped to a gear digit fills the digit. Several layers can
+  clip to the same layer, and they hide and show with it.
+- **Fade** in Style: fades a widget out towards an edge, both sides, top and
+  bottom, every edge or from the middle, over the length you set.
+- **Blend** in Style: Multiply, Screen, Add and Overlay mix a widget with
+  what's beneath it, for tints, glows and light spills.
+- **Radial gradients** on ellipses, polygons and stars now reach the shape's
+  own edge, so a glow fades out softly instead of stopping at a rim.
+- Every existing dashboard draws exactly as before: all 58 template renders
+  are identical pixel for pixel.
+
 ## 3.62 · 2026-10-16
 
 Drawing tools: the Pen, polygons and stars, gradient and pattern fills, and

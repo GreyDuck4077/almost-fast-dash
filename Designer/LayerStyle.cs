@@ -17,6 +17,8 @@ namespace AlmostFastOverlays
     internal sealed class LayerStyle
     {
         public static readonly string[] FillModes = { "None", "Color", "Gradient", "Pattern", "Image" };
+        public static readonly string[] FadeModes = { "None", "Left", "Right", "Top", "Bottom", "Sides", "Top and bottom", "Edges", "Radial" };
+        public static readonly string[] BlendModes = { "Normal", "Multiply", "Screen", "Add", "Overlay" };
 
         public string Fill = "None";
         public Color FillColor, FillColor2;
@@ -28,7 +30,17 @@ namespace AlmostFastOverlays
         public float Outline, Shadow, ShadowX, ShadowY, Glow;
         public Color OutlineColor, ShadowColor, GlowColor;
 
-        public bool Any => Recolors || Outline > 0 || Shadow > 0 || Glow > 0;
+        /// <summary>A fade toward an edge (a gradient mask), and how far into the widget it reaches (0 to 1).</summary>
+        public string FadeEdge = "None";
+        public float FadeLength = 0.35f;
+        /// <summary>How the widget mixes with what's beneath it.</summary>
+        public string BlendMode = "Normal";
+
+        /// <summary>Anything that makes the widget a finished picture laid on its own (effects, a fade or a blend).</summary>
+        public bool Any => NeedsCompose || BlendMode != "Normal";
+
+        /// <summary>Effects worked out on the widget's pixels.</summary>
+        public bool NeedsCompose => Recolors || Outline > 0 || Shadow > 0 || Glow > 0 || FadeEdge != "None";
         private bool Recolors => FillAmount > 0 && (Fill == "Color" || Fill == "Gradient" || Fill == "Pattern" || (Fill == "Image" && Texture != null));
 
         /// <summary>How far the effects reach past what the widget itself draws.</summary>
@@ -53,7 +65,10 @@ namespace AlmostFastOverlays
             ShadowX = (float)Math.Max(-40, Math.Min(40, c.Num("fxShadowX"))),
             ShadowY = (float)Math.Max(-40, Math.Min(40, c.Num("fxShadowY"))),
             Glow = (float)Math.Max(0, Math.Min(40, c.Num("fxGlow"))),
-            GlowColor = c.Color("fxGlowColor")
+            GlowColor = c.Color("fxGlowColor"),
+            FadeEdge = c.Choice("fxFade"),
+            FadeLength = (float)Math.Max(0.02, Math.Min(1, c.Num("fxFadeLength") / 100)),
+            BlendMode = c.Choice("fxBlend")
         };
 
         /// <summary>
@@ -98,6 +113,7 @@ namespace AlmostFastOverlays
                     uint* top = (uint*)((byte*)from.Scan0 + (long)y * from.Stride), result = (uint*)((byte*)to.Scan0 + (long)y * to.Stride);
                     for (int x = 0; x < w; x++) result[x] = under == null ? top[x] : Over(top[x], under[y * w + x]);
                 }
+                if (FadeEdge != "None") FadeOut(to, w, h, box, place);
             }
             finally
             {
@@ -106,6 +122,62 @@ namespace AlmostFastOverlays
             }
             return composite;
         }
+
+        /// <summary>
+        /// The fade: every pixel of the finished picture (effects too) scaled by how far it is from the faded edge, in
+        /// the widget's own frame, so a turned widget fades along its own sides. Smoothed, so it starts and ends softly.
+        /// </summary>
+        private unsafe void FadeOut(BitmapData to, int w, int h, RectangleF box, Matrix place)
+        {
+            float[] e;
+            using (Matrix back = place.Clone())
+            {
+                if (!back.IsInvertible) return;
+                back.Invert();
+                e = back.Elements;
+            }
+            float bw = Math.Max(1, box.Width), bh = Math.Max(1, box.Height), length = FadeLength;
+            float Ramp(float d)
+            {
+                float t = Math.Max(0, Math.Min(1, d / length));
+                return t * t * (3 - 2 * t);
+            }
+            for (int y = 0; y < h; y++)
+            {
+                uint* row = (uint*)((byte*)to.Scan0 + (long)y * to.Stride);
+                for (int x = 0; x < w; x++)
+                {
+                    uint p = row[x];
+                    if (p == 0) continue;
+                    // This pixel's place across and down the widget's box, 0 to 1.
+                    float px = x + 0.5f, py = y + 0.5f;
+                    float u = (px * e[0] + py * e[2] + e[4] - box.X) / bw, v = (px * e[1] + py * e[3] + e[5] - box.Y) / bh;
+                    float k;
+                    switch (FadeEdge)
+                    {
+                        case "Left": k = Ramp(u); break;
+                        case "Right": k = Ramp(1 - u); break;
+                        case "Top": k = Ramp(v); break;
+                        case "Bottom": k = Ramp(1 - v); break;
+                        case "Sides": k = Ramp(Math.Min(u, 1 - u)); break;
+                        case "Top and bottom": k = Ramp(Math.Min(v, 1 - v)); break;
+                        case "Radial":
+                        {
+                            float dx = (u - 0.5f) * 2, dy = (v - 0.5f) * 2;
+                            k = Ramp(1 - (float)Math.Sqrt(dx * dx + dy * dy));
+                            break;
+                        }
+                        default: k = Ramp(Math.Min(Math.Min(u, 1 - u), Math.Min(v, 1 - v))); break;
+                    }
+                    if (k >= 0.999f) continue;
+                    uint cover = (uint)(k * 255 + 0.5f);
+                    row[x] = cover == 0 ? 0 : ScaleAll(p, cover);
+                }
+            }
+        }
+
+        private static uint ScaleAll(uint pixel, uint cover) =>
+            Scale(pixel >> 24, cover) << 24 | Scale((pixel >> 16) & 255, cover) << 16 | Scale((pixel >> 8) & 255, cover) << 8 | Scale(pixel & 255, cover);
 
         /// <summary>A premultiplied pixel over another.</summary>
         private static uint Over(uint top, uint bottom)
