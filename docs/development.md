@@ -52,6 +52,12 @@ own assemblies.
   geometry with `Renderer.Shape`. Measure with `--profile-dashboards` before and
   after: drawing a large cached picture that's mostly empty can cost as much as
   drawing the shapes, so a cache only pays off for dense content.
+- **Keep time precisely.** Windows wakes a waiting thread only on its timer
+  tick, 15.6 ms by default, so a 16 ms wait often lasts 31 ms. `FineTimer`
+  asks for 1 ms ticks while the dashboard runs. The loop keeps a steady beat:
+  each frame is due one period after the last was due, so a late wake-up is
+  made up on the next frame. Check frame rates on the wheel (`screen.status`),
+  not only with the profiler, which doesn't wait.
 - **Send as little as possible, and in parallel.** USB is the wheel screen's
   bottleneck: a whole 854×480 frame is about 820 KB. So:
   - The dashboard loop draws on its own thread.

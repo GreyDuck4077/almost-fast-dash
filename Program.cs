@@ -504,7 +504,8 @@ namespace AlmostFastOverlays
             MonitorOutput monitor = null;
             // The LEDs and the wheel screen each have a thread of their own: the screen connects, reconnects and
             // sends by itself, so this loop only decides what to draw and when, and draws the next frame while
-            // the last one is still being sent.
+            // the last one is still being sent. Their frame waits need Windows' 1 ms timer to keep 60 a second.
+            using (new FineTimer())
             using (new LightLoop(() => preview.Apply(telemetry.GetSnapshot()), () => runtime.Settings, () => runtime.Dashboard, diagnostics.RecordLight))
             using (var wheel = new ScreenSender(() => runtime.Settings.General, stats))
             {
@@ -520,10 +521,11 @@ namespace AlmostFastOverlays
                     int transitionFromGear = 0;
                     DateTime gearTransitionStartedUtc = DateTime.MinValue;
                     bool pageButtonHeld = false, backButtonHeld = false;
+                    // When the next frame is due, on the Stopwatch's clock.
+                    long due = System.Diagnostics.Stopwatch.GetTimestamp();
 
                     while (!ShouldStop())
                     {
-                        long frameStart = System.Diagnostics.Stopwatch.GetTimestamp();
                         TelemetrySnapshot snapshot = preview.Apply(telemetry.GetSnapshot());
 
                         // Pick up saved settings and switch dashboards when the track type changes, without
@@ -634,14 +636,23 @@ namespace AlmostFastOverlays
                         }
 
                         // At the frame rate chosen in Settings (60 a second unless 30 is chosen), 40 at least while the gear
-                        // changes. A steady pace: wait out what's left of the frame's time, not a fixed pause after the work.
-                        int frameTime = runtime.Settings.General.FrameRate == 30 ? 33 : 16;
-                        int period = gearProgress < 1 ? Math.Min(frameTime, 25)
+                        // changes. A steady beat: each frame is due one period after the last one was due, so a wait that
+                        // ran a little long is made up on the next frame instead of slowing every frame down.
+                        double frameTime = 1000.0 / (runtime.Settings.General.FrameRate == 30 ? 30 : 60);
+                        double period = gearProgress < 1 ? Math.Min(frameTime, 25)
                             : snapshot.Flag != RacingFlag.None || snapshot.Connected ? frameTime : IdleRefreshMilliseconds;
-                        double spent = (System.Diagnostics.Stopwatch.GetTimestamp() - frameStart) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-                        if (!waiting) StopRequested.Wait(Math.Max(2, period - (int)spent));
+                        if (!waiting)
+                        {
+                            long now = System.Diagnostics.Stopwatch.GetTimestamp(), step = (long)(period * System.Diagnostics.Stopwatch.Frequency / 1000);
+                            due += step;
+                            // More than a frame behind (a slow frame, or a longer idle wait just ended): start the beat
+                            // again from now rather than rushing frames out to catch up.
+                            if (due < now - step) due = now;
+                            double left = (due - now) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+                            if (left >= 1) StopRequested.Wait((int)left);
+                        }
                         // A frame is due but a screen is still sending the last: draw the moment it's taken.
-                        else if (wheel.Connected && !wheel.Ready) wheel.WaitReady(period);
+                        else if (wheel.Connected && !wheel.Ready) wheel.WaitReady((int)period);
                         else StopRequested.Wait(2);
                     }
                 }

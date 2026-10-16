@@ -213,7 +213,9 @@ namespace AlmostFastOverlays
             {
                 DashboardSettings d = template.Settings;
                 d.Design.FullScreenFlags = false;
-                var lap = new SyntheticTelemetry();
+                // Three seconds of the lap at the wheel's 30 a second, the same frames every run.
+                double lapClock = 0;
+                var lap = new SyntheticTelemetry { Clock = () => lapClock };
                 int mismatches = 0, frames = 0, rounded = 0;
                 double share = 0, fast = 0, slow = 0;
                 string firstDiff = "", changed = "", costly = "";
@@ -221,6 +223,7 @@ namespace AlmostFastOverlays
                 using (var whole = new LayoutRenderer(854, 480, d, _units) { FlagClock = 0, FixedNow = TestNow, RedrawChangesOnly = false, Timings = new Dictionary<string, double>() })
                     for (int i = 0; i < 90; i++)
                     {
+                        lapClock = i / 30.0;
                         TelemetrySnapshot snapshot = i % 30 == 29 ? states[i / 30 % states.Length] : lap.Next(out _, out _, out _);
                         long a0 = System.Diagnostics.Stopwatch.GetTimestamp();
                         using (var a = incremental.Render(snapshot, i % 4 == 0, snapshot.Gear, 1))
@@ -232,8 +235,11 @@ namespace AlmostFastOverlays
                                 if (i > 0) { fast += a1 - a0; slow += b1 - a1; share += incremental.LastRedrawShare; frames++; }
                                 if (i == 89) changed = string.Join(", ", incremental.Timings.Where(p => p.Key.StartsWith("changed: ")).OrderByDescending(p => p.Value).Take(14).Select(p => p.Key.Substring(9) + " " + p.Value));
                                 if (i == 89) costly = string.Join(", ", whole.Timings.Where(p => !p.Key.StartsWith("changed: ")).OrderByDescending(p => p.Value).Take(6).Select(p => p.Key + " " + (p.Value / 90).ToString("0.00")));
-                                // Scaled glows can round 1/255 differently when clipped; anything larger is a real difference.
-                                if (Pixels(a) != Pixels(b) && Largest(a, b) <= 2) rounded++;
+                                // Rounding, not a real difference: scaled glows can round 1/255 differently when clipped, and a
+                                // widget laid down from its finished picture is blended twice (into its picture, then onto the
+                                // frame), which can move anti-aliased edges by up to 3/255. That's below one step of the wheel
+                                // screen's RGB565. Anything larger is a real difference.
+                                if (Pixels(a) != Pixels(b) && Largest(a, b) <= 3) rounded++;
                                 else if (Pixels(a) != Pixels(b))
                                 {
                                     if (mismatches++ == 0)
@@ -256,7 +262,7 @@ namespace AlmostFastOverlays
                             }
                         }
                     }
-                Check("redrawing only changes matches a full redraw: " + template.Name, mismatches == 0, mismatches + " of 90 frames differ" + (rounded > 0 ? ", " + rounded + " within 2/255 rounding" : "") + "; " + firstDiff);
+                Check("redrawing only changes matches a full redraw: " + template.Name, mismatches == 0, mismatches + " of 90 frames differ" + (rounded > 0 ? ", " + rounded + " within 3/255 rounding" : "") + "; " + firstDiff);
                 if (frames > 0)
                     report.Add("INFO  " + template.Id + " animated lap: " + (fast / frames * 1000 / System.Diagnostics.Stopwatch.Frequency).ToString("0.00") + " ms per frame redrawing changes (" +
                         (share / frames * 100).ToString("0") + "% of the screen) vs " + (slow / frames * 1000 / System.Diagnostics.Stopwatch.Frequency).ToString("0.00") + " ms redrawing everything; changed most: " + changed + "; costliest (ms/frame): " + costly);

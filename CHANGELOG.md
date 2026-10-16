@@ -5,6 +5,23 @@ English. Every version is on the
 [releases page](https://github.com/Sota4077/almost-fast-dash/releases) with
 its exe and checksum.
 
+## 3.56 · 2026-10-15
+
+A real 60 frames a second on the wheel.
+
+- **60 frames a second, measured on the wheel.** 3.55 asked for 60 but got
+  about 34: Windows wakes a waiting program only every 15.6 ms unless it asks
+  for finer timing, so most 16 ms waits lasted 31 ms. While the dashboard
+  runs, it now asks Windows for 1 ms timing, and frames follow a steady beat,
+  so a wait that runs a little long is made up on the next frame. With the
+  animated lap on a 5" screen, Oval, Neon and Roady measured 60 frames a
+  second, up from 33 to 34.
+- **The lights keep pace too.** The LED loop was meant to update 60 times a
+  second and had the same 31 ms waits.
+- **No flash of the default dashboard while previewing.** If the dashboard
+  read the preview request while the settings window was rewriting it, the
+  preview dropped for a quarter of a second. The last request now holds.
+
 ## 3.55 · 2026-10-15
 
 Faster drawing, 60 frames a second, and a polish pass over every template.

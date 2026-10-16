@@ -75,11 +75,16 @@ namespace AlmostFastOverlays
             {
                 if (DateTime.UtcNow < _nextReadUtc) return;
                 _nextReadUtc = DateTime.UtcNow.AddMilliseconds(250);
-                DashboardId = null;
                 try
                 {
                     var file = new FileInfo(FilePath);
-                    if (!file.Exists || (DateTime.UtcNow - file.LastWriteTimeUtc).TotalSeconds > FreshSeconds) return;
+                    if (!file.Exists || (DateTime.UtcNow - file.LastWriteTimeUtc).TotalSeconds > FreshSeconds)
+                    {
+                        DashboardId = null;
+                        return;
+                    }
+                    // A file caught while the settings window rewrites it reads empty or locked: keep the last request
+                    // rather than dropping to the default dashboard for a moment (two full redraws and a flash).
                     string[] lines = File.ReadAllLines(FilePath);
                     if (lines.Length < 2 || string.IsNullOrWhiteSpace(lines[0]) || Array.IndexOf(States, lines[1].Trim()) < 0) return;
                     State = lines[1].Trim();
