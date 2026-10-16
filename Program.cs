@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -514,7 +514,7 @@ namespace AlmostFastOverlays
                     DateTime nextSettingsCheckUtc = DateTime.MinValue;
                     // The dashboard's own fingerprint of everything it shows: it redraws only when that changes.
                     int? lastDrawn = null;
-                    int wheelGeneration = 0;
+                    int wheelGeneration = 0, monitorGeneration = 0;
                     MonitorOutput lastMonitor = null;
                     bool? lastTelemetryConnection = null;
                     int lastObservedGear = int.MinValue;
@@ -529,7 +529,8 @@ namespace AlmostFastOverlays
                         TelemetrySnapshot snapshot = preview.Apply(telemetry.GetSnapshot());
 
                         // Pick up saved settings and switch dashboards when the track type changes, without
-                        // restarting the process; and follow the display chosen for the dashboard (or unplugged).
+                        // restarting the process; and follow where on the PC it's shown (a window, over the game, or a
+                        // display, which may be unplugged).
                         if (DateTime.UtcNow >= nextSettingsCheckUtc)
                         {
                             nextSettingsCheckUtc = DateTime.UtcNow.AddSeconds(1);
@@ -539,7 +540,14 @@ namespace AlmostFastOverlays
                                 lastDrawn = null;
                                 Console.WriteLine("Dashboard: " + runtime.Dashboard.Name);
                             }
-                            monitor = MonitorOutput.Follow(monitor, runtime.Settings.General.MonitorDevice);
+                            monitor = MonitorOutput.Follow(monitor, runtime.Settings.General, runtime.Dashboard.Name, runtime.Dashboard.ScreenSize());
+                        }
+                        // Over the game: shown while iRacing runs (or a preview plays), unless it's wanted always, and
+                        // unlocked while the settings window is placing it.
+                        if (monitor != null && monitor.Mode == MonitorOutput.Overlay)
+                        {
+                            GeneralSettings general = runtime.Settings.General;
+                            monitor.Update(general.OverlayOpacity, !general.OverlayOnlyWhileRacing || snapshot.Connected, OverlayUnlock.Requested());
                         }
                         wheel.SetBrightness(runtime.Settings.General.ScreenBrightness);
 
@@ -584,7 +592,7 @@ namespace AlmostFastOverlays
                             backButtonHeld = back;
                         }
 
-                        // Taps on a touch wheel screen, or clicks and touches on the monitor, move tap zones on to their next view.
+                        // Taps on a touch wheel screen, or clicks and touches on the dashboard on the PC, move tap zones on to their next view.
                         System.Drawing.Size built = runtime.Dashboard.ScreenSize();
                         void Tap(double x, double y)
                         {
@@ -600,21 +608,25 @@ namespace AlmostFastOverlays
                         if (monitor != null)
                             while (monitor.TryTakeTap(out System.Drawing.PointF share)) Tap(share.X * built.Width, share.Y * built.Height);
 
-                        // A screen that has just connected, or a monitor just opened, needs a whole frame.
-                        if (wheel.Generation != wheelGeneration || monitor != lastMonitor)
+                        // A screen that has just connected, or a window just opened or shown again, needs a whole frame.
+                        bool showing = monitor != null && monitor.Showing;
+                        if (wheel.Generation != wheelGeneration || monitor != lastMonitor || (monitor != null && monitor.Generation != monitorGeneration))
                         {
                             wheelGeneration = wheel.Generation;
                             lastMonitor = monitor;
+                            monitorGeneration = monitor?.Generation ?? 0;
                             lastDrawn = null;
                         }
 
                         bool waiting = false;
                         int current = runtime.Renderer.StateHash(snapshot, shiftFlashOn, gearAnimationFrame);
-                        if ((wheel.Connected || monitor != null) && current != lastDrawn)
+                        // Nothing to draw for when no screen shows it (no wheel screen, the window minimised, or hidden
+                        // over the game while iRacing isn't running).
+                        if ((wheel.Connected || showing) && current != lastDrawn)
                         {
                             // Drawn only once every screen showing it can take it, so no frame is drawn just to be
                             // replaced; that also means it's the newest state when it goes.
-                            if ((!wheel.Connected || wheel.Ready) && (monitor == null || monitor.Ready))
+                            if ((!wheel.Connected || wheel.Ready) && (!showing || monitor.Ready))
                             {
                                 int previousGear = gearProgress < 1 ? transitionFromGear : snapshot.Gear;
                                 long drawStart = System.Diagnostics.Stopwatch.GetTimestamp();
@@ -628,8 +640,8 @@ namespace AlmostFastOverlays
                                     if (frame.Width == size.Width && frame.Height == size.Height) wheel.Submit(frame);
                                     else using (var fitted = ScreenSizes.Fit(frame, size.Width, size.Height)) wheel.Submit(fitted);
                                 }
-                                // The monitor fits any size itself, on the graphics card.
-                                monitor?.Submit(frame);
+                                // The window fits any size itself, on the graphics card.
+                                if (showing) monitor.Submit(frame, runtime.Renderer.LastChanged);
                                 lastDrawn = current;
                             }
                             else waiting = true;

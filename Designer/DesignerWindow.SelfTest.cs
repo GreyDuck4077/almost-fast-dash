@@ -1037,6 +1037,82 @@ namespace AlmostFastOverlays
                 Check("traffic: one class alone has no faster class", RadarPainters.FasterClassBehind(IRacingTelemetrySource.CreatePreviewSnapshot(), out _) < 0);
             }
 
+            // ---------------- the dashboard on the PC
+            {
+                // Where the window and the overlay sit: saved per mode, kept on a display, shaped to the dashboard.
+                var work = new System.Drawing.Rectangle(0, 0, 3440, 1392);
+                var displays = new[] { new System.Drawing.Rectangle(0, 0, 3440, 1440) };
+                var dash = new System.Drawing.Size(854, 480);
+                string places = WindowPlacement.Merge(WindowPlacement.Merge("", "Window", new System.Drawing.Rectangle(10, 20, 854, 480)), "Overlay", new System.Drawing.Rectangle(1398, 961, 644, 362));
+                places = WindowPlacement.Merge(places, "Window", new System.Drawing.Rectangle(30, 40, 1114, 626));
+                Check("window places: each mode saved on its own line, the newest kept",
+                    WindowPlacement.Parse(places, "Window") == new System.Drawing.Rectangle(30, 40, 1114, 626) &&
+                    WindowPlacement.Parse(places, "Overlay") == new System.Drawing.Rectangle(1398, 961, 644, 362) &&
+                    WindowPlacement.Parse(places, "FullScreen") == null && places.Split('\n').Count(l => l.Length > 0) == 2, places.Replace("\n", " | "));
+                System.Drawing.Rectangle overlay = WindowPlacement.Resolve(null, "Overlay", dash, displays, work);
+                System.Drawing.Rectangle offScreen = WindowPlacement.Resolve(new System.Drawing.Rectangle(5000, 200, 800, 450), "Window", dash, displays, work);
+                System.Drawing.Rectangle reshaped = WindowPlacement.Resolve(new System.Drawing.Rectangle(100, 100, 800, 800), "Window", dash, displays, work);
+                Check("window places: over the game starts low in the middle, a place off every display starts over, and another dashboard keeps the width",
+                    overlay == new System.Drawing.Rectangle(1398, 961, 644, 362) && offScreen == WindowPlacement.Default("Window", 854 / 480.0, work) &&
+                    reshaped == new System.Drawing.Rectangle(100, 100, 800, 450), overlay + " " + offScreen + " " + reshaped);
+                DateTime now = DateTime.UtcNow;
+                Check("over the game: unlocked only while the settings window keeps asking", OverlayUnlock.IsFresh(now.AddSeconds(-1), now) && !OverlayUnlock.IsFresh(now.AddSeconds(-4), now));
+                Check("dashboard on the PC: settings from before keep their full-screen display",
+                    new GeneralSettings { MonitorDevice = @"\\.\DISPLAY2" }.EffectivePcOutput() == "FullScreen" && new GeneralSettings().EffectivePcOutput() == "Off" &&
+                    new GeneralSettings { PcOutput = "Overlay", MonitorDevice = @"\\.\DISPLAY2" }.EffectivePcOutput() == "Overlay");
+                Check("wheel screen: see-through pixels show over black", FrameEncoder.Rgb565(0) == 0 && FrameEncoder.Rgb565(unchecked((int)0x80FFFFFF)) == FrameEncoder.Rgb565(unchecked((int)0xFF808080)) &&
+                    FrameEncoder.Rgb565(unchecked((int)0xFF3366CC)) == (ushort)((0x33 >> 3) << 11 | (0x66 >> 2) << 5 | (0xCC >> 3)));
+
+                // A see-through background: nothing drawn where no widget is.
+                DashboardSettings clear = DashboardSettings.CreateDesigned(DesignTemplates.All.First());
+                clear.Design.Theme.BackgroundStyle = "None";
+                using (var renderer = new LayoutRenderer(854, 480, clear, _units) { FlagClock = 0, FixedNow = TestNow })
+                using (System.Drawing.Bitmap frame = renderer.Render(IRacingTelemetrySource.CreatePreviewSnapshot(), false, 4, 1))
+                {
+                    int clearPixels = 0, solid = 0;
+                    for (int y = 0; y < frame.Height; y += 8)
+                        for (int px = 0; px < frame.Width; px += 8)
+                        {
+                            int alpha = frame.GetPixel(px, y).A;
+                            if (alpha == 0) clearPixels++;
+                            else if (alpha == 255) solid++;
+                        }
+                    Check("a None background is see-through between the widgets", clearPixels > 100 && solid > 100, clearPixels + " clear, " + solid + " solid");
+                }
+
+                // The one shared output, copied into only where things changed, must match a whole frame every time,
+                // also after a flag was drawn over it and has gone.
+                DashboardSettings roady = DashboardSettings.CreateDesigned(DesignTemplates.All.First());
+                double clock = 0;
+                var lap = new SyntheticTelemetry { Clock = () => clock };
+                TelemetrySnapshot yellow = IRacingTelemetrySource.CreatePreviewSnapshot(RacingFlag.Yellow);
+                int differ = 0, quiet = 0, frames = 0;
+                bool changedInside = true;
+                using (var shared = new LayoutRenderer(854, 480, roady, _units) { SharedOutput = true, ReuseFingerprints = true, FlagClock = 0, FixedNow = TestNow })
+                using (var whole = new LayoutRenderer(854, 480, roady, _units) { FlagClock = 0, FixedNow = TestNow })
+                    for (int i = 0; i < 40; i++)
+                    {
+                        clock = i / 30.0;
+                        TelemetrySnapshot snapshot = i >= 15 && i < 20 ? yellow : lap.Next(out _, out _, out _);
+                        shared.StateHash(snapshot, false, -1);
+                        System.Drawing.Bitmap a = shared.Render(snapshot, false, snapshot.Gear, 1);
+                        using (System.Drawing.Bitmap b = whole.Render(snapshot, false, snapshot.Gear, 1))
+                            if (Pixels(a) != Pixels(b)) differ++;
+                        System.Drawing.Rectangle changed = shared.LastChanged;
+                        changedInside &= changed.IsEmpty || new System.Drawing.Rectangle(0, 0, 854, 480).Contains(changed);
+                        frames++;
+                        // The same state again: nothing changed.
+                        if (i == 25)
+                        {
+                            shared.StateHash(snapshot, false, -1);
+                            shared.Render(snapshot, false, snapshot.Gear, 1);
+                            if (shared.LastChanged.IsEmpty) quiet++;
+                        }
+                    }
+                Check("shared output copied only where things changed matches a whole frame, flags and all", differ == 0 && quiet == 1 && changedInside,
+                    differ + " of " + frames + " frames differ; unchanged frame reported empty: " + (quiet == 1));
+            }
+
             // ---------------- touch
             {
                 // Reports the wheel screen sent while it was tapped at its top-left, top-right and bottom-right, then lifted.

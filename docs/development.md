@@ -70,7 +70,19 @@ own assemblies.
     panels) and sent, with VoCore's draw command that names an area. When most
     of the screen changed, a whole frame goes instead.
   - The renderer hands back one reused bitmap instead of a new 1.6 MB copy
-    per frame.
+    per frame. It copies only the areas it redrew into that bitmap, and
+    reports them as `LastChanged`.
+- **On the PC, the graphics card does the work.** `MonitorOutput` shows frames
+  in a WPF window on its own thread. Each frame, only `LastChanged` is copied
+  and uploaded; WPF scales and composes the window on the graphics card.
+  - Over the game, the window is layered and click-through. It isn't a WPF
+    see-through window, which would make WPF copy every frame back from the
+    graphics card. Instead WPF draws normally, and a window procedure in front
+    of WPF's keeps the layered style on. `DwmExtendFrameIntoClientArea` makes
+    Windows compose the dashboard's see-through pixels.
+  - Only the running dashboard writes `dashboard.window`. The settings window
+    unlocks the overlay by keeping `overlay.unlock` fresh, the way
+    `preview.request` works, so the overlay can't be left unlocked.
 - **Readable at a glance.** Text is at least 16 px on an 854×480 screen (14 in
   dense tables), at least 4.5:1 contrast against what's behind it, and never
   runs into other text. The dashboard audit enforces this as drawn.
@@ -87,7 +99,7 @@ own assemblies.
 | `Radar.cs` | `RadarTracker`: places nearby cars along the track and works out their lanes. |
 | `WheelScreen.cs` | Drives VoCore's M-PRO screens through WinUSB: every model's size, whole frames and areas, touch. |
 | `ScreenSender.cs`, `FrameEncoder.cs` | Sending to the wheel screen on its own thread: finding what changed, encoding it and reconnecting. |
-| `MonitorOutput.cs` | The dashboard full screen on another display. |
+| `MonitorOutput.cs`, `WindowPlacement.cs` | The dashboard on the PC: full screen on another display, in a window, or over the game. Also where the window and overlay sit (`dashboard.window`) and the overlay's unlock request (`overlay.unlock`). |
 | `ScreenStats.cs`, `ScreenTest.cs` | The screen's measured performance, and the `--screen-test` pattern. |
 | `LedDevices.cs`, `ArduinoLedController.cs`, `LedLayout.cs` | LED devices: the serial, Adalight and WLED protocols, and each device's shape. |
 | `WheelButtons.cs` | Wheel and button-box buttons through Windows' joystick interface. |

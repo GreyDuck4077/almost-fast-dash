@@ -140,8 +140,10 @@ namespace AlmostFastOverlays
             t = t ?? TelemetrySnapshot.Disconnected;
             int now = FlagClock ?? Environment.TickCount;
             FlagView flags = Flags(t, now);
+            LastChanged = new Rectangle(0, 0, _width, _height);
             if (flags.Full)
             {
+                _outputHoldsFrame = false;
                 // The flag covers everything, so the dashboard isn't drawn; it is redrawn in full when the flag goes.
                 ForgetFrame();
                 Bitmap cover = SharedOutput ? Output() : new Bitmap(_width, _height, PixelFormat.Format32bppArgb);
@@ -150,6 +152,9 @@ namespace AlmostFastOverlays
             }
             Bitmap bitmap = RenderDashboard(t, shiftFlashOn, previousGear, gearTransitionProgress, forceScreen);
             if (flags.Frame == RacingFlag.None && flags.Alpha <= 0) return bitmap;
+            // Drawn over the output, so the next frame can't start from it, and all of this one may have changed.
+            _outputHoldsFrame = false;
+            LastChanged = new Rectangle(0, 0, _width, _height);
             // The frame and a fading flag go over the finished frame (a copy, never the one kept for the next).
             if (flags.Frame != RacingFlag.None)
                 (_flagFrame ?? (_flagFrame = new FlagFramePainter(_width, _height))).Draw(bitmap, flags.Frame, flags.FrameAlpha, now);
@@ -296,6 +301,16 @@ namespace AlmostFastOverlays
         /// <summary>How much of the last frame was redrawn, 0 to 1 (for the self-test).</summary>
         internal double LastRedrawShare { get; private set; }
 
+        /// <summary>
+        /// The part of the last frame that can differ from the one before it: the areas redrawn, empty when nothing
+        /// was, or the whole frame after a flag or anything else drawn over it all. A window showing the dashboard
+        /// copies and uploads just this.
+        /// </summary>
+        public Rectangle LastChanged { get; private set; }
+
+        /// <summary>The shared output still holds the last frame exactly (no flag drawn over it since), so only what changed needs copying into it.</summary>
+        private bool _outputHoldsFrame;
+
         private void ForgetFrame() => _frameScreen = null;
 
         /// <summary>
@@ -341,6 +356,8 @@ namespace AlmostFastOverlays
             }
             if (redrawAll) dirty = new List<Rectangle> { full };
             else dirty = Merge(dirty, full);
+            Rectangle changed = Rectangle.Empty;
+            foreach (Rectangle r in dirty) changed = changed.IsEmpty ? r : Rectangle.Union(changed, r);
             Time("(fingerprints)", ref started);
 
             long area = 0;
@@ -386,20 +403,31 @@ namespace AlmostFastOverlays
             _frameScreen = screen;
             _frameConnected = scope.T.Connected;
             if (!SharedOutput) return _frame.Clone(full, PixelFormat.Format32bppArgb);
-            // A straight copy of the pixels into the one output bitmap (flag frames go on it, never on _frame).
+            // A straight copy of the pixels into the one output bitmap (flag frames go on it, never on _frame): only
+            // what changed, while the output still holds the last frame.
             Bitmap output = Output();
-            BitmapData from = _frame.LockBits(full, ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
-            BitmapData to = output.LockBits(full, ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
-            try
+            if (!_outputHoldsFrame) changed = full;
+            if (!changed.IsEmpty)
             {
-                long bytes = (long)from.Stride * _height;
-                unsafe { Buffer.MemoryCopy((void*)from.Scan0, (void*)to.Scan0, bytes, bytes); }
+                BitmapData from = _frame.LockBits(changed, ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+                BitmapData to = output.LockBits(changed, ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
+                try
+                {
+                    long row = (long)changed.Width * 4;
+                    unsafe
+                    {
+                        for (int y = 0; y < changed.Height; y++)
+                            Buffer.MemoryCopy((byte*)from.Scan0 + (long)y * from.Stride, (byte*)to.Scan0 + (long)y * to.Stride, row, row);
+                    }
+                }
+                finally
+                {
+                    _frame.UnlockBits(from);
+                    output.UnlockBits(to);
+                }
             }
-            finally
-            {
-                _frame.UnlockBits(from);
-                output.UnlockBits(to);
-            }
+            _outputHoldsFrame = true;
+            LastChanged = changed;
             Time("(copied out)", ref started);
             return output;
         }
@@ -1096,6 +1124,10 @@ namespace AlmostFastOverlays
             Color accent = Expr.ParseHex(_accent) ?? Color.Teal;
             switch (theme.BackgroundStyle)
             {
+                case "None":
+                    // See-through: over the game, the game shows wherever no widget is drawn. On a wheel screen it's black.
+                    g.Clear(Color.Transparent);
+                    break;
                 case "Solid":
                     g.Clear(bg);
                     break;

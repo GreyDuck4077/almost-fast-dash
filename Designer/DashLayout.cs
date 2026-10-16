@@ -119,7 +119,7 @@ namespace AlmostFastOverlays
 
         public string Background { get; set; } = "#05070A";
         public string Background2 { get; set; } = "#0E1622";
-        /// <summary>Bloom, Solid, Gradient or Vignette.</summary>
+        /// <summary>Aurora, Bloom, Solid, Gradient, Vignette, or None: see-through, for a dashboard over the game.</summary>
         public string BackgroundStyle { get; set; } = "Bloom";
         public string Font { get; set; } = "Bahnschrift";
         public string Text { get; set; } = "#ECF1F7";
@@ -135,7 +135,7 @@ namespace AlmostFastOverlays
         public string Info { get; set; } = "#4C9EFF";
         public string Purple { get; set; } = "#BA80FF";
 
-        public static readonly string[] BackgroundStyles = { "Aurora", "Bloom", "Solid", "Gradient", "Vignette" };
+        public static readonly string[] BackgroundStyles = { "Aurora", "Bloom", "Solid", "Gradient", "Vignette", "None" };
 
         /// <summary>Theme colors widgets can reference by name, so restyling a design is one change.</summary>
         public static readonly string[] Tokens = { "accent", "text", "muted", "dim", "panel", "paneltop", "border", "track", "good", "bad", "warn", "info", "purple", "background" };

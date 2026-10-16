@@ -696,7 +696,7 @@ namespace AlmostFastOverlays
             SendChangesToggle.IsChecked = general.SendChangesOnly;
             FrameRate30.IsChecked = general.FrameRate == 30;
             FrameRate60.IsChecked = general.FrameRate != 30;
-            FillMonitors();
+            LoadPcOutput();
             SpeedKph.IsChecked = string.Equals(general.SpeedUnit, "KPH", StringComparison.OrdinalIgnoreCase);
             SpeedMph.IsChecked = SpeedKph.IsChecked != true;
             FuelGallons.IsChecked = string.Equals(general.FuelUnit, "Gallons", StringComparison.OrdinalIgnoreCase);

@@ -5,8 +5,9 @@
 <h1 align="center">Almost Fast Dash</h1>
 
 <p align="center">
-  <strong>Wheel-screen dashboards and LED control for iRacing.</strong><br>
-  Design exactly what your wheel screen shows and light every LED you own, from one small app.
+  <strong>Dashboards and LED control for iRacing.</strong><br>
+  Design exactly what your dashboard shows and light every LED you own, from one small app.<br>
+  On your wheel screen, in a window, or over the game: no wheel screen needed.
 </p>
 
 <p align="center">
@@ -43,8 +44,10 @@
   background service and no account. The dashboard redraws only what changed,
   and sends the wheel screen only those parts. It draws the next frame while
   the last one is still being sent, at up to 60 frames a second.
-- **Any display.** Drive a VoCore M-PRO wheel screen directly, or show the
-  dashboard full screen on an HDMI dash screen or a spare monitor.
+- **Any screen, no wheel screen needed.** Drive a VoCore M-PRO wheel screen
+  directly, show the dashboard in a window on any monitor, float it over the
+  game, or put it full screen on an HDMI dash screen. On the PC, the graphics
+  card scales and composes it, and only the changed parts are copied.
 - **Free and open.** GPL-3.0, with no account, no ads and no tracking.
 
 ## Dashboards
@@ -207,6 +210,8 @@ them under **Settings**.
 3. **Dashboards**: pick a dashboard and press the start button in the header.
    The dashboard keeps running in the background when you close the window.
    **Settings › Start with Windows** starts it when you sign in.
+4. No wheel screen? **Devices › Dashboard on your PC** shows the running
+   dashboard in a window, over the game, or full screen on another display.
 
 **Updating:** turn on **Settings › Check for new versions** and the app shows a
 link when a new version is out. To update, stop the dashboard, close the app
@@ -223,7 +228,7 @@ hasn't been tried yet, and what you can only design for:
 | **Sim** | iRacing only. |
 | **Wheel screens tested** | VoCore's 5" M-PRO USB screen at 854×480 (USB C872:1004), including touch, sending whole frames and changed areas. |
 | **Wheel screens supported, not yet tested here** | VoCore's other M-PRO screens: 4", 4.3", 5" OLED, 6.8", 3.4" and 10". Each reports its model, and the app uses the sizes from VoCore's own driver. |
-| **Monitors** | Any display other than your main one, such as an HDMI dash screen or a spare monitor. The dashboard is shown full screen, scaled to fit by the graphics card. |
+| **Your PC's screens** | In a window on any display, or over the game (with iRacing in a window or borderless window): both tested on a 3440×1440 monitor. Full screen on any display other than your main one, such as an HDMI dash screen: not yet tested on a second display. Scaled and composed by the graphics card. |
 | **Designing for other sizes** | Any resolution from 64×64 to 3840×3840. A design for another size is fitted onto the screen it's shown on without stretching. |
 | **LED boards tested** | The LEDs around a wheel screen and a light bar, both on SSG firmware (the sim-racing LED serial protocol). |
 | **LED devices supported, not yet tested here** | Other Arduino boards on the same serial protocol, Adalight strips (`Firmware\Adalight`), WLED controllers over UDP. |

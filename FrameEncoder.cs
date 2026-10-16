@@ -47,6 +47,23 @@ namespace AlmostFastOverlays
             }
         }
 
+        /// <summary>One area of a frame's pixels copied into the same place in <paramref name="pixels"/> (the whole frame's worth).</summary>
+        public static void CopyArea(Bitmap frame, int[] pixels, Rectangle area)
+        {
+            BitmapData data = frame.LockBits(area, ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+            try
+            {
+                long row = (long)area.Width * 4;
+                fixed (int* target = pixels)
+                    for (int y = 0; y < area.Height; y++)
+                        Buffer.MemoryCopy((byte*)data.Scan0 + (long)y * data.Stride, target + (long)(area.Y + y) * frame.Width + area.X, row, row);
+            }
+            finally
+            {
+                frame.UnlockBits(data);
+            }
+        }
+
         /// <summary>
         /// Where <paramref name="now"/> differs from <paramref name="before"/>: tiles that changed, joined into a few
         /// rectangles wherever one costs less to send than two, or the whole picture once that's cheaper. Empty
@@ -188,7 +205,24 @@ namespace AlmostFastOverlays
             }
         }
 
-        /// <summary>32-bit colour to 16-bit: the top 5 bits of red, 6 of green and 5 of blue.</summary>
-        internal static ushort Rgb565(int argb) => (ushort)(((argb >> 8) & 0xF800) | ((argb >> 5) & 0x07E0) | ((argb >> 3) & 0x001F));
+        /// <summary>
+        /// 32-bit colour to 16-bit: the top 5 bits of red, 6 of green and 5 of blue. A see-through pixel (a dashboard
+        /// with no background) is shown over black, as the screen has nothing behind it.
+        /// </summary>
+        internal static ushort Rgb565(int argb)
+        {
+            uint alpha = (uint)argb >> 24;
+            if (alpha != 255)
+            {
+                if (alpha == 0) return 0;
+                uint r = ((uint)argb >> 16 & 0xFF) * alpha, g = ((uint)argb >> 8 & 0xFF) * alpha, b = ((uint)argb & 0xFF) * alpha;
+                // Divided by 255, exactly, without a division.
+                r = (r + 128 + ((r + 128) >> 8)) >> 8;
+                g = (g + 128 + ((g + 128) >> 8)) >> 8;
+                b = (b + 128 + ((b + 128) >> 8)) >> 8;
+                argb = (int)(r << 16 | g << 8 | b);
+            }
+            return (ushort)(((argb >> 8) & 0xF800) | ((argb >> 5) & 0x07E0) | ((argb >> 3) & 0x001F));
+        }
     }
 }

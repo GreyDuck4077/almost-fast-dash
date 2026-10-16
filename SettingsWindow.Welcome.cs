@@ -4,8 +4,8 @@ using Brush = System.Windows.Media.Brush;
 namespace AlmostFastOverlays
 {
     /// <summary>
-    /// What a new user needs to know first: the welcome card's three steps (plug in the wheel screen, add LED
-    /// devices, start the dashboard), each with its live state.
+    /// What a new user needs to know first: the welcome card's three steps (where the dashboard shows: a wheel
+    /// screen or the PC; add LED devices; start the dashboard), each with its live state.
     /// </summary>
     public partial class SettingsWindow
     {
@@ -16,15 +16,26 @@ namespace AlmostFastOverlays
             WelcomeCard.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
             if (!show) return;
             bool screen = ScreenPresent();
-            MarkStep(WelcomeScreenBadge, WelcomeScreenMark, "1", screen);
-            WelcomeScreenText.Text = screen
-                ? "Found: " + ScreenSize + "."
-                : "Not found yet. Plug it in by USB. VoCore-family M-PRO screens are supported.";
+            string pc = _settings.General.EffectivePcOutput();
+            bool placed = screen || pc != "Off";
+            MarkStep(WelcomeScreenBadge, WelcomeScreenMark, "1", placed);
+            WelcomeScreenText.Text = screen ? "Wheel screen found: " + ScreenSize + "."
+                : pc == MonitorOutput.Windowed ? "In a window on your PC."
+                : pc == MonitorOutput.Overlay ? "Over the game on your PC."
+                : pc == MonitorOutput.FullScreen ? "Full screen on another display."
+                : "Plug in a wheel screen by USB (VoCore-family M-PRO screens), or show the dashboard on your PC: no wheel screen needed.";
+            WelcomePcButton.Visibility = placed ? Visibility.Collapsed : Visibility.Visible;
             int devices = _settings.General.Devices.Count;
             MarkStep(WelcomeLedBadge, WelcomeLedMark, "2", devices > 0);
             WelcomeLedText.Text = devices > 0
                 ? devices + (devices == 1 ? " device" : " devices") + " set up. Add more any time on the Devices page."
                 : "Optional: the LEDs around a screen, light bars and strips. The app finds them for you.";
+        }
+
+        private void WelcomeShowOnPc_Click(object sender, RoutedEventArgs e)
+        {
+            NavSettings.IsChecked = true;
+            Dispatcher.BeginInvoke(new System.Action(() => PcCard.BringIntoView()), System.Windows.Threading.DispatcherPriority.Loaded);
         }
 
         private void MarkStep(System.Windows.Controls.Border badge, System.Windows.Controls.TextBlock mark, string number, bool done)

@@ -114,8 +114,9 @@ real hardware.
 
 ## Screens
 
-The running dashboard can show on a wheel screen, a monitor, or both at once.
-Both are set up at the bottom of the **Devices** page.
+The running dashboard can show on a wheel screen, on the PC, or both at once.
+Both are set up at the bottom of the **Devices** page. You don't need a wheel
+screen: the dashboard on the PC works on its own.
 
 ### The wheel screen
 
@@ -146,19 +147,43 @@ squares in each corner and the middle, then a sliding bar, sent as whole
 frames and then as only what changed. It writes the screen's model and both
 frame rates to the report.
 
-### Dashboard on a monitor
+### Dashboard on your PC
 
-**Dashboard on a monitor › Display** shows the running dashboard full screen on
-another display, such as an HDMI dash screen or a spare monitor. Any display
-except your main one can be chosen.
+**Dashboard on your PC › Show it** puts the running dashboard on your PC's
+screens. Choose one of:
 
-- It's scaled to fit by the graphics card, without stretching. For the
-  sharpest picture, design the dashboard at the display's resolution.
-- It never becomes the active window, so the game keeps the keyboard and
-  mouse.
-- Clicks and touches on it work like taps on a touch wheel screen.
-- If the display is unplugged, the dashboard comes back on it when it's
-  plugged in again.
+- **Window:** a window of its own on any display. Move and size it like any
+  window. It keeps the dashboard's shape and opens where you left it. Clicks
+  on the dashboard work like taps on a touch screen, and the game stays the
+  active window. It stays open while the dashboard runs; choose **Off** to
+  close it.
+- **Over the game:** the dashboard floats on top of the game. Mouse clicks go
+  through it to the game.
+  - **Move and resize** shows a frame around it: drag it to move it, and drag
+    its corner to resize it. Click **Done** when it's placed. It locks again by
+    itself if you close the settings window.
+  - **Opacity** lets the game show through, from 30% to 100%.
+  - **Only while racing** (on by default) hides it while iRacing isn't
+    running, so it's never left over your desktop.
+  - For a dashboard with no box around it, choose **None** as its background
+    in the designer. Only the widgets are drawn, and the game shows between
+    them. On a wheel screen, None shows as black.
+  - If it doesn't show over iRacing, run iRacing in a window or borderless
+    window. A game in exclusive full screen can cover everything.
+- **Full screen:** the dashboard fills another display, such as an HDMI dash
+  screen or a spare monitor. Any display except your main one can be chosen.
+  If it's unplugged, the dashboard comes back on it when it's plugged in
+  again.
+
+For each of them:
+
+- **No stretching:** the graphics card scales the dashboard to fit. For the
+  sharpest picture, design it at the size you show it.
+- **Keyboard stays with the game:** the dashboard never takes it.
+- **Light on your PC:** only the parts of the dashboard that changed are
+  copied to the graphics card. Nothing is drawn while the window is
+  minimised, or while the overlay is hidden.
+- **Frame rate:** the **Frame rate** setting applies here too.
 
 ## The designer
 

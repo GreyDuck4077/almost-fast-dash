@@ -149,6 +149,22 @@ namespace AlmostFastOverlays
         private bool _designChanged = true;
         private string _shownErrors = "";
 
+        /// <summary>Grey squares, 16 px, behind a design whose background is see-through.</summary>
+        private static readonly Brush SeeThrough = CreateSeeThrough();
+
+        private static Brush CreateSeeThrough()
+        {
+            var squares = new GeometryGroup();
+            squares.Children.Add(new RectangleGeometry(new Rect(0, 0, 16, 16)));
+            squares.Children.Add(new RectangleGeometry(new Rect(16, 16, 16, 16)));
+            var drawing = new DrawingGroup();
+            drawing.Children.Add(new GeometryDrawing(new SolidColorBrush(Color.FromRgb(38, 42, 48)), null, new RectangleGeometry(new Rect(0, 0, 32, 32))));
+            drawing.Children.Add(new GeometryDrawing(new SolidColorBrush(Color.FromRgb(54, 59, 66)), null, squares));
+            var brush = new DrawingBrush(drawing) { TileMode = TileMode.Tile, Viewport = new Rect(0, 0, 32, 32), ViewportUnits = BrushMappingMode.Absolute };
+            brush.Freeze();
+            return brush;
+        }
+
         private void RenderNow()
         {
             _renderPending = false;
@@ -169,7 +185,12 @@ namespace AlmostFastOverlays
                 _designChanged = true;
             }
             bool edited = _designChanged;
-            if (edited) _renderer.Invalidate();
+            if (edited)
+            {
+                _renderer.Invalidate();
+                // A see-through background shows as a checkerboard, as in image editors: whatever is behind it shows there.
+                Bezel.Background = _layout.Theme.BackgroundStyle == "None" ? SeeThrough : null;
+            }
             _designChanged = false;
 
             TelemetrySnapshot snapshot = PreviewSnapshot(out bool flash, out int previousGear, out float progress);

@@ -1,4 +1,4 @@
-﻿<Window x:Class="AlmostFastOverlays.SettingsWindow"
+<Window x:Class="AlmostFastOverlays.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Almost Fast Dash" Width="1280" Height="840" MinWidth="1100" MinHeight="700"
@@ -127,7 +127,7 @@
                         <StackPanel>
                             <TextBlock Text="Dashboards" Style="{StaticResource T.PageTitle}"/>
                             <TextBlock Style="{StaticResource T.Secondary}" Margin="0,6,0,0" MaxWidth="640" HorizontalAlignment="Left"
-                                       Text="Choose what your wheel screen shows. The default dashboard is used unless another one is assigned to the session's track type."/>
+                                       Text="Choose what your dashboard shows, on your wheel screen or your PC. The default dashboard is used unless another one is assigned to the session's track type."/>
                         </StackPanel>
                         <Button x:Name="NewDashboardButton" Grid.Column="1" VerticalAlignment="Top" Click="NewDashboard_Click">
                             <StackPanel Orientation="Horizontal">
@@ -153,8 +153,9 @@
                                         <TextBlock x:Name="WelcomeScreenMark" Text="1" Style="{StaticResource StepMark}"/>
                                     </Border>
                                     <StackPanel>
-                                        <TextBlock Text="Plug in your wheel screen" Style="{StaticResource T.Label}"/>
+                                        <TextBlock Text="Choose where it shows" Style="{StaticResource T.Label}"/>
                                         <TextBlock x:Name="WelcomeScreenText" Style="{StaticResource T.Caption}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                        <Button x:Name="WelcomePcButton" Content="Show it on your PC" HorizontalAlignment="Left" Margin="0,10,0,0" Click="WelcomeShowOnPc_Click"/>
                                     </StackPanel>
                                 </DockPanel>
                                 <DockPanel Margin="0,0,24,0">
@@ -515,22 +516,89 @@
                         </StackPanel>
                     </Border>
 
-                    <!-- The dashboard on another display (MonitorOutput.cs) -->
-                    <Border Style="{StaticResource Card}">
+                    <!-- The dashboard on the PC: a window, over the game, or full screen on another display (MonitorOutput.cs) -->
+                    <Border x:Name="PcCard" Style="{StaticResource Card}">
                         <StackPanel>
-                            <TextBlock Text="Dashboard on a monitor" Style="{StaticResource T.Title}"/>
-                            <TextBlock Text="Show the running dashboard full screen on a second display, such as an HDMI dash screen or a spare monitor. It stays on that display and never takes the keyboard or mouse from the game. Taps and clicks on it work like taps on a touch wheel screen." Style="{StaticResource T.Caption}" TextWrapping="Wrap" Margin="0,4,0,18"/>
+                            <TextBlock Text="Dashboard on your PC" Style="{StaticResource T.Title}"/>
+                            <TextBlock Text="No wheel screen needed. Show the running dashboard in a window, over the game, or full screen on another display. It never takes the keyboard from the game." Style="{StaticResource T.Caption}" TextWrapping="Wrap" Margin="0,4,0,18"/>
                             <Grid Style="{StaticResource Row}">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/></Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
-                                    <TextBlock Text="Display" Style="{StaticResource T.Label}"/>
-                                    <TextBlock Text="Any display but your main one." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                    <TextBlock Text="Show it" Style="{StaticResource T.Label}"/>
+                                    <TextBlock Text="Where the running dashboard appears." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
                                 </StackPanel>
-                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                                    <ComboBox x:Name="MonitorPicker" Width="300" SelectionChanged="MonitorPicker_Changed"/>
-                                    <TextBlock x:Name="MonitorNote" Style="{StaticResource T.Caption}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="16,0,0,0"/>
-                                </StackPanel>
+                                <Border Grid.Column="1" Style="{StaticResource Segmented}" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton x:Name="PcOff" Style="{StaticResource Segment}" GroupName="PcOutput" Content="Off" Tag="Off" Checked="PcOutput_Changed"/>
+                                        <RadioButton x:Name="PcWindow" Style="{StaticResource Segment}" GroupName="PcOutput" Content="Window" Tag="Window" Checked="PcOutput_Changed"/>
+                                        <RadioButton x:Name="PcOverlay" Style="{StaticResource Segment}" GroupName="PcOutput" Content="Over the game" Tag="Overlay" Checked="PcOutput_Changed"/>
+                                        <RadioButton x:Name="PcFullScreen" Style="{StaticResource Segment}" GroupName="PcOutput" Content="Full screen" Tag="FullScreen" Checked="PcOutput_Changed"/>
+                                    </StackPanel>
+                                </Border>
                             </Grid>
+
+                            <!-- In a window -->
+                            <StackPanel x:Name="PcWindowRows" Visibility="Collapsed">
+                                <Border Style="{StaticResource Divider}"/>
+                                <TextBlock Style="{StaticResource T.Caption}" TextWrapping="Wrap" Margin="0,12,0,4"
+                                           Text="Move it and size it like any window, on any display: it keeps the dashboard's shape and remembers where it was. Clicks on it work like taps on a touch screen, and leave the game active."/>
+                            </StackPanel>
+
+                            <!-- Over the game -->
+                            <StackPanel x:Name="PcOverlayRows" Visibility="Collapsed">
+                                <Border Style="{StaticResource Divider}"/>
+                                <Grid Style="{StaticResource Row}">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+                                        <TextBlock Text="Place and size" Style="{StaticResource T.Label}"/>
+                                        <TextBlock Text="It sits on top of the game; clicks go through it to the game." Style="{StaticResource T.Caption}" Margin="0,3,0,0" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Button x:Name="PlaceOverlayButton" Content="Move and resize" MinWidth="150" Click="PlaceOverlay_Click"/>
+                                        <TextBlock x:Name="PlaceOverlayNote" Style="{StaticResource T.Caption}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="16,0,0,0" MaxWidth="420"
+                                                   Text="The dashboard shows a frame: drag it to move it, and its corner to resize it."/>
+                                    </StackPanel>
+                                </Grid>
+                                <Border Style="{StaticResource Divider}"/>
+                                <Grid Style="{StaticResource Row}">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+                                        <TextBlock Text="Opacity" Style="{StaticResource T.Label}"/>
+                                        <TextBlock Text="Lower lets more of the game show through." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Slider x:Name="OverlayOpacity" Minimum="30" Maximum="100" IsSnapToTickEnabled="True" TickFrequency="5" Width="380"/>
+                                        <TextBlock x:Name="OverlayOpacityValue" Style="{StaticResource T.Value}" HorizontalAlignment="Left" TextAlignment="Left" Margin="18,0,0,0"/>
+                                    </StackPanel>
+                                </Grid>
+                                <Border Style="{StaticResource Divider}"/>
+                                <Grid Style="{StaticResource Row}">
+                                    <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+                                        <TextBlock Text="Only while racing" Style="{StaticResource T.Label}"/>
+                                        <TextBlock Text="Hidden while iRacing isn't running, so it's never left over your desktop." Style="{StaticResource T.Caption}" Margin="0,3,0,0" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="OverlayRacingToggle" Grid.Column="1" Style="{StaticResource Switch}" VerticalAlignment="Center" Checked="OverlayRacing_Click" Unchecked="OverlayRacing_Click"/>
+                                </Grid>
+                                <TextBlock Style="{StaticResource T.Caption}" TextWrapping="Wrap" Margin="0,8,0,4"
+                                           Text="If it doesn't show over iRacing, run iRacing in a window or borderless window: a full-screen game can cover everything. For a dashboard with no box around it, choose None as its background in the designer."/>
+                            </StackPanel>
+
+                            <!-- Full screen on another display -->
+                            <StackPanel x:Name="PcFullScreenRows" Visibility="Collapsed">
+                                <Border Style="{StaticResource Divider}"/>
+                                <Grid Style="{StaticResource Row}">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+                                        <TextBlock Text="Display" Style="{StaticResource T.Label}"/>
+                                        <TextBlock Text="Any display but your main one, such as an HDMI dash screen." Style="{StaticResource T.Caption}" Margin="0,3,0,0" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <ComboBox x:Name="MonitorPicker" Width="300" SelectionChanged="MonitorPicker_Changed"/>
+                                        <TextBlock x:Name="MonitorNote" Style="{StaticResource T.Caption}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="16,0,0,0"/>
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
                         </StackPanel>
                     </Border>
                 </StackPanel>
@@ -681,4 +749,4 @@
             </ScrollViewer>
         </Grid>
     </Grid>
-</Window>
+</Window>

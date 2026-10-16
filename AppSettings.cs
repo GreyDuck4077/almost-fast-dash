@@ -531,8 +531,26 @@ namespace AlmostFastOverlays
         /// <summary>Frames a second while racing, at most (drawn only when something changed): 60, or 30 to use less of the PC.</summary>
         public int FrameRate { get; set; } = 60;
 
-        /// <summary>The display (Windows' name, such as \\.\DISPLAY2) the running dashboard is also shown on, full screen; empty for none.</summary>
+        /// <summary>The display (Windows' name, such as \\.\DISPLAY2) the running dashboard is shown on full screen, when PcOutput is FullScreen.</summary>
         public string MonitorDevice { get; set; }
+
+        /// <summary>
+        /// Where on the PC the running dashboard is also shown: Off, Window, Overlay (over the game) or FullScreen (on
+        /// MonitorDevice). Empty in settings from before it existed, where a chosen display meant full screen.
+        /// </summary>
+        public string PcOutput { get; set; }
+
+        /// <summary>PcOutput as it applies: what was chosen, or for older settings full screen when a display was.</summary>
+        public string EffectivePcOutput() =>
+            PcOutputs.Contains(PcOutput) ? PcOutput : string.IsNullOrEmpty(MonitorDevice) ? "Off" : "FullScreen";
+
+        public static readonly string[] PcOutputs = { "Off", "Window", "Overlay", "FullScreen" };
+
+        /// <summary>How opaque the dashboard is over the game, 30 to 100 percent.</summary>
+        public int OverlayOpacity { get; set; } = 100;
+
+        /// <summary>Over the game, the dashboard shows only while iRacing is running (and while it's being placed or previewed).</summary>
+        public bool OverlayOnlyWhileRacing { get; set; } = true;
         public string SpeedUnit { get; set; } = "MPH";
         public string FuelUnit { get; set; } = "Liters";
         /// <summary>"Celsius" or "Fahrenheit"; empty follows the speed unit (km/h gives Celsius), as before it could be chosen.</summary>

@@ -5,6 +5,41 @@ English. Every version is on the
 [releases page](https://github.com/Sota4077/almost-fast-dash/releases) with
 its exe and checksum.
 
+## 3.57 · 2026-10-15
+
+No wheel screen needed: the dashboard in a window, or over the game.
+
+- **Dashboard on your PC.** *Devices › Dashboard on your PC › Show it* puts
+  the running dashboard in a window, over the game, or full screen on another
+  display (the old "Dashboard on a monitor"). Any dashboard works.
+- **In a window:** a normal window on any display. Move and size it like any
+  window. It keeps the dashboard's shape and opens where you left it. Clicks
+  on the dashboard work like taps, and the game stays the active window.
+- **Over the game:** the dashboard floats on top of iRacing.
+  - Clicks go through it to the game.
+  - **Move and resize** shows a frame: drag it to move it, and its corner to
+    resize it. It locks again on Done, or when the settings window closes.
+  - **Opacity** goes from 30% to 100%.
+  - **Only while racing** (on by default) hides it while iRacing isn't
+    running.
+  - iRacing needs to run in a window or borderless window.
+- **A see-through background.** In the designer, choose **None** as a
+  dashboard's background and only its widgets are drawn: over the game, the
+  game shows between them. The designer shows the see-through parts as a
+  checkerboard, and a wheel screen shows them as black.
+- **Light on your PC.** The graphics card scales and composes the window, and
+  only the parts of the dashboard that changed are copied each frame.
+  - Measured at 60 frames a second: a window adds about a tenth of one
+    processor core, and over the game about a seventh. That's under 1% of a
+    modern processor.
+  - A minimised window, or the overlay hidden while you're not racing, costs
+    nothing: nothing is drawn for it.
+  - The renderer also copies only what changed into its finished frame.
+- **The welcome card** asks where the dashboard should show (a wheel screen
+  or your PC) instead of assuming a wheel screen.
+- Seven new self-test checks (323), including one that the frame copied only
+  where things changed matches a whole frame, flags and all.
+
 ## 3.56 · 2026-10-15
 
 A real 60 frames a second on the wheel.
