@@ -287,8 +287,28 @@ The workspace is laid out like an image editor:
     shapes, gradients and images.
   - **Quick values**: one-click items for the engine, lap, sectors, tyres,
     fuel, race, leaderboard, notices and the PC.
-  - **Blocks**: ready-made cards, clusters and strips. Save your own selection
-    as a block to reuse it.
+  - **Blocks**: ready-made cards, clusters and strips.
+- **Modules.** Your own creations, kept to reuse and share:
+  - **Save as module** (Ctrl+M, or right-click): select the widgets, a group
+    or a single widget, then give it a name, a category, what it shows and
+    who made it. It goes in the Library under **My modules**, with a picture
+    of it, and it keeps the images it uses.
+  - **Place one** with a click, or drag it to where it goes. It comes in as
+    one group named after it. Built on a screen of another size, it's scaled
+    to fit, evenly, so round gauges stay round.
+  - **Share one:** right-click it › Export to a file to share. Anyone with
+    Almost Fast Dash can add the `.afomodule` file with **Import…** in My
+    modules, or drop it straight onto the screen. A module is widgets and
+    formulas only, nothing that can run on a PC, so it's safe to pass around.
+  - Right-click a module to edit its details or delete it (it goes to the
+    Recycle Bin). Blocks saved by earlier versions are listed here too.
+
+  ![Modules in the Library, and a placed module's colours](images/app-modules.png)
+- **Restyling a selection** (several widgets, a group or a placed module):
+  - **Colours** lists every colour they use. Change one and it changes
+    everywhere it's used, so a module takes on your colours in a few clicks.
+  - **Scale** resizes everything about its middle, text, lines and glows
+    included, as if it had been built at that size.
 - **ƒx** turns any property into a live formula. **Show when** shows a widget
   only while a condition is true.
 - **Shared tools** on every widget where they fit:

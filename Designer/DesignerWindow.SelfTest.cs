@@ -1362,6 +1362,114 @@ namespace AlmostFastOverlays
                     onWhite + " " + onBlack + " " + screened);
             }
 
+            // ---------------- modules: kept, shared, brought back and restyled
+            {
+                void ClearTestModules()
+                {
+                    foreach (string folder in new[] { DesignModule.Folder, DesignModule.OldBlocksFolder })
+                        if (System.IO.Directory.Exists(folder))
+                            foreach (string old in System.IO.Directory.GetFiles(folder, "Self test *"))
+                                System.IO.File.Delete(old);
+                }
+                ClearTestModules();
+                string png;
+                using (var dot = new System.Drawing.Bitmap(2, 2))
+                using (var stream = new System.IO.MemoryStream())
+                {
+                    dot.SetPixel(0, 0, System.Drawing.Color.Red);
+                    dot.Save(stream, System.Drawing.Imaging.ImageFormat.Png);
+                    png = Convert.ToBase64String(stream.ToArray());
+                }
+                var source = new DashLayout();
+                source.Screens.Add(new DashScreen { Name = "Main" });
+                source.Images["img-module"] = png;
+                source.Images["img-unused"] = png;
+                DashWidget Part(string type, double x, double y, double w, double h, params string[] props)
+                {
+                    DashWidget part = WidgetCatalog.Create(type, x, y);
+                    part.W = w; part.H = h;
+                    for (int i = 0; i + 1 < props.Length; i += 2) part.Set(props[i], props[i + 1]);
+                    source.Screens[0].Widgets.Add(part);
+                    return part;
+                }
+                Part("shape", 100, 60, 200, 120, "clip", "true", "fill", "#112233", "strokeWidth", "4");
+                Part("image", 120, 80, 40, 40, "image", "img-module");
+                Part("text", 140, 100, 120, 40, "text", "RPM", "size", "20").Locked = true;
+                DesignModule made = DesignModule.From("Self test module", source.Screens[0].Widgets, source, "#2DD4BF", _units);
+                System.Drawing.Size picture;
+                using (var thumb = new System.Drawing.Bitmap(new System.IO.MemoryStream(Convert.FromBase64String(made.Thumbnail)))) picture = thumb.Size;
+                Check("modules: a module starts at 0,0, unlocked, with only the images it shows and a picture of it",
+                    made.Widgets[0].X == 0 && made.Widgets[0].Y == 0 && made.Widgets[1].X == 20 && made.Widgets[2].Y == 40 && !made.Widgets.Any(w => w.Locked) &&
+                    made.Widgets[0].Get("clip") == "false" && source.Screens[0].Widgets[0].Get("clip") == "true" &&
+                    made.Images.Count == 1 && made.Images.ContainsKey("img-module") && picture.Width == 200 && picture.Height == 120,
+                    made.Widgets[1].X + "," + made.Widgets[2].Y + " images " + made.Images.Count + " picture " + picture);
+
+                string scratch = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "afd-modules-" + Guid.NewGuid().ToString("N").Substring(0, 8));
+                System.IO.Directory.CreateDirectory(scratch);
+                string moduleFile = System.IO.Path.Combine(scratch, "shared" + DesignModule.Extension), foreignFile = System.IO.Path.Combine(scratch, "foreign" + DesignModule.Extension);
+                DesignModule.Write(moduleFile, made);
+                DesignModule read = DesignModule.Read(moduleFile);
+                System.IO.File.WriteAllText(foreignFile, "{\"Format\":\"AlmostFastOverlays.Dashboard\",\"Widgets\":[]}");
+                bool refused = false;
+                try { DesignModule.Read(foreignFile); } catch (System.IO.InvalidDataException) { refused = true; }
+                Check("modules: a module file reads back exactly as written, and other files are refused",
+                    SettingsStore.ToJson(read) == SettingsStore.ToJson(made) && refused, "refused " + refused);
+
+                DesignModule first = DesignModule.Import(moduleFile), firstAgain = DesignModule.Import(moduleFile);
+                made.Description = "Another one by the same name";
+                string otherFile = System.IO.Path.Combine(scratch, "other" + DesignModule.Extension);
+                DesignModule.Write(otherFile, made);
+                DesignModule other = DesignModule.Import(otherFile), otherAgain = DesignModule.Import(otherFile);
+                List<DesignModule> library = DesignModule.Library();
+                Check("modules: importing a module twice keeps one; another of the same name is numbered beside it",
+                    first.FilePath == firstAgain.FilePath && other.Name == "Self test module (2)" && otherAgain.FilePath == other.FilePath &&
+                    library.Count(m => m.Name.StartsWith("Self test module")) == 2,
+                    first.Name + " / " + other.Name + " / " + otherAgain.Name + ", " + library.Count(m => m.Name.StartsWith("Self test module")) + " in the library");
+
+                System.IO.Directory.CreateDirectory(DesignModule.OldBlocksFolder);
+                System.IO.File.WriteAllText(System.IO.Path.Combine(DesignModule.OldBlocksFolder, "Self test block.afoblock"), SettingsStore.ToJson(made.Widgets));
+                DesignModule oldBlock = DesignModule.Library().FirstOrDefault(m => m.Name == "Self test block");
+                Check("modules: blocks saved by earlier versions are still in the Library", oldBlock != null && oldBlock.OldBlock && oldBlock.Widgets.Count == 3,
+                    oldBlock == null ? "missing" : oldBlock.Widgets.Count + " widgets");
+
+                // Placed on a bigger screen with an unrelated image under the same id.
+                var target = new DashLayout { Width = 1280, Height = 720 };
+                target.Screens.Add(new DashScreen { Name = "Main" });
+                target.Images["img-module"] = "unrelated";
+                List<DashWidget> placed = read.Place(target);
+                string imageId = placed[1].Get("image");
+                Check("modules: on a bigger screen it scales evenly, text and lines too; a taken image id is renamed; it comes in as one group",
+                    placed[0].W == 300 && placed[0].H == 180 && placed[2].Get("size") == "30" && placed[0].Get("strokeWidth") == "6" &&
+                    imageId != "img-module" && target.Images.TryGetValue(imageId, out string carried) && carried == png && target.Images["img-module"] == "unrelated" &&
+                    placed.All(w => w.Group == placed[0].Group && w.Group.Length > 0 && w.GroupName == "Self test module") && placed[0].Id != read.Widgets[0].Id,
+                    placed[0].W + "x" + placed[0].H + " size " + placed[2].Get("size") + " line " + placed[0].Get("strokeWidth") + " image " + imageId);
+
+                // Restyling what's placed: one colour swatch changes every use, and Scale takes text and lines along.
+                DashWidget red = WidgetCatalog.Create("shape", 100, 100), alsoRed = WidgetCatalog.Create("shape", 300, 140);
+                red.Set("fill", "#FF0000"); red.Set("stroke", "#00FF00"); red.Set("strokeWidth", "3");
+                alsoRed.Set("fill", "#ff0000"); alsoRed.Set("stroke", "#00FF00"); alsoRed.Set("strokeWidth", "3");
+                AddWidgets(new[] { red, alsoRed }, "Self test colours");
+                ColorField swatch = Inspector.Children.OfType<System.Windows.Controls.Grid>().SelectMany(g => g.Children.OfType<ColorField>())
+                    .FirstOrDefault(f => string.Equals(f.Value, "#FF0000", StringComparison.OrdinalIgnoreCase));
+                swatch?.SetValue("#0000FF", true);
+                Check("modules: Selection colours lists a colour once and changes every use of it",
+                    swatch != null && red.Get("fill") == "#0000FF" && alsoRed.Get("fill") == "#0000FF" && red.Get("stroke") == "#00FF00",
+                    swatch == null ? "no swatch" : red.Get("fill") + " " + alsoRed.Get("fill"));
+                System.Windows.Rect unscaled = Union(new[] { red, alsoRed });
+                ScaleSelection(2);
+                System.Windows.Rect scaled = Union(new[] { red, alsoRed });
+                Check("modules: Scale doubles the selection about its middle, line widths included",
+                    Math.Abs(scaled.Width - unscaled.Width * 2) <= 2 && Math.Abs(scaled.X + scaled.Width / 2 - (unscaled.X + unscaled.Width / 2)) <= 1 &&
+                    Math.Abs(scaled.Y + scaled.Height / 2 - (unscaled.Y + unscaled.Height / 2)) <= 1 && red.Get("strokeWidth") == "6",
+                    unscaled + " → " + scaled + ", line " + red.Get("strokeWidth"));
+                _screen.Widgets.Remove(red);
+                _screen.Widgets.Remove(alsoRed);
+                _selection.Clear();
+                SelectionChanged();
+                ClearTestModules();
+                try { System.IO.Directory.Delete(scratch, true); } catch { }
+            }
+
             // ---------------- the formula reference
             {
                 // It's made from the live lists, so it covers everything; these keep its own parts complete and working.

@@ -79,6 +79,8 @@ namespace AlmostFastOverlays
             bool Match(string name, string description) =>
                 filter.Length == 0 || name.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0 || (description ?? "").IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0;
 
+            AddModulesSection(host, filter);
+
             // Quick values and blocks sit in folders; a search opens every folder with a match.
             List<DesignBlock> quick = QuickValues.All().Where(b => Match(b.Name, b.Description) || Match(b.Folder, null)).ToList();
             if (quick.Count > 0)
@@ -87,8 +89,7 @@ namespace AlmostFastOverlays
                 foreach (IGrouping<string, DesignBlock> folder in quick.GroupBy(b => b.Folder).OrderBy(f => Array.IndexOf(QuickValues.Folders, f.Key)))
                     host.Children.Add(BlockFolder(folder.Key, folder.ToList(), filter.Length > 0, QuickValues.Section));
             }
-            List<DesignBlock> blocks = DesignBlocks.BuiltIn().Concat(DesignBlocks.UserMade().Select(b => { b.Folder = "My blocks"; return b; }))
-                .Where(b => Match(b.Name, b.Description) || Match(b.Folder, null)).ToList();
+            List<DesignBlock> blocks = DesignBlocks.BuiltIn().Where(b => Match(b.Name, b.Description) || Match(b.Folder, null)).ToList();
             if (blocks.Count > 0)
             {
                 host.Children.Add(SectionTitle("Ready-made blocks"));
@@ -125,8 +126,8 @@ namespace AlmostFastOverlays
             return tile;
         }
 
-        private static readonly string[] Folders = { "Rev gauges", "Cards", "Warnings and spotter", "My blocks" };
-        private static readonly HashSet<string> OpenFolders = new HashSet<string>();
+        private static readonly string[] Folders = { "Rev gauges", "Cards", "Warnings and spotter" };
+        private static readonly HashSet<string> OpenFolders = new HashSet<string>(), ClosedFolders = new HashSet<string>();
 
         private static int FolderOrder(string folder)
         {
@@ -134,15 +135,20 @@ namespace AlmostFastOverlays
             return i < 0 ? Folders.Length : i;
         }
 
-        /// <summary>A folder of blocks that opens and closes with a click; it remembers being open while the designer runs.</summary>
-        private StackPanel BlockFolder(string name, List<DesignBlock> blocks, bool searching, string section)
+        private StackPanel BlockFolder(string name, List<DesignBlock> blocks, bool searching, string section) =>
+            LibraryFolder(name, blocks.Count, searching, section, false, content => { foreach (DesignBlock block in blocks) content.Children.Add(BlockRow(block)); });
+
+        /// <summary>
+        /// A folder in the Library that opens and closes with a click and remembers it while the designer runs. What's
+        /// in it is only built the first time it opens.
+        /// </summary>
+        private StackPanel LibraryFolder(string name, int items, bool searching, string section, bool openAtFirst, Action<StackPanel> fill)
         {
             var panel = new StackPanel { Margin = new Thickness(0, 0, 0, 4) };
             string key = section + "/" + name;
-            bool open = searching || OpenFolders.Contains(key);
+            bool open = searching || (openAtFirst ? !ClosedFolders.Contains(key) : OpenFolders.Contains(key));
             var content = new StackPanel { Visibility = open ? Visibility.Visible : Visibility.Collapsed, Margin = new Thickness(10, 0, 0, 4) };
-            // A closed folder's rows are only built the first time it opens.
-            void Fill() { if (content.Children.Count == 0) foreach (DesignBlock block in blocks) content.Children.Add(BlockRow(block)); }
+            void Fill() { if (content.Children.Count == 0) fill(content); }
             if (open) Fill();
 
             var header = new Grid();
@@ -158,7 +164,7 @@ namespace AlmostFastOverlays
             title.Children.Add(new TextBlock { Text = name, FontWeight = FontWeights.SemiBold, FontSize = 12.5, Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center });
             Grid.SetColumn(title, 1);
             header.Children.Add(title);
-            var count = new TextBlock { Text = blocks.Count.ToString(), Style = (Style)FindResource("T.Caption"), VerticalAlignment = VerticalAlignment.Center };
+            var count = new TextBlock { Text = items.ToString(), Style = (Style)FindResource("T.Caption"), VerticalAlignment = VerticalAlignment.Center };
             Grid.SetColumn(count, 2);
             header.Children.Add(count);
             var row = new Border
@@ -176,7 +182,8 @@ namespace AlmostFastOverlays
                 if (nowOpen) Motion.Stagger(content.Children, 22, 180);
                 chevron.Text = nowOpen ? "" : "";
                 if (searching) return;
-                if (nowOpen) OpenFolders.Add(key); else OpenFolders.Remove(key);
+                if (nowOpen) { OpenFolders.Add(key); ClosedFolders.Remove(key); }
+                else { OpenFolders.Remove(key); ClosedFolders.Add(key); }
             };
             panel.Children.Add(row);
             panel.Children.Add(content);
@@ -213,16 +220,6 @@ namespace AlmostFastOverlays
                 }
                 AddWidgets(widgets, "Add " + block.Name);
             }, () => new DataObject("afo-block", block));
-            if (block.UserMade)
-            {
-                var menu = new ContextMenu();
-                menu.Items.Add(MenuItem("Delete block", null, () =>
-                {
-                    try { System.IO.File.Delete(block.FilePath); } catch { }
-                    BuildToolbox();
-                }));
-                row.ContextMenu = menu;
-            }
             return row;
         }
 
@@ -247,23 +244,6 @@ namespace AlmostFastOverlays
                 tile.ReleaseMouseCapture();
                 if (down != null) { down = null; click(); }
             };
-        }
-
-        private void SaveSelectionAsBlock()
-        {
-            if (_selection.Count == 0) return;
-            string name = Prompt("Save as block", "Name this block so you can reuse it in any design:", _selection.Count == 1 ? _selection[0].Name : "My block");
-            if (string.IsNullOrWhiteSpace(name)) return;
-            try
-            {
-                DesignBlocks.Save(name.Trim(), _screen.Widgets.Where(_selection.Contains).ToList());
-                BuildToolbox();
-                StatusText.Text = "Saved block \"" + name.Trim() + "\". Find it in the Library under My blocks.";
-            }
-            catch (Exception exception)
-            {
-                StatusText.Text = "Could not save the block: " + exception.Message;
-            }
         }
 
         /// <summary>A small themed text prompt.</summary>

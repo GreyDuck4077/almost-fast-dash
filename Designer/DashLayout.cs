@@ -63,8 +63,16 @@ namespace AlmostFastOverlays
             width = ScreenSizes.Clamp(width);
             height = ScreenSizes.Clamp(height);
             if (width == Width && height == Height) return;
-            double sx = width / (double)Math.Max(1, Width), sy = height / (double)Math.Max(1, Height), s = Math.Min(sx, sy);
-            foreach (DashWidget widget in AllWidgets())
+            ScaleWidgets(AllWidgets(), width / (double)Math.Max(1, Width), height / (double)Math.Max(1, Height));
+            Width = width;
+            Height = height;
+        }
+
+        /// <summary>Scales widgets' places and boxes by <paramref name="sx"/> and <paramref name="sy"/>, and their text, lines and glows by the smaller.</summary>
+        public static void ScaleWidgets(IEnumerable<DashWidget> widgets, double sx, double sy)
+        {
+            double s = Math.Min(sx, sy);
+            foreach (DashWidget widget in widgets)
             {
                 widget.X = Math.Round(widget.X * sx);
                 widget.Y = Math.Round(widget.Y * sy);
@@ -84,8 +92,6 @@ namespace AlmostFastOverlays
                     widget.Props[key] = (scaled >= 10 ? Math.Round(scaled) : Math.Round(scaled, 1)).ToString(System.Globalization.CultureInfo.InvariantCulture);
                 }
             }
-            Width = width;
-            Height = height;
         }
 
         public void Normalize()

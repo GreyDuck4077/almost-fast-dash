@@ -5,6 +5,27 @@ English. Every version is on the
 [releases page](https://github.com/Sota4077/almost-fast-dash/releases) with
 its exe and checksum.
 
+## 3.64 · 2026-10-16
+
+Modules: keep your own creations, place them anywhere, and share them as a
+file.
+
+- **Save as module** (Ctrl+M, or right-click): any selection, group or widget,
+  with a name, a category, what it shows and who made it. It's kept in the
+  Library under **My modules** with a picture of it and the images it uses.
+- **Placing a module** brings it in as one group named after it. A module
+  built on a screen of another size is scaled to fit, evenly, so round gauges
+  stay round.
+- **Sharing:** right-click a module › Export to a file to share. **Import…**
+  in My modules, or dropping an `.afomodule` file on the screen, adds one.
+  Modules are widgets and formulas only, so they're safe to pass around.
+- **Colours**, for several widgets, a group or a placed module: every colour
+  they use, once each. Change one and it changes everywhere it's used.
+- **Scale**, for the same: resizes everything about its middle, text, lines
+  and glows included.
+- Blocks saved by earlier versions are listed in My modules, and deleting a
+  module sends it to the Recycle Bin.
+
 ## 3.63 · 2026-10-16
 
 Masks: clip one layer to another, fade widgets out, and blend them with what's

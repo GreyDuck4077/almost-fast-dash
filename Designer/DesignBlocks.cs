@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 
 namespace AlmostFastOverlays
 {
@@ -16,15 +14,12 @@ namespace AlmostFastOverlays
         public string Folder = "Other";
         /// <summary>The Add panel section: ready-made blocks, or quick values.</summary>
         public string Section = "Ready-made blocks";
-        public bool UserMade;
-        public string FilePath;
         public Func<List<DashWidget>> Create;
     }
 
+    /// <summary>The ready-made blocks. Your own are modules (<see cref="DesignModule"/>).</summary>
     internal static class DesignBlocks
     {
-        public static readonly string Folder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Blocks");
-
         private static DashWidget W(string type, string name, double x, double y, double w, double h, params string[] props)
         {
             var widget = new DashWidget { Type = type, Name = name, X = x, Y = y, W = w, H = h };
@@ -237,37 +232,6 @@ namespace AlmostFastOverlays
                     W("metric", "Session", 0, 0, 228, 50, "label", "=SessionType + \"   \" + RemainingText", "value", "=\"LAP \" + LapText", "valueSize", "24")
                 }
             };
-        }
-
-        public static IEnumerable<DesignBlock> UserMade()
-        {
-            if (!Directory.Exists(Folder)) yield break;
-            foreach (string path in Directory.GetFiles(Folder, "*.afoblock").OrderBy(p => p))
-            {
-                string json;
-                try { json = File.ReadAllText(path); }
-                catch { continue; }
-                string file = path;
-                yield return new DesignBlock
-                {
-                    Name = Path.GetFileNameWithoutExtension(path), Icon = "", UserMade = true, FilePath = file, Description = "Your saved block.",
-                    Create = () =>
-                    {
-                        var widgets = new System.Web.Script.Serialization.JavaScriptSerializer { MaxJsonLength = int.MaxValue }.Deserialize<List<DashWidget>>(json);
-                        foreach (DashWidget w in widgets) { w.Id = DashScreen.NewId("w"); w.Normalize(); }
-                        return widgets;
-                    }
-                };
-            }
-        }
-
-        public static void Save(string name, List<DashWidget> widgets)
-        {
-            Directory.CreateDirectory(Folder);
-            double x = widgets.Min(w => w.X), y = widgets.Min(w => w.Y);
-            List<DashWidget> copy = widgets.Select(SettingsStore.Clone).ToList();
-            foreach (DashWidget w in copy) { w.X -= x; w.Y -= y; }
-            File.WriteAllText(Path.Combine(Folder, DesignerWindow.SafeFileName(name) + ".afoblock"), SettingsStore.ToJson(copy));
         }
     }
 }

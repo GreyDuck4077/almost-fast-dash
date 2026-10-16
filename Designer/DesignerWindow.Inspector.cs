@@ -203,11 +203,13 @@ namespace AlmostFastOverlays
             var arrange = new WrapPanel();
             arrange.Children.Add(ActionButton("", "Duplicate", () => DuplicateSelection()));
             arrange.Children.Add(ActionButton("", "Delete", DeleteSelection));
-            arrange.Children.Add(ActionButton("", "Save as block", SaveSelectionAsBlock));
+            arrange.Children.Add(ActionButton("", "Save as module", SaveSelectionAsModule));
             arrange.Children.Add(ActionButton("", "Lock", ToggleLock));
             bool oneGroup = SelectionIsOneGroup(out _);
             if (!oneGroup) arrange.Children.Add(ActionButton("", "Group  Ctrl+G", GroupSelection));
             Inspector.Children.Add(arrange);
+            Inspector.Children.Add(ScaleRow());
+            AddSelectionColours(_selection);
 
             if (oneGroup)
             {
@@ -358,7 +360,7 @@ namespace AlmostFastOverlays
                 var menu = new ContextMenu { PlacementTarget = more, Placement = PlacementMode.Bottom };
                 menu.Items.Add(MenuItem("Duplicate", "Ctrl+D", () => DuplicateSelection()));
                 menu.Items.Add(MenuItem("Reset to defaults", null, () => { widget.Props.Clear(); Commit("Reset widget"); RefreshInspector(); RequestRender(); }));
-                menu.Items.Add(MenuItem("Save as reusable block…", null, SaveSelectionAsBlock));
+                menu.Items.Add(MenuItem("Save as module…", "Ctrl+M", SaveSelectionAsModule));
                 menu.Items.Add(MenuItem(widget.Locked ? "Unlock" : "Lock", "Ctrl+L", ToggleLock));
                 menu.Items.Add(MenuItem("Delete", "Del", DeleteSelection));
                 menu.IsOpen = true;

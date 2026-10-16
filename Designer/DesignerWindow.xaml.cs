@@ -791,7 +791,7 @@ namespace AlmostFastOverlays
                     menu.Items.Add(move);
                 }
                 menu.Items.Add(new Separator());
-                menu.Items.Add(MenuItem("Save as reusable block…", null, SaveSelectionAsBlock));
+                menu.Items.Add(MenuItem("Save as module…", "Ctrl+M", SaveSelectionAsModule));
             }
             if (_clipboard != null) menu.Items.Add(MenuItem("Paste", "Ctrl+V", () => Paste(p)));
             menu.Items.Add(MenuItem("Select all", "Ctrl+A", SelectAll));
@@ -964,7 +964,8 @@ namespace AlmostFastOverlays
 
         private void Overlay_DragOver(object sender, DragEventArgs e)
         {
-            e.Effects = e.Data.GetDataPresent("afo-widget") || e.Data.GetDataPresent("afo-block") ? DragDropEffects.Copy : DragDropEffects.None;
+            e.Effects = e.Data.GetDataPresent("afo-widget") || e.Data.GetDataPresent("afo-block") || e.Data.GetDataPresent("afo-module") || ModuleFiles(e.Data).Count > 0
+                ? DragDropEffects.Copy : DragDropEffects.None;
             e.Handled = true;
         }
 
@@ -973,6 +974,18 @@ namespace AlmostFastOverlays
             Point p = e.GetPosition(Overlay);
             List<DashWidget> widgets;
             string label;
+            if (e.Data.GetData("afo-module") is DesignModule module)
+            {
+                PlaceModule(module, p, true);
+                return;
+            }
+            // Module files dragged in from Explorer join the Library and land where they're dropped.
+            List<string> files = ModuleFiles(e.Data);
+            if (files.Count > 0)
+            {
+                ImportModuleFiles(files, p);
+                return;
+            }
             if (e.Data.GetData("afo-widget") is string type)
             {
                 WidgetType info = WidgetCatalog.Find(type);
@@ -1619,6 +1632,7 @@ namespace AlmostFastOverlays
                 case Key.V when ctrl: Paste(); break;
                 case Key.A when ctrl: SelectAll(); break;
                 case Key.L when ctrl: ToggleLock(); break;
+                case Key.M when ctrl: SaveSelectionAsModule(); break;
                 case Key.D0 when ctrl: ZoomFit(); break;
                 case Key.OemPlus when ctrl: SetZoom(_zoom * 1.25); break;
                 case Key.OemMinus when ctrl: SetZoom(_zoom / 1.25); break;
@@ -1634,7 +1648,7 @@ namespace AlmostFastOverlays
             DashWidget Find(string name) => _screen.Widgets.FirstOrDefault(w => w.Name == name);
             if (scenario.Contains("theme")) TabTheme.IsChecked = true;
 
-            if (scenario.Contains("masks"))
+            if (scenario.Contains("masks") || scenario.Contains("modules"))
             {
                 // Clipping masks, fades and blending, for the snapshots and the guide.
                 _screen.Widgets.Clear();
@@ -1669,6 +1683,35 @@ namespace AlmostFastOverlays
                 Layer("Glow", "Ellipse", 576, 256, 180, 180, "fill", "#1D4ED8", "fxBlend", "Screen");
                 _rendererDirty = true;
                 Select(_screen.Widgets.First(w => w.Name == "Stripes"));
+                if (scenario.Contains("modules"))
+                {
+                    // Some of them kept as modules, then placed on a fresh screen with one selected.
+                    DesignModule Keep(string name, string category, string description, params string[] layers)
+                    {
+                        DesignModule module = DesignModule.From(name, _screen.Widgets.Where(w => layers.Contains(w.Name)), _layout, _dashboard.AccentColor, _units);
+                        module.Category = category;
+                        module.Description = description;
+                        DesignModule.Save(module);
+                        return module;
+                    }
+                    DesignModule kerb = Keep("Kerb frame", "Frames", "A frame in red and white kerb stripes.", "Outline", "Stripes");
+                    DesignModule gear = Keep("Neon gear", "Gauges", "A gear digit in a cyan to violet gradient with a sheen.", "Gear", "Gradient", "Sheen");
+                    DesignModule light = Keep("Carbon light panel", "Cards", "Carbon fibre with an orange light spilling over it.", "Panel", "Light");
+                    DesignModule honeycomb = Keep("Honeycomb fade", "Backgrounds", "A honeycomb panel fading away at the bottom.", "Fade bottom");
+                    Keep("Tinted tiles", "Backgrounds", "Checks tinted and lit by blended circles.", "Tiles", "Tint", "Glow");
+                    _screen.Widgets.Clear();
+                    ModulesChanged();
+                    PlaceModule(honeycomb, new Point(190, 370), false);
+                    PlaceModule(light, new Point(690, 120), false);
+                    PlaceModule(gear, new Point(540, 330), false);
+                    PlaceModule(kerb, new Point(190, 120), false);
+                    // Properties scrolled to the placed module's colours.
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        TextBlock colours = Inspector.Children.OfType<TextBlock>().FirstOrDefault(t => t.Text == "COLOURS");
+                        if (colours != null) InspectorScroller.ScrollToVerticalOffset(colours.TranslatePoint(new Point(0, 0), Inspector).Y - 120);
+                    }), System.Windows.Threading.DispatcherPriority.ContextIdle);
+                }
                 RequestRender();
             }
             else if (scenario.Contains("drawing"))
