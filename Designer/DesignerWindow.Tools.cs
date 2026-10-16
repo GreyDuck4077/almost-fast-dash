@@ -15,7 +15,7 @@ namespace AlmostFastOverlays
     /// </summary>
     public partial class DesignerWindow
     {
-        private enum Tool { Move, Rectangle, Ellipse, Line, Text, Hand, Zoom }
+        private enum Tool { Move, Rectangle, Ellipse, Polygon, Line, Pen, Text, Hand, Zoom }
 
         private Tool _tool = Tool.Move;
         /// <summary>Space held down: the Hand for as long as it's held, whatever the tool.</summary>
@@ -44,12 +44,21 @@ namespace AlmostFastOverlays
         private void Tool_Checked(object sender, RoutedEventArgs e)
         {
             if (!(sender is RadioButton button) || !Enum.TryParse((string)button.Tag, out Tool tool)) return;
+            LeavingTool(tool);
             _tool = tool;
             ToolChanged();
         }
 
+        /// <summary>A path half drawn with the Pen is kept (open) when another tool is picked; editing points ends.</summary>
+        private void LeavingTool(Tool next)
+        {
+            if (_tool == Tool.Pen && next != Tool.Pen && _penNodes.Count > 0) FinishPen(false);
+            if (next != Tool.Move && _editPath != null) EndEditPath();
+        }
+
         private void SetTool(Tool tool)
         {
+            LeavingTool(tool);
             _tool = tool;
             RadioButton button = ToolButton(tool);
             if (button != null && button.IsChecked != true) button.IsChecked = true;
@@ -62,7 +71,9 @@ namespace AlmostFastOverlays
             {
                 case Tool.Rectangle: return ToolRectangle;
                 case Tool.Ellipse: return ToolEllipse;
+                case Tool.Polygon: return ToolPolygon;
                 case Tool.Line: return ToolLine;
+                case Tool.Pen: return ToolPen;
                 case Tool.Text: return ToolText;
                 case Tool.Hand: return ToolHand;
                 case Tool.Zoom: return ToolZoom;
@@ -99,6 +110,8 @@ namespace AlmostFastOverlays
                 case Tool.Rectangle: return "Rectangle: drag to draw one. Shift makes a square, Alt draws from the middle. Esc or V goes back to Move.";
                 case Tool.Ellipse: return "Ellipse: drag to draw one. Shift makes a circle, Alt draws from the middle. Esc or V goes back to Move.";
                 case Tool.Line: return "Line: drag from one end to the other. Shift keeps it level, upright or at 45°. Esc or V goes back to Move.";
+                case Tool.Polygon: return "Polygon: drag to draw one; Shift keeps it regular. Set its sides, or make it a star, in Properties.";
+                case Tool.Pen: return "Pen: click for a corner, drag for a curve. Click the first point to close; double-click, Enter or Esc to finish open.";
                 case Tool.Text: return "Text: click where it goes, or drag a box for it, then type its text in Properties.";
                 case Tool.Hand: return "Hand: drag to move around the canvas. Holding Space does the same with any tool.";
                 case Tool.Zoom: return "Zoom: click to zoom in there, Alt+click to zoom out. Ctrl+0 fits the canvas to the window.";
@@ -113,9 +126,18 @@ namespace AlmostFastOverlays
             {
                 case Key.V: SetTool(Tool.Move); return true;
                 case Key.U:
-                    SetTool(!shift ? (_tool == Tool.Ellipse || _tool == Tool.Line ? _tool : Tool.Rectangle)
-                        : _tool == Tool.Rectangle ? Tool.Ellipse : _tool == Tool.Ellipse ? Tool.Line : Tool.Rectangle);
+                    SetTool(!shift ? (_tool == Tool.Ellipse || _tool == Tool.Polygon || _tool == Tool.Line ? _tool : Tool.Rectangle)
+                        : _tool == Tool.Rectangle ? Tool.Ellipse : _tool == Tool.Ellipse ? Tool.Polygon : _tool == Tool.Polygon ? Tool.Line : Tool.Rectangle);
                     return true;
+                case Key.P: SetTool(Tool.Pen); return true;
+                case Key.Enter:
+                    // Enter on a selected path edits its points.
+                    if (_tool == Tool.Move && _editPath == null && _selection.Count == 1 && _selection[0].Type == "path")
+                    {
+                        BeginEditPath(_selection[0]);
+                        return true;
+                    }
+                    return false;
                 case Key.T: SetTool(Tool.Text); return true;
                 case Key.H: SetTool(Tool.Hand); return true;
                 case Key.Z: SetTool(Tool.Zoom); return true;
@@ -165,6 +187,8 @@ namespace AlmostFastOverlays
                 case Tool.Zoom:
                     ZoomAt(e.GetPosition(Overlay), (Keyboard.Modifiers & ModifierKeys.Alt) != 0 ? 1 / 1.25 : 1.25);
                     return true;
+                case Tool.Pen:
+                    return PenMouseDown(e);
                 default:
                     _drawing = true;
                     _drawStart = _drawEnd = SnapPoint(e.GetPosition(Overlay));
@@ -191,6 +215,11 @@ namespace AlmostFastOverlays
                 UpdateOverlay();
                 return true;
             }
+            if (ActiveTool == Tool.Pen)
+            {
+                PenMouseMove(e);
+                return true;
+            }
             if (ActiveTool == Tool.Move) return false;
             Overlay.Cursor = CursorFor(ActiveTool);
             return true;
@@ -201,6 +230,11 @@ namespace AlmostFastOverlays
             if (_panning)
             {
                 StopPanning();
+                return true;
+            }
+            if (ActiveTool == Tool.Pen)
+            {
+                PenMouseUp();
                 return true;
             }
             if (!_drawing) return ActiveTool != Tool.Move;
@@ -261,6 +295,13 @@ namespace AlmostFastOverlays
                 return;
             }
             Rect r = DrawnRect();
+            if (_tool == Tool.Polygon)
+            {
+                var polygon = new Polygon { Stroke = accent, StrokeThickness = thickness, StrokeDashArray = dashes, Fill = new SolidColorBrush(Color.FromArgb(24, accent.Color.R, accent.Color.G, accent.Color.B)) };
+                foreach (System.Drawing.PointF p in PathNodes.Polygon(6, 1)) polygon.Points.Add(new Point(r.X + p.X * r.Width, r.Y + p.Y * r.Height));
+                Overlay.Children.Add(polygon);
+                return;
+            }
             Shape outline = _tool == Tool.Ellipse ? (Shape)new Ellipse() : new Rectangle();
             outline.Width = Math.Max(1, r.Width);
             outline.Height = Math.Max(1, r.Height);
@@ -297,7 +338,7 @@ namespace AlmostFastOverlays
                 }
                 else
                 {
-                    kind = _tool == Tool.Ellipse ? "Ellipse" : "Rectangle";
+                    kind = _tool == Tool.Ellipse ? "Ellipse" : _tool == Tool.Polygon ? "Polygon" : "Rectangle";
                     widget = WidgetCatalog.Create("shape", r.X, r.Y);
                     widget.Set("shape", kind);
                     // Drawn rectangles start with square corners, as in any drawing tool.

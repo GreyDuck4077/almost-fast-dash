@@ -419,7 +419,7 @@ namespace AlmostFastOverlays
                     }
             }
 
-            if (_selection.Count == 1 && !_selection[0].Locked)
+            if (_selection.Count == 1 && !_selection[0].Locked && _editPath == null)
             {
                 Rect r = RectOf(_selection[0]);
                 if (CanRotate(_selection[0]))
@@ -471,6 +471,8 @@ namespace AlmostFastOverlays
                 Overlay.Children.Add(rect);
             }
             AddDrawingPreview(accent);
+            AddPenPreview(accent);
+            AddEditPreview(accent);
         }
 
         private Rectangle _gridRect;
@@ -614,7 +616,8 @@ namespace AlmostFastOverlays
         {
             Overlay.Focus();
             Keyboard.Focus(Overlay);
-            // Drawing, panning and zooming tools take the press; Move goes on below.
+            // A path's points being edited come first; then drawing, panning and zooming tools; Move goes on below.
+            if (ActiveTool == Tool.Move && EditMouseDown(e)) return;
             if (ToolMouseDown(e)) return;
             Point p = e.GetPosition(Overlay);
             _dragStart = p;
@@ -644,6 +647,8 @@ namespace AlmostFastOverlays
                 // A click takes a widget's whole group; a double-click picks out just that widget.
                 if (e.ClickCount == 2)
                 {
+                    // A path opens for its points to be edited; anything else picks out that widget.
+                    if (hit.Type == "path") { BeginEditPath(hit); return; }
                     Select(hit);
                     FocusPrimaryEditor();
                     return;
@@ -679,6 +684,7 @@ namespace AlmostFastOverlays
         {
             Point p = e.GetPosition(Overlay);
             CursorText.Text = $"x {Math.Round(p.X)}   y {Math.Round(p.Y)}";
+            if (EditMouseMove(e)) return;
             if (ToolMouseMove(e)) return;
             bool free = (Keyboard.Modifiers & ModifierKeys.Alt) != 0 || SnapToggle.IsChecked != true;
 
@@ -726,6 +732,7 @@ namespace AlmostFastOverlays
 
         private void Overlay_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
+            if (EditMouseUp()) return;
             if (ToolMouseUp()) return;
             DragMode mode = _drag;
             _drag = DragMode.None;
@@ -748,6 +755,18 @@ namespace AlmostFastOverlays
             var menu = new ContextMenu();
             if (_selection.Count > 0)
             {
+                if (_selection.Count == 1 && _selection[0].Type == "path")
+                {
+                    DashWidget path = _selection[0];
+                    menu.Items.Add(MenuItem("Edit points", "Enter", () => BeginEditPath(path)));
+                    menu.Items.Add(new Separator());
+                }
+                else if (_selection.Count == 1 && _selection[0].Type == "shape" && PathNodes.FromShape(_selection[0].Get("shape", "Rectangle"), 6, 0.5f, out _) != null)
+                {
+                    DashWidget shape = _selection[0];
+                    menu.Items.Add(MenuItem("Convert to path", null, () => ConvertToPath(shape)));
+                    menu.Items.Add(new Separator());
+                }
                 menu.Items.Add(MenuItem("Duplicate", "Ctrl+D", () => DuplicateSelection()));
                 menu.Items.Add(MenuItem("Copy", "Ctrl+C", CopySelection));
                 menu.Items.Add(MenuItem("Delete", "Del", DeleteSelection));
@@ -1570,6 +1589,7 @@ namespace AlmostFastOverlays
             if (Keyboard.FocusedElement is TextBox || Keyboard.FocusedElement is ComboBox) return;
 
             // The tool rail's keys: V, U, T, H, Z, Space held for the Hand, and Esc back to Move.
+            if (PenKey(key) || EditKey(key)) { e.Handled = true; return; }
             if (!ctrl && (Keyboard.Modifiers & ModifierKeys.Alt) == 0 && ToolKey(key, shift, e)) { e.Handled = true; return; }
 
             double step = shift ? 10 : 1;
@@ -1611,7 +1631,44 @@ namespace AlmostFastOverlays
             DashWidget Find(string name) => _screen.Widgets.FirstOrDefault(w => w.Name == name);
             if (scenario.Contains("theme")) TabTheme.IsChecked = true;
 
-            if (scenario.Contains("multi"))
+            if (scenario.Contains("drawing"))
+            {
+                // What the drawing tools make, for the snapshots and the guide.
+                _screen.Widgets.Clear();
+                DashWidget Shape(string name, string kind, double x, double y, double w, double h, params string[] props)
+                {
+                    DashWidget s = WidgetCatalog.Create(kind == "path" ? "path" : "shape", x, y);
+                    s.Name = name; s.W = w; s.H = h;
+                    if (kind != "path") s.Set("shape", kind);
+                    for (int i = 0; i + 1 < props.Length; i += 2) s.Set(props[i], props[i + 1]);
+                    _screen.Widgets.Add(s);
+                    return s;
+                }
+                Shape("Carbon panel", "Rectangle", 24, 24, 380, 200, "radius", "18", "fillStyle", "Pattern", "pattern", "Carbon", "fill", "#3A3F48", "fill2", "#0B0C0F",
+                    "patternAngle", "0", "stroke", "#2DD4BF", "strokeWidth", "2");
+                Shape("Kerb", "Rectangle", 56, 64, 316, 120, "radius", "0", "fill", "", "strokeWidth", "10", "stroke", "#FFFFFF", "cap", "Flat", "join", "Sharp",
+                    "fxFill", "Pattern", "fxFillColor", "#FF3B30", "fxPatternBack", "#FFFFFF", "fxPatternScale", "180", "fxPatternAngle", "45");
+                Shape("Star", "Star", 440, 24, 150, 150, "sides", "5", "inner", "45", "fillStyle", "Linear", "fill", "#FFD54A", "fill2", "#FF7A00", "fillAngle", "90",
+                    "strokeWidth", "0", "glow", "14");
+                Shape("Hexagon", "Polygon", 620, 24, 200, 176, "sides", "6", "fillStyle", "Pattern", "pattern", "Honeycomb", "fill", "#2DD4BF", "fill2", "#10202A",
+                    "patternScale", "90", "patternAngle", "0", "stroke", "#2DD4BF", "strokeWidth", "2.5");
+                Shape("Swoosh", "path", 40, 250, 520, 150, "closed", "false", "points", "0,1|0,1|0.25,0.95 0.55,0.35|0.35,0.55|0.75,0.15 1,0|0.9,0.02|1,0",
+                    "strokeWidth", "8", "strokeStyle", "Gradient", "stroke", "#22D3EE", "stroke2", "#A855F7", "strokeAngle", "0", "glow", "10");
+                Shape("Dashes", "Line", 40, 420, 360, 12, "strokeWidth", "4", "dash", "Dashed", "stroke", "#94A3B8");
+                Shape("Dots", "Line", 40, 450, 360, 12, "strokeWidth", "5", "dash", "Dotted", "stroke", "#FBBF24");
+                DashWidget metal = WidgetCatalog.Create("text", 600, 250);
+                metal.Name = "Brushed metal"; metal.W = 230; metal.H = 120;
+                metal.Set("text", "136"); metal.Set("size", "110"); metal.Set("color", "#FFFFFF");
+                metal.Set("fxFill", "Pattern"); metal.Set("fxPattern", "Brushed"); metal.Set("fxFillColor", "#FFFFFF"); metal.Set("fxPatternBack", "#7C8794");
+                metal.Set("fxPatternAngle", "0"); metal.Set("fxPatternScale", "100");
+                _screen.Widgets.Add(metal);
+                Shape("Dots panel", "Rectangle", 600, 400, 230, 64, "radius", "10", "fillStyle", "Pattern", "pattern", "Dots", "fill", "#334155", "fill2", "#0F172A",
+                    "patternScale", "60", "patternAngle", "0", "strokeWidth", "0");
+                _rendererDirty = true;
+                Select(_screen.Widgets.First(w => w.Name == "Kerb"));
+                RequestRender();
+            }
+            else if (scenario.Contains("multi"))
             {
                 _selection.Clear();
                 _selection.AddRange(_screen.Widgets.Where(w => w.Type == "metric").Take(4));

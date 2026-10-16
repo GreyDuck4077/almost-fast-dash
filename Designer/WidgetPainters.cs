@@ -1510,9 +1510,7 @@ namespace AlmostFastOverlays
         {
             Graphics g = c.G;
             RectangleF b = c.B;
-            Color? fill = c.OptionalColor("fill");
-            Color stroke = c.Color("stroke");
-            float sw = (float)c.Num("strokeWidth"), glow = (float)c.Num("glow"), radius = (float)c.Num("radius");
+            float radius = (float)c.Num("radius");
             string shape = c.Choice("shape");
             using (var path = new GraphicsPath())
             {
@@ -1520,6 +1518,11 @@ namespace AlmostFastOverlays
                 switch (shape)
                 {
                     case "Ellipse": path.AddEllipse(b); break;
+                    case "Polygon":
+                    case "Star":
+                        path.AddPolygon(PathNodes.Polygon((int)c.Num("sides"), shape == "Star" ? (float)c.Num("inner") / 100f : 1f)
+                            .Select(p => new PointF(b.X + p.X * b.Width, b.Y + p.Y * b.Height)).ToArray());
+                        break;
                     case "Line":
                         open = true;
                         if (b.Width >= b.Height) path.AddLine(b.X, b.Y + b.Height / 2, b.Right, b.Y + b.Height / 2);
@@ -1553,17 +1556,46 @@ namespace AlmostFastOverlays
                         using (GraphicsPath rounded = Paint.Rounded(b, radius)) path.AddPath(rounded, false);
                         break;
                 }
-                using (GraphicsPath shaped = new ShapeTool(c).Apply(path))
-                {
-                    if (glow > 0) Paint.Glow(g, shaped, fill ?? stroke, glow);
-                    if (fill.HasValue && !open) using (var brush = new SolidBrush(fill.Value)) g.FillPath(brush, shaped);
-                    if (sw > 0)
-                        using (var pen = new Pen(stroke, sw) { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round })
-                            g.DrawPath(pen, shaped);
-                }
+                using (GraphicsPath shaped = new ShapeTool(c).Apply(path)) FillAndLine(c, g, shaped, b, open);
             }
         }
 
+        /// <summary>A path drawn with the Pen: its points, fitted to the widget's box, filled and lined like a shape.</summary>
+        public static void PathShape(WidgetContext c)
+        {
+            List<PathNode> nodes = PathNodes.Parse(c.Text("points"));
+            bool closed = c.Bool("closed");
+            using (GraphicsPath path = PathNodes.Build(nodes, closed, c.B))
+            {
+                if (path.PointCount == 0) return;
+                using (GraphicsPath shaped = new ShapeTool(c).Apply(path)) FillAndLine(c, c.G, shaped, c.B, !closed);
+            }
+        }
+
+        /// <summary>
+        /// A drawn shape's glow, fill (a colour, a gradient or a pattern; an empty second colour is see-through) and line
+        /// (a colour or a gradient, dashed or not, with its ends and corners).
+        /// </summary>
+        private static void FillAndLine(WidgetContext c, Graphics g, GraphicsPath shaped, RectangleF b, bool open)
+        {
+            Color? fill = c.OptionalColor("fill");
+            Color stroke = c.Color("stroke");
+            float sw = (float)c.Num("strokeWidth"), glow = (float)c.Num("glow");
+            if (glow > 0) Paint.Glow(g, shaped, fill ?? stroke, glow);
+            if (fill.HasValue && !open)
+            {
+                Color second = c.OptionalColor("fill2") ?? Color.FromArgb(0, fill.Value);
+                using (Brush brush = Fills.Brush(c.Choice("fillStyle"), fill.Value, second, (float)c.Num("fillAngle"), c.Choice("pattern"),
+                    (float)c.Num("patternScale"), (float)c.Num("patternAngle"), b))
+                    g.FillPath(brush, shaped);
+            }
+            if (sw > 0)
+            {
+                Color? to = c.Choice("strokeStyle") == "Gradient" ? c.OptionalColor("stroke2") ?? stroke : (Color?)null;
+                using (Pen pen = Fills.LinePen(stroke, to, (float)c.Num("strokeAngle"), sw, c.Choice("dash"), c.Choice("cap"), c.Choice("join"), b))
+                    g.DrawPath(pen, shaped);
+            }
+        }
         public static void Gradient(WidgetContext c)
         {
             Graphics g = c.G;

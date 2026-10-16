@@ -1167,6 +1167,121 @@ namespace AlmostFastOverlays
                 Check("tools: each drawing is one step to undo", _screen.Widgets.Count == before, _screen.Widgets.Count + " vs " + before + "; after each undo: " + string.Join(",", undone) + "; undo steps " + _undo.Count);
             }
 
+            // ---------------- drawing: fills, patterns, paths, the Pen and editing points
+            {
+                // Every pattern tile holds both its colours; every fill style makes a brush.
+                var tileProblems = new List<string>();
+                foreach (string pattern in Fills.Patterns)
+                {
+                    System.Drawing.Bitmap tile = Fills.Tile(pattern, System.Drawing.Color.FromArgb(255, 250, 40, 40), System.Drawing.Color.FromArgb(255, 20, 20, 240));
+                    bool red = false, blue = false;
+                    for (int y = 0; y < tile.Height; y += 2)
+                        for (int tx = 0; tx < tile.Width; tx += 2)
+                        {
+                            System.Drawing.Color c = tile.GetPixel(tx, y);
+                            if (c.R > 150 && c.B < 120) red = true;
+                            if (c.B > 150 && c.R < 120) blue = true;
+                        }
+                    if (!red || !blue) tileProblems.Add(pattern);
+                }
+                foreach (string style in Fills.Styles)
+                    using (System.Drawing.Brush brush = Fills.Brush(style, System.Drawing.Color.Red, System.Drawing.Color.Blue, 45, "Carbon", 100, 45, new System.Drawing.RectangleF(10, 10, 100, 60)))
+                        if (brush == null) tileProblems.Add(style);
+                Check("drawing: every pattern shows both its colours, and every fill style makes a brush", tileProblems.Count == 0, string.Join(", ", tileProblems));
+
+                // Points as text and back, and every shape that turns into a path.
+                List<PathNode> parsed = PathNodes.Parse("0,0 1,0.5|0.9,0.2|1.1,0.8 0,1");
+                Check("drawing: path points read and written the same", parsed.Count == 3 && parsed[1].In.HasValue && parsed[1].Out.Value.X == 1.1f &&
+                    PathNodes.Format(parsed) == "0,0 1,0.5|0.9,0.2|1.1,0.8 0,1", PathNodes.Format(parsed));
+                var converts = new[] { "Rectangle", "Ellipse", "Polygon", "Star", "Triangle", "Line", "Diagonal down", "Diagonal up", "Chevron" };
+                List<string> notConverted = converts.Where(k => PathNodes.FromShape(k, 5, 0.5f, out _) == null).ToList();
+                Check("drawing: rectangles, ellipses, polygons, stars, triangles, lines and chevrons convert to paths; a star has twice its points",
+                    notConverted.Count == 0 && PathNodes.FromShape("Star", 5, 0.5f, out _).Count == 10 && PathNodes.FromShape("Brackets", 5, 0.5f, out _) == null,
+                    string.Join(", ", notConverted));
+
+                // A filled star is solid in the middle; a closed path is filled, an open one isn't.
+                var drawn = new DashLayout { Width = 200, Height = 200 };
+                drawn.Theme.BackgroundStyle = "None";
+                drawn.Screens.Add(new DashScreen { Name = "Main" });
+                DashWidget star = WidgetCatalog.Create("shape", 0, 0);
+                star.W = star.H = 100;
+                star.Set("shape", "Star"); star.Set("sides", "5"); star.Set("fill", "#FF0000"); star.Set("strokeWidth", "0");
+                DashWidget closedPath = WidgetCatalog.Create("path", 100, 100);
+                closedPath.W = closedPath.H = 100;
+                closedPath.Set("points", "0,0 1,0 0.5,1"); closedPath.Set("fill", "#0000FF"); closedPath.Set("strokeWidth", "0");
+                drawn.Screens[0].Widgets.Add(star);
+                drawn.Screens[0].Widgets.Add(closedPath);
+                System.Drawing.Color starMiddle, pathMiddle, openMiddle;
+                using (var renderer = new LayoutRenderer(200, 200, new DashboardSettings { Layout = Layouts.Custom, Design = drawn }, _units))
+                using (System.Drawing.Bitmap frame = renderer.Render(IRacingTelemetrySource.CreatePreviewSnapshot(), false, 4, 1, drawn.Screens[0]))
+                {
+                    starMiddle = frame.GetPixel(50, 55);
+                    pathMiddle = frame.GetPixel(150, 130);
+                }
+                closedPath.Set("closed", "false");
+                using (var renderer = new LayoutRenderer(200, 200, new DashboardSettings { Layout = Layouts.Custom, Design = drawn }, _units))
+                using (System.Drawing.Bitmap frame = renderer.Render(IRacingTelemetrySource.CreatePreviewSnapshot(), false, 4, 1, drawn.Screens[0]))
+                    openMiddle = frame.GetPixel(150, 130);
+                Check("drawing: a star fills its middle, a closed path fills, an open one doesn't",
+                    starMiddle.R > 200 && starMiddle.A > 200 && pathMiddle.B > 200 && pathMiddle.A > 200 && openMiddle.A < 10,
+                    starMiddle + " " + pathMiddle + " " + openMiddle);
+
+                // The Pen: three clicks and a click on the first point make a closed path round them.
+                int before = _screen.Widgets.Count;
+                SetTool(Tool.Pen);
+                _penNodes.Add(new PathNode { P = new System.Drawing.PointF(100, 100) });
+                _penNodes.Add(new PathNode { P = new System.Drawing.PointF(300, 100), In = new System.Drawing.PointF(260, 60), Out = new System.Drawing.PointF(340, 140) });
+                _penNodes.Add(new PathNode { P = new System.Drawing.PointF(200, 250) });
+                FinishPen(true);
+                DashWidget penned = _selection.Count == 1 ? _selection[0] : null;
+                Check("drawing: the Pen makes a closed path whose box takes in its points and handles",
+                    penned?.Type == "path" && Expr.Bool(penned.Get("closed", "")) && penned.X == 100 && penned.Y == 60 && penned.W == 240 && penned.H == 190 &&
+                    PathNodes.Parse(penned.Get("points", "")).Count == 3 && _tool == Tool.Move,
+                    penned == null ? "none" : penned.X + "," + penned.Y + " " + penned.W + "x" + penned.H + " " + penned.Get("points", ""));
+
+                // Editing: dragging the bottom point down grows the box to follow it, and the other points stay put.
+                BeginEditPath(penned);
+                _editNodes[2].P = new System.Drawing.PointF(200, 300);
+                ApplyEdit();
+                List<PathNode> onScreen = PathNodes.OnScreen(PathNodes.Parse(penned.Get("points", "")), RectOfF(penned));
+                Check("drawing: a moved point moves only itself, and the box follows",
+                    penned.H == 240 && Math.Abs(onScreen[0].P.X - 100) < 0.6 && Math.Abs(onScreen[0].P.Y - 100) < 0.6 && Math.Abs(onScreen[2].P.Y - 300) < 0.6,
+                    penned.H + " " + onScreen[0].P + " " + onScreen[2].P);
+                EndEditPath();
+
+                // A rectangle converted to a path keeps its place, its layer and its colours.
+                DashWidget rect = WidgetCatalog.Create("shape", 40, 40);
+                rect.Set("fill", "#123456");
+                AddWidgets(new[] { rect }, "Add");
+                int layer = _screen.Widgets.IndexOf(rect);
+                ConvertToPath(rect);
+                DashWidget converted = _screen.Widgets[layer];
+                Check("drawing: a rectangle converted to a path keeps its place, layer and colours",
+                    converted.Type == "path" && converted.X == 40 && converted.W == rect.W && converted.Get("fill") == "#123456" && PathNodes.Parse(converted.Get("points", "")).Count == 4,
+                    converted.Type + " " + converted.Get("fill"));
+                EndEditPath();
+                while (_screen.Widgets.Count > before) Undo();
+
+                // Recolor with a pattern: a panel painted in stripes shows both stripe colours.
+                var striped = new DashLayout { Width = 160, Height = 160 };
+                striped.Screens.Add(new DashScreen { Name = "Main" });
+                DashWidget panel = WidgetCatalog.Create("shape", 0, 0);
+                panel.W = panel.H = 160;
+                panel.Set("fill", "#FFFFFF"); panel.Set("radius", "0");
+                panel.Set("fxFill", "Pattern"); panel.Set("fxFillColor", "#FF0000"); panel.Set("fxPatternBack", "#0000FF"); panel.Set("fxPatternAngle", "0");
+                striped.Screens[0].Widgets.Add(panel);
+                bool redStripe = false, blueStripe = false;
+                using (var renderer = new LayoutRenderer(160, 160, new DashboardSettings { Layout = Layouts.Custom, Design = striped }, _units))
+                using (System.Drawing.Bitmap frame = renderer.Render(IRacingTelemetrySource.CreatePreviewSnapshot(), false, 4, 1, striped.Screens[0]))
+                    for (int y = 20; y < 140; y += 2)
+                    {
+                        System.Drawing.Color c = frame.GetPixel(80, y);
+                        if (c.R > 200 && c.B < 60) redStripe = true;
+                        if (c.B > 200 && c.R < 60) blueStripe = true;
+                    }
+                Check("drawing: Recolor with a pattern paints any widget in it", redStripe && blueStripe, "red " + redStripe + ", blue " + blueStripe);
+            }
+
             // ---------------- the formula reference
             {
                 // It's made from the live lists, so it covers everything; these keep its own parts complete and working.

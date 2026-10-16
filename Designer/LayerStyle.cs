@@ -16,17 +16,20 @@ namespace AlmostFastOverlays
     /// </summary>
     internal sealed class LayerStyle
     {
-        public static readonly string[] FillModes = { "None", "Color", "Gradient", "Image" };
+        public static readonly string[] FillModes = { "None", "Color", "Gradient", "Pattern", "Image" };
 
         public string Fill = "None";
         public Color FillColor, FillColor2;
         public float FillAngle, FillAmount;
         public Bitmap Texture;
+        public string Pattern = "Stripes";
+        public Color PatternBack;
+        public float PatternScale = 100, PatternAngle = 45;
         public float Outline, Shadow, ShadowX, ShadowY, Glow;
         public Color OutlineColor, ShadowColor, GlowColor;
 
         public bool Any => Recolors || Outline > 0 || Shadow > 0 || Glow > 0;
-        private bool Recolors => FillAmount > 0 && (Fill == "Color" || Fill == "Gradient" || (Fill == "Image" && Texture != null));
+        private bool Recolors => FillAmount > 0 && (Fill == "Color" || Fill == "Gradient" || Fill == "Pattern" || (Fill == "Image" && Texture != null));
 
         /// <summary>How far the effects reach past what the widget itself draws.</summary>
         public float Extent => Math.Max(Math.Max(Glow * 2, Shadow * 2 + Math.Max(Math.Abs(ShadowX), Math.Abs(ShadowY))), Outline) + 2;
@@ -39,6 +42,10 @@ namespace AlmostFastOverlays
             FillAngle = (float)c.Num("fxFillAngle"),
             FillAmount = (float)Math.Max(0, Math.Min(1, c.Num("fxFillAmount") / 100)),
             Texture = c.Choice("fxFill") == "Image" ? c.Renderer.Image(c.Text("fxImage")) : null,
+            Pattern = c.Choice("fxPattern"),
+            PatternBack = c.OptionalColor("fxPatternBack") ?? Color.Transparent,
+            PatternScale = (float)c.Num("fxPatternScale"),
+            PatternAngle = (float)c.Num("fxPatternAngle"),
             Outline = (float)Math.Max(0, Math.Min(20, c.Num("fxOutline"))),
             OutlineColor = c.Color("fxOutlineColor"),
             Shadow = (float)Math.Max(0, Math.Min(40, c.Num("fxShadow"))),
@@ -142,6 +149,10 @@ namespace AlmostFastOverlays
                     {
                         case "Gradient":
                             using (var brush = new LinearGradientBrush(area, FillColor, FillColor2, FillAngle)) og.FillRectangle(brush, area);
+                            break;
+                        case "Pattern":
+                            // Laid from the widget's corner, so it moves and turns with the widget.
+                            using (TextureBrush brush = Fills.PatternBrush(Pattern, FillColor, PatternBack, PatternScale, PatternAngle, box.Location)) og.FillRectangle(brush, area);
                             break;
                         case "Image":
                             // Cover the box, cropping the texture rather than stretching it.

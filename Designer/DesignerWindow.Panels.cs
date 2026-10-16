@@ -107,16 +107,19 @@ namespace AlmostFastOverlays
             }
         }
 
+        /// <summary>A widget in the library: a compact row, its icon beside its name, so the whole list scrolls half as far.</summary>
         private Border WidgetTile(WidgetType type)
         {
-            var stack = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-            stack.Children.Add(new TextBlock { Text = type.Icon, Style = (Style)FindResource("T.Icon"), FontSize = 18, HorizontalAlignment = HorizontalAlignment.Center, Foreground = (Brush)FindResource("Brush.Accent") });
-            stack.Children.Add(new TextBlock { Text = type.Name, FontSize = 12, Margin = new Thickness(0, 6, 0, 0), HorizontalAlignment = HorizontalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
+            var row = new DockPanel { VerticalAlignment = VerticalAlignment.Center };
+            var icon = new TextBlock { Text = type.Icon, Style = (Style)FindResource("T.Icon"), FontSize = 14, Width = 18, Foreground = (Brush)FindResource("Brush.Accent"), VerticalAlignment = VerticalAlignment.Center };
+            DockPanel.SetDock(icon, Dock.Left);
+            row.Children.Add(icon);
+            row.Children.Add(new TextBlock { Text = type.Name, FontSize = 12, Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
             var tile = new Border
             {
-                Height = 70, Margin = new Thickness(3), CornerRadius = new CornerRadius(9), Cursor = Cursors.Hand,
+                Height = 34, Margin = new Thickness(2), Padding = new Thickness(9, 0, 6, 0), CornerRadius = new CornerRadius(7), Cursor = Cursors.Hand,
                 Background = (Brush)FindResource("Brush.Surface"), BorderBrush = (Brush)FindResource("Brush.Border"), BorderThickness = new Thickness(1),
-                Child = stack, ToolTip = type.Name + "\n" + type.Description + "\n\nClick to add, or drag onto the screen."
+                Child = row, ToolTip = type.Name + "\n" + type.Description + "\n\nClick to add, or drag onto the screen."
             };
             HookTile(tile, () => AddWidgetAtCenter(type.Id), () => new DataObject("afo-widget", type.Id));
             return tile;
@@ -160,7 +163,7 @@ namespace AlmostFastOverlays
             header.Children.Add(count);
             var row = new Border
             {
-                Margin = new Thickness(0, 2, 0, 2), Padding = new Thickness(2, 9, 10, 9), CornerRadius = new CornerRadius(8), Cursor = Cursors.Hand,
+                Margin = new Thickness(0, 2, 0, 2), Padding = new Thickness(2, 6, 10, 6), CornerRadius = new CornerRadius(8), Cursor = Cursors.Hand,
                 Background = (Brush)FindResource("Brush.Surface"), BorderBrush = (Brush)FindResource("Brush.Border"), BorderThickness = new Thickness(1), Child = header
             };
             row.MouseEnter += (s, e) => row.Background = (Brush)FindResource("Brush.SurfaceHover");
@@ -195,7 +198,7 @@ namespace AlmostFastOverlays
             grid.Children.Add(text);
             var row = new Border
             {
-                Margin = new Thickness(0, 2, 0, 2), Padding = new Thickness(4, 8, 8, 8), CornerRadius = new CornerRadius(8), Cursor = Cursors.Hand,
+                Margin = new Thickness(0, 2, 0, 2), Padding = new Thickness(4, 5, 8, 5), CornerRadius = new CornerRadius(8), Cursor = Cursors.Hand,
                 Background = (Brush)FindResource("Brush.Surface"), BorderBrush = (Brush)FindResource("Brush.Border"), BorderThickness = new Thickness(1),
                 Child = grid, ToolTip = block.Description + "\n\nClick to add, or drag onto the screen."
             };

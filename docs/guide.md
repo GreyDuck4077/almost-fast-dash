@@ -222,9 +222,13 @@ The workspace is laid out like an image editor:
 
 - **Tools** on the left rail:
   - **Move** (V): select, move, resize and rotate.
-  - **Rectangle** (U), **Ellipse** and **Line**: Shift+U steps through the
-    shapes. Drag to draw one; Shift keeps it square, round, level or at 45°, and
-    Alt draws from the middle.
+  - **Rectangle** (U), **Ellipse**, **Polygon** and **Line**: Shift+U steps
+    through the shapes. Drag to draw one; Shift keeps it square, round, level
+    or at 45°, and Alt draws from the middle. A polygon's sides, or a star, are
+    set in Properties.
+  - **Pen** (P): click for corners and drag for curves. Click the first point
+    to close the shape; double-click, Enter or Esc to leave it open; Backspace
+    takes the last point back.
   - **Text** (T): click where it goes, then type.
   - **Hand** (H, or hold Space): moves around the canvas.
   - **Zoom** (Z): click to zoom in, Alt+click to zoom out.
@@ -240,6 +244,23 @@ The workspace is laid out like an image editor:
   - drag to reorder, double-click to rename, lock and hide;
   - buttons to bring forward, send back, group, duplicate and delete;
   - drag the line above the list to give Properties or Layers more room.
+- **Drawing.** Shapes and pen paths share their look:
+  - **Fill:** a colour, a linear or radial gradient, or a pattern in two
+    colours: stripes, checks, dots, carbon fibre, honeycomb, grid or brushed
+    metal, at any size and angle. Leave the second colour empty for
+    see-through.
+  - **Line:** a colour or a gradient, solid, dashed, dotted or dash-dot, with
+    round, flat or square ends and round, sharp or bevelled corners.
+  - **Points:** double-click a path (or press Enter) to drag its points and
+    their handles. Alt-click a point to switch it between corner and curve,
+    Delete removes it, and Esc or Enter finishes. **Convert to path**, on a
+    shape's Properties or right-click menu, turns a rectangle, ellipse,
+    polygon or star into a path to reshape.
+  - **Recolor › Pattern**, in any widget's Style, paints it in a pattern: a
+    rectangle outline in red and white stripes makes a kerb, and digits in
+    brushed metal look machined.
+
+  ![Drawn shapes, patterns and pen paths](images/app-drawing.png)
 - **Library** beside the tools. The grid button on the rail hides and shows it.
   Drag widgets and ready-made blocks onto the screen:
   - **Widgets**: text and values, the gear, bars and arc gauges (needles,

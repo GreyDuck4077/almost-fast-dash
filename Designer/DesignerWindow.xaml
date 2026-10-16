@@ -203,9 +203,17 @@
                              ToolTip="Ellipse: drag to draw one; Shift for a circle (Shift+U)">
                     <Path Style="{StaticResource RailIcon}" Data="M10,4.5 A6.5,5.5 0 1 1 9.99,4.5 Z"/>
                 </RadioButton>
+                <RadioButton x:Name="ToolPolygon" Style="{StaticResource RailTool}" GroupName="Tools" Tag="Polygon" Checked="Tool_Checked"
+                             ToolTip="Polygon: drag to draw one, then set its sides or make it a star in Properties (Shift+U)">
+                    <Path Style="{StaticResource RailIcon}" Data="M10,3 L16.1,6.5 L16.1,13.5 L10,17 L3.9,13.5 L3.9,6.5 Z"/>
+                </RadioButton>
                 <RadioButton x:Name="ToolLine" Style="{StaticResource RailTool}" GroupName="Tools" Tag="Line" Checked="Tool_Checked"
                              ToolTip="Line: drag to draw one; Shift keeps it straight or at 45° (Shift+U)">
                     <Path Style="{StaticResource RailIcon}" Data="M4,16 L16,4"/>
+                </RadioButton>
+                <RadioButton x:Name="ToolPen" Style="{StaticResource RailTool}" GroupName="Tools" Tag="Pen" Checked="Tool_Checked"
+                             ToolTip="Pen: click for corners, drag for curves; click the first point to close (P)">
+                    <Path Style="{StaticResource RailIcon}" Data="M4,16.5 L5.6,11 L12.8,3.8 L16.2,7.2 L9,14.4 Z M5.6,11 L9,14.4 M4,16.5 L7.4,13.1"/>
                 </RadioButton>
                 <RadioButton x:Name="ToolText" Style="{StaticResource RailTool}" GroupName="Tools" Tag="Text" Checked="Tool_Checked"
                              ToolTip="Text: click or drag where it goes, then type (T)">

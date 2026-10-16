@@ -21,6 +21,8 @@ namespace AlmostFastOverlays
     {
         public string Key, Label, Default, Group, Help;
         public PropKind Kind;
+        /// <summary>Kept with the widget but not shown in Properties (a path's points are edited on the canvas).</summary>
+        public bool Hidden;
         public string[] Choices;
         public double Min = double.NaN, Max = double.NaN, Step = 1;
         /// <summary>The setting this one depends on, and when it applies (given that setting's value). Null: always.</summary>
@@ -392,15 +394,21 @@ namespace AlmostFastOverlays
                 .Font();
 
             // ------------------------------------------------------------ Decor
-            Define("shape", "Shape", "Decor", "", "Rectangles, circles, lines, brackets and chevrons for structure and accents.", 120, 80, WidgetPainters.Shape)
-                .Choice("shape", "Shape", "Rectangle", "Shape", "Rectangle", "Ellipse", "Line", "Diagonal down", "Diagonal up", "Brackets", "Chevron", "Triangle")
-                .Color("fill", "Fill", "", "Colors", "Empty for no fill.")
-                .Color("stroke", "Line color", "accent", "Colors")
-                .Number("strokeWidth", "Line width", "2", "Look", 0, 30, 0.5)
-                .Number("radius", "Corner radius", "6", "Look", 0, 80)
+            Define("shape", "Shape", "Decor", "\uF158", "Rectangles, ellipses, polygons, stars, lines, brackets and chevrons, filled with a colour, a gradient or a pattern.", 120, 80, WidgetPainters.Shape)
+                .Choice("shape", "Shape", "Rectangle", "Shape", "Rectangle", "Ellipse", "Polygon", "Star", "Triangle", "Line", "Diagonal down", "Diagonal up", "Brackets", "Chevron")
+                .Number("sides", "Sides", "6", "Shape", 3, 24)
+                .Number("inner", "Inner size %", "50", "Shape", 5, 95)
+                .Number("radius", "Corner radius", "6", "Shape", 0, 80)
+                .FillAndLine("", "accent", "2")
                 .ShapeTools()
                 .Number("glow", "Glow", "0", "Effects", 0, 40);
 
+            Define("path", "Path", "Decor", "\uE70F", "A shape of your own, drawn point by point with the Pen: corners and curves, open or closed.", 160, 100, WidgetPainters.PathShape)
+                .Text("points", "Points", "0,1 0.5,0 1,1", "Shape").Hide()
+                .Bool("closed", "Closed", "true", "Shape")
+                .FillAndLine("", "accent", "2")
+                .ShapeTools()
+                .Number("glow", "Glow", "0", "Effects", 0, 40);
             Define("gradient", "Gradient", "Decor", "", "A soft color wash or light bloom to give a layout depth.", 300, 200, WidgetPainters.Gradient)
                 .Choice("style", "Style", "Radial", "Look", "Radial", "Vertical", "Horizontal")
                 .Color("color", "Color", "accent", "Look")
@@ -449,17 +457,34 @@ namespace AlmostFastOverlays
             Rule("laphistory", "style", v => v == "Rows", "times");
             Rule("laphistory", "style", v => v == "Columns", "range", "showDelta", "labelSize", "gap", "radius", "slowColor", "track");
             foreach (WidgetType shaped in All.Where(x => x.Prop("bend") != null)) Rule(shaped.Id, "bend", nonZero, "peak");
-            Rule("shape", "shape", v => v != "Line" && v != "Diagonal down" && v != "Diagonal up" && v != "Brackets" && v != "Chevron", "fill");
+            Func<string, bool> closedShape = v => v != "Line" && v != "Diagonal down" && v != "Diagonal up" && v != "Brackets" && v != "Chevron";
+            Rule("shape", "shape", closedShape, "fill", "fillStyle");
+            Rule("shape", "shape", v => v == "Polygon" || v == "Star", "sides");
+            Rule("shape", "shape", v => v == "Star", "inner");
+            Rule("shape", "shape", v => v == "Rectangle" || v == "Brackets", "radius");
+            Rule("path", "closed", on, "fill", "fillStyle");
+            foreach (string drawn in new[] { "shape", "path" })
+            {
+                Rule(drawn, "fillStyle", v => v != "Solid", "fill2");
+                Rule(drawn, "fillStyle", v => v == "Linear", "fillAngle");
+                Rule(drawn, "fillStyle", v => v == "Pattern", "pattern", "patternScale", "patternAngle");
+                Rule(drawn, "strokeStyle", v => v == "Gradient", "stroke2", "strokeAngle");
+            }
 
             foreach (WidgetType type in All)
             {
                 // The shared Style tools (see LayerStyle), applied to whatever the widget draws.
                 type.Props.Add(new PropDef { Key = "fxFill", Label = "Recolor", Kind = PropKind.Choice, Default = "None", Group = "Style", Choices = LayerStyle.FillModes,
-                    Help = "Lays a colour, a gradient or an image over the widget's own pixels, keeping its shape." });
+                    Help = "Lays a colour, a gradient, a pattern or an image over the widget's own pixels, keeping its shape." });
                 type.Props.Add(new PropDef { Key = "fxFillColor", Label = "Recolor with", Kind = PropKind.Color, Default = "accent", Group = "Style" });
                 type.Props.Add(new PropDef { Key = "fxFillColor2", Label = "Gradient to", Kind = PropKind.Color, Default = "bad", Group = "Style" });
                 type.Props.Add(new PropDef { Key = "fxFillAngle", Label = "Gradient angle", Kind = PropKind.Number, Default = "90", Group = "Style", Min = 0, Max = 360, Step = 5,
                     Help = "0 runs left to right, 90 top to bottom." });
+                type.Props.Add(new PropDef { Key = "fxPattern", Label = "Pattern", Kind = PropKind.Choice, Default = "Stripes", Group = "Style", Choices = Fills.Patterns });
+                type.Props.Add(new PropDef { Key = "fxPatternBack", Label = "Between the pattern", Kind = PropKind.Color, Default = "", Group = "Style",
+                    Help = "Empty keeps the widget's own colours between the pattern." });
+                type.Props.Add(new PropDef { Key = "fxPatternScale", Label = "Pattern size %", Kind = PropKind.Number, Default = "100", Group = "Style", Min = 25, Max = 800, Step = 5 });
+                type.Props.Add(new PropDef { Key = "fxPatternAngle", Label = "Pattern angle", Kind = PropKind.Number, Default = "45", Group = "Style", Min = 0, Max = 360, Step = 5 });
                 type.Props.Add(new PropDef { Key = "fxImage", Label = "Texture", Kind = PropKind.Image, Default = "", Group = "Style" });
                 type.Props.Add(new PropDef { Key = "fxFillAmount", Label = "Recolor strength %", Kind = PropKind.Number, Default = "100", Group = "Style", Min = 0, Max = 100 });
                 type.Props.Add(new PropDef { Key = "fxOutline", Label = "Outline", Kind = PropKind.Number, Default = "0", Group = "Style", Min = 0, Max = 20, Step = 0.5,
@@ -485,7 +510,8 @@ namespace AlmostFastOverlays
                 type.Props.Add(new PropDef { Key = "tapDots", Label = "Show view dots", Kind = PropKind.Bool, Default = "true", Group = "Touch" });
                 type.Props.Add(new PropDef { Key = "opacity", Label = "Opacity %", Kind = PropKind.Number, Default = "100", Group = "Visibility", Min = 0, Max = 100 });
 
-                Rule(type.Id, "fxFill", v => v == "Color" || v == "Gradient", "fxFillColor");
+                Rule(type.Id, "fxFill", v => v == "Color" || v == "Gradient" || v == "Pattern", "fxFillColor");
+                Rule(type.Id, "fxFill", v => v == "Pattern", "fxPattern", "fxPatternBack", "fxPatternScale", "fxPatternAngle");
                 Rule(type.Id, "fxFill", v => v == "Gradient", "fxFillColor2", "fxFillAngle");
                 Rule(type.Id, "fxFill", v => v == "Image", "fxImage");
                 Rule(type.Id, "fxFill", v => v != "None", "fxFillAmount");
@@ -582,5 +608,29 @@ namespace AlmostFastOverlays
             .Choice("grow", "Grow from", "Middle", "Shape", BarWarp.Anchors);
 
         private static WidgetType Uses(this WidgetType t, bool traces) { t.UsesTraces = traces; return t; }
+
+        /// <summary>Keeps the last setting out of Properties.</summary>
+        private static WidgetType Hide(this WidgetType t) { t.Props[t.Props.Count - 1].Hidden = true; return t; }
+
+        /// <summary>
+        /// A drawn shape's fill (a colour, a gradient or a pattern in two colours) and line (a colour or a gradient,
+        /// dashed or not, with its ends and corners).
+        /// </summary>
+        private static WidgetType FillAndLine(this WidgetType t, string fill, string stroke, string width) => t
+            .Choice("fillStyle", "Fill style", "Solid", "Fill", Fills.Styles)
+            .Color("fill", "Fill", fill, "Fill", "Empty for no fill.")
+            .Color("fill2", "Second color", "", "Fill", "Where the gradient ends, or behind the pattern. Empty is see-through.")
+            .Number("fillAngle", "Gradient angle", "90", "Fill", 0, 360, 5)
+            .Choice("pattern", "Pattern", "Stripes", "Fill", Fills.Patterns)
+            .Number("patternScale", "Pattern size %", "100", "Fill", 25, 800, 5)
+            .Number("patternAngle", "Pattern angle", "45", "Fill", 0, 360, 5)
+            .Color("stroke", "Line color", stroke, "Line")
+            .Number("strokeWidth", "Line width", width, "Line", 0, 30, 0.5)
+            .Choice("strokeStyle", "Line fill", "Solid", "Line", "Solid", "Gradient")
+            .Color("stroke2", "Line gradient to", "info", "Line")
+            .Number("strokeAngle", "Line gradient angle", "0", "Line", 0, 360, 5)
+            .Choice("dash", "Dashes", "Solid", "Line", "Solid", "Dashed", "Dotted", "Dash dot")
+            .Choice("cap", "Line ends", "Round", "Line", "Round", "Flat", "Square")
+            .Choice("join", "Line corners", "Round", "Line", "Round", "Sharp", "Bevel");
     }
 }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -238,7 +238,7 @@ namespace AlmostFastOverlays
             List<WidgetType> types = _selection.Select(w => WidgetCatalog.Find(w.Type)).Where(t => t != null).Distinct().ToList();
             if (types.Count > 0 && types.Count == _selection.Select(w => w.Type).Distinct().Count())
             {
-                List<PropDef> common = types[0].Props.Where(p => p.Key != "visible" && types.All(t => t.Prop(p.Key) is PropDef other && other.Kind == p.Kind)).ToList();
+                List<PropDef> common = types[0].Props.Where(p => p.Key != "visible" && !p.Hidden && types.All(t => t.Prop(p.Key) is PropDef other && other.Kind == p.Kind)).ToList();
                 if (common.Count > 0)
                 {
                     Inspector.Children.Add(SectionTitle(types.Count == 1 ? "Settings (all " + _selection.Count + ")" : "Shared settings"));
@@ -414,9 +414,14 @@ namespace AlmostFastOverlays
             Inspector.Children.Add(position);
             Inspector.Children.Add(new TextBlock { Text = "Align on screen", Style = (Style)FindResource("T.Caption"), Margin = new Thickness(0, 10, 0, 4) });
             Inspector.Children.Add(AlignBar(false));
+            // Paths are reshaped on the canvas; shapes can become paths to reshape.
+            if (widget.Type == "path")
+                Inspector.Children.Add(ActionButton("\uE70F", "Edit points on the canvas", () => BeginEditPath(widget)));
+            else if (widget.Type == "shape" && PathNodes.FromShape(widget.Get("shape", "Rectangle"), 6, 0.5f, out _) != null)
+                Inspector.Children.Add(ActionButton("\uE70F", "Convert to path, to reshape point by point", () => ConvertToPath(widget)));
 
             // Properties by group, in definition order; visibility last.
-            foreach (IGrouping<string, PropDef> group in type.Props.GroupBy(p => p.Group))
+            foreach (IGrouping<string, PropDef> group in type.Props.Where(p => !p.Hidden).GroupBy(p => p.Group))
             {
                 string groupName = group.Key;
                 bool collapsed = CollapsedGroups.Contains(groupName);

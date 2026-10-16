@@ -5,6 +5,34 @@ English. Every version is on the
 [releases page](https://github.com/Sota4077/almost-fast-dash/releases) with
 its exe and checksum.
 
+## 3.62 · 2026-10-16
+
+Drawing tools: the Pen, polygons and stars, gradient and pattern fills, and
+patterns for any widget.
+
+- **Pen** (P): click for corners and drag for curves. Click the first point to
+  close the shape; double-click, Enter or Esc to leave it open.
+- **Edit points:** double-click a path (or Enter) to drag its points and
+  handles. Alt-click switches a point between corner and curve, and Delete
+  removes one.
+- **Convert to path:** turns a rectangle, ellipse, polygon or star into a path
+  to reshape.
+- **Polygon** on the rail (Shift+U steps to it), and **Star** among the
+  shapes: any number of sides, and a star's inner size.
+- **Fills** for shapes and paths: a colour, a linear or radial gradient, or a
+  pattern in two colours. The patterns are stripes, checks, dots, carbon fibre
+  (a proper 2×2 twill), honeycomb, grid and brushed metal, at any size and
+  angle.
+- **Lines:** a colour or a gradient, solid, dashed, dotted or dash-dot, with
+  round, flat or square ends and round, sharp or bevelled corners.
+- **Recolor › Pattern** in every widget's Style paints it in a pattern. A
+  rectangle outline in red and white stripes makes a kerb; digits in brushed
+  metal look machined.
+- **A compact Library:** widgets are rows of icon and name instead of big
+  tiles, so the whole list scrolls about half as far.
+- Every existing dashboard draws exactly as before: all 58 template renders
+  are identical pixel for pixel.
+
 ## 3.61 · 2026-10-15
 
 The designer's new workspace, laid out like an image editor.
