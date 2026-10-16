@@ -515,6 +515,9 @@ namespace AlmostFastOverlays
                     // The dashboard's own fingerprint of everything it shows: it redraws only when that changes.
                     int? lastDrawn = null;
                     int wheelGeneration = 0, monitorGeneration = 0;
+                    // The wheel screen's connection that was last blanked by Show when (-1: none), and the black frame.
+                    int wheelBlanked = -1;
+                    System.Drawing.Bitmap blank = null;
                     MonitorOutput lastMonitor = null;
                     bool? lastTelemetryConnection = null;
                     int lastObservedGear = int.MinValue;
@@ -542,12 +545,18 @@ namespace AlmostFastOverlays
                             }
                             monitor = MonitorOutput.Follow(monitor, runtime.Settings.General, runtime.Dashboard.Name, runtime.Dashboard.ScreenSize());
                         }
-                        // Over the game: shown while iRacing runs (or a preview plays), unless it's wanted always, and
-                        // unlocked while the settings window is placing it.
-                        if (monitor != null && monitor.Mode == MonitorOutput.Overlay)
+                        // Show when (at the top of the settings window): the dashboard shows only at the chosen points in
+                        // iRacing. Before iRacing is running, and for a preview, it shows as it always has.
+                        GeneralSettings general = runtime.Settings.General;
+                        bool shown = Shown(snapshot, general);
+                        NoteHidden(shown ? (CarState?)null : snapshot.CarState);
+                        // The dashboard on the PC follows it. Over the game it also waits for iRacing (or a preview)
+                        // unless it's wanted always, and it's unlocked while the settings window is placing it.
+                        if (monitor != null)
                         {
-                            GeneralSettings general = runtime.Settings.General;
-                            monitor.Update(general.OverlayOpacity, !general.OverlayOnlyWhileRacing || snapshot.Connected, OverlayUnlock.Requested());
+                            bool overlay = monitor.Mode == MonitorOutput.Overlay;
+                            monitor.Update(general.OverlayOpacity, shown && (!overlay || !general.OverlayOnlyWhileRacing || snapshot.Connected),
+                                overlay && OverlayUnlock.Requested());
                         }
                         wheel.SetBrightness(runtime.Settings.General.ScreenBrightness);
 
@@ -608,6 +617,27 @@ namespace AlmostFastOverlays
                         if (monitor != null)
                             while (monitor.TryTakeTap(out System.Drawing.PointF share)) Tap(share.X * built.Width, share.Y * built.Height);
 
+                        // Hidden by Show when: the wheel screen goes black once, and stays so until it's shown again
+                        // (then it gets a whole frame).
+                        bool onWheel = wheel.Connected && shown;
+                        if (wheel.Connected && !shown && wheelBlanked != wheel.Generation && wheel.Ready)
+                        {
+                            System.Drawing.Size size = wheel.Size;
+                            if (blank == null || blank.Size != size)
+                            {
+                                blank?.Dispose();
+                                blank = new System.Drawing.Bitmap(size.Width, size.Height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+                                using (var g = System.Drawing.Graphics.FromImage(blank)) g.Clear(System.Drawing.Color.Black);
+                            }
+                            wheel.Submit(blank);
+                            wheelBlanked = wheel.Generation;
+                        }
+                        if (shown && wheelBlanked != -1)
+                        {
+                            wheelBlanked = -1;
+                            lastDrawn = null;
+                        }
+
                         // A screen that has just connected, or a window just opened or shown again, needs a whole frame.
                         bool showing = monitor != null && monitor.Showing;
                         if (wheel.Generation != wheelGeneration || monitor != lastMonitor || (monitor != null && monitor.Generation != monitorGeneration))
@@ -620,20 +650,20 @@ namespace AlmostFastOverlays
 
                         bool waiting = false;
                         int current = runtime.Renderer.StateHash(snapshot, shiftFlashOn, gearAnimationFrame);
-                        // Nothing to draw for when no screen shows it (no wheel screen, the window minimised, or hidden
-                        // over the game while iRacing isn't running).
-                        if ((wheel.Connected || showing) && current != lastDrawn)
+                        // Nothing to draw for when no screen shows it (no wheel screen, the window minimised, hidden by
+                        // Show when, or hidden over the game while iRacing isn't running).
+                        if ((onWheel || showing) && current != lastDrawn)
                         {
                             // Drawn only once every screen showing it can take it, so no frame is drawn just to be
                             // replaced; that also means it's the newest state when it goes.
-                            if ((!wheel.Connected || wheel.Ready) && (!showing || monitor.Ready))
+                            if ((!onWheel || wheel.Ready) && (!showing || monitor.Ready))
                             {
                                 int previousGear = gearProgress < 1 ? transitionFromGear : snapshot.Gear;
                                 long drawStart = System.Diagnostics.Stopwatch.GetTimestamp();
                                 // The renderer's own bitmap (SharedOutput): each screen copies it straight away.
                                 System.Drawing.Bitmap frame = runtime.Renderer.Render(snapshot, shiftFlashOn, previousGear, gearProgress);
                                 stats.Drawn((System.Diagnostics.Stopwatch.GetTimestamp() - drawStart) * 1000.0 / System.Diagnostics.Stopwatch.Frequency);
-                                if (wheel.Connected)
+                                if (onWheel)
                                 {
                                     // A dashboard built for another screen size is fitted to this one, never stretched.
                                     System.Drawing.Size size = wheel.Size;
@@ -671,8 +701,33 @@ namespace AlmostFastOverlays
                 finally
                 {
                     monitor?.Dispose();
+                    NoteHidden(null);
                 }
             }
+        }
+
+        /// <summary>Whether the dashboard shows now: always before iRacing runs and for previews, otherwise where Show when says.</summary>
+        internal static bool Shown(TelemetrySnapshot snapshot, GeneralSettings general) =>
+            snapshot == null || !snapshot.Connected || snapshot.IsPreview || general.ShowsAt(snapshot.CarState);
+
+        internal static readonly string HiddenPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dashboard.hidden");
+        private static CarState? _hiddenNoted;
+
+        /// <summary>
+        /// Tells the settings window when the running dashboard is hidden by Show when, and at which point in iRacing
+        /// (dashboard.hidden); written only when that changes.
+        /// </summary>
+        private static void NoteHidden(CarState? hidden)
+        {
+            if (hidden == _hiddenNoted) return;
+            _hiddenNoted = hidden;
+            try
+            {
+                if (hidden.HasValue) File.WriteAllText(HiddenPath, hidden.Value.ToString());
+                else if (File.Exists(HiddenPath)) File.Delete(HiddenPath);
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
         }
 
         /// <summary>

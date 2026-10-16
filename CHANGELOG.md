@@ -5,6 +5,28 @@ English. Every version is on the
 [releases page](https://github.com/Sota4077/almost-fast-dash/releases) with
 its exe and checksum.
 
+## 3.59 · 2026-10-15
+
+Show the dashboard only when you want it.
+
+- **Show when**, at the top next to Show on, has four on/off choices, matched
+  to what iRacing reports:
+  - **In car:** driving, or sitting in the car (in the pits too).
+  - **Out of car:** after you've got out of the car.
+  - **Garage:** on the garage and setup screen.
+  - **Spectating:** watching another driver, live or in a replay.
+- **Hidden means hidden.** Wherever a choice is off:
+  - the wheel screen goes black;
+  - a window or the dashboard over the game goes away;
+  - full screen on another display goes black.
+
+  Nothing is drawn meanwhile, so it costs nothing. The Dashboard control
+  says so, for example *Hidden · out of the car*.
+- All four start on, so nothing changes until you turn one off. Before
+  iRacing is running, and in previews, the dashboard always shows.
+- On a narrow window, the top controls wrap onto a second row instead of
+  being cut off.
+
 ## 3.58 · 2026-10-15
 
 Choose where the dashboard shows, from the top of the window.

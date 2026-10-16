@@ -112,6 +112,35 @@ namespace AlmostFastOverlays
             FillMonitors();
             ShowPcRows(mode);
             RefreshShowOn();
+            WhenInCar.IsChecked = general.ShowInCar;
+            WhenOutOfCar.IsChecked = general.ShowOutOfCar;
+            WhenGarage.IsChecked = general.ShowInGarage;
+            WhenSpectating.IsChecked = general.ShowSpectating;
+        }
+
+        /// <summary>Show when, at the top: the points in iRacing where the dashboard shows. It's hidden at the others.</summary>
+        private void ShowWhen_Click(object sender, RoutedEventArgs e)
+        {
+            if (_loading) return;
+            GeneralSettings general = _settings.General;
+            general.ShowInCar = WhenInCar.IsChecked == true;
+            general.ShowOutOfCar = WhenOutOfCar.IsChecked == true;
+            general.ShowInGarage = WhenGarage.IsChecked == true;
+            general.ShowSpectating = WhenSpectating.IsChecked == true;
+            bool any = general.ShowInCar || general.ShowOutOfCar || general.ShowInGarage || general.ShowSpectating;
+            Save(any ? null : "Saved · the dashboard is hidden all the time in iRacing now");
+        }
+
+        /// <summary>A point in iRacing, as the header says it: "out of the car".</summary>
+        private static string AtPoint(CarState state)
+        {
+            switch (state)
+            {
+                case CarState.OutOfCar: return "out of the car";
+                case CarState.Garage: return "in the garage";
+                case CarState.Spectating: return "spectating";
+                default: return "in the car";
+            }
         }
 
         private RadioButton[] ShowOnChoices => new[] { ShowWheel, ShowWindow, ShowOverlay, ShowFullScreen };

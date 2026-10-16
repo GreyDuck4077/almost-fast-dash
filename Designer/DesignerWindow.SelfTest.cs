@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -1060,6 +1060,24 @@ namespace AlmostFastOverlays
                 Check("dashboard on the PC: settings from before keep their full-screen display",
                     new GeneralSettings { MonitorDevice = @"\\.\DISPLAY2" }.EffectivePcOutput() == "FullScreen" && new GeneralSettings().EffectivePcOutput() == "Off" &&
                     new GeneralSettings { PcOutput = "Overlay", MonitorDevice = @"\\.\DISPLAY2" }.EffectivePcOutput() == "Overlay");
+                // Show when: where the driver is, from iRacing's own flags, and whether the dashboard shows there.
+                Check("show when: in the car, out of it, in the garage, or watching another driver",
+                    IRacingTelemetrySource.CarStateOf(true, false, false, 3, 3) == CarState.InCar &&
+                    IRacingTelemetrySource.CarStateOf(false, false, false, 3, 3) == CarState.OutOfCar &&
+                    IRacingTelemetrySource.CarStateOf(false, false, false, -1, 3) == CarState.OutOfCar &&
+                    IRacingTelemetrySource.CarStateOf(false, true, false, 3, 3) == CarState.Garage &&
+                    IRacingTelemetrySource.CarStateOf(false, false, false, 7, 3) == CarState.Spectating &&
+                    IRacingTelemetrySource.CarStateOf(true, false, true, 7, 3) == CarState.Spectating &&
+                    IRacingTelemetrySource.CarStateOf(true, false, true, 3, 3) == CarState.OutOfCar);
+                var onlyInCar = new GeneralSettings { ShowOutOfCar = false, ShowInGarage = false, ShowSpectating = false };
+                TelemetrySnapshot live = IRacingTelemetrySource.CreatePreviewSnapshot();
+                live.IsPreview = false;
+                live.CarState = CarState.Garage;
+                TelemetrySnapshot driving = IRacingTelemetrySource.CreatePreviewSnapshot();
+                driving.IsPreview = false;
+                Check("show when: hidden only where it's turned off, never before iRacing runs or in a preview",
+                    !Program.Shown(live, onlyInCar) && Program.Shown(driving, onlyInCar) && Program.Shown(live, new GeneralSettings()) &&
+                    Program.Shown(TelemetrySnapshot.Disconnected, onlyInCar) && Program.Shown(IRacingTelemetrySource.CreatePreviewSnapshot(), onlyInCar));
                 Check("wheel screen: see-through pixels show over black", FrameEncoder.Rgb565(0) == 0 && FrameEncoder.Rgb565(unchecked((int)0x80FFFFFF)) == FrameEncoder.Rgb565(unchecked((int)0xFF808080)) &&
                     FrameEncoder.Rgb565(unchecked((int)0xFF3366CC)) == (ushort)((0x33 >> 3) << 11 | (0x66 >> 2) << 5 | (0xCC >> 3)));
 

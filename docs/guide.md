@@ -127,6 +127,21 @@ programs can use it. Your LED devices keep working either way. You don't need
 a wheel screen at all. The settings for each are at the bottom of the
 **Devices** page.
 
+**Show when**, next to it, chooses when it shows in iRacing. Turn each on or
+off:
+
+- **In car:** driving, or sitting in the car (in the pits too).
+- **Out of car:** after you've got out of the car.
+- **Garage:** on the garage and setup screen.
+- **Spectating:** watching another driver, live or in a replay.
+
+Anywhere it's off, the dashboard is hidden: the wheel screen goes black, a
+window or the dashboard over the game goes away, and full screen on another
+display goes black. Nothing is drawn while it's hidden. The Dashboard control
+at the top then says so, for example **Hidden · out of the car**. Before
+iRacing is running, and in previews, it always shows. All four are on until
+you change them.
+
 ### The wheel screen
 
 The app drives VoCore's M-PRO USB screens directly. Each one reports its model

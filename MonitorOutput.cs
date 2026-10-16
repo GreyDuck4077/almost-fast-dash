@@ -66,7 +66,9 @@ namespace AlmostFastOverlays
         // What changed since the window last showed a frame, and whether it needs the whole frame next.
         private DrawingRectangle _dirty;
         private bool _whole = true;
-        private volatile bool _queued, _showing, _closing;
+        private volatile bool _queued, _closing;
+        // Wanted on screen (Show when, and over the game while racing), and minimised (a window only).
+        private volatile bool _wanted, _minimised;
         private bool _unlocked;
         private int _opacity = 100;
         private string _title;
@@ -80,7 +82,7 @@ namespace AlmostFastOverlays
             _aspect = dashboard.Width > 0 && dashboard.Height > 0 ? (double)dashboard.Width / dashboard.Height : 16 / 9.0;
             _title = title;
             // Over the game it waits to be shown, so it never flashes up over the desktop.
-            _showing = mode != Overlay;
+            _wanted = mode != Overlay;
             DrawingRectangle place = mode == FullScreen ? display.Bounds : WindowPlacement.Resolve(WindowPlacement.Load(mode), mode, dashboard,
                 System.Windows.Forms.Screen.AllScreens.Select(s => s.Bounds).ToArray(), System.Windows.Forms.Screen.PrimaryScreen.WorkingArea);
             _place = place;
@@ -99,8 +101,11 @@ namespace AlmostFastOverlays
         /// <summary>The size of the dashboard it was made for; another shape needs another window.</summary>
         public DrawingSize DashboardSize { get; }
 
-        /// <summary>On screen now. Over the game it hides while iRacing isn't running, unless asked otherwise.</summary>
-        public bool Showing => _showing;
+        /// <summary>
+        /// On screen now: not hidden by Show when (or, over the game, while iRacing isn't running), and not a
+        /// minimised window. Nothing is drawn for it otherwise.
+        /// </summary>
+        public bool Showing => _wanted && !_minimised;
 
         /// <summary>Goes up each time it shows again after hiding: the moment it needs a whole frame.</summary>
         public int Generation { get; private set; }
@@ -131,21 +136,27 @@ namespace AlmostFastOverlays
         }
 
         /// <summary>
-        /// Over the game: how opaque (30 to 100), whether it's on screen, and whether it's unlocked to be moved and
-        /// resized (then it takes the mouse, and shows a frame and a corner to drag). Cheap when nothing changed.
+        /// Whether it's on screen (a window or over the game goes away while hidden; full screen goes black), and over
+        /// the game how opaque (30 to 100) and whether it's unlocked to be moved and resized (then it takes the
+        /// mouse, and shows a frame and a corner to drag). Cheap when nothing changed.
         /// </summary>
         public void Update(int opacity, bool show, bool unlocked)
         {
-            if (Mode != Overlay || _dispatcher == null) return;
+            if (_dispatcher == null) return;
+            if (Mode != Overlay)
+            {
+                opacity = 100;
+                unlocked = false;
+            }
             opacity = Math.Max(30, Math.Min(100, opacity));
             show |= unlocked;
-            if (opacity == _opacity && show == _showing && unlocked == _unlocked) return;
-            bool appearing = show && !_showing;
+            if (opacity == _opacity && show == _wanted && unlocked == _unlocked) return;
+            bool was = Showing;
             _opacity = opacity;
             _unlocked = unlocked;
-            _showing = show;
-            if (appearing) Appear();
-            _dispatcher.BeginInvoke(new Action(() => ApplyOverlay(opacity, show, unlocked)));
+            _wanted = show;
+            if (!was && Showing) Appear();
+            _dispatcher.BeginInvoke(new Action(() => Apply(opacity, show, unlocked)));
         }
 
         /// <summary>Shown again (or restored): it gets the whole of the next frame, as nothing was copied while it was away.</summary>
@@ -161,7 +172,7 @@ namespace AlmostFastOverlays
         /// </summary>
         public void Submit(DrawingBitmap frame, DrawingRectangle changed)
         {
-            if (_dispatcher == null || !_showing) return;
+            if (_dispatcher == null || !Showing) return;
             lock (_gate)
             {
                 int count = frame.Width * frame.Height;
@@ -236,9 +247,9 @@ namespace AlmostFastOverlays
                     // Minimised, nobody sees it: no need to draw for it.
                     _window.StateChanged += (s, e) =>
                     {
-                        bool showing = _window.WindowState != WindowState.Minimized;
-                        if (showing && !_showing) Appear();
-                        _showing = showing;
+                        bool was = Showing;
+                        _minimised = _window.WindowState == WindowState.Minimized;
+                        if (!was && Showing) Appear();
                     };
                     break;
                 default:
@@ -456,9 +467,24 @@ namespace AlmostFastOverlays
                 SetWindowPos(_handle, IntPtr.Zero, 0, 0, newWidth, newHeight, NoActivateMove | NoMove | NoZOrder);
         }
 
-        private void ApplyOverlay(int opacity, bool show, bool unlocked)
+        private void Apply(int opacity, bool show, bool unlocked)
         {
             if (_window == null || _handle == IntPtr.Zero) return;
+            switch (Mode)
+            {
+                case FullScreen:
+                    // A display of its own (a dash screen): black while hidden, rather than the desktop.
+                    _image.Visibility = show ? Visibility.Visible : Visibility.Hidden;
+                    return;
+                case Windowed:
+                    if (show && !_window.IsVisible)
+                    {
+                        _window.Show();
+                        Place();
+                    }
+                    else if (!show && _window.IsVisible) HideInPlace();
+                    return;
+            }
             _image.Opacity = opacity / 100.0;
             _placing.Visibility = unlocked ? Visibility.Visible : Visibility.Collapsed;
             int style = GetWindowLong(_handle, ExStyle);
@@ -480,16 +506,21 @@ namespace AlmostFastOverlays
                     SetLayeredWindowAttributes(_handle, 0, 255, LayeredAlpha);
                 }
             }
-            else if (!show && _window.IsVisible)
+            else if (!show && _window.IsVisible) HideInPlace();
+            if (show) SetWindowPos(_handle, TopMost, 0, 0, 0, 0, NoActivateMove | NoMove | NoSize | ShowWindow);
+        }
+
+        /// <summary>Hidden where it is: it comes back to the same place.</summary>
+        private void HideInPlace()
+        {
+            if (_window.WindowState == WindowState.Normal)
             {
-                // Hidden where it is: it comes back to the same place.
                 GetClientRect(_handle, out Rect32 client);
                 var corner = new Point32();
                 ClientToScreen(_handle, ref corner);
                 if (client.Right > 0) _place = new DrawingRectangle(corner.X, corner.Y, client.Right, client.Bottom);
-                _window.Hide();
             }
-            if (show) SetWindowPos(_handle, TopMost, 0, 0, 0, 0, NoActivateMove | NoMove | NoSize | ShowWindow);
+            _window.Hide();
         }
 
         private void Present()

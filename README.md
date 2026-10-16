@@ -47,7 +47,8 @@
 - **Any screen, no wheel screen needed.** Drive a VoCore M-PRO wheel screen
   directly, show the dashboard in a window on any monitor, float it over the
   game, or put it full screen on an HDMI dash screen. On the PC, the graphics
-  card scales and composes it, and only the changed parts are copied.
+  card scales and composes it, and only the changed parts are copied. Show it
+  only when you want it: in the car, out of it, in the garage or spectating.
 - **Free and open.** GPL-3.0, with no account, no ads and no tracking.
 
 ## Dashboards

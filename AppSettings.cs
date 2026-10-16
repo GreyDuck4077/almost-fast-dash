@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
@@ -551,6 +551,24 @@ namespace AlmostFastOverlays
 
         /// <summary>Over the game, the dashboard shows only while iRacing is running (and while it's being placed or previewed).</summary>
         public bool OverlayOnlyWhileRacing { get; set; } = true;
+
+        /// <summary>Where in iRacing the dashboard shows (Show when, at the top). Hidden elsewhere: the wheel screen black, the PC window away.</summary>
+        public bool ShowInCar { get; set; } = true;
+        public bool ShowOutOfCar { get; set; } = true;
+        public bool ShowInGarage { get; set; } = true;
+        public bool ShowSpectating { get; set; } = true;
+
+        /// <summary>Whether the dashboard shows at this point in iRacing.</summary>
+        public bool ShowsAt(CarState state)
+        {
+            switch (state)
+            {
+                case CarState.OutOfCar: return ShowOutOfCar;
+                case CarState.Garage: return ShowInGarage;
+                case CarState.Spectating: return ShowSpectating;
+                default: return ShowInCar;
+            }
+        }
         public string SpeedUnit { get; set; } = "MPH";
         public string FuelUnit { get; set; } = "Liters";
         /// <summary>"Celsius" or "Fahrenheit"; empty follows the speed unit (km/h gives Celsius), as before it could be chosen.</summary>

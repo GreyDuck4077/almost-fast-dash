@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace AlmostFastOverlays
@@ -59,6 +59,19 @@ namespace AlmostFastOverlays
         public string License { get; set; }
         public System.Drawing.Color LicenseColor { get; set; } = System.Drawing.Color.Gray;
         public int IRating { get; set; }
+    }
+
+    /// <summary>Where the driver is in iRacing, for showing the dashboard only at some of them.</summary>
+    internal enum CarState
+    {
+        /// <summary>Driving, or sitting in the car (in the pits too).</summary>
+        InCar,
+        /// <summary>Got out of the car: in the sim's menus, or watching yourself.</summary>
+        OutOfCar,
+        /// <summary>On the garage and setup screen.</summary>
+        Garage,
+        /// <summary>Watching another driver, live or in a replay.</summary>
+        Spectating
     }
 
     internal sealed class TelemetrySnapshot
@@ -216,6 +229,9 @@ namespace AlmostFastOverlays
         public bool AbsActive { get; set; }
         /// <summary>True when connected but the driver isn't driving: out of the car, or watching a replay.</summary>
         public bool OutOfCar { get; set; }
+
+        /// <summary>In the car, out of it, in the garage, or watching another driver.</summary>
+        public CarState CarState { get; set; }
 
         /// <summary>What the LEDs follow: nothing while out of the car or in a replay, so they go dark instead of replaying alerts.</summary>
         public TelemetrySnapshot ForLights() => Connected && OutOfCar ? Disconnected : this;
@@ -783,6 +799,9 @@ namespace AlmostFastOverlays
                 _latest.AbsActive = sample.Telemetry["BrakeABSactive"] is bool abs && abs;
                 _latest.OutOfCar = (sample.Telemetry["IsOnTrack"] is bool onTrack && !onTrack) ||
                     (sample.Telemetry["IsReplayPlaying"] is bool replay && replay);
+                _latest.CarState = CarStateOf(sample.Telemetry["IsOnTrack"] is bool inCar && inCar, sample.Telemetry["IsInGarage"] is bool garage && garage,
+                    sample.Telemetry["IsReplayPlaying"] is bool replaying && replaying,
+                    sample.Telemetry["CamCarIdx"] == null ? -1 : ReadTelemetryInt(sample.Telemetry, "CamCarIdx"), ReadTelemetryInt(sample.Telemetry, "PlayerCarIdx"));
                 SessionData session = sample.Telemetry.SessionData;
                 if (session != null)
                 {
@@ -1321,6 +1340,17 @@ namespace AlmostFastOverlays
         {
             try { return telemetry[name] as float[]; }
             catch { return null; }
+        }
+
+        /// <summary>
+        /// Where the driver is, from iRacing's IsOnTrack (in the car with its physics running), IsInGarage (the
+        /// garage screen), IsReplayPlaying and CamCarIdx (the car the camera follows).
+        /// </summary>
+        internal static CarState CarStateOf(bool onTrack, bool inGarage, bool replay, int cameraCar, int playerCar)
+        {
+            if (inGarage) return CarState.Garage;
+            if (onTrack && !replay) return CarState.InCar;
+            return cameraCar >= 0 && cameraCar != playerCar ? CarState.Spectating : CarState.OutOfCar;
         }
 
         private static int ReadTelemetryInt(Telemetry telemetry, string name)

@@ -80,20 +80,20 @@
         <!-- ================= Main ================= -->
         <Grid Grid.Column="1">
             <Grid.RowDefinitions>
-                <RowDefinition Height="64"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition/>
             </Grid.RowDefinitions>
 
-            <!-- Header: whether the dashboard is running, start, restart or stop, and where it shows. -->
-            <Border BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,0,0,1">
+            <!-- Header: whether the dashboard is running, start, restart or stop, where it shows and when. On a narrow
+                 window the controls wrap onto a second row rather than being cut off. -->
+            <Border BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,0,0,1" MinHeight="64">
                 <Grid Margin="32,0,24,0">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <Border x:Name="StatusPill" Style="{StaticResource RunControl}">
+                    <WrapPanel VerticalAlignment="Center">
+                    <Border x:Name="StatusPill" Style="{StaticResource RunControl}" Margin="0,11,14,11">
                         <StackPanel Orientation="Horizontal">
                             <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="{StaticResource Brush.TextTertiary}" VerticalAlignment="Center" Margin="2,0,10,0"/>
                             <StackPanel VerticalAlignment="Center" MinWidth="128">
@@ -110,7 +110,7 @@
                         </StackPanel>
                     </Border>
                     <!-- Where the dashboard shows: the wheel screen or the PC, one at a time (SettingsWindow.Screens.cs) -->
-                    <Border Grid.Column="1" Style="{StaticResource RunControl}" Padding="14,4,4,4" Margin="14,0,0,0">
+                    <Border Style="{StaticResource RunControl}" Padding="14,4,4,4" Margin="0,11,14,11">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="Show on" FontSize="12" Foreground="{StaticResource Brush.TextSecondary}" VerticalAlignment="Center" Margin="0,0,8,0"/>
                             <RadioButton x:Name="ShowWheel" Style="{StaticResource PillSegment}" GroupName="ShowOn" Content="Wheel screen" Tag="Off" Checked="ShowOn_Changed" ToolTipService.ShowOnDisabled="True"/>
@@ -125,7 +125,18 @@
                             </Button>
                         </StackPanel>
                     </Border>
-                    <StackPanel x:Name="SavedIndicator" Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Opacity="0">
+                    <!-- When it shows: at which points in iRacing; hidden at the others (SettingsWindow.Screens.cs) -->
+                    <Border Style="{StaticResource RunControl}" Padding="14,4,4,4" Margin="0,11,0,11">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Show when" FontSize="12" Foreground="{StaticResource Brush.TextSecondary}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <ToggleButton x:Name="WhenInCar" Style="{StaticResource PillToggle}" Content="In car" Click="ShowWhen_Click" ToolTip="Driving, or sitting in the car"/>
+                            <ToggleButton x:Name="WhenOutOfCar" Style="{StaticResource PillToggle}" Content="Out of car" Click="ShowWhen_Click" ToolTip="After you've got out of the car"/>
+                            <ToggleButton x:Name="WhenGarage" Style="{StaticResource PillToggle}" Content="Garage" Click="ShowWhen_Click" ToolTip="On the garage and setup screen"/>
+                            <ToggleButton x:Name="WhenSpectating" Style="{StaticResource PillToggle}" Content="Spectating" Click="ShowWhen_Click" ToolTip="Watching another driver, live or in a replay"/>
+                        </StackPanel>
+                    </Border>
+                    </WrapPanel>
+                    <StackPanel x:Name="SavedIndicator" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Opacity="0">
                         <TextBlock Style="{StaticResource T.Icon}" Text="&#xE73E;" FontSize="12" Foreground="{StaticResource Brush.Success}" Margin="0,0,6,0"/>
                         <TextBlock x:Name="SavedText" Text="Saved" Style="{StaticResource T.Caption}" VerticalAlignment="Center"/>
                     </StackPanel>

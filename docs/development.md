@@ -83,6 +83,12 @@ own assemblies.
   - The dashboard shows in one place: `ScreenSender` blanks and releases the
     wheel screen while `PcOutput` is anything but Off, and `MonitorOutput`
     closes when it's Off.
+  - Show when: `IRacingTelemetrySource.CarStateOf` reads where the driver is
+    from `IsInGarage`, `IsOnTrack`, `IsReplayPlaying` and `CamCarIdx`.
+    `Program.Shown` decides with `GeneralSettings.ShowsAt`. When hidden, the
+    loop sends the wheel screen one black frame and draws nothing, and
+    `MonitorOutput.Update` hides the window (full screen goes black). The run
+    process notes the hidden point in `dashboard.hidden` for the header.
   - Only the running dashboard writes `dashboard.window`. The settings window
     unlocks the overlay by keeping `overlay.unlock` fresh, the way
     `preview.request` works, so the overlay can't be left unlocked.
