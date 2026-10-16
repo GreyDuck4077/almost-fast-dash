@@ -274,6 +274,7 @@
             <Border HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,14" Background="{StaticResource Brush.SurfaceRaised}"
                     BorderBrush="{StaticResource Brush.BorderStrong}" BorderThickness="1" CornerRadius="10" Padding="6,4">
                 <StackPanel Orientation="Horizontal">
+                    <ToggleButton x:Name="RulersToggle" Style="{StaticResource ToolToggle}" Content="Rulers" ToolTip="Rulers along the canvas; drag from them for guides that widgets snap to (Ctrl+R)" Click="RulersToggle_Click"/>
                     <ToggleButton x:Name="GridToggle" Style="{StaticResource ToolToggle}" Content="Grid" IsChecked="True" ToolTip="Show the layout grid" Click="ViewOption_Click"/>
                     <ToggleButton x:Name="SnapToggle" Style="{StaticResource ToolToggle}" Content="Snap" IsChecked="True" ToolTip="Snap to the grid, the canvas and other widgets (hold Alt to bypass)" Click="ViewOption_Click"/>
                     <ToggleButton x:Name="OutlineToggle" Style="{StaticResource ToolToggle}" Content="Outlines" ToolTip="Outline every widget" Click="ViewOption_Click"/>

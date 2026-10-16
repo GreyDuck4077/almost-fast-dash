@@ -239,6 +239,11 @@ The workspace is laid out like an image editor:
   multi-select. Widgets snap to edges and centres (hold Alt to stop snapping),
   and Ctrl+wheel zooms. Shift+2 zooms to the selection, and Shift+1 (or
   Ctrl+0) fits the whole screen.
+- **Rulers and guides** (Rulers below the canvas, or Ctrl+R). Drag from a
+  ruler onto the canvas for a guide: it snaps to the screen's edges and middle
+  and to widgets as it goes (Alt stops it). Widgets snap to guides as they
+  move. Drag a guide back onto its ruler to remove it, or right-click a ruler
+  to clear them all. Guides are kept with the design.
 - **Properties** on the right: every property of the selected widget, or the
   screen's own settings when nothing is selected. **Theme** sits beside it.
 - **Layers** below Properties, always there, with the top layer first:
@@ -320,6 +325,14 @@ The workspace is laid out like an image editor:
     formulas only, nothing that can run on a PC, so it's safe to pass around.
   - Right-click a module to edit its details or delete it (it goes to the
     Recycle Bin). Blocks saved by earlier versions are listed here too.
+  - **Options** make a module easy to adapt. Right-click a setting's name in
+    Properties › **Make this an option…**, and name it, such as "Colour" or
+    "Red from". Right-click other settings to link them to it too. Select the
+    group and its options are at the top of Properties: change one and every
+    linked setting follows. Saved as a module, the options are what people
+    change when they use it. Formulas read them as `option("Name")`.
+
+  ![Rulers, guides, and a tach's options](images/app-options.png)
 
   ![Modules in the Library, and a placed module's colours](images/app-modules.png)
 - **Restyling a selection** (several widgets, a group or a placed module):

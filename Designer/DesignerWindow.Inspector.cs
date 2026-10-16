@@ -190,6 +190,7 @@ namespace AlmostFastOverlays
         {
             Inspector.Children.Add(Heading(_selection.Count + " widgets"));
             Inspector.Children.Add(Caption("Drag to move them together. Align and distribute below."));
+            if (SelectionIsOneGroup(out _)) AddModuleOptions(_selection[0]);
             Inspector.Children.Add(SectionTitle("Align"));
             Inspector.Children.Add(AlignBar(true));
             Inspector.Children.Add(SectionTitle("Distribute and match"));
@@ -374,6 +375,7 @@ namespace AlmostFastOverlays
             if (!string.IsNullOrEmpty(widget.Group))
                 Inspector.Children.Add(Caption("In " + widget.GroupName + (widget.Slot != 0 ? " (Slot " + widget.Slot.ToString("0.##", CultureInfo.InvariantCulture) + ")" : "") +
                     ". Click the group on the canvas to select all of it.", 6));
+            AddModuleOptions(widget);
             // A tap zone, or a widget that shows on one of its views: flip the preview through the views here,
             // as a tap on a touch screen would.
             string tapName = widget.Get("tapName", "")?.Trim();
@@ -531,6 +533,8 @@ namespace AlmostFastOverlays
                 Foreground = (Brush)FindResource(raw == def.Default ? "Brush.TextSecondary" : "Brush.Text"), TextWrapping = TextWrapping.Wrap,
                 ToolTip = def.Help
             };
+            // Right-click a setting's name to make it a module option, or to link it to one.
+            if (together == null && (label.ContextMenu = OptionMenu(widget, def)) != null) label.Background = Brushes.Transparent;
             row.Children.Add(label);
 
             void Apply(string value, bool structural = false)

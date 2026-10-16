@@ -1520,6 +1520,56 @@ namespace AlmostFastOverlays
                     string.Join(", ", rows.Select(s => s[0].GroupName + " " + s[0].Slot + " at " + s[0].Y)));
             }
 
+            // ---------------- module options, and guides
+            {
+                var optioned = new DashLayout { Width = 60, Height = 40 };
+                optioned.Theme.BackgroundStyle = "None";
+                optioned.Screens.Add(new DashScreen { Name = "Main" });
+                DashWidget paint = WidgetCatalog.Create("shape", 0, 0), label = WidgetCatalog.Create("text", 30, 0);
+                paint.W = 30; paint.H = 40; paint.Set("strokeWidth", "0"); paint.Set("radius", "0"); paint.Set("fill", ModuleOptions.Formula("Paint"));
+                label.W = 30; label.H = 40; label.Set("size", ModuleOptions.Formula("Size")); label.Set("text", "8");
+                foreach (DashWidget w in new[] { paint, label }) { w.Group = "g-options"; w.GroupName = "Gauge"; optioned.Screens[0].Widgets.Add(w); }
+                ModuleOptions.Set(optioned.Screens[0].Widgets, "Paint", "#FF0000");
+                ModuleOptions.Set(optioned.Screens[0].Widgets, "Size", "20");
+                EvalScope optionScope = new EvalScope { T = IRacingTelemetrySource.CreatePreviewSnapshot(), Accent = "#2DD4BF" };
+                object size = Expr.Evaluate("option(\"Size\") * 2", LayoutRenderer.ForWidget(optionScope, label));
+                Check("options: option() reads the group's value, as a number when it is one", Expr.Num(size) == 40, Expr.Text(size));
+
+                System.Drawing.Color before, after;
+                using (var renderer = new LayoutRenderer(60, 40, new DashboardSettings { Layout = Layouts.Custom, Design = optioned }, _units) { FixedNow = TestNow, FlagClock = 0 })
+                {
+                    using (System.Drawing.Bitmap frame = renderer.Render(optionScope.T, false, 4, 1, optioned.Screens[0])) before = frame.GetPixel(10, 20);
+                    ModuleOptions.Set(optioned.Screens[0].Widgets, "Paint", "accent");
+                    using (System.Drawing.Bitmap frame = renderer.Render(optionScope.T, false, 4, 1, optioned.Screens[0])) after = frame.GetPixel(10, 20);
+                }
+                Check("options: changing an option redraws what's linked to it, theme colours included",
+                    before.R > 240 && before.G < 20 && after.G > 180 && after.R < 80, before + " → " + after);
+
+                DashLayout.ScaleWidgets(optioned.Screens[0].Widgets, 2, 2);
+                Check("options: an option linked to a size scales with the module, on every widget of the group",
+                    paint.Get(ModuleOptions.Prefix + "Size") == "40" && label.Get(ModuleOptions.Prefix + "Size") == "40" && label.Get(ModuleOptions.Prefix + "Paint") == "accent",
+                    paint.Get(ModuleOptions.Prefix + "Size") + " " + label.Get(ModuleOptions.Prefix + "Size"));
+                ModuleOptions.Remove(optioned.Screens[0].Widgets, "Paint");
+                Check("options: ending an option leaves its settings with its value", paint.Get("fill") == "accent" && paint.Get(ModuleOptions.Prefix + "Paint") == null && label.Get(ModuleOptions.Prefix + "Paint") == null,
+                    paint.Get("fill"));
+
+                // Guides: widgets snap to them, and they move with the screen size.
+                // At 100%, where snapping reaches 6 pixels, on an empty screen so only the guide is near.
+                double zoom = _zoom;
+                SetZoom(1);
+                List<DashWidget> keep = _screen.Widgets.ToList();
+                _screen.Widgets.Clear();
+                _layout.GuidesX.Add(333);
+                double nudge = SnapAxis(new[] { 331.0 }, true, new System.Windows.Rect(331, 0, 10, 10));
+                _layout.GuidesX.Remove(333);
+                _screen.Widgets.AddRange(keep);
+                SetZoom(zoom);
+                var sized = new DashLayout { Width = 800, Height = 480, GuidesX = new List<double> { 400 }, GuidesY = new List<double> { 120 } };
+                sized.ScaleTo(1600, 960);
+                Check("guides: widgets snap to a guide, and guides follow the screen to a new size",
+                    Math.Abs(nudge - 2) < 0.001 && sized.GuidesX[0] == 800 && sized.GuidesY[0] == 240, nudge + " " + sized.GuidesX[0] + " " + sized.GuidesY[0]);
+            }
+
             // ---------------- the formula reference
             {
                 // It's made from the live lists, so it covers everything; these keep its own parts complete and working.

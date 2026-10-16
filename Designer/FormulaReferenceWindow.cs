@@ -56,6 +56,7 @@ namespace AlmostFastOverlays
             { "lastsectortime", "lastsectortime(1)" },
             { "bestsectortime", "bestsectortime(1)" },
             { "tap", "tap(\"fuel\") == 1" },
+            { "option", "option(\"Redline\") * 1000" },
             { "tyre", "tyre(\"LF\", \"Temp\")" }
         };
 

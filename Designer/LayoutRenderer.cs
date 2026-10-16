@@ -833,9 +833,15 @@ namespace AlmostFastOverlays
             }
         }
 
-        /// <summary>A grouped widget sees its group's number as Slot.</summary>
-        internal static EvalScope ForWidget(EvalScope scope, DashWidget widget) =>
-            string.IsNullOrEmpty(widget.Group) ? scope : scope.WithSlot(widget.Slot);
+        /// <summary>A grouped widget sees its group's number as Slot, and its module options.</summary>
+        internal static EvalScope ForWidget(EvalScope scope, DashWidget widget)
+        {
+            if (string.IsNullOrEmpty(widget.Group)) return scope;
+            if (widget.Props != null)
+                foreach (string key in widget.Props.Keys)
+                    if (key.StartsWith(ModuleOptions.Prefix, StringComparison.Ordinal)) return scope.ForGroup(widget);
+            return scope.WithSlot(widget.Slot);
+        }
 
         private readonly Dictionary<string, GraphHistory> _graphs = new Dictionary<string, GraphHistory>();
 

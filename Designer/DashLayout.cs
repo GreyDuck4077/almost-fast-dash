@@ -50,6 +50,10 @@ namespace AlmostFastOverlays
         /// <summary>Embedded PNG images by id, base64 encoded, so a design is one self-contained file.</summary>
         public Dictionary<string, string> Images { get; set; } = new Dictionary<string, string>();
 
+        /// <summary>The designer's guides, in the screen's pixels: lines down the screen at these x, and across it at these y.</summary>
+        public List<double> GuidesX { get; set; } = new List<double>();
+        public List<double> GuidesY { get; set; } = new List<double>();
+
         /// <summary>
         /// Moves the design to another screen size, scaling everything on it to match. Positions and sizes
         /// follow the screen's width and height. Text, line widths, corners and glows follow the smaller of
@@ -63,7 +67,10 @@ namespace AlmostFastOverlays
             width = ScreenSizes.Clamp(width);
             height = ScreenSizes.Clamp(height);
             if (width == Width && height == Height) return;
-            ScaleWidgets(AllWidgets(), width / (double)Math.Max(1, Width), height / (double)Math.Max(1, Height));
+            double sx = width / (double)Math.Max(1, Width), sy = height / (double)Math.Max(1, Height);
+            ScaleWidgets(AllWidgets(), sx, sy);
+            if (GuidesX != null) GuidesX = GuidesX.Select(x => Math.Round(x * sx, 1)).ToList();
+            if (GuidesY != null) GuidesY = GuidesY.Select(y => Math.Round(y * sy, 1)).ToList();
             Width = width;
             Height = height;
         }
@@ -71,8 +78,20 @@ namespace AlmostFastOverlays
         /// <summary>Scales widgets' places and boxes by <paramref name="sx"/> and <paramref name="sy"/>, and their text, lines and glows by the smaller.</summary>
         public static void ScaleWidgets(IEnumerable<DashWidget> widgets, double sx, double sy)
         {
+            List<DashWidget> list = widgets.ToList();
             double s = Math.Min(sx, sy);
-            foreach (DashWidget widget in widgets)
+            // A module option linked to a size (a text size, a line width) is a size too, scaled the same on every
+            // widget of its group: by group and option name, whether it's a text size.
+            const string linked = "=option(\"";
+            var sizedOptions = new Dictionary<string, bool>();
+            foreach (DashWidget widget in list)
+                foreach (KeyValuePair<string, string> prop in widget.Props)
+                    if (prop.Value != null && prop.Value.StartsWith(linked) && prop.Value.EndsWith("\")") && WidgetCatalog.IsPixelSize(widget.Type, prop.Key))
+                    {
+                        string option = widget.Group + "|" + prop.Value.Substring(linked.Length, prop.Value.Length - linked.Length - 2);
+                        sizedOptions[option] = TextSizes.Contains(prop.Key) || (sizedOptions.TryGetValue(option, out bool text) && text);
+                    }
+            foreach (DashWidget widget in list)
             {
                 widget.X = Math.Round(widget.X * sx);
                 widget.Y = Math.Round(widget.Y * sy);
@@ -81,14 +100,21 @@ namespace AlmostFastOverlays
                 foreach (string key in widget.Props.Keys.ToList())
                 {
                     string raw = widget.Props[key];
-                    if (!WidgetCatalog.IsPixelSize(widget.Type, key) || raw == null || raw.StartsWith("=")) continue;
+                    bool textSize;
+                    if (key.StartsWith(ModuleOptions.Prefix))
+                    {
+                        if (!sizedOptions.TryGetValue(widget.Group + "|" + key.Substring(ModuleOptions.Prefix.Length), out textSize)) continue;
+                    }
+                    else if (WidgetCatalog.IsPixelSize(widget.Type, key)) textSize = TextSizes.Contains(key);
+                    else continue;
+                    if (raw == null || raw.StartsWith("=")) continue;
                     if (!double.TryParse(raw, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double value)) continue;
                     // Negative values are settings such as "round" corners, not sizes.
                     if (value <= 0) continue;
                     double scaled = value * s;
                     // Text stays readable on a small screen: it doesn't shrink below 10 px (smaller text that was
                     // designed that way stays as it was). Shrink to fit still keeps it inside its box.
-                    if (TextSizes.Contains(key)) scaled = Math.Max(scaled, Math.Min(value, MinReadableText));
+                    if (textSize) scaled = Math.Max(scaled, Math.Min(value, MinReadableText));
                     widget.Props[key] = (scaled >= 10 ? Math.Round(scaled) : Math.Round(scaled, 1)).ToString(System.Globalization.CultureInfo.InvariantCulture);
                 }
             }
@@ -103,6 +129,8 @@ namespace AlmostFastOverlays
             if (Screens == null) Screens = new List<DashScreen>();
             if (Screens.Count == 0) Screens.Add(new DashScreen { Name = "Main" });
             if (Images == null) Images = new Dictionary<string, string>();
+            if (GuidesX == null) GuidesX = new List<double>();
+            if (GuidesY == null) GuidesY = new List<double>();
             foreach (DashScreen screen in Screens) screen.Normalize();
             // Images no widget uses any more (removed, or replaced) would otherwise stay in the design for good.
             if (Images.Count > 0)

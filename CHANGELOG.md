@@ -5,6 +5,19 @@ English. Every version is on the
 [releases page](https://github.com/Sota4077/almost-fast-dash/releases) with
 its exe and checksum.
 
+## 3.66 · 2026-10-16
+
+Rulers and guides, and options for modules.
+
+- **Rulers** along the canvas (Rulers below it, or Ctrl+R), marking the
+  selection and the pointer. **Guides** drag out of them, snap as they go, and
+  widgets snap to them. Drag one back to its ruler to remove it. Guides are
+  kept with the design and follow it to a new screen size.
+- **Module options:** right-click a setting's name › Make this an option…, and
+  link other settings to it. With the group selected, its options are at the
+  top of Properties, and every linked setting follows a change. Formulas read
+  them as `option("Name")`. An option that's a size scales with the module.
+
 ## 3.65 · 2026-10-16
 
 Repeat, zoom to the selection, and an eyedropper.

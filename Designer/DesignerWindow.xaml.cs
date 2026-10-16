@@ -108,6 +108,7 @@ namespace AlmostFastOverlays
 
             PreviewKeyDown += Window_PreviewKeyDown;
             InitTools();
+            InitGuides();
             Loaded += (s, e) => { ZoomFit(); RenderNow(); Overlay.Focus(); };
             Closing += Window_Closing;
             Closed += (s, e) => { StopLive(); _animationTimer.Stop(); _renderer?.Dispose(); };
@@ -452,6 +453,7 @@ namespace AlmostFastOverlays
                 Overlay.Children.Add(size2);
             }
 
+            AddGuideLines();
             foreach (Tuple<Point, Point> guide in _guides)
                 Overlay.Children.Add(new Line
                 {
@@ -797,6 +799,8 @@ namespace AlmostFastOverlays
             }
             if (_clipboard != null) menu.Items.Add(MenuItem("Paste", "Ctrl+V", () => Paste(p)));
             menu.Items.Add(MenuItem("Select all", "Ctrl+A", SelectAll));
+            if (_layout.GuidesX.Count + _layout.GuidesY.Count > 0) menu.Items.Add(MenuItem("Clear guides", null, ClearGuides));
+            menu.Items.Add(MenuItem(_rulersOn ? "Hide rulers" : "Show rulers", "Ctrl+R", () => ShowRulers(!_rulersOn)));
             menu.IsOpen = true;
         }
 
@@ -938,6 +942,7 @@ namespace AlmostFastOverlays
         {
             double threshold = 6 * Px;
             var targets = new List<double> { 0, horizontal ? CanvasW / 2 : CanvasH / 2, horizontal ? CanvasW : CanvasH };
+            targets.AddRange(horizontal ? _layout.GuidesX : _layout.GuidesY);
             foreach (DashWidget other in _screen.Widgets)
             {
                 if (other.Hidden || _selection.Contains(other)) continue;
@@ -1638,6 +1643,7 @@ namespace AlmostFastOverlays
                 case Key.A when ctrl: SelectAll(); break;
                 case Key.L when ctrl: ToggleLock(); break;
                 case Key.M when ctrl: SaveSelectionAsModule(); break;
+                case Key.R when ctrl: ShowRulers(!_rulersOn); break;
                 case Key.D0 when ctrl: ZoomFit(); break;
                 case Key.OemPlus when ctrl: SetZoom(_zoom * 1.25); break;
                 case Key.OemMinus when ctrl: SetZoom(_zoom / 1.25); break;
@@ -1653,7 +1659,30 @@ namespace AlmostFastOverlays
             DashWidget Find(string name) => _screen.Widgets.FirstOrDefault(w => w.Name == name);
             if (scenario.Contains("theme")) TabTheme.IsChecked = true;
 
-            if (scenario.Contains("repeat"))
+            if (scenario.Contains("options"))
+            {
+                // Rulers and guides, and a tach whose colour and redline are options set in one place.
+                _screen.Widgets.Clear();
+                List<DashWidget> tach = DesignBlocks.BuiltIn().First(b => b.Name == "Tach dial").Create();
+                string id = DashScreen.NewId("g");
+                foreach (DashWidget w in tach) { w.X += 277; w.Y += 90; w.Group = id; w.GroupName = "Tach"; _screen.Widgets.Add(w); }
+                ModuleOptions.Set(tach, "Colour", "#FF7A00");
+                ModuleOptions.Set(tach, "Red from", "0.85");
+                tach[0].Set("color", ModuleOptions.Formula("Colour"));
+                tach[0].Set("dangerAt", ModuleOptions.Formula("Red from"));
+                tach[1].Set("color", ModuleOptions.Formula("Colour"));
+                _layout.GuidesX.Clear();
+                _layout.GuidesY.Clear();
+                _layout.GuidesX.AddRange(new double[] { 277, 427, 577 });
+                _layout.GuidesY.AddRange(new double[] { 90, 390 });
+                ShowRulers(true);
+                _rendererDirty = true;
+                _selection.Clear();
+                _selection.AddRange(tach);
+                SelectionChanged();
+                RequestRender();
+            }
+            else if (scenario.Contains("repeat"))
             {
                 // What Repeat makes: a dial's ticks and numbers, a numbered row of lights, and a ring turning as it goes.
                 _screen.Widgets.Clear();

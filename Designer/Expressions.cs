@@ -21,11 +21,19 @@ namespace AlmostFastOverlays
         public double Slot;
         /// <summary>Which view each tap zone is on, by tap name (0 for the first).</summary>
         public Dictionary<string, int> Taps;
+        /// <summary>The grouped widget a formula belongs to, whose module options option() reads.</summary>
+        public DashWidget Self;
 
         /// <summary>The same scope for a widget in a numbered group.</summary>
         public EvalScope WithSlot(double slot) => slot == Slot ? this : new EvalScope
         {
-            T = T, Units = Units, Theme = Theme, Accent = Accent, ShiftFlashOn = ShiftFlashOn, Now = Now, Page = Page, PageCount = PageCount, Slot = slot, Taps = Taps
+            T = T, Units = Units, Theme = Theme, Accent = Accent, ShiftFlashOn = ShiftFlashOn, Now = Now, Page = Page, PageCount = PageCount, Slot = slot, Taps = Taps, Self = Self
+        };
+
+        /// <summary>The same scope for a widget in a group: its group's Slot, and its own module options.</summary>
+        public EvalScope ForGroup(DashWidget widget) => widget == Self ? this : new EvalScope
+        {
+            T = T, Units = Units, Theme = Theme, Accent = Accent, ShiftFlashOn = ShiftFlashOn, Now = Now, Page = Page, PageCount = PageCount, Slot = widget.Slot, Taps = Taps, Self = widget
         };
     }
 
@@ -502,6 +510,9 @@ namespace AlmostFastOverlays
             Add("bestsectortime", "bestsectortime(sector)", "Your best time in a sector this session.", 1, 1, (s, a) => RaceFields.Sector(s.T.BestSectorTimes, a[0]));
             Add("tap", "tap(\"name\")", "Which view a tap zone is on: 0 at first, then 1, 2... each time it's tapped on a touch screen. Use it in Show when, such as tap(\"fuel\") == 1.", 1, 1,
                 (s, a) => s.Taps != null && s.Taps.TryGetValue(Expr.Text(a[0]).Trim(), out int view) ? (double)view : 0.0);
+            Add("option", "option(\"Name\")", "A module option: a setting made changeable in one place for a whole group, such as option(\"Accent\"). " +
+                "Right-click a setting's name in Properties to make one; set it with the group selected.", 1, 1,
+                (s, a) => ModuleOptions.Value(s.Self, Expr.Text(a[0])));
             Add("tyre", "tyre(\"LF\", \"Temp\")", "A tyre reading in your units. Corner: LF, RF, LR or RR. Reading: " + string.Join(", ", RaceFields.TyreFields) + ". iRacing updates these in the pits.", 2, 2,
                 (s, a) => RaceFields.Tyre(s, Expr.Text(a[0]), Expr.Text(a[1])));
         }
