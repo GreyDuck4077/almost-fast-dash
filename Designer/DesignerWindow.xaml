@@ -1,4 +1,4 @@
-﻿<Window x:Class="AlmostFastOverlays.DesignerWindow"
+<Window x:Class="AlmostFastOverlays.DesignerWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Dashboard designer" Width="1560" Height="940" MinWidth="1240" MinHeight="760"
@@ -99,6 +99,12 @@
                         <TextBlock x:Name="SaveStateIcon" Style="{StaticResource T.Icon}" Text="&#xE73E;" FontSize="12" Foreground="{StaticResource Brush.Success}" Margin="0,0,6,0"/>
                         <TextBlock x:Name="SaveState" Style="{StaticResource T.Caption}" VerticalAlignment="Center"/>
                     </StackPanel>
+                    <Button Style="{StaticResource Tool}" ToolTip="Formula reference: every field and function ƒx can use, with examples (F1)" Click="FormulaReference_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource T.Icon}" Text="&#xE82D;" Margin="0,0,6,0"/>
+                            <TextBlock Text="Formulas" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
                     <Button Style="{StaticResource Tool}" ToolTip="Import a design file (.afodash)" Click="Import_Click">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Style="{StaticResource T.Icon}" Text="&#xE8B5;" Margin="0,0,6,0"/>
@@ -120,9 +126,9 @@
             <DockPanel>
                 <Border DockPanel.Dock="Top" Style="{StaticResource Segmented}" Margin="14,14,14,6">
                     <UniformGrid Columns="3">
-                        <RadioButton x:Name="TabWidgets" Style="{StaticResource Segment}" Content="Add" GroupName="LeftTabs" IsChecked="True" Checked="LeftTab_Checked"/>
-                        <RadioButton x:Name="TabLayers" Style="{StaticResource Segment}" Content="Layers" GroupName="LeftTabs" Checked="LeftTab_Checked"/>
-                        <RadioButton x:Name="TabTheme" Style="{StaticResource Segment}" Content="Theme" GroupName="LeftTabs" Checked="LeftTab_Checked"/>
+                        <RadioButton x:Name="TabWidgets" Style="{StaticResource Segment}" MinWidth="0" Content="Add" GroupName="LeftTabs" IsChecked="True" Checked="LeftTab_Checked"/>
+                        <RadioButton x:Name="TabLayers" Style="{StaticResource Segment}" MinWidth="0" Content="Layers" GroupName="LeftTabs" Checked="LeftTab_Checked"/>
+                        <RadioButton x:Name="TabTheme" Style="{StaticResource Segment}" MinWidth="0" Content="Theme" GroupName="LeftTabs" Checked="LeftTab_Checked"/>
                     </UniformGrid>
                 </Border>
                 <Grid>

@@ -199,6 +199,16 @@ namespace AlmostFastOverlays
                 window = TemplatePicker.Build(null, new UnitSystem(general), general,
                     scenario.EndsWith("found") ? new System.Drawing.Size(ScreenSizes.DefaultWidth, ScreenSizes.DefaultHeight) : (System.Drawing.Size?)null, (t, s) => { });
             }
+            else if (scenario.StartsWith("formulas"))
+            {
+                // "formulas", or "formulas-fuel" already searched for fuel.
+                AppSettings settings = SettingsStore.Load();
+                var scope = new EvalScope { T = IRacingTelemetrySource.CreatePreviewSnapshot(), Units = new UnitSystem(settings.General), Theme = settings.GetDefaultDashboard().Design?.Theme ?? new LayoutTheme() };
+                FormulaReferenceWindow reference = FormulaReferenceWindow.Create(() => scope, scenario.Contains("-") ? scenario.Substring(scenario.IndexOf('-') + 1) : null);
+                reference.Width = 1060;
+                reference.Height = 780;
+                window = reference;
+            }
             else if (scenario.StartsWith("designer"))
             {
                 AppSettings settings = SettingsStore.Load();

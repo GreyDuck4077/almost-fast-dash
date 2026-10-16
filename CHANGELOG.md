@@ -5,6 +5,30 @@ English. Every version is on the
 [releases page](https://github.com/Sota4077/almost-fast-dash/releases) with
 its exe and checksum.
 
+## 3.60 · 2026-10-15
+
+A formula reference to keep open while you build.
+
+- **Formula reference.** **Formulas** in the designer's toolbar (or F1)
+  opens a window to keep beside the designer, or on another display, while
+  you build. It covers everything ƒx can use:
+  - the language, step by step, with its order of operations;
+  - every theme colour, with its swatch;
+  - all 135 data fields by category, each with a live value from the
+    preview;
+  - all 37 functions, each with a worked example and its live answer;
+  - every leaderboard and tyre field;
+  - groups, pages and taps;
+  - recipes.
+- **Always complete.** It's built from the same lists the formulas run on, so
+  a new field or function shows up in it by itself. Self-tests check every
+  function has a working example and every field a description.
+- **Search** across all of it. **Insert** puts an entry into the formula you
+  last clicked, and **Copy** puts it on the clipboard. The quick picker beside
+  each formula links to it.
+- **Fixed:** the designer's Add, Layers and Theme tabs overlapped and were cut
+  off in the narrow left panel.
+
 ## 3.59 · 2026-10-15
 
 Show the dashboard only when you want it.

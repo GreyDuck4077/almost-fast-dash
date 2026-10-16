@@ -1131,6 +1131,21 @@ namespace AlmostFastOverlays
                     differ + " of " + frames + " frames differ; unchanged frame reported empty: " + (quiet == 1));
             }
 
+            // ---------------- the formula reference
+            {
+                // It's made from the live lists, so it covers everything; these keep its own parts complete and working.
+                List<string> noExample = Functions.All.Where(f => !FormulaReferenceWindow.Examples.ContainsKey(f.Name)).Select(f => f.Name).ToList();
+                List<string> broken = FormulaReferenceWindow.Examples.Where(e => Expr.Compile(e.Value).Error != null)
+                    .Select(e => e.Key + ": " + Expr.Compile(e.Value).Error).ToList();
+                Check("formula reference: every function has a worked example, and every example works", noExample.Count == 0 && broken.Count == 0,
+                    string.Join("; ", noExample.Select(n => "no example for " + n).Concat(broken)));
+                List<string> bare = DataCatalog.All.Where(f => string.IsNullOrWhiteSpace(f.Description)).Select(f => f.Name)
+                    .Concat(Functions.All.Where(f => string.IsNullOrWhiteSpace(f.Description)).Select(f => f.Name + "()")).ToList();
+                List<string> recipes = DataPicker.Recipes.Where(r => Expr.Compile(r.Formula).Error != null).Select(r => r.Name).ToList();
+                Check("formula reference: every data field and function is described, and every recipe works", bare.Count == 0 && recipes.Count == 0,
+                    string.Join(", ", bare.Concat(recipes)));
+            }
+
             // ---------------- touch
             {
                 // Reports the wheel screen sent while it was tapped at its top-left, top-right and bottom-right, then lifted.

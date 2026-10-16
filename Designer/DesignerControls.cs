@@ -223,6 +223,7 @@ namespace AlmostFastOverlays
                 AcceptsReturn = false, MinHeight = 30, VerticalContentAlignment = VerticalAlignment.Center, ToolTip = placeholder
             };
             Text.TextChanged += (s, e) => { Validate(); Changed?.Invoke(Text.Text); };
+            Text.GotKeyboardFocus += (s, e) => _last = new WeakReference<FormulaBox>(this);
             row.Children.Add(Text);
             var insert = new Button
             {
@@ -237,6 +238,22 @@ namespace AlmostFastOverlays
             Result = new TextBlock { FontFamily = (FontFamily)owner.FindResource("Font.Mono"), FontSize = 12, Margin = new Thickness(2, 3, 0, 0), TextTrimming = TextTrimming.CharacterEllipsis };
             Children.Add(Result);
             Validate();
+        }
+
+        /// <summary>The formula last clicked into, for the formula reference's Insert.</summary>
+        private static WeakReference<FormulaBox> _last;
+
+        /// <summary>
+        /// Inserts at the cursor of the formula last clicked into, when it's still on screen (the inspector rebuilds
+        /// its rows as the selection changes). False when there's none to insert into.
+        /// </summary>
+        public static bool InsertIntoLast(string snippet, out string where)
+        {
+            where = "the formula";
+            if (_last == null || !_last.TryGetTarget(out FormulaBox box) || !box.IsLoaded || !box.IsVisible || PresentationSource.FromVisual(box) == null) return false;
+            Window.GetWindow(box)?.Activate();
+            box.InsertText(snippet, false);
+            return true;
         }
 
         private void InsertText(string snippet, bool replace)
@@ -280,7 +297,7 @@ namespace AlmostFastOverlays
     /// <summary>The searchable data, function and recipe picker behind the formula Insert button.</summary>
     internal static class DataPicker
     {
-        private static readonly (string Name, string Formula, string Description)[] Recipes =
+        internal static readonly (string Name, string Formula, string Description)[] Recipes =
         {
             ("Speed in your unit", "format(Speed, \"0\")", "Whole-number speed in MPH or km/h."),
             ("Lap time", "laptime(LastLap)", "Any lap value as 1:27.932."),
@@ -310,6 +327,13 @@ namespace AlmostFastOverlays
             DockPanel.SetDock(tabs, Dock.Top);
             root.Children.Add(search);
             root.Children.Add(tabs);
+            var reference = new Button
+            {
+                Content = "Open the full formula reference (F1)", Style = (Style)owner.FindResource("Btn.Ghost"), HorizontalAlignment = HorizontalAlignment.Left,
+                Margin = new Thickness(10, 0, 10, 10), ToolTip = "Every field and function with examples, in a window to keep open while you build"
+            };
+            DockPanel.SetDock(reference, Dock.Bottom);
+            root.Children.Add(reference);
             root.Children.Add(scroller);
             var popup = new Popup
             {
@@ -375,6 +399,11 @@ namespace AlmostFastOverlays
             }
             search.TextChanged += (s, e) => Fill();
             Fill();
+            reference.Click += (s, e) =>
+            {
+                popup.IsOpen = false;
+                FormulaReferenceWindow.Open(Window.GetWindow(owner), scope);
+            };
             popup.Opened += (s, e) => search.Focus();
             popup.IsOpen = true;
         }

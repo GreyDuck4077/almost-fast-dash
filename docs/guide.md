@@ -257,8 +257,24 @@ Dashboards are data, not code: a theme plus one or more screens of widgets. Open
 - arithmetic and comparisons;
 - `and`, `or`, `not`, and `cond ? a : b`;
 - colours as `#RRGGBB` or as `$theme` names;
-- about 80 data fields;
-- functions such as `format`, `laptime`, `fuel`, `steps`, `mix` and `blink`.
+- about 135 data fields;
+- about 40 functions, such as `format`, `laptime`, `fuel`, `steps`, `mix` and
+  `blink`.
+
+**The formula reference** (**Formulas** in the designer's toolbar, or F1) opens
+a window to keep beside the designer, or on another display, while you build.
+It has every data field and function, built from the same lists the formulas
+use, so nothing is missing:
+
+- **Live values:** each field shows its value from the preview as it plays.
+- **Examples:** every function has a worked example with its answer.
+- **The rest:** the language, the theme colours, the leaderboard and tyre
+  fields, groups, pages and taps, and recipes.
+
+Search finds anything. **Insert** puts an entry into the formula you last
+clicked, and **Copy** puts it on the clipboard. The **Insert** button beside a
+formula opens a quick picker with the same lists, and a link to the full
+reference.
 
 **The track map** draws itself. Drive one clean lap at a track and the app
 traces it from your speed and heading, then keeps it in `TrackMaps` for next

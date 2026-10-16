@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
@@ -1550,11 +1550,14 @@ namespace AlmostFastOverlays
         // Keyboard
         // ==================================================================
 
+        private void FormulaReference_Click(object sender, RoutedEventArgs e) => FormulaReferenceWindow.Open(this, CurrentScope);
+
         private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             bool ctrl = (Keyboard.Modifiers & ModifierKeys.Control) != 0, shift = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
             Key key = e.Key == Key.System ? e.SystemKey : e.Key;
             if (ctrl && key == Key.S) { SaveDesign(false); e.Handled = true; return; }
+            if (key == Key.F1) { FormulaReferenceWindow.Open(this, CurrentScope); e.Handled = true; return; }
 
             // Text fields keep their own keys.
             if (Keyboard.FocusedElement is TextBox || Keyboard.FocusedElement is ComboBox) return;
