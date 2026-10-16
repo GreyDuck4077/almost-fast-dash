@@ -314,11 +314,11 @@ The workspace is laid out like an image editor:
 - **Library** beside the tools. The grid button on the rail hides and shows it.
   Drag widgets and ready-made blocks onto the screen:
   - **Widgets**: text and values, the gear, bars and arc gauges (needles,
-    ticks, numbers), shift lights, the leaderboard, the relative, tyres, a
+    ticks, numbers), shift lights, the leaderboard, the relative, tires, a
     self-tracing track map, a radar of the cars around you, a traffic strip in
     class colors, live graphs of any value, flags, blind-spot bars, panels,
     shapes, gradients and images.
-  - **Live data**: one-click items for the engine, lap, sectors, tyres,
+  - **Live data**: one-click items for the engine, lap, sectors, tires,
     fuel, race, leaderboard, notices and the PC.
   - **Blocks**: ready-made cards, clusters and strips.
 - **Modules.** Your own creations, kept to reuse and share:
@@ -386,7 +386,7 @@ use, so nothing is missing:
 
 - **Live values:** each field shows its value from the preview as it plays.
 - **Examples:** every function has a worked example with its answer.
-- **The rest:** the language, the theme colors, the leaderboard and tyre
+- **The rest:** the language, the theme colors, the leaderboard and tire
   fields, groups, pages and taps, and recipes.
 
 Search finds anything. **Insert** puts an entry into the formula you last

@@ -83,7 +83,7 @@ namespace AlmostFastOverlays
                 .Choice("flashStyle", "Flash style", "Flash", "Shift point", "Flash", "Solid", "Over fill")
                 .Number("flashMs", "Flash speed (ms)", "110", "Shift point", 40, 1000, 10);
 
-            Define("meter", "Meter", "A bar from any value: throttle, brake, fuel, tyre wear or a formula of your own.", Meter)
+            Define("meter", "Meter", "A bar from any value: throttle, brake, fuel, tire wear or a formula of your own.", Meter)
                 .Formula("value", "Value", "=Throttle", "Value")
                 .Number("min", "Minimum", "0", "Value", double.NaN, double.NaN, 0.1)
                 .Number("max", "Maximum", "1", "Value", double.NaN, double.NaN, 0.1)

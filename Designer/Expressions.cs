@@ -513,7 +513,9 @@ namespace AlmostFastOverlays
             Add("option", "option(\"Name\")", "A module option: a setting made changeable in one place for a whole group, such as option(\"Accent\"). " +
                 "Right-click a setting's name in Properties to make one; set it with the group selected.", 1, 1,
                 (s, a) => ModuleOptions.Value(s.Self, Expr.Text(a[0])));
-            Add("tyre", "tyre(\"LF\", \"Temp\")", "A tyre reading in your units. Corner: LF, RF, LR or RR. Reading: " + string.Join(", ", RaceFields.TyreFields) + ". iRacing updates these in the pits.", 2, 2,
+            Add("tire", "tire(\"LF\", \"Temp\")", "A tire reading in your units. Corner: LF, RF, LR or RR. Reading: " + string.Join(", ", RaceFields.TyreFields) + ". iRacing updates these in the pits.", 2, 2,
+                (s, a) => RaceFields.Tyre(s, Expr.Text(a[0]), Expr.Text(a[1])));
+            Add("tyre", "tyre(\"LF\", \"Temp\")", "The same as tire(), as earlier dashboards wrote it.", 2, 2,
                 (s, a) => RaceFields.Tyre(s, Expr.Text(a[0]), Expr.Text(a[1])));
         }
 

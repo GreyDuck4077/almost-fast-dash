@@ -11,7 +11,7 @@ namespace AlmostFastOverlays
     {
         public const string Section = "Live data";
 
-        public static readonly string[] Folders = { "Engine", "Lap", "Sectors", "Tyres", "Fuel", "Race", "Leaderboard", "Notification", "System" };
+        public static readonly string[] Folders = { "Engine", "Lap", "Sectors", "Tires", "Fuel", "Race", "Leaderboard", "Notification", "System" };
 
         public static IEnumerable<DesignBlock> All()
         {
@@ -45,10 +45,10 @@ namespace AlmostFastOverlays
             yield return Sectors("Best sector times", "Your best time in each sector, and the ideal lap they add up to.", "bestsectortime");
 
             // ---------------- Tyres
-            yield return Block("Tyres", "Tyres: all readings", "Temperatures, wear and pressures for all four tyres.", () => new List<DashWidget> { W("tyres", "Tyres", 0, 0, 260, 220) });
-            yield return Block("Tyres", "Tyre temperatures", "All four tyres' temperatures across the tread.", () => new List<DashWidget> { W("tyres", "Tyre temperatures", 0, 0, 240, 170, "showWear", "false", "showPressure", "false") });
-            yield return Block("Tyres", "Tyre wear", "Tread left on each tyre.", () => new List<DashWidget> { W("tyres", "Tyre wear", 0, 0, 220, 130, "showTemps", "false", "showPressure", "false", "size", "26") });
-            yield return Block("Tyres", "Tyre pressures", "Each tyre's pressure.", () => new List<DashWidget> { W("tyres", "Tyre pressures", 0, 0, 220, 130, "showTemps", "false", "showWear", "false", "size", "26") });
+            yield return Block("Tires", "Tires: all readings", "Temperatures, wear and pressures for all four tires.", () => new List<DashWidget> { W("tyres", "Tires", 0, 0, 260, 220) });
+            yield return Block("Tires", "Tire temperatures", "All four tires' temperatures across the tread.", () => new List<DashWidget> { W("tyres", "Tire temperatures", 0, 0, 240, 170, "showWear", "false", "showPressure", "false") });
+            yield return Block("Tires", "Tire wear", "Tread left on each tire.", () => new List<DashWidget> { W("tyres", "Tire wear", 0, 0, 220, 130, "showTemps", "false", "showPressure", "false", "size", "26") });
+            yield return Block("Tires", "Tire pressures", "Each tire's pressure.", () => new List<DashWidget> { W("tyres", "Tire pressures", 0, 0, 220, 130, "showTemps", "false", "showWear", "false", "size", "26") });
 
             // ---------------- Fuel
             yield return Value("Fuel", "Fuel capacity", "TANK", "=fuel(FuelCapacity)", "=FuelUnit");

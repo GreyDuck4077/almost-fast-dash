@@ -157,7 +157,8 @@
                     </Button>
                     <Border Width="1" Height="26" Background="{StaticResource Brush.Border}" Margin="12,0"/>
                     <TextBlock Text="Preview" Style="{StaticResource T.Caption}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <ComboBox x:Name="PreviewCombo" Width="170" VerticalAlignment="Center" SelectionChanged="PreviewCombo_SelectionChanged"/>
+                    <ComboBox x:Name="PreviewCombo" Width="170" VerticalAlignment="Center" SelectionChanged="PreviewCombo_SelectionChanged"
+                              ToolTip="What the canvas shows: a moment in a race (racing, the shift point, the pit lane, a flag), the animated lap, or your live iRacing session"/>
                 </StackPanel>
 
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
@@ -254,7 +255,18 @@
             </DockPanel>
         </Border>
         <!-- ================= Center: canvas ================= -->
-        <Grid Grid.Row="1" Grid.Column="2" Background="#07090C">
+        <Grid Grid.Row="1" Grid.Column="2">
+            <!-- The pasteboard round the screen: a faint dot grid, as design tools have, for depth without noise -->
+            <Grid.Background>
+                <DrawingBrush TileMode="Tile" Viewport="0,0,22,22" ViewportUnits="Absolute" Stretch="None">
+                    <DrawingBrush.Drawing>
+                        <DrawingGroup>
+                            <GeometryDrawing Brush="#07090C" Geometry="M0,0 H22 V22 H0 Z"/>
+                            <GeometryDrawing Brush="#1B212B" Geometry="M10.4,10.4 H11.6 V11.6 H10.4 Z"/>
+                        </DrawingGroup>
+                    </DrawingBrush.Drawing>
+                </DrawingBrush>
+            </Grid.Background>
             <ScrollViewer x:Name="CanvasScroller" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Focusable="False"
                           PreviewMouseWheel="CanvasScroller_PreviewMouseWheel">
                 <Grid x:Name="CanvasHost" Margin="48" HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -296,7 +308,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition MinHeight="160"/>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition x:Name="LayersRow" Height="300" MinHeight="120"/>
+                    <RowDefinition x:Name="LayersRow" Height="240" MinHeight="120"/>
                 </Grid.RowDefinitions>
                 <Border Style="{StaticResource Segmented}" Margin="14,12,14,4" HorizontalAlignment="Stretch">
                     <UniformGrid Columns="2">
@@ -337,7 +349,7 @@
             <DockPanel Margin="14,0">
                 <TextBlock x:Name="CursorText" DockPanel.Dock="Right" Style="{StaticResource T.Caption}" VerticalAlignment="Center" FontFamily="{StaticResource Font.Mono}"/>
                 <TextBlock x:Name="StatusText" Style="{StaticResource T.Caption}" VerticalAlignment="Center"
-                           Text="Drag from the Library, or draw with the tools on the left. Arrows nudge, Shift+arrows nudge 10, Ctrl+D duplicates, Alt bypasses snapping."/>
+                           Text="Drag from the Library, or draw with the tools on the left. Arrows nudge (Shift for 10), Ctrl+D duplicates, Alt stops snapping, Ctrl+/ lists every shortcut."/>
             </DockPanel>
         </Border>
     </Grid>

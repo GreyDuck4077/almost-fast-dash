@@ -118,16 +118,16 @@ namespace AlmostFastOverlays
             }
             else
             {
-                const string ask = "No wheel screen found. Choose your screen's resolution to build the dashboard for it.";
-                note.Text = chooser.Size == null ? ask : "No wheel screen found; this is the size you used last time.";
-                note.Foreground = (Brush)R(chooser.Size == null ? "Brush.Warning" : "Brush.TextSecondary");
+                const string ask = "Choose the size to build for: your wheel screen's resolution, or any size for a window on your PC.";
+                note.Text = chooser.Size == null ? ask : "The size you used last time; choose another if you like.";
+                note.Foreground = (Brush)R(chooser.Size == null ? "Brush.Accent" : "Brush.TextSecondary");
                 sizeRow.Children.Add(chooser.Element);
                 sizeRow.Children.Add(note);
                 chooser.Changed += () =>
                 {
                     bool ready = chooser.Size != null;
                     note.Text = ready ? "Now pick a template below." : ask;
-                    note.Foreground = (Brush)R(ready ? "Brush.TextSecondary" : "Brush.Warning");
+                    note.Foreground = (Brush)R(ready ? "Brush.TextSecondary" : "Brush.Accent");
                 };
             }
             header.Children.Add(sizeRow);

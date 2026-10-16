@@ -181,9 +181,9 @@ namespace AlmostFastOverlays
             b.Tile("Refuel", 20, 96, 240, 110, FuelToAddLabel, FuelToAdd, panelStyle, "unit", FuelToAddUnit, "valueColor", FuelToAddTone, "valueSize", "40");
             b.Tile("In tank", 20, 216, 240, 90, "IN THE TANK", "=fuel(Fuel)", panelStyle, "unit", "=FuelUnit");
             b.Tile("Stint", 20, 316, 240, 90, "STINT", "=StintLaps + \" LAPS\"", panelStyle);
-            b.Panel("Tyres panel", 594, 96, 240, 310, "style", panelStyle, "radius", "16");
-            b.Label("Tyres label", 610, 108, 200, "TYRES · LAST STOP");
-            b.Add("tyres", "Tyres", 606, 128, 216, 266, "size", "22");
+            b.Panel("Tires panel", 594, 96, 240, 310, "style", panelStyle, "radius", "16");
+            b.Label("Tires label", 610, 108, 200, "TIRES · LAST STOP");
+            b.Add("tyres", "Tires", 606, 128, 216, 266, "size", "22");
             b.Metric("Pit position", 307, 384, 240, 80, "POSITION", PositionText, "align", "Center", "valueSize", "40", "labelSize", "11", "labelTracking", "2",
                 "unit", "=Starters > 0 ? \"/\" + Starters : \"\"", "unitColor", "muted");
         }
@@ -512,8 +512,8 @@ namespace AlmostFastOverlays
                 b.Add("laphistory", "Falloff chart", 168, 244, 86, 104, "source", "This stint", "laps", "8", "style", "Columns", "range", "0", "showDelta", "false",
                     "gap", "28", "radius", "2", "color", "#1FA463", "slowColor", "#9BF0C4", "track", "#0B1611"));
             b.Visible("tap(\"stint\") == 1",
-                b.Label("Tyres label", 34, 226, 220, "TYRES · LAST STOP"),
-                b.Add("tyres", "Tyres", 28, 244, 228, 108, "showWear", "false", "showPressure", "false", "size", "16"));
+                b.Label("Tires label", 34, 226, 220, "TIRES · LAST STOP"),
+                b.Add("tyres", "Tires", 28, 244, 228, 108, "showWear", "false", "showPressure", "false", "size", "16"));
 
             // Right: the race (tap for the order in your class), then fuel (tap for more).
             b.Panel("Race panel", 586, 52, 252, 150, "style", "Liquid", "radius", "18", "tapName", "race");
@@ -1107,8 +1107,8 @@ namespace AlmostFastOverlays
                 b.Metric("S" + s, 10 + (s - 1) * 178, 368, 178, 98, "S" + s + " · LAST LAP", "=seconds(lastsectortime(" + s + "))", "align", "Center", "valueSize", "26",
                     "valueColor", "=lastsectortime(" + s + ") > 0 && lastsectortime(" + s + ") <= bestsectortime(" + s + ") + 0.0005 ? $purple : $text", "visible", s == 3 ? "SectorCount >= 3" : "");
             }
-            b.Panel("Tyre box", 552, 364, 292, 106, "style", "Solid", "radius", "6");
-            b.Add("tyres", "Tyres", 560, 370, 276, 94, "size", "17", "showPressure", "false", "panelColor", "#FF101418");
+            b.Panel("Tire box", 552, 364, 292, 106, "style", "Solid", "radius", "6");
+            b.Add("tyres", "Tires", 560, 370, 276, 94, "size", "17", "showPressure", "false", "panelColor", "#FF101418");
             Notice(b, 292, 44, 270, 30);
 
             // Page 2: the standings as twelve numbered driver rows (one group, copied with Ctrl+D for each place).

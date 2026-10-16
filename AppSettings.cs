@@ -41,7 +41,7 @@ namespace AlmostFastOverlays
 
     internal sealed class AppSettings
     {
-        private const int CurrentSchema = 19;
+        internal const int CurrentSchema = 20;
 
         public int SchemaVersion { get; set; }
         public string DefaultDashboardId { get; set; } = DashboardSettings.RoadId;
@@ -104,6 +104,7 @@ namespace AlmostFastOverlays
                 if (SchemaVersion > 0 && SchemaVersion < 17) BrighterLabels();
                 if (SchemaVersion > 0 && SchemaVersion < 18) WiderRadar();
                 if (SchemaVersion > 0 && SchemaVersion < 19) { RefreshHaloAndOval(); LargerText(); }
+                if (SchemaVersion > 0 && SchemaVersion < 20) TiresSpelling();
                 SchemaVersion = CurrentSchema;
             }
             foreach (DeviceSettings device in General.Devices) device.Normalize();
@@ -351,6 +352,20 @@ namespace AlmostFastOverlays
                 // A Spotter's "LAST LAP SPEED" no longer fits its tile at the larger size.
                 foreach (DashWidget w in dashboard.Design?.AllWidgets() ?? Enumerable.Empty<DashWidget>())
                     if (w.Type == "metric" && w.Name == "Lap speed" && w.Get("label", "") == "LAST LAP SPEED") w.Set("label", "LAP SPEED");
+            }
+        }
+
+        /// <summary>
+        /// Schema 20: the app's words are in US English, so the pit-lane page's "TYRES · LAST STOP" reads "TIRES". Only
+        /// the shipped label and layer names change; anything typed differently is left as it is.
+        /// </summary>
+        private void TiresSpelling()
+        {
+            var names = new Dictionary<string, string> { ["Tyres panel"] = "Tires panel", ["Tyres label"] = "Tires label", ["Tyre box"] = "Tire box", ["Tyres"] = "Tires" };
+            foreach (DashWidget widget in Dashboards.Where(d => d.Design?.Screens != null).SelectMany(d => d.Design.AllWidgets()))
+            {
+                if (widget.Type == "text" && widget.Get("text") == "TYRES · LAST STOP") widget.Set("text", "TIRES · LAST STOP");
+                if (widget.Name != null && names.TryGetValue(widget.Name, out string name)) widget.Name = name;
             }
         }
 

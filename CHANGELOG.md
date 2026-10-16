@@ -5,6 +5,29 @@ English. Every version is on the
 [releases page](https://github.com/Sota4077/almost-fast-dash/releases) with
 its exe and checksum.
 
+## 3.68 · 2026-10-16
+
+A second round of polish.
+
+- **Dark title bars on every window**, the designer's dialogs included, in
+  the app's own background color.
+- **Dashboard cards glow** faintly in their own accent color as you point at
+  them.
+- **The designer's pasteboard** around the screen has a faint dot grid, as
+  design tools do.
+- **Tires**, not tyres, everywhere: the widget, the Library, help and the
+  pit-lane page's label (saved dashboards are updated; your own words stay).
+  Formulas gain `tire("LF", "Temp")`; `tyre()` still works.
+- **Cleaner setting names:** "Unit size (0 auto)" and the like are plain
+  names now, with what the brackets said in their help.
+- **More room for Properties:** Layers starts shorter (drag the line between
+  them to change it).
+- Starting a new design asks for the size to build for in plain words, rather
+  than warning that no wheel screen was found.
+- The Preview menu explains itself, and the designer's hint line points to
+  Ctrl+/ for every shortcut. The shortcuts sheet is laid out in three columns.
+- The release check now fails if any template render goes missing.
+
 ## 3.67 · 2026-10-16
 
 A first round of polish for anyone opening the designer for the first time.

@@ -45,6 +45,11 @@ namespace AlmostFastOverlays
             ["fillStyle"] = "One color, a gradient across it, a radial gradient from the middle, or a pattern in two colors.",
             ["fill"] = "The inside's color. Empty for no fill.",
             ["bar:fill"] = "Which way it fills as the value rises.",
+            ["bar:radius"] = "How round the ends are, in pixels; -1 makes them fully round.",
+            ["deltatrace:range"] = "The delta the graph's height covers, in seconds either way.",
+            ["laphistory:range"] = "The time the full bar stands for, in seconds; 0 sizes it to the laps shown.",
+            ["graph:seconds"] = "How many seconds of history it shows.",
+            ["graph:max"] = "The value at the top. The same as the minimum, and the graph scales itself to what it shows.",
             ["shiftlights:fill"] = "The order the lights come on: from one end, from the edges in, or from the middle out.",
             ["fillAngle"] = "0 runs the gradient left to right, 90 top to bottom.",
             ["pattern"] = "The pattern, drawn in the fill color over the second color.",
@@ -228,15 +233,15 @@ namespace AlmostFastOverlays
             ["strength"] = "How strong the effect is.",
 
             // ---- tyres
-            ["showTemps"] = "Shows each tyre's temperatures.",
-            ["showWear"] = "Shows each tyre's wear.",
-            ["showPressure"] = "Shows each tyre's pressure.",
-            ["panelColor"] = "The background behind each tyre.",
-            ["coolBelow"] = "Below this, a tyre shows as cool.",
-            ["hotAbove"] = "Above this, a tyre shows as hot.",
-            ["coolColor"] = "The color of a cool tyre.",
-            ["okColor"] = "The color of a tyre in its working range.",
-            ["hotColor"] = "The color of a hot tyre."
+            ["showTemps"] = "Shows each tire's temperatures.",
+            ["showWear"] = "Shows each tire's wear.",
+            ["showPressure"] = "Shows each tire's pressure.",
+            ["panelColor"] = "The background behind each tire.",
+            ["coolBelow"] = "Below this, a tire shows as cool.",
+            ["hotAbove"] = "Above this, a tire shows as hot.",
+            ["coolColor"] = "The color of a cool tire.",
+            ["okColor"] = "The color of a tire in its working range.",
+            ["hotColor"] = "The color of a hot tire."
         };
     }
 }

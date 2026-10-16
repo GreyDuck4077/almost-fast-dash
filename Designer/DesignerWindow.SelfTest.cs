@@ -796,6 +796,20 @@ namespace AlmostFastOverlays
                 Check("saved designs' fuel to add gains its unit and a clear label", refuel.Get("value") == DesignTemplates.FuelToAdd &&
                     refuel.Get("unit") == DesignTemplates.FuelToAddUnit && refuel.Get("label") == DesignTemplates.FuelToAddLabel);
 
+                // Schema 20: the shipped pit-lane label in US spelling; a label of the user's own stays.
+                var british = new AppSettings { SchemaVersion = 19 };
+                DashboardSettings pitPage = DashboardSettings.CreateDesigned(DesignTemplates.Find("apex"));
+                DashWidget tiresLabel = pitPage.Design.AllWidgets().First(w => w.Get("text") == "TIRES · LAST STOP");
+                tiresLabel.Set("text", "TYRES · LAST STOP");
+                tiresLabel.Name = "Tyres label";
+                DashWidget own = WidgetCatalog.Create("text", 0, 0);
+                own.Set("text", "MY TYRES");
+                pitPage.Design.Screens[0].Widgets.Add(own);
+                british.Dashboards.Add(pitPage);
+                british.EnsureBuiltInDashboards();
+                Check("saved designs' pit-lane label reads TIRES, and the user's own words stay", tiresLabel.Get("text") == "TIRES · LAST STOP" &&
+                    tiresLabel.Name == "Tires label" && own.Get("text") == "MY TYRES", tiresLabel.Get("text") + " / " + tiresLabel.Name);
+
                 // A damaged settings file comes back from the newest backup that reads.
                 AppSettings current = SettingsStore.Load();
                 SettingsStore.Save(current);

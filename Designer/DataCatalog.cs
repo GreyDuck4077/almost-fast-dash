@@ -22,7 +22,7 @@ namespace AlmostFastOverlays
         private const double MetersPerSecondToMph = 2.2369363;
         private static readonly Dictionary<string, DataField> ByName = new Dictionary<string, DataField>(StringComparer.OrdinalIgnoreCase);
 
-        public static readonly string[] Categories = { "Car", "Engine", "Timing", "Session", "Fuel", "Tyres", "Position", "Leaderboard", "Nearby cars", "Flags", "Pit", "Conditions", "System" };
+        public static readonly string[] Categories = { "Car", "Engine", "Timing", "Session", "Fuel", "Tires", "Position", "Leaderboard", "Nearby cars", "Flags", "Pit", "Conditions", "System" };
 
         static DataCatalog()
         {
@@ -189,9 +189,9 @@ namespace AlmostFastOverlays
             foreach (string corner in new[] { "LF", "RF", "LR", "RR" })
             {
                 string c = corner;
-                Add("Tyres", c + "Temp", "Average " + c + " tyre temperature from the pit crew (updates in the pits).", s => RaceFields.Tyre(s, c, "Temp"), "format(" + c + "Temp, \"0\") + \"°\"");
-                Add("Tyres", c + "Wear", c + " tread left, 0 to 100% (updates in the pits).", s => RaceFields.Tyre(s, c, "Wear"), "format(" + c + "Wear, \"0\") + \"%\"");
-                Add("Tyres", c + "Pressure", c + " pressure in BAR or PSI (the pit crew's cold reading).", s => RaceFields.Tyre(s, c, "Pressure"), "format(" + c + "Pressure, \"0.0\")");
+                Add("Tires", c + "Temp", "Average " + c + " tire temperature from the pit crew (updates in the pits).", s => RaceFields.Tyre(s, c, "Temp"), "format(" + c + "Temp, \"0\") + \"°\"");
+                Add("Tires", c + "Wear", c + " tread left, 0 to 100% (updates in the pits).", s => RaceFields.Tyre(s, c, "Wear"), "format(" + c + "Wear, \"0\") + \"%\"");
+                Add("Tires", c + "Pressure", c + " pressure in BAR or PSI (the pit crew's cold reading).", s => RaceFields.Tyre(s, c, "Pressure"), "format(" + c + "Pressure, \"0.0\")");
             }
 
             // ---------------- Leaderboard

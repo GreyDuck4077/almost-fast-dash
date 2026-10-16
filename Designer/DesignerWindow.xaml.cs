@@ -1725,6 +1725,12 @@ namespace AlmostFastOverlays
             if (scenario.Contains("theme")) TabTheme.IsChecked = true;
             if (scenario.Contains("shortcuts"))
                 Dispatcher.BeginInvoke(new Action(() => ShowShortcuts(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ui", "shortcuts-sheet.png"))), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+            // A newcomer's first widget, as it comes in from the Library.
+            if (scenario.Contains("first-"))
+            {
+                string type = scenario.Substring(scenario.IndexOf("first-") + 6).Split('-')[0];
+                if (WidgetCatalog.Find(type) != null) AddWidgetAtCenter(type);
+            }
 
             if (scenario.Contains("ghosts"))
             {

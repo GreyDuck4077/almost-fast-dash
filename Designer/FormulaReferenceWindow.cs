@@ -57,6 +57,7 @@ namespace AlmostFastOverlays
             { "bestsectortime", "bestsectortime(1)" },
             { "tap", "tap(\"fuel\") == 1" },
             { "option", "option(\"Redline\") * 1000" },
+            { "tire", "tire(\"LF\", \"Temp\")" },
             { "tyre", "tyre(\"LF\", \"Temp\")" }
         };
 
@@ -66,7 +67,7 @@ namespace AlmostFastOverlays
             ("Logic and numbers", new[] { "if", "round", "floor", "ceil", "abs", "min", "max", "clamp", "norm", "nz", "blink" }),
             ("Formatting", new[] { "format", "laptime", "clock", "seconds", "signed", "fuel", "gear", "temp", "time", "upper", "lower", "left", "pad" }),
             ("Color", new[] { "rgb", "rgba", "alpha", "mix", "steps", "deltacolor" }),
-            ("Race data", new[] { "standing", "classstanding", "sectortime", "lastsectortime", "bestsectortime", "tyre", "tap" })
+            ("Race data", new[] { "standing", "classstanding", "sectortime", "lastsectortime", "bestsectortime", "tire", "tyre", "tap" })
         };
 
         private static FormulaReferenceWindow _open;
@@ -257,14 +258,14 @@ namespace AlmostFastOverlays
                 foreach (FunctionInfo fn in more) FunctionItem(fn);
             }
 
-            NewSection("Leaderboard, tyres and sectors");
+            NewSection("Leaderboard, tires and sectors");
             Prose("standing(position, \"field\") reads any car in the race order; classstanding() counts only your class. The field is one of:");
             foreach (string field in RaceFields.StandingFields)
             {
                 string example = "standing(1, \"" + field + "\")";
                 Item("\"" + field + "\"", StandingDescription(field), example, s => Show(Expr.Evaluate(example, s)), insertName: "\"" + field + "\"");
             }
-            Prose("tyre(\"corner\", \"reading\") reads a tyre. Corners: LF, RF, LR, RR. iRacing updates tyre readings while you're in the pits. The reading is one of:");
+            Prose("tire(\"corner\", \"reading\") reads a tire (tyre() works too). Corners: LF, RF, LR, RR. iRacing updates tire readings while you're in the pits. The reading is one of:");
             foreach (string reading in RaceFields.TyreFields)
             {
                 string example = "tyre(\"LF\", \"" + reading + "\")";
@@ -573,7 +574,7 @@ namespace AlmostFastOverlays
                 case "WearMiddle": return "Middle tread left.";
                 case "WearOuter": return "Outer tread left.";
                 case "Pressure": return "Pressure, in your unit.";
-                default: return "A tyre reading.";
+                default: return "A tire reading.";
             }
         }
     }

@@ -92,6 +92,7 @@ namespace AlmostFastOverlays
                 {
                     Source = new Uri("pack://application:,,,/AlmostFastDash;component/Theme.xaml")
                 });
+                DarkTitleBar.ForEveryWindow();
                 application.Run(new SettingsWindow());
                 return 0;
             }
@@ -170,6 +171,7 @@ namespace AlmostFastOverlays
             if (!Path.IsPathRooted(output)) output = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, output);
             var application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
             application.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("pack://application:,,,/AlmostFastDash;component/Theme.xaml") });
+            DarkTitleBar.ForEveryWindow();
             Window window;
             if (scenario.StartsWith("wizard"))
             {
@@ -268,6 +270,7 @@ namespace AlmostFastOverlays
             if (!Path.IsPathRooted(reportPath)) reportPath = Path.Combine(folder, reportPath);
             var application = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
             application.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("pack://application:,,,/AlmostFastDash;component/Theme.xaml") });
+            DarkTitleBar.ForEveryWindow();
             AppSettings settings = SettingsStore.Load();
             DashboardSettings dashboard = settings.AddDesignedDashboard(DesignTemplates.Road, "Self test");
             var designer = new DesignerWindow(settings, dashboard, null) { Left = -4000, Top = 0, ShowActivated = false, WindowStartupLocation = WindowStartupLocation.Manual };
@@ -463,14 +466,14 @@ namespace AlmostFastOverlays
                 Type = "bar", Name = "Pinched", X = 750, Y = 190, W = 90, H = 280,
                 Props = { ["value"] = "=RevPct", ["orientation"] = "Vertical", ["bulge"] = "-70", ["skew"] = "-10", ["colorMode"] = "Shift colors" }
             });
-            // And one of the race-data quick values: leaderboard, tyres, sectors, an opponent card and a notice.
+            // And one of the race-data quick values: leaderboard, tires, sectors, an opponent card and a notice.
             DashLayout race = DesignTemplates.Blank();
             void Quick(string name, double x, double y, Action<DashWidget> adjust = null)
             {
                 foreach (DashWidget w in QuickValues.All().First(b => b.Name == name).Create()) { w.X += x; w.Y += y; adjust?.Invoke(w); race.Screens[0].Widgets.Add(w); }
             }
             Quick("Leaderboard", 10, 10, w => { w.H = 330; w.Set("showIRating", "true"); });
-            Quick("Tyres: all readings", 340, 10);
+            Quick("Tires: all readings", 340, 10);
             Quick("Car ahead in the race", 340, 240);
             Quick("Best sector times", 10, 350, w => { if (w.Name == "Ideal lap") { w.X = 10 + 360; } });
             Quick("Oil temperature", 610, 10, w => w.W = 230);

@@ -44,9 +44,11 @@ Step 'Designer and light self-tests' {
 
 Step 'Templates render' {
     $folder = Join-Path $work 'renders'
-    Start-Process $exe -ArgumentList '--render-templates', $folder -WorkingDirectory $work -Wait
+    $render = Start-Process $exe -ArgumentList '--render-templates', $folder -WorkingDirectory $work -Wait -PassThru
     $count = (Get-ChildItem $folder -Filter *.png -ErrorAction SilentlyContinue).Count
-    if ($count -lt 30) { throw "only $count images" }
+    # Every template, page and showcase sheet: a render that stops part way would otherwise go unnoticed.
+    if ($render.ExitCode -ne 0) { throw "rendering stopped (exit $($render.ExitCode)) after $count images" }
+    if ($count -lt 58) { throw "only $count images" }
     "$count images"
 }
 

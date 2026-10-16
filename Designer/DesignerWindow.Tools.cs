@@ -115,7 +115,7 @@ namespace AlmostFastOverlays
                 case Tool.Text: return "Text: click where it goes, or drag a box for it, then type its text in Properties.";
                 case Tool.Hand: return "Hand: drag to move around the canvas. Holding Space does the same with any tool.";
                 case Tool.Zoom: return "Zoom: click to zoom in there, Alt+click to zoom out. Ctrl+0 fits the canvas to the window.";
-                default: return "Drag from the Library, or draw with the tools on the left. Arrows nudge, Shift+arrows nudge 10, Ctrl+D duplicates, Alt bypasses snapping.";
+                default: return "Drag from the Library, or draw with the tools on the left. Arrows nudge (Shift for 10), Ctrl+D duplicates, Alt stops snapping, Ctrl+/ lists every shortcut.";
             }
         }
 

@@ -225,8 +225,12 @@ namespace AlmostFastOverlays
                     Style = (Style)FindResource("Card"), Padding = new Thickness(0), Margin = new Thickness(0, 0, CardGap, CardGap),
                     Cursor = Cursors.Hand, Background = (Brush)FindResource("Brush.Surface")
                 };
-                card.MouseEnter += (s, e) => card.BorderBrush = (Brush)FindResource("Brush.BorderStrong");
-                card.MouseLeave += (s, e) => card.BorderBrush = (Brush)FindResource("Brush.Border");
+                // Pointed at, a card lifts (below) and glows faintly in its dashboard's own accent.
+                Color glow = Colors.Teal;
+                try { glow = (Color)ColorConverter.ConvertFromString(string.IsNullOrWhiteSpace(d.AccentColor) ? "#2DD4BF" : d.AccentColor); } catch { }
+                var halo = new System.Windows.Media.Effects.DropShadowEffect { Color = glow, BlurRadius = 34, ShadowDepth = 0, Opacity = 0.32 };
+                card.MouseEnter += (s, e) => { card.BorderBrush = (Brush)FindResource("Brush.BorderStrong"); card.Effect = halo; };
+                card.MouseLeave += (s, e) => { card.BorderBrush = (Brush)FindResource("Brush.Border"); card.Effect = null; };
                 card.MouseLeftButtonUp += (s, e) => { if (!(e.OriginalSource is DependencyObject o && FindParent<Button>(o) != null)) ShowEditor(d); };
 
                 var stack = new StackPanel();
