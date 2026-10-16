@@ -237,7 +237,8 @@ The workspace is laid out like an image editor:
   the rail goes back to Move. Esc does the same at any time.
 - **Canvas.** The screen at the dashboard's own resolution. Drag, resize and
   multi-select. Widgets snap to edges and centres (hold Alt to stop snapping),
-  and Ctrl+wheel zooms.
+  and Ctrl+wheel zooms. Shift+2 zooms to the selection, and Shift+1 (or
+  Ctrl+0) fits the whole screen.
 - **Properties** on the right: every property of the selected widget, or the
   screen's own settings when nothing is selected. **Theme** sits beside it.
 - **Layers** below Properties, always there, with the top layer first:
@@ -260,8 +261,25 @@ The workspace is laid out like an image editor:
   - **Recolor › Pattern**, in any widget's Style, paints it in a pattern: a
     rectangle outline in red and white stripes makes a kerb, and digits in
     brushed metal look machined.
+  - **Eyedropper:** every colour picker has **Pick from the screen**. Then
+    click any colour in the designer, on the canvas or a picture in the
+    Library, to use it. Esc stops.
 
   ![Drawn shapes, patterns and pen paths](images/app-drawing.png)
+- **Repeat** (Ctrl+Shift+D, right-click, or the button in Properties) makes
+  copies of the selection, shown on the canvas as you set them up:
+  - **Rows and columns:** how many across and down, and the gap between them.
+  - **Around a circle:** how many in all, the angle they cover (360 all the
+    way round, 180 half, negative goes anticlockwise), the radius, and where
+    the original sits (-90 the top, 0 the right). Copies either **follow the
+    circle**, turning like a dial's ticks, or **keep upright**, like its
+    numbers, and can take an **extra turn** each for a twisting ring.
+  - **Number them as Slot 1, 2, 3…** puts each copy in its own group with the
+    next number. One widget then does it all: a light filled with
+    `=RevPct * 12 >= Slot ? $good : $track`, repeated twelve times, is a shift
+    light row; a text of `=Slot - 1` around a dial gives its numbers.
+
+  ![A dial's ticks and numbers, a row of lights and a ring, each from one widget](images/app-repeat.png)
 - **Masks.** Ways to let one layer shape another:
   - **Clipping:** Alt-click a layer in Layers (or press Ctrl+Alt+G, or
     right-click › Clip to layer below) and it shows only where the layer

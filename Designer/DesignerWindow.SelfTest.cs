@@ -1470,6 +1470,56 @@ namespace AlmostFastOverlays
                 try { System.IO.Directory.Delete(scratch, true); } catch { }
             }
 
+            // ---------------- repeat: rows and columns, and around a circle
+            {
+                DashWidget Piece(double x, double y, double w, double h, string name = "LED", string rotate = "0")
+                {
+                    DashWidget piece = WidgetCatalog.Create("shape", x, y);
+                    piece.Name = name; piece.X = x; piece.Y = y; piece.W = w; piece.H = h;
+                    piece.Set("rotate", rotate);
+                    return piece;
+                }
+                string Where(List<List<DashWidget>> sets) => string.Join(" ", sets.Select(s => s[0].X + "," + s[0].Y + "@" + s[0].Get("rotate")));
+
+                DashWidget cell = Piece(100, 100, 40, 20);
+                List<List<DashWidget>> gridSets = Repeater.Build(new[] { cell }, new RepeatSpec { Across = 3, Down = 2, GapX = 10, GapY = 6 });
+                Check("repeat: a grid lays copies across then down, the gaps between them",
+                    gridSets.Count == 5 && Where(gridSets) == "150,100@0 200,100@0 100,126@0 150,126@0 200,126@0", Where(gridSets));
+
+                DashWidget tick = Piece(190, 80, 20, 40);
+                List<List<DashWidget>> round = Repeater.Build(new[] { tick }, new RepeatSpec { Circle = true, Count = 4, Sweep = 360, Radius = 100, Start = -90, Follow = true });
+                Check("repeat: all the way round, the original stays at the top and copies turn to follow the circle",
+                    Where(round) == "290,180@90 190,280@180 90,180@-90", Where(round));
+                List<List<DashWidget>> half = Repeater.Build(new[] { tick }, new RepeatSpec { Circle = true, Count = 5, Sweep = 180, Radius = 100, Start = -90, Follow = true });
+                Check("repeat: half a circle ends where the arc ends",
+                    half.Count == 4 && Where(half.Skip(3).ToList()) == "190,280@180", Where(half));
+                List<List<DashWidget>> keptUpright = Repeater.Build(new[] { tick }, new RepeatSpec { Circle = true, Count = 4, Sweep = 360, Radius = 100, Start = -90, Follow = false, TurnEach = 10 });
+                Check("repeat: kept upright, copies only take the extra turn each",
+                    Where(keptUpright) == "290,180@10 190,280@20 90,180@30", Where(keptUpright));
+                DashWidget live = Piece(190, 80, 20, 40, "Needle", "=Speed");
+                List<List<DashWidget>> turned = Repeater.Build(new[] { live }, new RepeatSpec { Circle = true, Count = 2, Sweep = 180, Radius = 100, Start = 0, Follow = true });
+                Check("repeat: a formula's turn is kept and added to", turned[0][0].Get("rotate") == "=(Speed) + 180", turned[0][0].Get("rotate"));
+
+                // Numbered: each gets a group and the next Slot, named to match.
+                DashWidget led = Piece(10, 10, 12, 12);
+                var leds = new List<DashWidget> { led };
+                List<List<DashWidget>> numbered = Repeater.Build(leds, new RepeatSpec { Across = 4, Down = 1, GapX = 4 });
+                Repeater.Group(leds, numbered, true, "LED");
+                Check("repeat: numbered copies count up as Slot, each in a group of its own",
+                    led.Slot == 1 && led.GroupName == "LED" && numbered.Select(s => s[0].Slot).SequenceEqual(new double[] { 2, 3, 4 }) &&
+                    numbered[2][0].GroupName == "LED" && numbered.Select(s => s[0].Group).Concat(new[] { led.Group }).Distinct().Count() == 4 && led.Group.Length > 0,
+                    led.GroupName + " / " + string.Join(", ", numbered.Select(s => s[0].GroupName + " " + s[0].Slot)));
+                DashWidget card = Piece(0, 0, 200, 30, "Name"), position = Piece(0, 0, 30, 30, "Position");
+                card.Group = position.Group = "g-card"; card.GroupName = position.GroupName = "Driver"; card.Slot = position.Slot = 3;
+                var driverRow = new List<DashWidget> { card, position };
+                List<List<DashWidget>> rows = Repeater.Build(driverRow, new RepeatSpec { Across = 1, Down = 3, GapY = 4 });
+                Repeater.Group(driverRow, rows, true, "Repeat");
+                Check("repeat: a numbered group counts on from its own Slot, and each copy is one group",
+                    card.Slot == 3 && card.GroupName == "Driver" && rows[0][0].Slot == 4 && rows[1][1].Slot == 5 && rows[1][1].GroupName == "Driver" &&
+                    rows[0][0].Group == rows[0][1].Group && rows[0][0].Group != rows[1][0].Group && rows[0][0].Group != card.Group && rows[1][0].Y == 68,
+                    string.Join(", ", rows.Select(s => s[0].GroupName + " " + s[0].Slot + " at " + s[0].Y)));
+            }
+
             // ---------------- the formula reference
             {
                 // It's made from the live lists, so it covers everything; these keep its own parts complete and working.

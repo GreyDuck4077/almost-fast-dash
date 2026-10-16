@@ -770,6 +770,8 @@ namespace AlmostFastOverlays
                 bool allClipped = _selection.All(w => Expr.Bool(w.Get("clip", "false")));
                 menu.Items.Add(MenuItem(allClipped ? "Release clipping mask" : "Clip to layer below", "Ctrl+Alt+G", () => ToggleClip(_selection.ToList())));
                 menu.Items.Add(MenuItem("Duplicate", "Ctrl+D", () => DuplicateSelection()));
+                menu.Items.Add(MenuItem("Repeat…", "Ctrl+Shift+D", RepeatSelection));
+                menu.Items.Add(MenuItem("Zoom to selection", "Shift+2", ZoomToSelection));
                 menu.Items.Add(MenuItem("Copy", "Ctrl+C", CopySelection));
                 menu.Items.Add(MenuItem("Delete", "Del", DeleteSelection));
                 menu.Items.Add(new Separator());
@@ -1621,7 +1623,10 @@ namespace AlmostFastOverlays
                 case Key.OemOpenBrackets: Reorder(ctrl ? int.MinValue : -1); break;
                 case Key.Z when ctrl: if (shift) Redo(); else Undo(); break;
                 case Key.Y when ctrl: Redo(); break;
+                case Key.D when ctrl && shift: RepeatSelection(); break;
                 case Key.D when ctrl: DuplicateSelection(); break;
+                case Key.D1 when shift && !ctrl: ZoomFit(); break;
+                case Key.D2 when shift && !ctrl: ZoomToSelection(); break;
                 case Key.G when ctrl && (Keyboard.Modifiers & ModifierKeys.Alt) != 0: ToggleClip(_selection); break;
                 case Key.G when ctrl && shift: Ungroup(); break;
                 case Key.G when ctrl: GroupSelection(); break;
@@ -1648,7 +1653,53 @@ namespace AlmostFastOverlays
             DashWidget Find(string name) => _screen.Widgets.FirstOrDefault(w => w.Name == name);
             if (scenario.Contains("theme")) TabTheme.IsChecked = true;
 
-            if (scenario.Contains("masks") || scenario.Contains("modules"))
+            if (scenario.Contains("repeat"))
+            {
+                // What Repeat makes: a dial's ticks and numbers, a numbered row of lights, and a ring turning as it goes.
+                _screen.Widgets.Clear();
+                DashWidget Piece(string type, string name, double cx, double cy, double w, double h, params string[] props)
+                {
+                    DashWidget piece = WidgetCatalog.Create(type, 0, 0);
+                    piece.Name = name; piece.W = w; piece.H = h; piece.X = cx - w / 2; piece.Y = cy - h / 2;
+                    if (type == "shape") { piece.Set("strokeWidth", "0"); piece.Set("radius", "0"); }
+                    for (int i = 0; i + 1 < props.Length; i += 2) piece.Set(props[i], props[i + 1]);
+                    _screen.Widgets.Add(piece);
+                    return piece;
+                }
+                void Repeat(DashWidget original, RepeatSpec spec)
+                {
+                    List<List<DashWidget>> sets = Repeater.Build(new[] { original }, spec);
+                    Repeater.Group(new[] { original }, sets, spec.Number, original.Name);
+                    _screen.Widgets.AddRange(sets.SelectMany(s => s));
+                }
+                double cx = 230, cy = 262, a = 135 * Math.PI / 180;
+                Point On(double radius) => new Point(cx + radius * Math.Cos(a), cy + radius * Math.Sin(a));
+                Point p = On(150);
+                Repeat(Piece("shape", "Minor tick", p.X, p.Y, 2, 10, "fill", "muted", "rotate", "-135"),
+                    new RepeatSpec { Circle = true, Count = 41, Sweep = 270, Radius = 150, Start = 135, Follow = true });
+                p = On(146);
+                Repeat(Piece("shape", "Tick", p.X, p.Y, 4, 22, "fill", "#FFFFFF", "rotate", "-135"),
+                    new RepeatSpec { Circle = true, Count = 9, Sweep = 270, Radius = 146, Start = 135, Follow = true });
+                p = On(112);
+                Repeat(Piece("text", "Number", p.X, p.Y, 40, 30, "text", "=Slot - 1", "size", "24"),
+                    new RepeatSpec { Circle = true, Count = 9, Sweep = 270, Radius = 112, Start = 135, Follow = false, Number = true });
+                Repeat(Piece("shape", "Light", 478, 64, 22, 22, "shape", "Ellipse", "fill", "=RevPct * 12 >= Slot ? (Slot > 10 ? $bad : Slot > 7 ? $warn : $good) : $track", "glow", "6"),
+                    new RepeatSpec { Across = 12, Down = 1, GapX = 6, Number = true });
+                DashWidget petal = Piece("shape", "Petal", 650, 168, 26, 26, "radius", "6", "fill", "accent");
+                // With the Repeat window open, it makes the ring itself, live.
+                if (!scenario.Contains("dialog"))
+                    Repeat(petal, new RepeatSpec { Circle = true, Count = 16, Sweep = 360, Radius = 110, Start = -90, Follow = false, TurnEach = 11.25 });
+                _rendererDirty = true;
+                if (scenario.Contains("dialog"))
+                {
+                    Select(_screen.Widgets.First(w => w.Name == "Petal"));
+                    _lastRepeat = new RepeatSpec { Circle = true, Count = 16, Sweep = 360, Radius = 110, Start = -90, Follow = false, TurnEach = 11.25 };
+                    Dispatcher.BeginInvoke(new Action(RepeatSelection), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+                }
+                else Select(null);
+                RequestRender();
+            }
+            else if (scenario.Contains("masks") || scenario.Contains("modules"))
             {
                 // Clipping masks, fades and blending, for the snapshots and the guide.
                 _screen.Widgets.Clear();

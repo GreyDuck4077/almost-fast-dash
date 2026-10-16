@@ -5,6 +5,24 @@ English. Every version is on the
 [releases page](https://github.com/Sota4077/almost-fast-dash/releases) with
 its exe and checksum.
 
+## 3.65 · 2026-10-16
+
+Repeat, zoom to the selection, and an eyedropper.
+
+- **Repeat** (Ctrl+Shift+D, right-click, or the button in Properties): copies
+  of the selection in rows and columns, or around a circle, shown on the
+  canvas as you set them up.
+  - Around a circle: how many, the angle they cover (360 all the way round,
+    180 half), the radius and where the original sits. Copies follow the
+    circle like a dial's ticks or keep upright like its numbers, with an
+    extra turn each if you like.
+  - **Number them as Slot 1, 2, 3…**: each copy gets its own group and the
+    next number, so one light with `=RevPct * 12 >= Slot` becomes a shift
+    light row, and one `=Slot - 1` text becomes a dial's numbers.
+- **Zoom to selection** (Shift+2, or right-click); Shift+1 fits the screen.
+- **Eyedropper:** Pick from the screen in every colour picker, then click any
+  colour in the designer.
+
 ## 3.64 · 2026-10-16
 
 Modules: keep your own creations, place them anywhere, and share them as a

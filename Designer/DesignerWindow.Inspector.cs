@@ -207,6 +207,7 @@ namespace AlmostFastOverlays
             arrange.Children.Add(ActionButton("", "Lock", ToggleLock));
             bool oneGroup = SelectionIsOneGroup(out _);
             if (!oneGroup) arrange.Children.Add(ActionButton("", "Group  Ctrl+G", GroupSelection));
+            arrange.Children.Add(ActionButton("", "Repeat…", RepeatSelection));
             Inspector.Children.Add(arrange);
             Inspector.Children.Add(ScaleRow());
             AddSelectionColours(_selection);
@@ -359,6 +360,7 @@ namespace AlmostFastOverlays
             {
                 var menu = new ContextMenu { PlacementTarget = more, Placement = PlacementMode.Bottom };
                 menu.Items.Add(MenuItem("Duplicate", "Ctrl+D", () => DuplicateSelection()));
+                menu.Items.Add(MenuItem("Repeat…", "Ctrl+Shift+D", RepeatSelection));
                 menu.Items.Add(MenuItem("Reset to defaults", null, () => { widget.Props.Clear(); Commit("Reset widget"); RefreshInspector(); RequestRender(); }));
                 menu.Items.Add(MenuItem("Save as module…", "Ctrl+M", SaveSelectionAsModule));
                 menu.Items.Add(MenuItem(widget.Locked ? "Unlock" : "Lock", "Ctrl+L", ToggleLock));
@@ -421,6 +423,7 @@ namespace AlmostFastOverlays
                 Inspector.Children.Add(ActionButton("\uE70F", "Edit points on the canvas", () => BeginEditPath(widget)));
             else if (widget.Type == "shape" && PathNodes.FromShape(widget.Get("shape", "Rectangle"), 6, 0.5f, out _) != null)
                 Inspector.Children.Add(ActionButton("\uE70F", "Convert to path, to reshape point by point", () => ConvertToPath(widget)));
+            Inspector.Children.Add(ActionButton("\uE8EE", "Repeat in rows or around a circle\u2026", RepeatSelection));
 
             // Properties by group, in definition order; visibility last.
             foreach (IGrouping<string, PropDef> group in type.Props.Where(p => !p.Hidden).GroupBy(p => p.Group))

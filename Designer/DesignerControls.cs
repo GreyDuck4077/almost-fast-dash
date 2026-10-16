@@ -147,6 +147,13 @@ namespace AlmostFastOverlays
                 return wrap;
             }
 
+            var pick = new Button
+            {
+                Content = "Pick from the screen", Style = (Style)_owner.FindResource("Btn.Ghost"), HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 0, 0, 6),
+                ToolTip = "The eyedropper: then click any colour in this window, on the canvas or a picture in the Library. Esc stops."
+            };
+            pick.Click += (s, e) => { popup.IsOpen = false; ScreenColorPicker.Pick(_owner, v => SetValue(v, true)); };
+            body.Children.Add(pick);
             if (_allowEmpty)
             {
                 var none = new Button { Content = "No color", Style = (Style)_owner.FindResource("Btn.Ghost"), HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 0, 0, 6) };
