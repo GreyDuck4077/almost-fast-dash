@@ -80,6 +80,9 @@ own assemblies.
     graphics card. Instead WPF draws normally, and a window procedure in front
     of WPF's keeps the layered style on. `DwmExtendFrameIntoClientArea` makes
     Windows compose the dashboard's see-through pixels.
+  - The dashboard shows in one place: `ScreenSender` blanks and releases the
+    wheel screen while `PcOutput` is anything but Off, and `MonitorOutput`
+    closes when it's Off.
   - Only the running dashboard writes `dashboard.window`. The settings window
     unlocks the overlay by keeping `overlay.unlock` fresh, the way
     `preview.request` works, so the overlay can't be left unlocked.

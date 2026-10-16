@@ -32,11 +32,8 @@ namespace AlmostFastOverlays
                 : "Optional: the LEDs around a screen, light bars and strips. The app finds them for you.";
         }
 
-        private void WelcomeShowOnPc_Click(object sender, RoutedEventArgs e)
-        {
-            NavSettings.IsChecked = true;
-            Dispatcher.BeginInvoke(new System.Action(() => PcCard.BringIntoView()), System.Windows.Threading.DispatcherPriority.Loaded);
-        }
+        /// <summary>No wheel screen: show it in a window on the PC (Show on, at the top, changes it any time).</summary>
+        private void WelcomeShowOnPc_Click(object sender, RoutedEventArgs e) => ShowWindow.IsChecked = true;
 
         private void MarkStep(System.Windows.Controls.Border badge, System.Windows.Controls.TextBlock mark, string number, bool done)
         {

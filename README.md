@@ -210,8 +210,8 @@ them under **Settings**.
 3. **Dashboards**: pick a dashboard and press the start button in the header.
    The dashboard keeps running in the background when you close the window.
    **Settings › Start with Windows** starts it when you sign in.
-4. No wheel screen? **Devices › Dashboard on your PC** shows the running
-   dashboard in a window, over the game, or full screen on another display.
+4. No wheel screen? **Show on**, at the top of the window, puts the dashboard
+   in a window, over the game, or full screen on another display instead.
 
 **Updating:** turn on **Settings › Check for new versions** and the app shows a
 link when a new version is out. To update, stop the dashboard, close the app

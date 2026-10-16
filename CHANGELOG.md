@@ -5,6 +5,27 @@ English. Every version is on the
 [releases page](https://github.com/Sota4077/almost-fast-dash/releases) with
 its exe and checksum.
 
+## 3.58 · 2026-10-15
+
+Choose where the dashboard shows, from the top of the window.
+
+- **Show on**, next to the Dashboard control at the top: *Wheel screen*,
+  *Window*, *Over the game* or *Full screen*. It used to be at the bottom of
+  the Devices page.
+- **One place at a time.** The dashboard no longer shows on the wheel screen
+  and the PC together.
+  - On the PC, the wheel screen goes black (rather than freezing on the last
+    frame) and is let go for other programs.
+  - Back on the wheel screen, the window or overlay closes.
+  - The LEDs keep working either way.
+- **Only what's there can be chosen.** *Wheel screen* is greyed out while
+  none is plugged in, and *Full screen* without a second display. Each says
+  why when you point at it.
+- Over the game, a **move button** appears next to Show on: it unlocks the
+  dashboard to be moved and resized, and locks it again.
+- The Devices page keeps the settings for each place, and the wheel screen's
+  status says when it isn't in use because the dashboard is on the PC.
+
 ## 3.57 · 2026-10-15
 
 No wheel screen needed: the dashboard in a window, or over the game.

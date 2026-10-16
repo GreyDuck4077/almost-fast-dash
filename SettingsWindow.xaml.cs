@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -70,6 +70,7 @@ namespace AlmostFastOverlays
             _statusTimer.Tick += (s, e) =>
             {
                 if (!_dashboardOperationInProgress) RefreshDashboardStatus();
+                RefreshShowOn();
                 if (SettingsPage.Visibility == Visibility.Visible) RefreshDeviceStatus();
                 if (GalleryPage.Visibility == Visibility.Visible) RefreshWelcome();
             };
@@ -1008,7 +1009,7 @@ namespace AlmostFastOverlays
         private void SetStopped(string text)
         {
             SetStatus(text, "Brush.TextTertiary");
-            SetRunButton(StartButton, StartIcon, true, "Start the dashboard on your wheel");
+            SetRunButton(StartButton, StartIcon, true, "Start the dashboard");
             StopButton.IsEnabled = false;
             ActiveText.Text = " · " + _settings.GetDefaultDashboard().Name;
             StatusPill.ToolTip = "Starts with " + _settings.GetDefaultDashboard().Name + ", the default dashboard";

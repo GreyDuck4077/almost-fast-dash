@@ -84,7 +84,7 @@
                 <RowDefinition/>
             </Grid.RowDefinitions>
 
-            <!-- Header: whether the dashboard is running on the wheel screen, and start, restart or stop. -->
+            <!-- Header: whether the dashboard is running, start, restart or stop, and where it shows. -->
             <Border BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,0,0,1">
                 <Grid Margin="32,0,24,0">
                     <Grid.ColumnDefinitions>
@@ -103,9 +103,25 @@
                                 </TextBlock>
                             </StackPanel>
                             <Button x:Name="StopButton" Style="{StaticResource Btn.RunIcon}" Content="&#xE71A;" Click="StopDashboard_Click" Margin="8,0,0,0"
-                                    ToolTip="Stop the dashboard and blank the wheel screen"/>
+                                    ToolTip="Stop the dashboard"/>
                             <Button x:Name="StartButton" Style="{StaticResource Btn.RunIcon}" Click="StartDashboard_Click" Margin="4,0,0,0">
                                 <TextBlock x:Name="StartIcon" Style="{StaticResource T.Icon}" Text="&#xE768;" FontSize="12"/>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+                    <!-- Where the dashboard shows: the wheel screen or the PC, one at a time (SettingsWindow.Screens.cs) -->
+                    <Border Grid.Column="1" Style="{StaticResource RunControl}" Padding="14,4,4,4" Margin="14,0,0,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Show on" FontSize="12" Foreground="{StaticResource Brush.TextSecondary}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <RadioButton x:Name="ShowWheel" Style="{StaticResource PillSegment}" GroupName="ShowOn" Content="Wheel screen" Tag="Off" Checked="ShowOn_Changed" ToolTipService.ShowOnDisabled="True"/>
+                            <RadioButton x:Name="ShowWindow" Style="{StaticResource PillSegment}" GroupName="ShowOn" Content="Window" Tag="Window" Checked="ShowOn_Changed"
+                                         ToolTip="In a window on your PC, on any display"/>
+                            <RadioButton x:Name="ShowOverlay" Style="{StaticResource PillSegment}" GroupName="ShowOn" Content="Over the game" Tag="Overlay" Checked="ShowOn_Changed"
+                                         ToolTip="On top of the game; clicks go through it"/>
+                            <RadioButton x:Name="ShowFullScreen" Style="{StaticResource PillSegment}" GroupName="ShowOn" Content="Full screen" Tag="FullScreen" Checked="ShowOn_Changed" ToolTipService.ShowOnDisabled="True"/>
+                            <Button x:Name="MoveOverlayButton" Style="{StaticResource Btn.RunIcon}" Margin="4,0,0,0" Visibility="Collapsed" Click="PlaceOverlay_Click"
+                                    ToolTip="Move and resize it over the game">
+                                <TextBlock x:Name="MoveOverlayIcon" Style="{StaticResource T.Icon}" Text="&#xE7C2;" FontSize="13"/>
                             </Button>
                         </StackPanel>
                     </Border>
@@ -520,27 +536,14 @@
                     <Border x:Name="PcCard" Style="{StaticResource Card}">
                         <StackPanel>
                             <TextBlock Text="Dashboard on your PC" Style="{StaticResource T.Title}"/>
-                            <TextBlock Text="No wheel screen needed. Show the running dashboard in a window, over the game, or full screen on another display. It never takes the keyboard from the game." Style="{StaticResource T.Caption}" TextWrapping="Wrap" Margin="0,4,0,18"/>
-                            <Grid Style="{StaticResource Row}">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                                <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
-                                    <TextBlock Text="Show it" Style="{StaticResource T.Label}"/>
-                                    <TextBlock Text="Where the running dashboard appears." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
-                                </StackPanel>
-                                <Border Grid.Column="1" Style="{StaticResource Segmented}" HorizontalAlignment="Left" VerticalAlignment="Center">
-                                    <StackPanel Orientation="Horizontal">
-                                        <RadioButton x:Name="PcOff" Style="{StaticResource Segment}" GroupName="PcOutput" Content="Off" Tag="Off" Checked="PcOutput_Changed"/>
-                                        <RadioButton x:Name="PcWindow" Style="{StaticResource Segment}" GroupName="PcOutput" Content="Window" Tag="Window" Checked="PcOutput_Changed"/>
-                                        <RadioButton x:Name="PcOverlay" Style="{StaticResource Segment}" GroupName="PcOutput" Content="Over the game" Tag="Overlay" Checked="PcOutput_Changed"/>
-                                        <RadioButton x:Name="PcFullScreen" Style="{StaticResource Segment}" GroupName="PcOutput" Content="Full screen" Tag="FullScreen" Checked="PcOutput_Changed"/>
-                                    </StackPanel>
-                                </Border>
-                            </Grid>
+                            <TextBlock Style="{StaticResource T.Caption}" TextWrapping="Wrap" Margin="0,4,0,6"
+                                       Text="No wheel screen needed. Choose Window, Over the game or Full screen under Show on at the top of the window, and the dashboard shows on your PC instead of the wheel screen. It never takes the keyboard from the game."/>
 
                             <!-- In a window -->
                             <StackPanel x:Name="PcWindowRows" Visibility="Collapsed">
                                 <Border Style="{StaticResource Divider}"/>
-                                <TextBlock Style="{StaticResource T.Caption}" TextWrapping="Wrap" Margin="0,12,0,4"
+                                <TextBlock Text="In a window" Style="{StaticResource T.Label}" Margin="0,12,0,0"/>
+                                <TextBlock Style="{StaticResource T.Caption}" TextWrapping="Wrap" Margin="0,3,0,4"
                                            Text="Move it and size it like any window, on any display: it keeps the dashboard's shape and remembers where it was. Clicks on it work like taps on a touch screen, and leave the game active."/>
                             </StackPanel>
 

@@ -11,7 +11,8 @@ namespace AlmostFastOverlays
     /// Sends the dashboard to the wheel screen on its own thread, so the next frame is drawn while this one goes
     /// down the USB cable. It connects (and reconnects) by itself, sends only the parts of a frame that changed
     /// (Settings › Devices › Send only what changed), and always sends the newest frame: one that arrives while
-    /// another is still being sent replaces any waiting.
+    /// another is still being sent replaces any waiting. While the dashboard is shown on the PC instead, it leaves
+    /// the screen alone: blanked, and free for other programs.
     /// </summary>
     internal sealed class ScreenSender : IDisposable
     {
@@ -87,6 +88,13 @@ namespace AlmostFastOverlays
         {
             while (_running)
             {
+                // The dashboard shows in one place: here, or on the PC.
+                if (!Wanted())
+                {
+                    if (_screen != null) Release();
+                    _wake.WaitOne(500);
+                    continue;
+                }
                 if (_screen == null && !Connect())
                 {
                     _wake.WaitOne(2000);
@@ -126,6 +134,30 @@ namespace AlmostFastOverlays
                     _wake.WaitOne(2000);
                 }
             }
+            Disconnect();
+        }
+
+        /// <summary>The dashboard is to show on the wheel screen, not on the PC.</summary>
+        private bool Wanted()
+        {
+            try { return _settings().EffectivePcOutput() == "Off"; }
+            catch { return true; }
+        }
+
+        /// <summary>Shown on the PC now: the screen goes black rather than keep a frozen frame, and is let go.</summary>
+        private void Release()
+        {
+            try
+            {
+                WheelScreen screen = _screen;
+                if (screen != null && _panel != null)
+                {
+                    Array.Clear(_panel, 0, _panel.Length);
+                    screen.SendFrame(_panel);
+                }
+            }
+            catch { }
+            Console.WriteLine("Screen released: the dashboard shows on the PC");
             Disconnect();
         }
 

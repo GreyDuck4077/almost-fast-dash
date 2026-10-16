@@ -114,9 +114,18 @@ real hardware.
 
 ## Screens
 
-The running dashboard can show on a wheel screen, on the PC, or both at once.
-Both are set up at the bottom of the **Devices** page. You don't need a wheel
-screen: the dashboard on the PC works on its own.
+The running dashboard shows in one place at a time: the wheel screen, or your
+PC. Choose it with **Show on** at the top of the window:
+
+- **Wheel screen** (greyed out while none is plugged in);
+- **Window**;
+- **Over the game**;
+- **Full screen** (greyed out without a second display).
+
+While it's on the PC, the wheel screen goes black and is let go, so other
+programs can use it. Your LED devices keep working either way. You don't need
+a wheel screen at all. The settings for each are at the bottom of the
+**Devices** page.
 
 ### The wheel screen
 
@@ -149,8 +158,9 @@ frame rates to the report.
 
 ### Dashboard on your PC
 
-**Dashboard on your PC › Show it** puts the running dashboard on your PC's
-screens. Choose one of:
+**Show on** puts the running dashboard on your PC's screens instead of the
+wheel screen. The settings for each are under **Devices › Dashboard on your
+PC**:
 
 - **Window:** a window of its own on any display. Move and size it like any
   window. It keeps the dashboard's shape and opens where you left it. Clicks
@@ -159,9 +169,10 @@ screens. Choose one of:
   close it.
 - **Over the game:** the dashboard floats on top of the game. Mouse clicks go
   through it to the game.
-  - **Move and resize** shows a frame around it: drag it to move it, and drag
-    its corner to resize it. Click **Done** when it's placed. It locks again by
-    itself if you close the settings window.
+  - **Move and resize** (or the move button next to **Show on**) shows a frame
+    around it: drag it to move it, and drag its corner to resize it. Click
+    **Done** when it's placed. It locks again by itself if you close the
+    settings window.
   - **Opacity** lets the game show through, from 30% to 100%.
   - **Only while racing** (on by default) hides it while iRacing isn't
     running, so it's never left over your desktop.

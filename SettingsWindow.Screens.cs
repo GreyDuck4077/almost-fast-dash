@@ -47,6 +47,11 @@ namespace AlmostFastOverlays
                 text = "Not found. Check it's plugged in by USB. VoCore-family M-PRO screens are supported.";
                 tone = "Brush.Warning";
             }
+            else if (_settings.General.EffectivePcOutput() != "Off")
+            {
+                text = "Plugged in · " + ScreenSize + " · not in use: the dashboard shows on your PC (Show on, at the top)";
+                tone = "Brush.TextTertiary";
+            }
             else if (_dashboardRunning)
             {
                 // The running dashboard keeps screen.link while it's connected to the screen.
@@ -83,7 +88,7 @@ namespace AlmostFastOverlays
         private bool _pcWired;
         private System.Windows.Threading.DispatcherTimer _placing;
 
-        /// <summary>Shows the saved choice of where the dashboard appears on the PC, and its settings.</summary>
+        /// <summary>Shows where the dashboard shows (the header's Show on), and the settings for the PC.</summary>
         private void LoadPcOutput()
         {
             GeneralSettings general = _settings.General;
@@ -100,35 +105,57 @@ namespace AlmostFastOverlays
                 Closed += (s, e) => StopPlacing();
             }
             string mode = general.EffectivePcOutput();
-            foreach (RadioButton choice in new[] { PcOff, PcWindow, PcOverlay, PcFullScreen }) choice.IsChecked = (string)choice.Tag == mode;
+            foreach (RadioButton choice in ShowOnChoices) choice.IsChecked = (string)choice.Tag == mode;
             OverlayOpacity.Value = Math.Max(30, Math.Min(100, general.OverlayOpacity));
             OverlayOpacityValue.Text = (int)OverlayOpacity.Value + "%";
             OverlayRacingToggle.IsChecked = general.OverlayOnlyWhileRacing;
             FillMonitors();
             ShowPcRows(mode);
+            RefreshShowOn();
         }
+
+        private RadioButton[] ShowOnChoices => new[] { ShowWheel, ShowWindow, ShowOverlay, ShowFullScreen };
 
         private void ShowPcRows(string mode)
         {
             PcWindowRows.Visibility = mode == MonitorOutput.Windowed ? Visibility.Visible : Visibility.Collapsed;
             PcOverlayRows.Visibility = mode == MonitorOutput.Overlay ? Visibility.Visible : Visibility.Collapsed;
             PcFullScreenRows.Visibility = mode == MonitorOutput.FullScreen ? Visibility.Visible : Visibility.Collapsed;
+            MoveOverlayButton.Visibility = mode == MonitorOutput.Overlay ? Visibility.Visible : Visibility.Collapsed;
             if (mode != MonitorOutput.Overlay) StopPlacing();
         }
 
-        private void PcOutput_Changed(object sender, RoutedEventArgs e)
+        /// <summary>
+        /// The header's Show on: the dashboard shows in one place, the wheel screen or the PC. Choosing the PC lets
+        /// the wheel screen go (blank); choosing the wheel screen closes the dashboard on the PC.
+        /// </summary>
+        private void ShowOn_Changed(object sender, RoutedEventArgs e)
         {
             if (_loading || !(sender is RadioButton choice) || choice.IsChecked != true) return;
             string mode = (string)choice.Tag;
+            if (mode == _settings.General.EffectivePcOutput()) return;
             _settings.General.PcOutput = mode;
             // Full screen goes on the first other display unless one was chosen before.
-            if (mode == MonitorOutput.FullScreen && string.IsNullOrEmpty(_settings.General.MonitorDevice))
+            if (mode == MonitorOutput.FullScreen && MonitorChoice.All().All(d => d.Device != _settings.General.MonitorDevice))
             {
                 _settings.General.MonitorDevice = MonitorChoice.All().FirstOrDefault()?.Device;
                 FillMonitors();
             }
             ShowPcRows(mode);
             Save();
+        }
+
+        /// <summary>
+        /// Show on's choices that need something plugged in are greyed out without it: the wheel screen, and full
+        /// screen (another display). Refreshed with the status, twice a second.
+        /// </summary>
+        private void RefreshShowOn()
+        {
+            bool wheel = ScreenPresent(), display = MonitorChoice.All().Count > 0;
+            if (ShowWheel.IsEnabled != wheel) ShowWheel.IsEnabled = wheel;
+            if (ShowFullScreen.IsEnabled != display) ShowFullScreen.IsEnabled = display;
+            ShowWheel.ToolTip = wheel ? "The screen on your wheel" : "No wheel screen plugged in";
+            ShowFullScreen.ToolTip = display ? "Full screen on another display, such as an HDMI dash screen" : "Plug in a second display to use this";
         }
 
         private void OverlayRacing_Click(object sender, RoutedEventArgs e)
@@ -140,7 +167,8 @@ namespace AlmostFastOverlays
 
         /// <summary>
         /// Unlocks the dashboard over the game to be moved and resized, playing the animated lap on it so there's
-        /// something to place, until Done (or this window closes, or another choice is made).
+        /// something to place, until Done (or this window closes, or another choice is made). The header's move
+        /// button and the Devices page's both do this.
         /// </summary>
         private void PlaceOverlay_Click(object sender, RoutedEventArgs e)
         {
@@ -151,7 +179,9 @@ namespace AlmostFastOverlays
             }
             if (!IsDashboardRunning())
             {
-                PlaceOverlayNote.Text = "Start the dashboard first: it's the running dashboard that shows over the game.";
+                const string start = "Start the dashboard first: it's the running dashboard that shows over the game.";
+                PlaceOverlayNote.Text = start;
+                ShowSaved(start);
                 return;
             }
             string dashboard = _settings.GetDefaultDashboard().Id;
@@ -166,6 +196,9 @@ namespace AlmostFastOverlays
             _placing.Start();
             PlaceOverlayButton.Content = "Done";
             PlaceOverlayNote.Text = "Drag the dashboard to move it, and its corner to resize it. Click Done when it's where you want it.";
+            MoveOverlayIcon.Text = "\uE73E";
+            MoveOverlayIcon.Foreground = (Brush)FindResource("Brush.Accent");
+            MoveOverlayButton.ToolTip = "Done: lock it where it is";
         }
 
         private void StopPlacing()
@@ -177,6 +210,9 @@ namespace AlmostFastOverlays
             PreviewRequest.Clear();
             PlaceOverlayButton.Content = "Move and resize";
             PlaceOverlayNote.Text = "The dashboard shows a frame: drag it to move it, and its corner to resize it.";
+            MoveOverlayIcon.Text = "\uE7C2";
+            MoveOverlayIcon.ClearValue(TextBlock.ForegroundProperty);
+            MoveOverlayButton.ToolTip = "Move and resize it over the game";
         }
 
         /// <summary>
