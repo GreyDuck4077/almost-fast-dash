@@ -5,6 +5,31 @@ English. Every version is on the
 [releases page](https://github.com/Sota4077/almost-fast-dash/releases) with
 its exe and checksum.
 
+## 3.61 · 2026-10-15
+
+The designer's new workspace, laid out like an image editor.
+
+- **Tools on the left rail:**
+  - **Move** (V);
+  - **Rectangle** (U), **Ellipse** and **Line** (Shift+U steps through them);
+  - **Text** (T);
+  - **Hand** (H, or hold Space);
+  - **Zoom** (Z, Alt+click to zoom out).
+
+  Draw a shape or a text straight onto the screen: it becomes a widget,
+  selected and ready to style, and the rail goes back to Move. Shift keeps a
+  shape square, round, level or at 45°, Alt draws from the middle, and a click
+  makes one of the usual size. Each drawing is its own step to undo.
+- **Layers always in view.** Layers sit on the right below Properties instead
+  of on a tab, with a count, and buttons to bring forward, send back, group,
+  duplicate and delete. The line between them drags to share the room.
+- **Properties and Theme** share the top of the right side.
+- **The Library** (what was Add) sits beside the tools, with everything it
+  had. Hide it for more canvas, and the grid button on the rail brings it
+  back.
+- Nothing was taken away: every widget, block, template, shortcut and setting
+  is where you'd look for it.
+
 ## 3.60 · 2026-10-15
 
 A formula reference to keep open while you build.

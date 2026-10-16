@@ -253,7 +253,8 @@ namespace AlmostFastOverlays
                 using (FileStream file = File.Create(output)) encoder.Save(file);
                 Environment.Exit(0);
             };
-            window.Loaded += (s, e) => timer.Start();
+            // "...-hold" keeps the window open to try by hand instead of taking the picture.
+            if (!scenario.Contains("hold")) window.Loaded += (s, e) => timer.Start();
             application.Run(window);
             return 0;
         }

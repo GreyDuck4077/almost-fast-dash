@@ -12,17 +12,33 @@ namespace AlmostFastOverlays
     public partial class DesignerWindow
     {
         // ==================================================================
-        // Left tabs
+        // Panels: the library on the left, properties or the theme on the right (layers are always there)
         // ==================================================================
 
-        private void LeftTab_Checked(object sender, RoutedEventArgs e)
+        private void RightTab_Checked(object sender, RoutedEventArgs e)
         {
-            if (WidgetsPanel == null) return;
-            WidgetsPanel.Visibility = TabWidgets.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-            LayersPanel.Visibility = TabLayers.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-            ThemePanel.Visibility = TabTheme.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
-            if (TabLayers.IsChecked == true) RefreshLayers();
+            if (InspectorScroller == null || ThemePanel == null) return;
+            bool theme = TabTheme.IsChecked == true;
+            InspectorScroller.Visibility = theme ? Visibility.Collapsed : Visibility.Visible;
+            ThemePanel.Visibility = theme ? Visibility.Visible : Visibility.Collapsed;
         }
+
+        /// <summary>The library panel stays as it was left, for every design opened in this session.</summary>
+        private static bool _libraryOpen = true;
+
+        private void LibraryToggle_Click(object sender, RoutedEventArgs e) => ShowLibrary(LibraryToggle.IsChecked == true);
+
+        private void LibraryHide_Click(object sender, RoutedEventArgs e) => ShowLibrary(false);
+
+        private void ShowLibrary(bool open)
+        {
+            _libraryOpen = open;
+            LibraryToggle.IsChecked = open;
+            LibraryPanel.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
+            LibraryColumn.Width = new GridLength(open ? 272 : 0);
+        }
+
+        private void GroupLayers_Click(object sender, RoutedEventArgs e) => GroupSelection();
 
         private TextBlock Glyph(string glyph, double size = 14, string brush = null)
         {
@@ -239,7 +255,7 @@ namespace AlmostFastOverlays
             {
                 DesignBlocks.Save(name.Trim(), _screen.Widgets.Where(_selection.Contains).ToList());
                 BuildToolbox();
-                StatusText.Text = "Saved block \"" + name.Trim() + "\". Find it under Add › My blocks.";
+                StatusText.Text = "Saved block \"" + name.Trim() + "\". Find it in the Library under My blocks.";
             }
             catch (Exception exception)
             {
@@ -277,11 +293,13 @@ namespace AlmostFastOverlays
 
         private void RefreshLayers()
         {
-            if (LayersList == null || LayersPanel.Visibility != Visibility.Visible) return;
+            if (LayersList == null) return;
             LayersList.Children.Clear();
-            if (_screen.Widgets.Count == 0)
+            int count = _screen.Widgets.Count;
+            LayerCount.Text = count == 0 ? "" : count + (count == 1 ? " layer" : " layers");
+            if (count == 0)
             {
-                LayersList.Children.Add(new TextBlock { Text = "This screen is empty. Add widgets from the Add tab.", Style = (Style)FindResource("T.Caption"), Margin = new Thickness(8, 12, 8, 0) });
+                LayersList.Children.Add(new TextBlock { Text = "This screen is empty. Drag something in from the Library, or draw with the tools on the left.", Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(8, 8, 8, 0) });
                 return;
             }
             for (int i = _screen.Widgets.Count - 1; i >= 0; i--) LayersList.Children.Add(LayerRow(_screen.Widgets[i]));

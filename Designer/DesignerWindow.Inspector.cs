@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -66,7 +66,7 @@ namespace AlmostFastOverlays
         private void BuildScreenInspector()
         {
             Inspector.Children.Add(Heading("Screen: " + _screen.Name));
-            Inspector.Children.Add(Caption("Nothing selected. Click a widget, drag across several, or add one from the left."));
+            Inspector.Children.Add(Caption("Nothing selected. Click a widget or its layer, drag across several, drag one in from the Library, or draw one with the tools on the left."));
 
             Inspector.Children.Add(SectionTitle("Screen"));
             var name = new TextBox { Text = _screen.Name, MaxLength = 40 };
@@ -115,7 +115,7 @@ namespace AlmostFastOverlays
             Inspector.Children.Add(LabeledRow("Previous page", ButtonPicker(() => _layout.PageBackButton, v => _layout.PageBackButton = v)));
 
             Inspector.Children.Add(SectionTitle("Quick start"));
-            Inspector.Children.Add(Tip("", "Ready-made blocks", "Cards, clusters and strips under Add are the fastest way to a polished layout."));
+            Inspector.Children.Add(Tip("", "Ready-made blocks", "Cards, clusters and strips in the Library are the fastest way to a polished layout."));
             Inspector.Children.Add(Tip("", "Theme first", "Pick a preset under Theme. Widgets that use theme colors ($accent, $panel...) restyle together."));
             Inspector.Children.Add(Tip("", "Make it live", "Click ƒx next to any property to drive it with a formula, such as a color that turns red when fuel is low."));
             Inspector.Children.Add(Tip("", "Show when", "Every widget has a Show when condition, so one screen can change with the session."));

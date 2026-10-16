@@ -218,10 +218,30 @@ Dashboards are data, not code: a theme plus one or more screens of widgets. Open
 
 ![The designer](images/app-designer.png)
 
+The workspace is laid out like an image editor:
+
+- **Tools** on the left rail:
+  - **Move** (V): select, move, resize and rotate.
+  - **Rectangle** (U), **Ellipse** and **Line**: Shift+U steps through the
+    shapes. Drag to draw one; Shift keeps it square, round, level or at 45°, and
+    Alt draws from the middle.
+  - **Text** (T): click where it goes, then type.
+  - **Hand** (H, or hold Space): moves around the canvas.
+  - **Zoom** (Z): click to zoom in, Alt+click to zoom out.
+
+  What you draw becomes an ordinary widget, selected and ready to style, and
+  the rail goes back to Move. Esc does the same at any time.
 - **Canvas.** The screen at the dashboard's own resolution. Drag, resize and
   multi-select. Widgets snap to edges and centres (hold Alt to stop snapping),
   and Ctrl+wheel zooms.
-- **Add.** Drag widgets and ready-made blocks onto the screen:
+- **Properties** on the right: every property of the selected widget, or the
+  screen's own settings when nothing is selected. **Theme** sits beside it.
+- **Layers** below Properties, always there, with the top layer first:
+  - drag to reorder, double-click to rename, lock and hide;
+  - buttons to bring forward, send back, group, duplicate and delete;
+  - drag the line above the list to give Properties or Layers more room.
+- **Library** beside the tools. The grid button on the rail hides and shows it.
+  Drag widgets and ready-made blocks onto the screen:
   - **Widgets**: text and values, the gear, bars and arc gauges (needles,
     ticks, numbers), shift lights, the leaderboard, the relative, tyres, a
     self-tracing track map, a radar of the cars around you, a traffic strip in
@@ -231,9 +251,8 @@ Dashboards are data, not code: a theme plus one or more screens of widgets. Open
     fuel, race, leaderboard, notices and the PC.
   - **Blocks**: ready-made cards, clusters and strips. Save your own selection
     as a block to reuse it.
-- **Inspector.** Every property of the selected widget. **ƒx** turns any
-  property into a live formula. **Show when** shows a widget only while a
-  condition is true.
+- **ƒx** turns any property into a live formula. **Show when** shows a widget
+  only while a condition is true.
 - **Shared tools** on every widget where they fit:
   - shape: bend, taper, bulge, slant;
   - fill direction, flip and rotate;

@@ -1131,6 +1131,42 @@ namespace AlmostFastOverlays
                     differ + " of " + frames + " frames differ; unchanged frame reported empty: " + (quiet == 1));
             }
 
+            // ---------------- the tool rail: shapes and text drawn on the canvas
+            {
+                int before = _screen.Widgets.Count;
+                DashWidget Draw(Tool tool, System.Windows.Point from, System.Windows.Point to)
+                {
+                    SetTool(tool);
+                    _drawStart = from;
+                    _drawEnd = to;
+                    FinishDrawing();
+                    return _selection.Count == 1 ? _selection[0] : null;
+                }
+                string Box(DashWidget w) => w == null ? "none" : w.Get("shape") + " " + w.X + "," + w.Y + " " + w.W + "x" + w.H;
+                DashWidget rectangle = Draw(Tool.Rectangle, new System.Windows.Point(100, 80), new System.Windows.Point(220, 140));
+                DashWidget ellipse = Draw(Tool.Ellipse, new System.Windows.Point(300, 300), new System.Windows.Point(260, 250));
+                DashWidget level = Draw(Tool.Line, new System.Windows.Point(50, 400), new System.Windows.Point(250, 400));
+                DashWidget rising = Draw(Tool.Line, new System.Windows.Point(50, 400), new System.Windows.Point(150, 300));
+                DashWidget clicked = Draw(Tool.Rectangle, new System.Windows.Point(600, 100), new System.Windows.Point(601, 101));
+                DashWidget text = Draw(Tool.Text, new System.Windows.Point(400, 200), new System.Windows.Point(400, 200));
+                Check("tools: a drawn rectangle is a square-cornered shape exactly where it was drawn",
+                    rectangle?.Type == "shape" && rectangle.Get("shape") == "Rectangle" && rectangle.Get("radius") == "0" &&
+                    rectangle.X == 100 && rectangle.Y == 80 && rectangle.W == 120 && rectangle.H == 60, Box(rectangle));
+                Check("tools: an ellipse drawn up and to the left lands where it was drawn",
+                    ellipse?.Get("shape") == "Ellipse" && ellipse.X == 260 && ellipse.Y == 250 && ellipse.W == 40 && ellipse.H == 50, Box(ellipse));
+                Check("tools: a level line keeps a thin box, a sloping one runs corner to corner",
+                    level?.Get("shape") == "Line" && level.W == 200 && level.H == 12 && level.Y == 394 &&
+                    rising?.Get("shape") == "Diagonal up" && rising.X == 50 && rising.Y == 300 && rising.W == 100 && rising.H == 100, Box(level) + "; " + Box(rising));
+                Check("tools: a click without a drag makes one of the usual size",
+                    clicked != null && clicked.X == 600 && clicked.Y == 100 && clicked.W == WidgetCatalog.Find("shape").DefaultW, Box(clicked));
+                Check("tools: Text makes a text box where it's clicked, each gets a name, and the rail goes back to Move",
+                    text?.Type == "text" && text.X == 400 && rectangle.Name == "Rectangle 1" && _tool == Tool.Move && _screen.Widgets.Count == before + 6,
+                    (text?.Type ?? "none") + " " + rectangle?.Name + " " + _tool);
+                var undone = new List<int>();
+                for (int i = 0; i < 6; i++) { Undo(); undone.Add(_screen.Widgets.Count); }
+                Check("tools: each drawing is one step to undo", _screen.Widgets.Count == before, _screen.Widgets.Count + " vs " + before + "; after each undo: " + string.Join(",", undone) + "; undo steps " + _undo.Count);
+            }
+
             // ---------------- the formula reference
             {
                 // It's made from the live lists, so it covers everything; these keep its own parts complete and working.

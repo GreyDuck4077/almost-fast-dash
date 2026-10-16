@@ -107,6 +107,7 @@ namespace AlmostFastOverlays
             UpdateSaveState();
 
             PreviewKeyDown += Window_PreviewKeyDown;
+            InitTools();
             Loaded += (s, e) => { ZoomFit(); RenderNow(); Overlay.Focus(); };
             Closing += Window_Closing;
             Closed += (s, e) => { StopLive(); _animationTimer.Stop(); _renderer?.Dispose(); };
@@ -469,6 +470,7 @@ namespace AlmostFastOverlays
                 Canvas.SetTop(rect, _marquee.Y);
                 Overlay.Children.Add(rect);
             }
+            AddDrawingPreview(accent);
         }
 
         private Rectangle _gridRect;
@@ -612,6 +614,8 @@ namespace AlmostFastOverlays
         {
             Overlay.Focus();
             Keyboard.Focus(Overlay);
+            // Drawing, panning and zooming tools take the press; Move goes on below.
+            if (ToolMouseDown(e)) return;
             Point p = e.GetPosition(Overlay);
             _dragStart = p;
             _dragChanged = false;
@@ -675,6 +679,7 @@ namespace AlmostFastOverlays
         {
             Point p = e.GetPosition(Overlay);
             CursorText.Text = $"x {Math.Round(p.X)}   y {Math.Round(p.Y)}";
+            if (ToolMouseMove(e)) return;
             bool free = (Keyboard.Modifiers & ModifierKeys.Alt) != 0 || SnapToggle.IsChecked != true;
 
             switch (_drag)
@@ -721,6 +726,7 @@ namespace AlmostFastOverlays
 
         private void Overlay_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
+            if (ToolMouseUp()) return;
             DragMode mode = _drag;
             _drag = DragMode.None;
             Overlay.ReleaseMouseCapture();
@@ -1254,7 +1260,8 @@ namespace AlmostFastOverlays
                 UpdateSaveState();
                 return;
             }
-            bool merge = label == _lastCommitLabel && (DateTime.UtcNow - _lastCommitUtc).TotalMilliseconds < 1200 && label != "Add" && _undo.Count > 0;
+            // Quick repeats of one edit (a slider dragged) are one step to undo; each widget added or drawn is its own.
+            bool merge = label == _lastCommitLabel && (DateTime.UtcNow - _lastCommitUtc).TotalMilliseconds < 1200 && label != "Add" && !label.StartsWith("Draw ") && _undo.Count > 0;
             if (!merge)
             {
                 _undo.Add(_committed);
@@ -1562,6 +1569,9 @@ namespace AlmostFastOverlays
             // Text fields keep their own keys.
             if (Keyboard.FocusedElement is TextBox || Keyboard.FocusedElement is ComboBox) return;
 
+            // The tool rail's keys: V, U, T, H, Z, Space held for the Hand, and Esc back to Move.
+            if (!ctrl && (Keyboard.Modifiers & ModifierKeys.Alt) == 0 && ToolKey(key, shift, e)) { e.Handled = true; return; }
+
             double step = shift ? 10 : 1;
             switch (key)
             {
@@ -1600,7 +1610,7 @@ namespace AlmostFastOverlays
             PreviewCombo.SelectedItem = "Racing";
             DashWidget Find(string name) => _screen.Widgets.FirstOrDefault(w => w.Name == name);
             if (scenario.Contains("theme")) TabTheme.IsChecked = true;
-            if (scenario.Contains("layers")) TabLayers.IsChecked = true;
+
             if (scenario.Contains("multi"))
             {
                 _selection.Clear();

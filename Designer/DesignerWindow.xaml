@@ -41,6 +41,72 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <!-- A tool on the left rail (one at a time), and the rail's panel switch -->
+        <Style x:Key="RailTool" TargetType="RadioButton">
+            <Setter Property="Width" Value="40"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+            <Setter Property="Foreground" Value="{StaticResource Brush.TextSecondary}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Bd" Background="Transparent" BorderBrush="Transparent" BorderThickness="1" CornerRadius="9">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource Brush.SurfaceHover}"/>
+                                <Setter Property="Foreground" Value="{StaticResource Brush.Text}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource Brush.AccentSubtle}"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Brush.AccentBorder}"/>
+                                <Setter Property="Foreground" Value="{StaticResource Brush.Accent}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="RailToggle" TargetType="ToggleButton">
+            <Setter Property="Width" Value="40"/>
+            <Setter Property="Height" Value="40"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+            <Setter Property="Foreground" Value="{StaticResource Brush.TextSecondary}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Bd" Background="Transparent" BorderBrush="Transparent" BorderThickness="1" CornerRadius="9">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource Brush.SurfaceHover}"/>
+                                <Setter Property="Foreground" Value="{StaticResource Brush.Text}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter Property="Foreground" Value="{StaticResource Brush.Accent}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- A tool's icon: drawn lines in the tool's colour -->
+        <Style x:Key="RailIcon" TargetType="Path">
+            <Setter Property="Width" Value="20"/>
+            <Setter Property="Height" Value="20"/>
+            <Setter Property="Stretch" Value="None"/>
+            <Setter Property="StrokeThickness" Value="1.6"/>
+            <Setter Property="StrokeLineJoin" Value="Round"/>
+            <Setter Property="StrokeStartLineCap" Value="Round"/>
+            <Setter Property="StrokeEndLineCap" Value="Round"/>
+            <Setter Property="Stroke" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Control}}"/>
+        </Style>
         <Style x:Key="Section" TargetType="TextBlock" BasedOn="{StaticResource T.Overline}">
             <Setter Property="Margin" Value="0,18,0,8"/>
         </Style>
@@ -53,13 +119,14 @@
             <RowDefinition Height="30"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="272"/>
+            <ColumnDefinition Width="56"/>
+            <ColumnDefinition x:Name="LibraryColumn" Width="272"/>
             <ColumnDefinition/>
             <ColumnDefinition Width="360"/>
         </Grid.ColumnDefinitions>
 
         <!-- ================= Toolbar ================= -->
-        <Border Grid.ColumnSpan="3" BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,0,0,1" Background="{StaticResource Brush.Sidebar}">
+        <Border Grid.ColumnSpan="4" BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,0,0,1" Background="{StaticResource Brush.Sidebar}">
             <DockPanel Margin="14,0,14,0" LastChildFill="False">
                 <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
                     <Border Width="30" Height="30" CornerRadius="8" Margin="0,0,10,0">
@@ -121,40 +188,62 @@
             </DockPanel>
         </Border>
 
-        <!-- ================= Left: widgets, layers, theme ================= -->
-        <Border Grid.Row="1" Background="{StaticResource Brush.Sidebar}" BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,0,1,0">
-            <DockPanel>
-                <Border DockPanel.Dock="Top" Style="{StaticResource Segmented}" Margin="14,14,14,6">
-                    <UniformGrid Columns="3">
-                        <RadioButton x:Name="TabWidgets" Style="{StaticResource Segment}" MinWidth="0" Content="Add" GroupName="LeftTabs" IsChecked="True" Checked="LeftTab_Checked"/>
-                        <RadioButton x:Name="TabLayers" Style="{StaticResource Segment}" MinWidth="0" Content="Layers" GroupName="LeftTabs" Checked="LeftTab_Checked"/>
-                        <RadioButton x:Name="TabTheme" Style="{StaticResource Segment}" MinWidth="0" Content="Theme" GroupName="LeftTabs" Checked="LeftTab_Checked"/>
-                    </UniformGrid>
-                </Border>
-                <Grid>
-                    <ScrollViewer x:Name="WidgetsPanel" VerticalScrollBarVisibility="Auto">
-                        <StackPanel x:Name="Toolbox" Margin="14,4,14,16"/>
-                    </ScrollViewer>
-                    <DockPanel x:Name="LayersPanel" Visibility="Collapsed">
-                        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="14,8,14,12">
-                            <Button Style="{StaticResource Tool}" ToolTip="Bring forward (])" Click="Forward_Click"><TextBlock Style="{StaticResource T.Icon}" Text="&#xE70E;"/></Button>
-                            <Button Style="{StaticResource Tool}" ToolTip="Send backward ([)" Click="Backward_Click"><TextBlock Style="{StaticResource T.Icon}" Text="&#xE70D;"/></Button>
-                            <Button Style="{StaticResource Tool}" ToolTip="Duplicate (Ctrl+D)" Click="Duplicate_Click"><TextBlock Style="{StaticResource T.Icon}" Text="&#xE8C8;"/></Button>
-                            <Button Style="{StaticResource Tool}" ToolTip="Delete (Del)" Click="Delete_Click"><TextBlock Style="{StaticResource T.Icon}" Text="&#xE74D;"/></Button>
-                        </StackPanel>
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <StackPanel x:Name="LayersList" Margin="8,4,8,8"/>
-                        </ScrollViewer>
-                    </DockPanel>
-                    <ScrollViewer x:Name="ThemePanel" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
-                        <StackPanel x:Name="ThemeEditor" Margin="14,4,14,16"/>
-                    </ScrollViewer>
-                </Grid>
-            </DockPanel>
+        <!-- ================= Left: the tool rail ================= -->
+        <Border Grid.Row="1" Grid.Column="0" Background="{StaticResource Brush.Sidebar}" BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,0,1,0">
+            <StackPanel Margin="0,10,0,0" HorizontalAlignment="Center">
+                <RadioButton x:Name="ToolMove" Style="{StaticResource RailTool}" GroupName="Tools" Tag="Move" IsChecked="True" Checked="Tool_Checked"
+                             ToolTip="Move: select, move and resize (V)">
+                    <Path Style="{StaticResource RailIcon}" Data="M5,2.5 L5,16.5 L8.6,13.2 L11,18 L13.2,17 L10.9,12.2 L15.6,12.2 Z" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Control}}" StrokeThickness="0.8"/>
+                </RadioButton>
+                <RadioButton x:Name="ToolRectangle" Style="{StaticResource RailTool}" GroupName="Tools" Tag="Rectangle" Checked="Tool_Checked"
+                             ToolTip="Rectangle: drag to draw one; Shift for a square (U, Shift+U for the next shape)">
+                    <Path Style="{StaticResource RailIcon}" Data="M3.5,5.5 H16.5 V14.5 H3.5 Z"/>
+                </RadioButton>
+                <RadioButton x:Name="ToolEllipse" Style="{StaticResource RailTool}" GroupName="Tools" Tag="Ellipse" Checked="Tool_Checked"
+                             ToolTip="Ellipse: drag to draw one; Shift for a circle (Shift+U)">
+                    <Path Style="{StaticResource RailIcon}" Data="M10,4.5 A6.5,5.5 0 1 1 9.99,4.5 Z"/>
+                </RadioButton>
+                <RadioButton x:Name="ToolLine" Style="{StaticResource RailTool}" GroupName="Tools" Tag="Line" Checked="Tool_Checked"
+                             ToolTip="Line: drag to draw one; Shift keeps it straight or at 45° (Shift+U)">
+                    <Path Style="{StaticResource RailIcon}" Data="M4,16 L16,4"/>
+                </RadioButton>
+                <RadioButton x:Name="ToolText" Style="{StaticResource RailTool}" GroupName="Tools" Tag="Text" Checked="Tool_Checked"
+                             ToolTip="Text: click or drag where it goes, then type (T)">
+                    <Path Style="{StaticResource RailIcon}" Data="M4.5,4.5 H15.5 M10,4.5 V16 M8,16 H12" StrokeThickness="1.8"/>
+                </RadioButton>
+                <Border Width="24" Height="1" Background="{StaticResource Brush.Border}" Margin="0,4,0,8"/>
+                <RadioButton x:Name="ToolHand" Style="{StaticResource RailTool}" GroupName="Tools" Tag="Hand" Checked="Tool_Checked"
+                             ToolTip="Hand: drag to move around the canvas (H, or hold Space)">
+                    <Path Style="{StaticResource RailIcon}" Data="M10,2.5 V17.5 M2.5,10 H17.5 M10,2.5 L8,4.5 M10,2.5 L12,4.5 M10,17.5 L8,15.5 M10,17.5 L12,15.5 M2.5,10 L4.5,8 M2.5,10 L4.5,12 M17.5,10 L15.5,8 M17.5,10 L15.5,12"/>
+                </RadioButton>
+                <RadioButton x:Name="ToolZoom" Style="{StaticResource RailTool}" GroupName="Tools" Tag="Zoom" Checked="Tool_Checked"
+                             ToolTip="Zoom: click to zoom in, Alt+click to zoom out (Z)">
+                    <Path Style="{StaticResource RailIcon}" Data="M8.5,3.5 A5,5 0 1 1 8.49,3.5 Z M12.3,12.3 L16.5,16.5 M6.5,8.5 H10.5 M8.5,6.5 V10.5"/>
+                </RadioButton>
+                <Border Width="24" Height="1" Background="{StaticResource Brush.Border}" Margin="0,4,0,8"/>
+                <ToggleButton x:Name="LibraryToggle" Style="{StaticResource RailToggle}" IsChecked="True" Click="LibraryToggle_Click"
+                              ToolTip="Library: every widget, quick value and block, to drag onto the canvas">
+                    <Path Style="{StaticResource RailIcon}" Data="M3.5,3.5 H8.5 V8.5 H3.5 Z M11.5,3.5 H16.5 V8.5 H11.5 Z M3.5,11.5 H8.5 V16.5 H3.5 Z M11.5,11.5 H16.5 V16.5 H11.5 Z"/>
+                </ToggleButton>
+            </StackPanel>
         </Border>
 
+        <!-- ================= Library: widgets, quick values and blocks ================= -->
+        <Border x:Name="LibraryPanel" Grid.Row="1" Grid.Column="1" Background="{StaticResource Brush.Sidebar}" BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,0,1,0">
+            <DockPanel>
+                <DockPanel DockPanel.Dock="Top" Margin="16,12,8,2" LastChildFill="False">
+                    <TextBlock Text="LIBRARY" Style="{StaticResource T.Overline}" VerticalAlignment="Center"/>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource Tool}" ToolTip="Hide the library (the grid button on the left brings it back)" Click="LibraryHide_Click">
+                        <TextBlock Style="{StaticResource T.Icon}" Text="&#xE76B;" FontSize="11"/>
+                    </Button>
+                </DockPanel>
+                <ScrollViewer x:Name="WidgetsPanel" VerticalScrollBarVisibility="Auto">
+                    <StackPanel x:Name="Toolbox" Margin="14,0,14,16"/>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
         <!-- ================= Center: canvas ================= -->
-        <Grid Grid.Row="1" Grid.Column="1" Background="#07090C">
+        <Grid Grid.Row="1" Grid.Column="2" Background="#07090C">
             <ScrollViewer x:Name="CanvasScroller" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Focusable="False"
                           PreviewMouseWheel="CanvasScroller_PreviewMouseWheel">
                 <Grid x:Name="CanvasHost" Margin="48" HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -188,19 +277,55 @@
             </Border>
         </Grid>
 
-        <!-- ================= Right: inspector ================= -->
-        <Border Grid.Row="1" Grid.Column="2" Background="{StaticResource Brush.Sidebar}" BorderBrush="{StaticResource Brush.Border}" BorderThickness="1,0,0,0">
-            <ScrollViewer x:Name="InspectorScroller" VerticalScrollBarVisibility="Auto">
-                <StackPanel x:Name="Inspector" Margin="18,16,18,24"/>
-            </ScrollViewer>
+        <!-- ================= Right: properties (or the theme) above layers, both always there ================= -->
+        <Border Grid.Row="1" Grid.Column="3" Background="{StaticResource Brush.Sidebar}" BorderBrush="{StaticResource Brush.Border}" BorderThickness="1,0,0,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition MinHeight="160"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition x:Name="LayersRow" Height="300" MinHeight="120"/>
+                </Grid.RowDefinitions>
+                <Border Style="{StaticResource Segmented}" Margin="14,12,14,4" HorizontalAlignment="Stretch">
+                    <UniformGrid Columns="2">
+                        <RadioButton x:Name="TabProperties" Style="{StaticResource Segment}" MinWidth="0" Content="Properties" GroupName="RightTabs" IsChecked="True" Checked="RightTab_Checked"/>
+                        <RadioButton x:Name="TabTheme" Style="{StaticResource Segment}" MinWidth="0" Content="Theme" GroupName="RightTabs" Checked="RightTab_Checked"/>
+                    </UniformGrid>
+                </Border>
+                <ScrollViewer x:Name="InspectorScroller" Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <StackPanel x:Name="Inspector" Margin="18,8,18,24"/>
+                </ScrollViewer>
+                <ScrollViewer x:Name="ThemePanel" Grid.Row="1" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+                    <StackPanel x:Name="ThemeEditor" Margin="18,4,18,16"/>
+                </ScrollViewer>
+                <!-- Drag to give properties or layers more room -->
+                <GridSplitter Grid.Row="2" Height="7" HorizontalAlignment="Stretch" VerticalAlignment="Center" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"
+                              Background="Transparent" Cursor="SizeNS" ToolTip="Drag to resize" Focusable="False"/>
+                <Border Grid.Row="2" Height="1" Background="{StaticResource Brush.Border}" IsHitTestVisible="False" VerticalAlignment="Center"/>
+                <DockPanel x:Name="LayersPanel" Grid.Row="3">
+                    <DockPanel DockPanel.Dock="Top" Margin="16,8,10,4" LastChildFill="False">
+                        <TextBlock Text="LAYERS" Style="{StaticResource T.Overline}" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="LayerCount" Style="{StaticResource T.Caption}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                    </DockPanel>
+                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="12,4,12,10">
+                        <Button Style="{StaticResource Tool}" ToolTip="Bring forward (])" Click="Forward_Click"><TextBlock Style="{StaticResource T.Icon}" Text="&#xE70E;"/></Button>
+                        <Button Style="{StaticResource Tool}" ToolTip="Send backward ([)" Click="Backward_Click"><TextBlock Style="{StaticResource T.Icon}" Text="&#xE70D;"/></Button>
+                        <Button Style="{StaticResource Tool}" ToolTip="Group the selected layers (Ctrl+G)" Click="GroupLayers_Click"><Path Style="{StaticResource RailIcon}" Width="16" Height="16" StrokeThickness="1.3" Data="M2.5,2.5 H10.5 V10.5 H2.5 Z M5.5,5.5 H13.5 V13.5 H5.5 Z"/></Button>
+                        <Button Style="{StaticResource Tool}" ToolTip="Duplicate (Ctrl+D)" Click="Duplicate_Click"><TextBlock Style="{StaticResource T.Icon}" Text="&#xE8C8;"/></Button>
+                        <Button Style="{StaticResource Tool}" ToolTip="Delete (Del)" Click="Delete_Click"><TextBlock Style="{StaticResource T.Icon}" Text="&#xE74D;"/></Button>
+                    </StackPanel>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel x:Name="LayersList" Margin="8,0,8,4"/>
+                    </ScrollViewer>
+                </DockPanel>
+            </Grid>
         </Border>
-
         <!-- ================= Status bar ================= -->
-        <Border Grid.Row="2" Grid.ColumnSpan="3" Background="{StaticResource Brush.Sidebar}" BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,1,0,0">
+        <Border Grid.Row="2" Grid.ColumnSpan="4" Background="{StaticResource Brush.Sidebar}" BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,1,0,0">
             <DockPanel Margin="14,0">
                 <TextBlock x:Name="CursorText" DockPanel.Dock="Right" Style="{StaticResource T.Caption}" VerticalAlignment="Center" FontFamily="{StaticResource Font.Mono}"/>
                 <TextBlock x:Name="StatusText" Style="{StaticResource T.Caption}" VerticalAlignment="Center"
-                           Text="Drag widgets from Add onto the screen. Arrows nudge, Shift+arrows nudge 10, Ctrl+D duplicates, Alt bypasses snapping."/>
+                           Text="Drag from the Library, or draw with the tools on the left. Arrows nudge, Shift+arrows nudge 10, Ctrl+D duplicates, Alt bypasses snapping."/>
             </DockPanel>
         </Border>
     </Grid>
