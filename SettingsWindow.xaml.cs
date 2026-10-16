@@ -77,6 +77,7 @@ namespace AlmostFastOverlays
             _statusTimer.Start();
             RefreshDashboardStatus();
             RefreshWelcome();
+            RefreshWhatsNew();
 
             Version version = Assembly.GetExecutingAssembly().GetName().Version;
             VersionText.Text = $"Version {version.Major}.{version.Minor} · Changes save automatically";
@@ -173,6 +174,7 @@ namespace AlmostFastOverlays
         private void ShowPage(ScrollViewer page)
         {
             DisarmConfirm();
+            StopCardMotion();
             // Drilling into a dashboard comes in from the right, going back from the left; other pages rise into place.
             ScrollViewer from = new[] { GalleryPage, EditorPage, SettingsPage, AppPage }.FirstOrDefault(p => p.Visibility == Visibility.Visible);
             int direction = page == EditorPage && from == GalleryPage ? 1 : page == GalleryPage && from == EditorPage ? -1 : 0;
@@ -213,6 +215,7 @@ namespace AlmostFastOverlays
 
         private void BuildGalleryCards()
         {
+            StopCardMotion();
             DashboardCards.Children.Clear();
             _galleryCards.Clear();
             var units = new UnitSystem(_settings.General);
@@ -241,6 +244,8 @@ namespace AlmostFastOverlays
                     BorderBrush = (Brush)FindResource("Brush.Border"), BorderThickness = new Thickness(0, 0, 0, 1)
                 };
                 stack.Children.Add(thumbnail);
+                // Under the pointer, the picture plays the animated lap.
+                AnimateCardOnHover(card, thumbnail, d, units);
 
                 var body = new StackPanel { Margin = new Thickness(20, 16, 20, 10) };
                 var title = new StackPanel { Orientation = Orientation.Horizontal };
@@ -671,9 +676,11 @@ namespace AlmostFastOverlays
             if (_dashboard == null || PreviewState == null) return;
             string state = PreviewStateName;
             if (state == PreviewRequest.LiveIRacing) StartLivePreview(); else StopLivePreview();
-            // The screen shows the same telemetry as the lights. A lap in motion is shown as a still of racing.
+            // The screen shows the same telemetry as the lights. A lap in motion starts as a still of racing, then plays
+            // with the lights while the window is in use (see AnimateEditorScreen).
             TelemetrySnapshot snapshot = state == PreviewRequest.AnimatedLap ? LightsWindow.Scenario("Racing")
                 : PreviewRequest.ForState(state, _previewSynthetic, _livePreview?.GetSnapshot());
+            ForgetEditorScreen();
             PreviewBrush.ImageSource = RenderPreview(_dashboard, new UnitSystem(_settings.General), snapshot, snapshot.ShiftAlert);
             UpdateLedPreview();
         }

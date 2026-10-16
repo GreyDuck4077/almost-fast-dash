@@ -117,6 +117,7 @@ namespace AlmostFastOverlays
             // Exactly the telemetry the screen preview and the light designer use for this state.
             snapshot = PreviewRequest.ForState(PreviewStateName, _previewSynthetic, _livePreview?.GetSnapshot());
             LightFrame frame = _previewLights.Compose(snapshot, Environment.TickCount);
+            AnimateEditorScreen(snapshot);
             for (int d = 0; d < _stripDots.Count && d < frame.Leds.Length; d++)
                 for (int i = 0; i < _stripDots[d].Length && i < frame.Leds[d].Length; i++)
                     if (_stripDots[d][i] != null) PaintLed(_stripDots[d][i], _stripGlows[d][i], frame.Leds[d][i]);

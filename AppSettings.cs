@@ -54,6 +54,7 @@ namespace AlmostFastOverlays
             var settings = new AppSettings();
             settings.General.UseRegionUnits(System.Globalization.RegionInfo.CurrentRegion);
             settings.General.ShowWelcome = true;
+            settings.General.SeenVersion = WhatsNew.Version;
             settings.EnsureBuiltInDashboards();
             return settings;
         }
@@ -609,6 +610,12 @@ namespace AlmostFastOverlays
         /// shows them; it goes off when the dashboard is first started or the card is dismissed.
         /// </summary>
         public bool ShowWelcome { get; set; }
+
+        /// <summary>
+        /// The version whose "What's new" card was last seen (major.minor). After an update the Dashboards page shows
+        /// the card once; a new install starts at its own version, so it sees the welcome card instead.
+        /// </summary>
+        public string SeenVersion { get; set; } = "";
 
         /// <summary>
         /// Units for the region Windows is set to: mph, gallons and °F where those are the norm (the US), mph with

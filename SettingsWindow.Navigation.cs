@@ -31,6 +31,9 @@ namespace AlmostFastOverlays
                     Dispatcher.BeginInvoke(new Action(() => SettingsPage.ScrollToEnd()), System.Windows.Threading.DispatcherPriority.Loaded);
             }
             else if (scenario.Contains("app")) NavApp.IsChecked = true;
+            // The first gallery card as the pointer finds it: its picture playing the animated lap.
+            if (scenario.Contains("hover") && _galleryCards.Count > 0 && _galleryCards[0].Child is StackPanel stack && stack.Children[0] is Border picture)
+                StartCardMotion(picture, _settings.Dashboards[0], new UnitSystem(_settings.General), true);
         }
 
         /// <summary>A sidebar sub-item: the name, with a small marker on the right.</summary>

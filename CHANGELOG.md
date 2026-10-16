@@ -5,6 +5,18 @@ English. Every version is on the
 [releases page](https://github.com/Sota4077/almost-fast-dash/releases) with
 its exe and checksum.
 
+## 3.69 · 2026-10-16
+
+The app comes alive.
+
+- **Point at a dashboard's card and it plays a lap:** revs sweep, the gear
+  rolls over, the traces run. It settles as soon as you move on, and only
+  plays while the app is the window you're using.
+- **The dashboard page's screen plays too,** in step with its lights, for the
+  animated lap and a live session (it used to show a still).
+- **What's new:** after an update, the Dashboards page says once what's new,
+  with a link to every change. A new install sees its welcome steps instead.
+
 ## 3.68 · 2026-10-16
 
 A second round of polish.

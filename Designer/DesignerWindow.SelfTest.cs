@@ -796,6 +796,11 @@ namespace AlmostFastOverlays
                 Check("saved designs' fuel to add gains its unit and a clear label", refuel.Get("value") == DesignTemplates.FuelToAdd &&
                     refuel.Get("unit") == DesignTemplates.FuelToAddUnit && refuel.Get("label") == DesignTemplates.FuelToAddLabel);
 
+                // A new install sees the welcome card, not What's new; an upgrade (no version seen yet) sees What's new.
+                AppSettings fresh = AppSettings.CreateDefault();
+                Check("a new install starts with the welcome card, an update with What's new", fresh.General.ShowWelcome && fresh.General.SeenVersion == WhatsNew.Version &&
+                    new GeneralSettings().SeenVersion != WhatsNew.Version && WhatsNew.Highlights.Length > 0, fresh.General.SeenVersion + " / " + WhatsNew.Version);
+
                 // Schema 20: the shipped pit-lane label in US spelling; a label of the user's own stays.
                 var british = new AppSettings { SchemaVersion = 19 };
                 DashboardSettings pitPage = DashboardSettings.CreateDesigned(DesignTemplates.Find("apex"));
