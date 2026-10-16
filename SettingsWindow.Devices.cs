@@ -230,7 +230,7 @@ namespace AlmostFastOverlays
                             }
                             Thread.Sleep(250);
                         }
-                        // Everything at once, in a soft colour that stays within a USB port's power.
+                        // Everything at once, in a soft color that stays within a USB port's power.
                         output.Send(Enumerable.Repeat(DrawingColor.FromArgb(0, 70, 60), n).ToArray());
                         Thread.Sleep(600);
                         output.Send(new DrawingColor[n]);

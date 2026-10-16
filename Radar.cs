@@ -88,7 +88,7 @@ namespace AlmostFastOverlays
         /// <param name="onPitRoad">Which cars are on pit road (left off the radar); may be null.</param>
         /// <param name="carLeftRight">iRacing's spotter: 1 clear, 2 car left, 3 car right, 4 both, 5 two cars left, 6 two cars right.</param>
         /// <param name="time">The session clock in seconds.</param>
-        /// <param name="describe">Fills in a car's number, class colour and whether it's the pace car; may be null.</param>
+        /// <param name="describe">Fills in a car's number, class color and whether it's the pace car; may be null.</param>
         public void Update(float[] lapDist, bool[] onPitRoad, int player, double trackMeters, int carLeftRight, double time, Action<RadarCar> describe = null)
         {
             if (lapDist == null || player < 0 || player >= lapDist.Length || lapDist[player] < 0 || trackMeters <= 0 || double.IsNaN(time))

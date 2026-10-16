@@ -62,7 +62,7 @@ touch screen tap a panel to change what it shows.
     <td width="50%" valign="top">
       <img src="docs/images/dash-roady.png" alt="Roady dashboard"><br>
       <strong>Roady</strong> &nbsp;·&nbsp; road courses<br>
-      A sweep of revs over a huge gear, with shift colours from the car's own
+      A sweep of revs over a huge gear, with shift colors from the car's own
       shift points, plus delta, pedals, brake bias and fuel.
     </td>
     <td width="50%" valign="top">
@@ -84,7 +84,7 @@ touch screen tap a panel to change what it shows.
       <img src="docs/images/dash-halo.png" alt="Halo dashboard"><br>
       <strong>Halo</strong> &nbsp;·&nbsp; endurance and multiclass<br>
       Revs and the live delta in one ring, your stint and fuel, and traffic
-      within eight seconds in class colours.
+      within eight seconds in class colors.
     </td>
   </tr>
 </table>
@@ -108,7 +108,7 @@ resolution from 64×64 to 3840×3840. Templates scale to fit.
 ### Flags
 
 A flag fills the screen as it comes out and then hands the dashboard back.
-While a flag stays out, a glow in its colour runs round the edge of the screen,
+While a flag stays out, a glow in its color runs round the edge of the screen,
 with a tab that names it. The checkered flag shows your result.
 
 <table>
@@ -319,7 +319,7 @@ published work:
 - the SimHub, Adalight and WLED LED protocols.
 
 [CREDITS.md](CREDITS.md) says exactly what was used from each, explains how the
-screen protocol was first worked out, and reproduces the iRacing SDK's licence
+screen protocol was first worked out, and reproduces the iRacing SDK's license
 notice.
 
 iRacing is a registered trademark of iRacing.com Motorsport Simulations, LLC.

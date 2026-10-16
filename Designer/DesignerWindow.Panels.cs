@@ -79,9 +79,11 @@ namespace AlmostFastOverlays
             bool Match(string name, string description) =>
                 filter.Length == 0 || name.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0 || (description ?? "").IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0;
 
-            AddModulesSection(host, filter);
+            // Your own modules come first once there are some; until then their hint waits at the end.
+            bool haveModules = Modules().Count > 0;
+            if (haveModules) AddModulesSection(host, filter);
 
-            // Quick values and blocks sit in folders; a search opens every folder with a match.
+            // Live data and blocks sit in folders; a search opens every folder with a match.
             List<DesignBlock> quick = QuickValues.All().Where(b => Match(b.Name, b.Description) || Match(b.Folder, null)).ToList();
             if (quick.Count > 0)
             {
@@ -106,6 +108,13 @@ namespace AlmostFastOverlays
                 foreach (WidgetType type in types) grid.Children.Add(WidgetTile(type));
                 host.Children.Add(grid);
             }
+            if (!haveModules) AddModulesSection(host, filter);
+            if (host.Children.Count == 0)
+                host.Children.Add(new TextBlock
+                {
+                    Text = "Nothing in the Library matches \"" + filter + "\". Try a shorter word, such as fuel, gap or rpm.",
+                    Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(2, 12, 4, 0)
+                });
         }
 
         /// <summary>A widget in the library: a compact row, its icon beside its name, so the whole list scrolls half as far.</summary>
@@ -278,6 +287,7 @@ namespace AlmostFastOverlays
         {
             if (LayersList == null) return;
             LayersList.Children.Clear();
+            _layerThumbs.Clear();
             int count = _screen.Widgets.Count;
             LayerCount.Text = count == 0 ? "" : count + (count == 1 ? " layer" : " layers");
             if (count == 0)
@@ -286,6 +296,7 @@ namespace AlmostFastOverlays
                 return;
             }
             for (int i = _screen.Widgets.Count - 1; i >= 0; i--) LayersList.Children.Add(LayerRow(_screen.Widgets[i]));
+            UpdateLayerThumbs();
         }
 
         private Border LayerRow(DashWidget widget)
@@ -293,13 +304,19 @@ namespace AlmostFastOverlays
             bool selected = _selection.Contains(widget);
             WidgetType type = WidgetCatalog.Find(widget.Type);
             var grid = new Grid { Height = 30 };
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(26) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(24) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(ThumbW + 8) });
             grid.ColumnDefinitions.Add(new ColumnDefinition());
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
             TextBlock typeIcon = Glyph(type?.Icon ?? "", 13, selected ? "Brush.Accent" : "Brush.TextTertiary");
             typeIcon.HorizontalAlignment = HorizontalAlignment.Center;
             grid.Children.Add(typeIcon);
+            // A small picture of the layer, as an image editor shows them.
+            Border thumb = LayerThumb(widget);
+            thumb.HorizontalAlignment = HorizontalAlignment.Left;
+            Grid.SetColumn(thumb, 1);
+            grid.Children.Add(thumb);
 
             var name = new TextBlock
             {
@@ -310,13 +327,13 @@ namespace AlmostFastOverlays
                 name.ToolTip = "Shows when " + widget.Get("visible");
             if (!string.IsNullOrEmpty(widget.Group))
             {
-                // Grouped widgets carry their group's name (and Slot) in a quiet second colour.
+                // Grouped widgets carry their group's name (and Slot) in a quiet second color.
                 name.Inlines.Clear();
                 name.Inlines.Add(new System.Windows.Documents.Run(string.IsNullOrWhiteSpace(widget.Name) ? type?.Name : widget.Name));
                 name.Inlines.Add(new System.Windows.Documents.Run("  " + widget.GroupName + (widget.Slot != 0 ? " · " + widget.Slot.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) : ""))
                     { Foreground = (Brush)FindResource("Brush.TextTertiary"), FontSize = 12 });
             }
-            Grid.SetColumn(name, 1);
+            Grid.SetColumn(name, 2);
             grid.Children.Add(name);
             // A clipped layer sits indented, with an arrow down to the layer it shows through, as in an image editor.
             if (Expr.Bool(widget.Get("clip", "false")))
@@ -349,7 +366,7 @@ namespace AlmostFastOverlays
                 SelectionChanged();
                 RequestRender();
             }));
-            Grid.SetColumn(toggles, 2);
+            Grid.SetColumn(toggles, 3);
             grid.Children.Add(toggles);
 
             var row = new Border
@@ -578,7 +595,7 @@ namespace AlmostFastOverlays
             ThemeEditor.Children.Add(new TextBlock
             {
                 Style = (Style)FindResource("T.Caption"), Margin = new Thickness(0, 6, 0, 0),
-                Text = "A glow in the flag's colour runs round the edge, with a tab at the top: during a caution, on the final lap, and while a black, repair or blue flag is out."
+                Text = "A glow in the flag's color runs round the edge, with a tab at the top: during a caution, on the final lap, and while a black, repair or blue flag is out."
             });
         }
 

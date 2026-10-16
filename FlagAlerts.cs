@@ -15,7 +15,7 @@ namespace AlmostFastOverlays
         public RacingFlag Takeover;
         /// <summary>How opaque that flag is: 0 gone, 1 the whole screen.</summary>
         public float Alpha;
-        /// <summary>The flag whose coloured frame runs round the dashboard, or None.</summary>
+        /// <summary>The flag whose colored frame runs round the dashboard, or None.</summary>
         public RacingFlag Frame;
         public float FrameAlpha;
 
@@ -26,7 +26,7 @@ namespace AlmostFastOverlays
     /// Turns the telemetry's flag into what the screen shows. A new flag fades in over the whole screen and
     /// holds steady: the telemetry's on-off flashing is for the lights, so its short gaps are bridged here.
     /// Flags that stay out (black, repairs, blue, surface) step aside after a few seconds to a frame in their
-    /// colour round the dashboard; so do a caution period and the final lap once their alert is over. Red
+    /// color round the dashboard; so do a caution period and the final lap once their alert is over. Red
     /// and checkered keep the screen.
     /// </summary>
     internal sealed class FlagTimeline
@@ -125,12 +125,12 @@ namespace AlmostFastOverlays
         private static float Ease(float v) => v * v * (3 - 2 * v);
     }
 
-    /// <summary>Each flag's colours and words, shared by the full-screen flag and its frame.</summary>
+    /// <summary>Each flag's colors and words, shared by the full-screen flag and its frame.</summary>
     internal static class FlagStyle
     {
         public static readonly Color Ink = Color.FromArgb(10, 12, 16);
 
-        /// <summary>The colour of the frame and its tab.</summary>
+        /// <summary>The color of the frame and its tab.</summary>
         public static Color Of(RacingFlag flag)
         {
             switch (flag)
@@ -235,7 +235,7 @@ namespace AlmostFastOverlays
     }
 
     /// <summary>
-    /// The full-screen flags: each a cloth in the flag's colours with a title and what to do, set in
+    /// The full-screen flags: each a cloth in the flag's colors with a title and what to do, set in
     /// tracked capitals. Patterned flags carry their words on a dark glass panel. The finish shows the
     /// result. Drawn to fit any screen size; the last picture is kept until the flag or result changes.
     /// </summary>
@@ -430,7 +430,7 @@ namespace AlmostFastOverlays
 
         // ------------------------------------------------------------------ pieces
 
-        /// <summary>The flag's colour, a little lighter at the top, with a soft vignette.</summary>
+        /// <summary>The flag's color, a little lighter at the top, with a soft vignette.</summary>
         private void Cloth(Graphics g, Color color)
         {
             using (var brush = new LinearGradientBrush(new RectangleF(0, -1, _w, _h + 2), Shade(color, 0.12f), Shade(color, -0.12f), 90f))
@@ -542,7 +542,7 @@ namespace AlmostFastOverlays
     }
 
     /// <summary>
-    /// The frame round the dashboard while a flag is out: a soft glow in the flag's colour along the screen's
+    /// The frame round the dashboard while a flag is out: a soft glow in the flag's color along the screen's
     /// edge, breathing slowly, with a tab at the top saying what it is. Glow and tab are drawn once per flag;
     /// each frame only mixes the glow into the edge bands (well under a millisecond) and sets the tab on top.
     /// </summary>
@@ -671,7 +671,7 @@ namespace AlmostFastOverlays
             _flag = flag;
         }
 
-        /// <summary>A tab hanging from the top edge, in the flag's colour, saying what's out.</summary>
+        /// <summary>A tab hanging from the top edge, in the flag's color, saying what's out.</summary>
         private Bitmap Tab(RacingFlag flag, out Point at)
         {
             string text = FlagStyle.Banner(flag);

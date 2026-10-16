@@ -3,16 +3,16 @@ using System.Linq;
 
 namespace AlmostFastOverlays
 {
-    /// <summary>A named set of three LED colours: low, middle and high (the good, warn and bad colour names).</summary>
+    /// <summary>A named set of three LED colors: low, middle and high (the good, warn and bad color names).</summary>
     internal sealed class LightTheme
     {
         public string Id, Name, Low, Mid, High;
     }
 
     /// <summary>
-    /// Prebuilt LED colour themes. A light profile's theme sets the colours its layers call good, warn and
+    /// Prebuilt LED color themes. A light profile's theme sets the colors its layers call good, warn and
     /// bad: the low, middle and high of rev lights and meters, a shift flash, a blind-spot warning. Layers
-    /// with a colour of their own (a hex value, or accent, info…) keep it.
+    /// with a color of their own (a hex value, or accent, info…) keep it.
     /// </summary>
     internal static class LightThemes
     {

@@ -5,17 +5,17 @@ using System.Linq;
 
 namespace AlmostFastOverlays
 {
-    /// <summary>One composed set of LED colours for every device, plus which layer lit each LED.</summary>
+    /// <summary>One composed set of LED colors for every device, plus which layer lit each LED.</summary>
     internal sealed class LightFrame
     {
-        /// <summary>Colours per device, in the same order as the device list.</summary>
+        /// <summary>Colors per device, in the same order as the device list.</summary>
         public Color[][] Leds;
         /// <summary>The name of the layer that lit each LED, or null.</summary>
         public string[][] Owners;
     }
 
     /// <summary>
-    /// Turns a <see cref="LightProfile"/> and live telemetry into LED colours.
+    /// Turns a <see cref="LightProfile"/> and live telemetry into LED colors.
     /// Layers are drawn bottom to top, so the top of the list wins; then master
     /// brightness, fade-out and gamma are applied. Keeps fade state, so use one
     /// instance per output (the device loop or one preview).

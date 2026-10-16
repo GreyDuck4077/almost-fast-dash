@@ -111,7 +111,7 @@ namespace AlmostFastOverlays
             return unchecked((int)0xFF000000) | (Clamp(r) << 16) | (Clamp(g) << 8) | Clamp(b);
         }
 
-        /// <summary>Mixes four neighbouring pixels by fractions out of 256.</summary>
+        /// <summary>Mixes four neighboring pixels by fractions out of 256.</summary>
         private static int Blend(int a, int b, int c, int d, int fx, int fy)
         {
             if (a == b && a == c && a == d) return a;

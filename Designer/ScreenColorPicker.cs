@@ -8,8 +8,8 @@ using System.Windows.Media;
 namespace AlmostFastOverlays
 {
     /// <summary>
-    /// The eyedropper: the pointer becomes a cross with the colour under it beside it, and a click anywhere in the
-    /// window takes that colour. Esc, a right-click or leaving the window stops it. Clicks are only taken inside the
+    /// The eyedropper: the pointer becomes a cross with the color under it beside it, and a click anywhere in the
+    /// window takes that color. Esc, a right-click or leaving the window stops it. Clicks are only taken inside the
     /// app's own window, so nothing else on the PC is ever clicked by mistake.
     /// </summary>
     internal static class ScreenColorPicker
@@ -102,7 +102,7 @@ namespace AlmostFastOverlays
             window.Deactivated += lost;
         }
 
-        /// <summary>The colour of one pixel on screen, at device coordinates.</summary>
+        /// <summary>The color of one pixel on screen, at device coordinates.</summary>
         internal static System.Drawing.Color Sample(Point device)
         {
             try

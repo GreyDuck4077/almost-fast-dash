@@ -96,7 +96,7 @@
                 </Setter.Value>
             </Setter>
         </Style>
-        <!-- A tool's icon: drawn lines in the tool's colour -->
+        <!-- A tool's icon: drawn lines in the tool's color -->
         <Style x:Key="RailIcon" TargetType="Path">
             <Setter Property="Width" Value="20"/>
             <Setter Property="Height" Value="20"/>
@@ -166,6 +166,9 @@
                         <TextBlock x:Name="SaveStateIcon" Style="{StaticResource T.Icon}" Text="&#xE73E;" FontSize="12" Foreground="{StaticResource Brush.Success}" Margin="0,0,6,0"/>
                         <TextBlock x:Name="SaveState" Style="{StaticResource T.Caption}" VerticalAlignment="Center"/>
                     </StackPanel>
+                    <Button Style="{StaticResource Tool}" ToolTip="Keyboard shortcuts (Ctrl+/)" Click="Shortcuts_Click">
+                        <TextBlock Style="{StaticResource T.Icon}" Text="&#xE765;"/>
+                    </Button>
                     <Button Style="{StaticResource Tool}" ToolTip="Formula reference: every field and function ƒx can use, with examples (F1)" Click="FormulaReference_Click">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Style="{StaticResource T.Icon}" Text="&#xE82D;" Margin="0,0,6,0"/>
@@ -230,7 +233,7 @@
                 </RadioButton>
                 <Border Width="24" Height="1" Background="{StaticResource Brush.Border}" Margin="0,4,0,8"/>
                 <ToggleButton x:Name="LibraryToggle" Style="{StaticResource RailToggle}" IsChecked="True" Click="LibraryToggle_Click"
-                              ToolTip="Library: every widget, quick value and block, to drag onto the canvas">
+                              ToolTip="Library: every widget, live value and block, to drag onto the canvas">
                     <Path Style="{StaticResource RailIcon}" Data="M3.5,3.5 H8.5 V8.5 H3.5 Z M11.5,3.5 H16.5 V8.5 H11.5 Z M3.5,11.5 H8.5 V16.5 H3.5 Z M11.5,11.5 H16.5 V16.5 H11.5 Z"/>
                 </ToggleButton>
             </StackPanel>
@@ -280,7 +283,7 @@
                     <ToggleButton x:Name="OutlineToggle" Style="{StaticResource ToolToggle}" Content="Outlines" ToolTip="Outline every widget" Click="ViewOption_Click"/>
                     <Border Width="1" Height="22" Background="{StaticResource Brush.Border}" Margin="4,0,8,0"/>
                     <Button Style="{StaticResource Tool}" ToolTip="Zoom out (Ctrl+wheel)" Click="ZoomOut_Click"><TextBlock Style="{StaticResource T.Icon}" Text="&#xE71F;"/></Button>
-                    <Button x:Name="ZoomLabel" Style="{StaticResource Tool}" MinWidth="58" ToolTip="Fit to window" Click="ZoomFit_Click" Content="100%"/>
+                    <Button x:Name="ZoomLabel" Style="{StaticResource Tool}" MinWidth="58" ToolTip="Fit to window (Shift+1). Shift+2 zooms to the selection" Click="ZoomFit_Click" Content="100%"/>
                     <Button Style="{StaticResource Tool}" ToolTip="Zoom in (Ctrl+wheel)" Click="ZoomIn_Click"><TextBlock Style="{StaticResource T.Icon}" Text="&#xE8A3;"/></Button>
                 </StackPanel>
             </Border>

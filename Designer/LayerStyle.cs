@@ -9,10 +9,10 @@ namespace AlmostFastOverlays
 {
     /// <summary>
     /// The shared Style tools, applied like layer styles in an image editor to whatever a widget
-    /// draws: recolor (a colour, gradient or texture over the widget's own pixels), an outline, a
+    /// draws: recolor (a color, gradient or texture over the widget's own pixels), an outline, a
     /// drop shadow and an outer glow. Because they work on the drawn result, every widget gets them
     /// the same way, including ones added later. The work is done on the pixels directly (read once,
-    /// shared by every effect), which is many times faster than GDI+ colour matrices.
+    /// shared by every effect), which is many times faster than GDI+ color matrices.
     /// </summary>
     internal sealed class LayerStyle
     {
@@ -72,7 +72,7 @@ namespace AlmostFastOverlays
         };
 
         /// <summary>
-        /// The finished picture: the drawn layer (recoloured in place) over its outline, glow and shadow. The
+        /// The finished picture: the drawn layer (recolored in place) over its outline, glow and shadow. The
         /// effects are worked out on the pixels themselves and laid together in one pass, premultiplied like the
         /// layer, instead of each being drawn through GDI+ as a picture of its own: several times less work for a
         /// widget that changes every frame. <paramref name="place"/> maps the widget's box into the layer.
@@ -199,7 +199,7 @@ namespace AlmostFastOverlays
             return (t + (t >> 8)) >> 8;
         }
 
-        /// <summary>A colour at every opacity from 0 to 255, premultiplied.</summary>
+        /// <summary>A color at every opacity from 0 to 255, premultiplied.</summary>
         private static uint[] Shades(Color color)
         {
             var shades = new uint[256];
@@ -339,7 +339,7 @@ namespace AlmostFastOverlays
                 }
         }
 
-        /// <summary>An outline: the silhouette grown by the outline width in every direction (a round brush), in the outline colour, over <paramref name="under"/>.</summary>
+        /// <summary>An outline: the silhouette grown by the outline width in every direction (a round brush), in the outline color, over <paramref name="under"/>.</summary>
         private void Stroke(uint[] under, byte[] alpha, int w, int h)
         {
             float radius = Outline;

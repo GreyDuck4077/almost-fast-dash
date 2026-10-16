@@ -13,7 +13,7 @@ namespace AlmostFastOverlays
     ///   apart, and the cars around you sit where they are as solid little cars, with their numbers on the
     ///   roof. Sensor waves run ahead and behind up to the next car in line, turning amber, then red, as it
     ///   gets close.
-    /// - Traffic: the cars within a few seconds either way laid along a line, in class colours.
+    /// - Traffic: the cars within a few seconds either way laid along a line, in class colors.
     /// </summary>
     internal static class RadarPainters
     {
@@ -172,7 +172,7 @@ namespace AlmostFastOverlays
             double nearAt = c.Num("nearAt"), closeAt = c.Num("closeAt");
             RadarCar[] cars = t.Connected ? t.Radar ?? new RadarCar[0] : new RadarCar[0];
 
-            // A wash of colour on the road where a car is alongside.
+            // A wash of color on the road where a car is alongside.
             foreach (RadarCar car in cars.Where(x => x.Alongside))
             {
                 float x = car.Lane * LaneWidth, y = (float)car.Meters;
@@ -224,7 +224,7 @@ namespace AlmostFastOverlays
 
         /// <summary>
         /// A sensor cone on the road from your car's nose (dir 1) or tail (dir -1), with waves running up to the
-        /// next car in line. It is the clear colour with room, then the near colour, then the close colour.
+        /// next car in line. It is the clear color with room, then the near color, then the close color.
         /// </summary>
         private static void Sensor(Graphics g, Camera cam, int dir, double meters, Color clear, Color near, Color close, double nearAt, double closeAt)
         {
@@ -263,7 +263,7 @@ namespace AlmostFastOverlays
         }
 
         /// <summary>
-        /// A car on the road at (x, y), seen through the camera: a soft shadow (or a coloured glow when it's
+        /// A car on the road at (x, y), seen through the camera: a soft shadow (or a colored glow when it's
         /// alongside, or it's yours), solid sides built up in layers so it stands off the road, and a top with
         /// tinted windows, mirrors, head and tail lights and its number on the roof.
         /// </summary>
@@ -349,7 +349,7 @@ namespace AlmostFastOverlays
             }
         }
 
-        /// <summary>The pools under cars, by colour and size, for this thread (renderers on different threads keep their own).</summary>
+        /// <summary>The pools under cars, by color and size, for this thread (renderers on different threads keep their own).</summary>
         [ThreadStatic] private static Dictionary<long, Bitmap> _pools;
 
         /// <summary>

@@ -351,7 +351,7 @@ namespace AlmostFastOverlays
             AddWidgets(new[] { widget }, "Draw " + kind.ToLowerInvariant());
             SetTool(Tool.Move);
             if (kind == "Text") FocusPrimaryEditor();
-            else StatusText.Text = "Drew " + widget.Name.ToLowerInvariant() + ". Style it in Properties: fill, line colour and width, corner radius, effects.";
+            else StatusText.Text = "Drew " + widget.Name.ToLowerInvariant() + ". Style it in Properties: fill, line color and width, corner radius, effects.";
         }
 
         /// <summary>

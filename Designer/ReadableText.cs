@@ -8,7 +8,7 @@ namespace AlmostFastOverlays
     /// scaled for other sizes. Every template is built to it, and saved dashboards are brought up to it:
     /// - Text that was smaller is raised to the floor. Its box grows to hold it (about its middle), and wide letter
     ///   spacing is tightened so a label doesn't outgrow its place.
-    /// - Text in the theme's dim colour, too faint to read, takes the muted colour.
+    /// - Text in the theme's dim color, too faint to read, takes the muted color.
     /// </summary>
     internal static class ReadableText
     {
@@ -91,8 +91,8 @@ namespace AlmostFastOverlays
         }
 
         /// <summary>
-        /// Text in the theme's dim colour is too faint to read on any of the themes (well under 4.5:1); it takes the
-        /// muted colour instead, the one made for secondary text. A formula's $dim does too.
+        /// Text in the theme's dim color is too faint to read on any of the themes (well under 4.5:1); it takes the
+        /// muted color instead, the one made for secondary text. A formula's $dim does too.
         /// </summary>
         private static void Brighten(DashWidget widget, string key, ref int changed)
         {

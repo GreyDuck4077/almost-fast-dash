@@ -268,6 +268,24 @@ namespace AlmostFastOverlays
         public bool RedrawChangesOnly { get; set; } = true;
 
         /// <summary>
+        /// The designer's view: widgets hidden right now by their Show when are drawn as a faint ghost instead of
+        /// not at all, so a warning that only appears on pit road can still be seen, placed and styled.
+        /// </summary>
+        public bool GhostHidden { get; set; }
+        private const double GhostOpacity = 0.28;
+
+        /// <summary>Widgets that show nothing at quiet moments: no flag out, no car alongside.</summary>
+        internal static bool Idle(string type, WidgetContext c)
+        {
+            switch (type)
+            {
+                case "flag": return c.T.Flag == RacingFlag.None;
+                case "blindspot": return (c.Choice("side") == "Right" ? c.T.RightBlindSpot : c.T.LeftBlindSpot) == BlindSpotZone.None;
+                default: return false;
+            }
+        }
+
+        /// <summary>
         /// Render hands back the same bitmap every time instead of a new copy: it belongs to the renderer, isn't
         /// to be disposed, and holds the frame only until the next Render. The wheel runtime copies each frame
         /// straight on to its screens, so this saves a 1.6 MB allocation (and the garbage) every frame.
@@ -534,7 +552,7 @@ namespace AlmostFastOverlays
             return true;
         }
 
-        /// <summary>How far a widget can draw outside its box (glows, gear neighbours).</summary>
+        /// <summary>How far a widget can draw outside its box (glows, gear neighbors).</summary>
         private static RectangleF Reach(DashWidget widget)
         {
             // Everything a widget can paint must fall inside this, or redrawing only what changed would leave stale pixels.
@@ -766,10 +784,11 @@ namespace AlmostFastOverlays
                 WidgetType type = WidgetCatalog.Find(widget.Type);
                 if (type == null) return 0;
                 scope = ForWidget(scope, widget);
-                // A hidden widget draws nothing, whatever its other values do.
+                // A hidden widget draws nothing, whatever its other values do (in the designer, a faint ghost of itself).
                 string visible = widget.Get("visible", "");
-                if (!string.IsNullOrWhiteSpace(visible) && !Expr.Bool(Expr.Evaluate(Strip(visible), scope))) return 1;
-                int hash = 17;
+                bool hidden = !string.IsNullOrWhiteSpace(visible) && !Expr.Bool(Expr.Evaluate(Strip(visible), scope));
+                if (hidden && !GhostHidden) return 1;
+                int hash = hidden ? 23 : 17;
                 foreach (PropDef prop in type.Props)
                 {
                     string raw = widget.Get(prop.Key, prop.Default);
@@ -796,7 +815,7 @@ namespace AlmostFastOverlays
                     case "laphistory": hash = hash * 31 + (t.RecentLapSeconds?.Length ?? 0) * 17 + (int)(t.BestLapSeconds * 1000) + ArrayHash(t.RecentLapSeconds) * 7 + ArrayHash(t.StintLapSeconds); break;
                     case "progress":
                         hash = hash * 31 + t.LapsCompleted * 13 + t.LapColorVersion + (int)t.SessionSecondsRemaining + t.TotalLaps * 7 + (int)t.ProgressMode;
-                        // Which laps ran under yellow colours their blocks.
+                        // Which laps ran under yellow colors their blocks.
                         if (t.YellowCompletedLaps != null) for (int i = 0; i < t.YellowCompletedLaps.Length; i++) if (t.YellowCompletedLaps[i]) hash = hash * 31 + i + 1;
                         break;
                     case "blindspot": hash = hash * 31 + (int)t.LeftBlindSpot * 5 + (int)t.RightBlindSpot; break;
@@ -931,9 +950,17 @@ namespace AlmostFastOverlays
             scope = ForWidget(scope, widget);
             var context = new WidgetContext(this, g, scope, widget, type) { PreviousGear = previousGear, GearProgress = progress };
             string visible = widget.Get("visible", "");
-            if (!string.IsNullOrWhiteSpace(visible) && !Expr.Bool(Expr.Evaluate(Strip(visible), scope))) return;
+            bool ghost = false;
+            if (!string.IsNullOrWhiteSpace(visible) && !Expr.Bool(Expr.Evaluate(Strip(visible), scope)))
+            {
+                if (!GhostHidden) return;
+                ghost = true;
+            }
+            // In the designer, a widget with nothing to show right now (no flag out, no car alongside) shows a ghost
+            // of what it would.
+            if (GhostHidden && !ghost && Idle(widget.Type, context)) ghost = context.Sample = true;
 
-            double opacity = Math.Max(0, Math.Min(100, context.Num("opacity"))) / 100.0;
+            double opacity = Math.Max(0, Math.Min(100, context.Num("opacity"))) / 100.0 * (ghost ? GhostOpacity : 1);
             if (opacity <= 0.001) return;
             bool flipX = context.Bool("flipX"), flipY = context.Bool("flipY");
             float rotate = (float)(context.Num("rotate") % 360);
@@ -967,7 +994,7 @@ namespace AlmostFastOverlays
             if (!_styled.TryGetValue(widget.Id, out StyledPicture picture) || picture.Hash != hash)
             {
                 picture?.Bitmap.Dispose();
-                picture = Compose(widget, type, scope, previousGear, progress, style, b, flipX, flipY, rotate);
+                picture = Compose(widget, type, scope, previousGear, progress, style, b, flipX, flipY, rotate, context.Sample);
                 if (clipBase != null) Mask(picture, clipBase, scope);
                 picture.Hash = hash;
                 _styled[widget.Id] = picture;
@@ -1129,7 +1156,7 @@ namespace AlmostFastOverlays
             uint ta = top >> 24, ua = under >> 24;
             if (ta == 0) return under;
             float a = ta / 255f;
-            // The top's own colour, un-premultiplied.
+            // The top's own color, un-premultiplied.
             float tr = ((top >> 16) & 255) / a, tg = ((top >> 8) & 255) / a, tb = (top & 255) / a;
             float ur = (under >> 16) & 255, ug = (under >> 8) & 255, ub = under & 255;
             float Mix(float u, float c)
@@ -1152,7 +1179,7 @@ namespace AlmostFastOverlays
             uint outA = ua + (ta * (255 - ua) + 127) / 255;
             if (ua == 0)
             {
-                // Nothing beneath: the picture's own colour at its own coverage.
+                // Nothing beneath: the picture's own color at its own coverage.
                 r = (uint)Math.Min(255, Math.Round(tr)); gg = (uint)Math.Min(255, Math.Round(tg)); b = (uint)Math.Min(255, Math.Round(tb));
             }
             return outA << 24 | r << 16 | gg << 8 | b;
@@ -1185,7 +1212,7 @@ namespace AlmostFastOverlays
 
         /// <summary>Draws a widget into a layer exactly as big as it can reach, then lays its Style effects beneath it.</summary>
         private StyledPicture Compose(DashWidget widget, WidgetType type, EvalScope scope, int previousGear, float progress, LayerStyle style,
-            RectangleF b, bool flipX, bool flipY, float rotate)
+            RectangleF b, bool flipX, bool flipY, float rotate, bool sample = false)
         {
             Rectangle at = Outward(Reach(widget));
             if (at.Width < 1 || at.Height < 1) at = new Rectangle((int)b.X, (int)b.Y, Math.Max(1, (int)b.Width), Math.Max(1, (int)b.Height));
@@ -1198,7 +1225,7 @@ namespace AlmostFastOverlays
                 lg.TranslateTransform(-at.X, -at.Y);
                 Turn(lg, b, flipX, flipY, rotate);
                 place = lg.Transform;
-                var inner = new WidgetContext(this, lg, scope, widget, type) { PreviousGear = previousGear, GearProgress = progress, FlipX = flipX, FlipY = flipY };
+                var inner = new WidgetContext(this, lg, scope, widget, type) { PreviousGear = previousGear, GearProgress = progress, FlipX = flipX, FlipY = flipY, Sample = sample };
                 type.Draw(inner);
             }
             // No effects to lay beneath it: the layer is the finished picture.
@@ -1335,7 +1362,7 @@ namespace AlmostFastOverlays
                     break;
                 case "Aurora":
                 {
-                    // Soft colour blooms for the glass panels to sit over, like a blurred wallpaper.
+                    // Soft color blooms for the glass panels to sit over, like a blurred wallpaper.
                     using (var brush = new LinearGradientBrush(new Rectangle(0, -1, _width, _height + 2), bg2, bg, 90f)) g.FillRectangle(brush, 0, 0, _width, _height);
                     Color info = Expr.ParseHex(theme.Info) ?? Color.RoyalBlue, purple = Expr.ParseHex(theme.Purple) ?? Color.MediumPurple;
                     void Bloom(float cx, float cy, float rx, float ry, Color color, int alpha)
@@ -1453,6 +1480,8 @@ namespace AlmostFastOverlays
         }
 
         public LayoutRenderer Renderer { get; }
+        /// <summary>Draw a sample of what it shows (the designer's ghost of a widget with nothing to show now).</summary>
+        public bool Sample { get; set; }
         public Graphics G { get; }
         public EvalScope Scope { get; }
         public DashWidget Widget { get; }

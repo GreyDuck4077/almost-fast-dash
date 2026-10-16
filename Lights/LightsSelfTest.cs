@@ -117,7 +117,7 @@ namespace AlmostFastOverlays
             nextGradient[10] = Color.Red;
             var fullRuns = ArduinoLedController.Runs(gradient, null, 20);
             var changedRuns = ArduinoLedController.Runs(nextGradient, gradient, 20);
-            Check("a frame of many colours sends only what changed", fullRuns.Count == 20 && changedRuns.Count == 1 && changedRuns[0].Item1 == 9 && changedRuns[0].Item2 == 2,
+            Check("a frame of many colors sends only what changed", fullRuns.Count == 20 && changedRuns.Count == 1 && changedRuns[0].Item1 == 9 && changedRuns[0].Item2 == 2,
                 fullRuns.Count + " runs for the first frame, " + changedRuns.Count + " for the next");
 
             // ---------------- device layouts: describe the shape, then click where LEDs are
@@ -170,17 +170,17 @@ namespace AlmostFastOverlays
                 && storedAgain.Groups.All(g => g.Leds != null));
             stored.Layout.Roles.Clear();
 
-            // ---------------- LED colour names
-            var namedColours = new LightProfile { FadeMs = 0, Gamma = false, Layers = { new LightLayer { Target = "shift", Effect = "solid", Props = { ["color"] = "bad" } }, new LightLayer { Target = "left", Effect = "solid", Props = { ["color"] = "good" } } } };
-            LightFrame namedFrame = new LightRenderer(namedColours, "#000000", units, devices).Compose(Snap(0, 3000), 0);
+            // ---------------- LED color names
+            var namedColors = new LightProfile { FadeMs = 0, Gamma = false, Layers = { new LightLayer { Target = "shift", Effect = "solid", Props = { ["color"] = "bad" } }, new LightLayer { Target = "left", Effect = "solid", Props = { ["color"] = "good" } } } };
+            LightFrame namedFrame = new LightRenderer(namedColors, "#000000", units, devices).Compose(Snap(0, 3000), 0);
             Check("on LEDs bad is deep red and good is true green", namedFrame.Leds[0][4] == Color.FromArgb(0x89, 0x07, 0x11) && namedFrame.Leds[0][0] == Color.FromArgb(0, 0x80, 0), Hex(namedFrame.Leds[0][4]) + " / " + Hex(namedFrame.Leds[0][0]));
 
-            namedColours.ThemeId = "arctic";
-            LightFrame arctic = new LightRenderer(namedColours, "#000000", units, devices).Compose(Snap(0, 3000), 0);
-            namedColours.ThemeId = LightThemes.CustomId;
-            namedColours.CustomHigh = "#123456";
-            LightFrame customFrame = new LightRenderer(namedColours, "#000000", units, devices).Compose(Snap(0, 3000), 0);
-            Check("a colour theme sets what good and bad mean, and custom uses its own", arctic.Leds[0][4] == Color.FromArgb(0, 0x40, 0xFF) && arctic.Leds[0][0] == Color.FromArgb(0, 0xFF, 0xFF)
+            namedColors.ThemeId = "arctic";
+            LightFrame arctic = new LightRenderer(namedColors, "#000000", units, devices).Compose(Snap(0, 3000), 0);
+            namedColors.ThemeId = LightThemes.CustomId;
+            namedColors.CustomHigh = "#123456";
+            LightFrame customFrame = new LightRenderer(namedColors, "#000000", units, devices).Compose(Snap(0, 3000), 0);
+            Check("a color theme sets what good and bad mean, and custom uses its own", arctic.Leds[0][4] == Color.FromArgb(0, 0x40, 0xFF) && arctic.Leds[0][0] == Color.FromArgb(0, 0xFF, 0xFF)
                 && customFrame.Leds[0][4] == Color.FromArgb(0x12, 0x34, 0x56), Hex(arctic.Leds[0][4]) + " / " + Hex(customFrame.Leds[0][4]));
 
             // ---------------- power limit
@@ -209,8 +209,8 @@ namespace AlmostFastOverlays
             for (int ms = 0; ms <= 3000; ms += 100)
                 logged.AddRange(activity.Observe(flagRenderer.Compose(ms < 2000 ? LightsWindow.Scenario("Yellow flag") : TelemetrySnapshot.Disconnected, ms), devices, ms / 1000.0, "test"));
             LightSpan flagSpan = logged.FirstOrDefault(s => s.Layer == "Flags");
-            Check("the light log records what lit a group and for how long", flagSpan != null && flagSpan.Device == devices[1].Name && Math.Abs(flagSpan.Seconds - 1.9) < 0.01 && flagSpan.Colour == "yellow",
-                flagSpan == null ? "nothing logged" : flagSpan.Device + " " + flagSpan.Seconds + "s " + flagSpan.Colour);
+            Check("the light log records what lit a group and for how long", flagSpan != null && flagSpan.Device == devices[1].Name && Math.Abs(flagSpan.Seconds - 1.9) < 0.01 && flagSpan.Color == "yellow",
+                flagSpan == null ? "nothing logged" : flagSpan.Device + " " + flagSpan.Seconds + "s " + flagSpan.Color);
 
             // ---------------- output stage
             var gamma = new LightProfile { Gamma = true, FadeMs = 0, Layers = { new LightLayer { Target = "shift", Effect = "solid", Props = { ["color"] = "#808080" } } } };
@@ -234,7 +234,7 @@ namespace AlmostFastOverlays
             Check("fast updates keep every packet within what boards accept", packets.Count == 6 && packets.All(p => p.Length <= 21 && p[1] == (byte)'6' && p[p.Length - 1] == 0) && packets[0].Length == 21,
                 packets.Count + " packets, largest " + packets.Max(p => p.Length) + " bytes");
             List<byte[]> solid = ArduinoLedController.Payloads(ArduinoLedController.Runs(Enumerable.Repeat(Color.Red, 16).ToArray(), null, 16), ArduinoLedController.MaxRunsPerPacket);
-            Check("fast updates merge a single colour into one run", solid.Count == 1 && solid[0].Length == 9 && solid[0][4] == 16);
+            Check("fast updates merge a single color into one run", solid.Count == 1 && solid[0].Length == 9 && solid[0][4] == 16);
 
             // ---------------- other LED devices
             byte[] ada = AdalightOutput.Packet(new[] { Color.Red, Color.Lime, Color.Blue });
@@ -305,7 +305,7 @@ namespace AlmostFastOverlays
             DeviceSettings again = reloaded.General.Devices.FirstOrDefault();
             Check("LED devices save and load", again != null && again.Kind == LedDeviceKinds.Wled && again.Address == "192.168.1.40" && again.LedCount == 60
                 && again.Groups.Count == 1 && again.Groups[0].Reverse && again.Groups[0].To == 60);
-            Check("known devices are recognised by USB ID or name", KnownDevices.Find(DevicePorts.Dv5, null) == KnownDevices.Dv5 && KnownDevices.Find(null, "SSG LB-10 v2") == KnownDevices.Lb10
+            Check("known devices are recognized by USB ID or name", KnownDevices.Find(DevicePorts.Dv5, null) == KnownDevices.Dv5 && KnownDevices.Find(null, "SSG LB-10 v2") == KnownDevices.Lb10
                 && KnownDevices.Find("VID_2341&PID_0043", "My LEDs") == null);
             // ---------------- persistence
             DashboardSettings saved = DashboardSettings.CreateRoad();

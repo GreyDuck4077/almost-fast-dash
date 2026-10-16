@@ -73,7 +73,7 @@ namespace AlmostFastOverlays
 
         /// <summary>
         /// A frame drawn for one size, made to fit a screen of another: scaled to fit without stretching,
-        /// centred, with the background colour of its own edge filling the space either side.
+        /// centred, with the background color of its own edge filling the space either side.
         /// </summary>
         public static Bitmap Fit(Bitmap frame, int width, int height)
         {

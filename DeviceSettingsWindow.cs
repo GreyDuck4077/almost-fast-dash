@@ -82,7 +82,7 @@ namespace AlmostFastOverlays
             if (_device.Kind == LedDeviceKinds.Arduino)
                 root.Children.Add(new TextBlock
                 {
-                    Text = "Fast updates (several colour changes per message) are used automatically when the board accepts them.",
+                    Text = "Fast updates (several color changes per message) are used automatically when the board accepts them.",
                     Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 14, 0, 0)
                 });
 

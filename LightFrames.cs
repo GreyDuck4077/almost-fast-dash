@@ -8,7 +8,7 @@ using System.Text;
 namespace AlmostFastOverlays
 {
     /// <summary>
-    /// Writes every dashboard's composed LED colours through a rev sweep and the preview states,
+    /// Writes every dashboard's composed LED colors through a rev sweep and the preview states,
     /// LED by LED, for checking lights without hardware. Run with --light-frames report.txt.
     /// </summary>
     internal static class LightFrames
@@ -52,7 +52,7 @@ namespace AlmostFastOverlays
         private static string Short(Color c, bool gamma)
         {
             if ((c.R | c.G | c.B) == 0) return "--";
-            string name = LightActivity.ColourName(gamma ? Color.FromArgb(Ungamma(c.R), Ungamma(c.G), Ungamma(c.B)) : c);
+            string name = LightActivity.ColorName(gamma ? Color.FromArgb(Ungamma(c.R), Ungamma(c.G), Ungamma(c.B)) : c);
             return name.StartsWith("#") ? name : name.Substring(0, Math.Min(3, name.Length));
         }
 

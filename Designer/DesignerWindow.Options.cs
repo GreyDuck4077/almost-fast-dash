@@ -18,7 +18,7 @@ namespace AlmostFastOverlays
             string.IsNullOrEmpty(widget.Group) ? new List<DashWidget> { widget } : _screen.Widgets.Where(w => w.Group == widget.Group).ToList();
 
         /// <summary>
-        /// The group's options at the top of Properties: each edited the way the settings linked to it are (a colour,
+        /// The group's options at the top of Properties: each edited the way the settings linked to it are (a color,
         /// a number, a switch, a list), and every linked setting follows.
         /// </summary>
         private void AddModuleOptions(DashWidget member)

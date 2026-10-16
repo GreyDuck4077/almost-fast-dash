@@ -65,7 +65,7 @@ namespace AlmostFastOverlays
         {
             ("Logic and numbers", new[] { "if", "round", "floor", "ceil", "abs", "min", "max", "clamp", "norm", "nz", "blink" }),
             ("Formatting", new[] { "format", "laptime", "clock", "seconds", "signed", "fuel", "gear", "temp", "time", "upper", "lower", "left", "pad" }),
-            ("Colour", new[] { "rgb", "rgba", "alpha", "mix", "steps", "deltacolor" }),
+            ("Color", new[] { "rgb", "rgba", "alpha", "mix", "steps", "deltacolor" }),
             ("Race data", new[] { "standing", "classstanding", "sectortime", "lastsectortime", "bestsectortime", "tyre", "tap" })
         };
 
@@ -186,8 +186,8 @@ namespace AlmostFastOverlays
         {
             NewSection("Start here");
             Prose("A formula makes a widget live. Click ƒx next to any property in the inspector and type a formula instead of a fixed value: " +
-                  "a text that shows the speed, a colour that turns red when fuel is low, a bar that fills with the revs.");
-            Prose("The formula's answer has to suit the property: a number for sizes and values, text for labels, a colour for colours, " +
+                  "a text that shows the speed, a color that turns red when fuel is low, a bar that fills with the revs.");
+            Prose("The formula's answer has to suit the property: a number for sizes and values, text for labels, a color for colors, " +
                   "and true or false for switches. Text and numbers convert to each other where it makes sense.");
             Prose("Formulas also decide when things show:");
             Bullet("A widget's Show when shows it only while its formula is true, such as OnPitRoad.");
@@ -201,8 +201,8 @@ namespace AlmostFastOverlays
             Item("1.5   -3   0.25", "Numbers. A dot for decimals.", null);
             Item("\"PIT\"   'PIT'", "Text, in double or single quotes. A backslash puts a quote inside: \"6\\\" screen\".", "\"P\" + Position");
             Item("true   false", "Yes and no. 0, empty text, \"0\" and \"false\" also count as false; anything else counts as true.", "OnPitRoad == false");
-            Item("#FF3040   #F30   #80FF3040", "Colours: #RRGGBB, the short #RGB, or #AARRGGBB with transparency first (00 clear, FF solid).", "#FF3040");
-            Item("$accent   $good   $bad ...", "Theme colours, which follow the dashboard's theme. All of them are under Colours.", "$accent");
+            Item("#FF3040   #F30   #80FF3040", "Colors: #RRGGBB, the short #RGB, or #AARRGGBB with transparency first (00 clear, FF solid).", "#FF3040");
+            Item("$accent   $good   $bad ...", "Theme colors, which follow the dashboard's theme. All of them are under Colors.", "$accent");
             Item("+  -  *  /  %", "Add, subtract, multiply, divide and remainder. Dividing by 0 gives 0 rather than an error. + joins text when either side is text.", "\"Lap \" + Lap + \" of \" + TotalLaps");
             Item("==  !=  <  >  <=  >=", "Compare. Text compares without caring about capitals. A single = works like ==.", "Gear == 1");
             Item("and  or  not", "Combine conditions; && || and ! work too.", "OnPitRoad and not PitLimiter");
@@ -213,14 +213,14 @@ namespace AlmostFastOverlays
             Prose("Common mistakes: text needs quotes (\"PIT\", not PIT); a function needs brackets even with nothing in them; " +
                   "a name that isn't a data field says Unknown data field, with the name, under the formula.");
 
-            NewSection("Colours");
-            Prose("Theme colours follow the dashboard's theme, so changing the theme recolours every formula that uses them. Each shows its colour in this dashboard.");
+            NewSection("Colors");
+            Prose("Theme colors follow the dashboard's theme, so changing the theme recolors every formula that uses them. Each shows its color in this dashboard.");
             foreach (string token in LayoutTheme.Tokens)
             {
                 string name = "$" + token;
-                ColourItem(name, ThemeDescription(token));
+                ColorItem(name, ThemeDescription(token));
             }
-            Prose("To make colours from other colours or from numbers, see the Colour functions: rgb, rgba, alpha, mix, steps and deltacolor.");
+            Prose("To make colors from other colors or from numbers, see the Color functions: rgb, rgba, alpha, mix, steps and deltacolor.");
 
             foreach (string category in DataCatalog.Categories)
             {
@@ -337,10 +337,10 @@ namespace AlmostFastOverlays
             Item(fn.Signature, fn.Description + " Takes " + args + ".", example, null, insertName: fn.Signature);
         }
 
-        private void ColourItem(string name, string description)
+        private void ColorItem(string name, string description)
         {
             var swatch = new Border { Width = 22, Height = 22, CornerRadius = new CornerRadius(5), BorderBrush = Res<Brush>("Brush.BorderStrong"), BorderThickness = new Thickness(1), Margin = new Thickness(0, 0, 12, 0), VerticalAlignment = VerticalAlignment.Top };
-            Item(name, description, null, s => Show(Expr.Evaluate(name, s)), insertName: name, leading: swatch, colour: s => Expr.Color(Expr.Evaluate(name, s), s));
+            Item(name, description, null, s => Show(Expr.Evaluate(name, s)), insertName: name, leading: swatch, color: s => Expr.Color(Expr.Evaluate(name, s), s));
         }
 
         /// <summary>
@@ -348,7 +348,7 @@ namespace AlmostFastOverlays
         /// are updated four times a second from the designer's preview.
         /// </summary>
         private void Item(string name, string description, string example, Func<EvalScope, string> live = null, string insertName = null, bool mono = true,
-            FrameworkElement leading = null, Func<EvalScope, System.Drawing.Color?> colour = null)
+            FrameworkElement leading = null, Func<EvalScope, System.Drawing.Color?> color = null)
         {
             var grid = new Grid();
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -357,10 +357,10 @@ namespace AlmostFastOverlays
             if (leading != null)
             {
                 grid.Children.Add(leading);
-                if (colour != null && leading is Border swatch)
+                if (color != null && leading is Border swatch)
                     _live.Add((new TextBlock(), s =>
                     {
-                        System.Drawing.Color? c = colour(s);
+                        System.Drawing.Color? c = color(s);
                         swatch.Background = c.HasValue ? new SolidColorBrush(Color.FromArgb(c.Value.A, c.Value.R, c.Value.G, c.Value.B)) : null;
                         return "";
                     }));
@@ -513,7 +513,7 @@ namespace AlmostFastOverlays
         {
             switch (token)
             {
-                case "accent": return "The dashboard's accent colour.";
+                case "accent": return "The dashboard's accent color.";
                 case "text": return "Main text.";
                 case "muted": return "Labels and secondary text.";
                 case "dim": return "Faint text and inactive marks.";
@@ -527,7 +527,7 @@ namespace AlmostFastOverlays
                 case "info": return "Information: blue.";
                 case "purple": return "Best times: purple.";
                 case "background": return "The dashboard's background.";
-                default: return "A theme colour.";
+                default: return "A theme color.";
             }
         }
 
@@ -539,7 +539,7 @@ namespace AlmostFastOverlays
                 case "Number": return "Car number.";
                 case "Car": return "Car model.";
                 case "Class": return "Class name.";
-                case "ClassColor": return "The class's colour.";
+                case "ClassColor": return "The class's color.";
                 case "Position": return "Overall position.";
                 case "ClassPosition": return "Position in class.";
                 case "LastLap": return "Last lap time, in seconds (use laptime() to show it).";
@@ -551,8 +551,8 @@ namespace AlmostFastOverlays
                 case "Interval": return "Seconds behind the car one place ahead.";
                 case "Delta": return "Seconds from you: negative is ahead of you.";
                 case "IRating": return "iRating.";
-                case "License": return "Licence letter.";
-                case "LicenseColor": return "The licence's colour.";
+                case "License": return "License letter.";
+                case "LicenseColor": return "The license's color.";
                 case "InPits": return "True while on pit road.";
                 case "IsPlayer": return "True for your car.";
                 case "Exists": return "True when there's a car in that position.";

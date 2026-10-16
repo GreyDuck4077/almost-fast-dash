@@ -163,6 +163,7 @@ namespace AlmostFastOverlays
                     IsChecked = onEditor && d == _dashboard
                 };
                 item.Checked += (s, e) => { if (!_buildingDashboardNav && !(EditorPage.Visibility == Visibility.Visible && d == _dashboard)) ShowEditor(d); };
+                item.ContextMenu = DashboardMenu(d);
                 DashboardSubNav.Children.Add(item);
             }
             _buildingDashboardNav = false;
@@ -559,7 +560,38 @@ namespace AlmostFastOverlays
             _settings.DefaultDashboardId = dashboard.Id;
             Save();
             if (GalleryPage.Visibility == Visibility.Visible) BuildGalleryCards();
-            else LoadDashboardValues();
+            else if (EditorPage.Visibility == Visibility.Visible) LoadDashboardValues();
+            if (DashboardSubNav.Visibility == Visibility.Visible) BuildDashboardSubNav();
+        }
+
+        /// <summary>A dashboard's right-click menu in the sidebar.</summary>
+        private ContextMenu DashboardMenu(DashboardSettings dashboard)
+        {
+            var menu = new ContextMenu();
+            bool isDefault = dashboard.Id == _settings.DefaultDashboardId;
+            var makeDefault = new MenuItem
+            {
+                Header = isDefault ? "The default dashboard" : "Set as default", Icon = GlyphIcon(isDefault ? "" : ""), IsEnabled = !isDefault,
+                ToolTip = "Shown unless another dashboard is set for the session's track type"
+            };
+            makeDefault.Click += (s, e) => MakeDefault(dashboard);
+            var open = new MenuItem { Header = "Open", Icon = GlyphIcon("") };
+            open.Click += (s, e) => ShowEditor(dashboard);
+            var design = new MenuItem { Header = dashboard.Design != null ? "Edit the screen design" : "Design the screen", Icon = GlyphIcon("") };
+            design.Click += (s, e) => OpenDesigner(dashboard);
+            var duplicate = new MenuItem { Header = "Duplicate", Icon = GlyphIcon("") };
+            duplicate.Click += (s, e) =>
+            {
+                DashboardSettings copy = _settings.AddDashboard(dashboard);
+                Save();
+                ShowEditor(copy);
+            };
+            menu.Items.Add(makeDefault);
+            menu.Items.Add(new Separator());
+            menu.Items.Add(open);
+            menu.Items.Add(design);
+            menu.Items.Add(duplicate);
+            return menu;
         }
 
         private void More_Click(object sender, RoutedEventArgs e)

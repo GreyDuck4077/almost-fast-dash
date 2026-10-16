@@ -15,17 +15,17 @@ namespace AlmostFastOverlays
         public int Version { get; set; } = 1;
         /// <summary>Master brightness for every LED, 0-100.</summary>
         public int Brightness { get; set; } = 100;
-        /// <summary>Perceptual (gamma) brightness, so dim settings and colour mixes look even.</summary>
+        /// <summary>Perceptual (gamma) brightness, so dim settings and color mixes look even.</summary>
         public bool Gamma { get; set; } = true;
         /// <summary>How long an LED takes to fade out after it turns off, in milliseconds; 0 snaps off.</summary>
         public int FadeMs { get; set; } = 90;
-        /// <summary>The colour theme (<see cref="LightThemes"/>) its good, warn and bad colours come from; "custom" uses the three below.</summary>
+        /// <summary>The color theme (<see cref="LightThemes"/>) its good, warn and bad colors come from; "custom" uses the three below.</summary>
         public string ThemeId { get; set; } = LightThemes.DefaultId;
         public string CustomLow { get; set; } = "#008000";
         public string CustomMid { get; set; } = "#FFBE2E";
         public string CustomHigh { get; set; } = "#890711";
 
-        /// <summary>The colour names as this profile's LEDs show them: the theme's low, middle and high as good, warn and bad.</summary>
+        /// <summary>The color names as this profile's LEDs show them: the theme's low, middle and high as good, warn and bad.</summary>
         public LayoutTheme LedTheme()
         {
             LayoutTheme theme = LayoutTheme.ForLights();

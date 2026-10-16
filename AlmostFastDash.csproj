@@ -14,7 +14,7 @@
     <UseWPF>true</UseWPF>
     <AssemblyName>AlmostFastDash</AssemblyName>
     <Product>Almost Fast Dash</Product>
-    <Version>3.66.0</Version>
+    <Version>3.67.0</Version>
     <RootNamespace>AlmostFastOverlays</RootNamespace>
     <DebugType>none</DebugType>
     <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>

@@ -250,8 +250,8 @@ namespace AlmostFastOverlays
 
         /// <summary>
         /// Schema 16: Halo and Oval were reworked from the ground up. Halo is now the endurance and multiclass
-        /// dashboard (a rev ring over a live delta, traffic in class colours) and Oval the pack-racing radar. The
-        /// saved Halo and Oval take the new designs at their own size. Their names, accent colours, lights,
+        /// dashboard (a rev ring over a live delta, traffic in class colors) and Oval the pack-racing radar. The
+        /// saved Halo and Oval take the new designs at their own size. Their names, accent colors, lights,
         /// track types, page buttons and flag choices stay. No other dashboard changes.
         /// </summary>
         private void ReworkHaloAndOval()
@@ -273,9 +273,9 @@ namespace AlmostFastOverlays
         }
 
         /// <summary>
-        /// Schema 17: labels are easier to read. A design whose muted colour (labels and captions) is still the one
-        /// a template gave it takes the brighter version; a colour the user picked stays. The captions under
-        /// Halo's and Oval's big numbers move from the dim colour to the muted one, a size larger.
+        /// Schema 17: labels are easier to read. A design whose muted color (labels and captions) is still the one
+        /// a template gave it takes the brighter version; a color the user picked stays. The captions under
+        /// Halo's and Oval's big numbers move from the dim color to the muted one, a size larger.
         /// </summary>
         private void BrighterLabels()
         {
@@ -307,7 +307,7 @@ namespace AlmostFastOverlays
 
         /// <summary>
         /// Schema 19: Halo and Oval, both rebuilt on 13 October, take their templates again with text no smaller
-        /// than 16 px and every label in a readable colour. A dashboard is recognised by its first screen: Halo's
+        /// than 16 px and every label in a readable color. A dashboard is recognized by its first screen: Halo's
         /// rev ring and traffic strip, or the Oval's radar and ahead panel.
         /// </summary>
         private void RefreshHaloAndOval()
@@ -318,7 +318,7 @@ namespace AlmostFastOverlays
 
         /// <summary>
         /// Rebuilds the dashboards still made from a template (as <paramref name="isTemplate"/> tells from their first
-        /// screen) at their own size. Their page buttons, flag choices and label colour stay.
+        /// screen) at their own size. Their page buttons, flag choices and label color stay.
         /// </summary>
         private void Refresh(string templateId, Func<List<DashWidget>, bool> isTemplate)
         {
@@ -341,7 +341,7 @@ namespace AlmostFastOverlays
 
         /// <summary>
         /// Schemas 18 and 19: no text smaller than a wheel screen can show readably (16 px on an 854×480 screen since
-        /// schema 19) and none in the too-faint dim colour. Nothing else changes (see <see cref="ReadableText"/>).
+        /// schema 19) and none in the too-faint dim color. Nothing else changes (see <see cref="ReadableText"/>).
         /// </summary>
         private void LargerText()
         {

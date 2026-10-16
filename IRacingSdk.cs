@@ -13,7 +13,7 @@ namespace AlmostFastOverlays
     //
     // The memory layout and the flag, warning and spotter definitions below follow the iRacing SDK's
     // irsdk_defines.h, Copyright (c) 2013, iRacing.com Motorsport Simulations, LLC, under the BSD
-    // 3-Clause licence reproduced in CREDITS.md. The class names keep the shape of iRacingSDK.Net
+    // 3-Clause license reproduced in CREDITS.md. The class names keep the shape of iRacingSDK.Net
     // (Dean Netherton, GPL-3.0), which the app used before it was standalone; the code is new.
 
     [Flags]
@@ -535,7 +535,7 @@ namespace AlmostFastOverlays
         public bool IsSpectator { get; }
         public int CarClassId { get; }
         public string CarClassShortName { get; }
-        /// <summary>Class colour as iRacing reports it, such as "0xffda59".</summary>
+        /// <summary>Class color as iRacing reports it, such as "0xffda59".</summary>
         public string CarClassColor { get; }
         public double CarClassRelSpeed { get; }
         public int CarId { get; }

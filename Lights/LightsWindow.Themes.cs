@@ -6,7 +6,7 @@ using System.Windows.Media;
 
 namespace AlmostFastOverlays
 {
-    /// <summary>The light designer's colour theme picker: one card that opens into a grid of themes.</summary>
+    /// <summary>The light designer's color theme picker: one card that opens into a grid of themes.</summary>
     public partial class LightsWindow
     {
         private bool _themesOpen;
@@ -44,7 +44,7 @@ namespace AlmostFastOverlays
             ThemeHost.Children.Add(header);
             ThemeHost.Children.Add(new TextBlock
             {
-                Text = "The colours layers call good, warn and bad: the low, middle and high of rev lights and meters, the shift flash and blind-spot warnings. Layers given a colour of their own keep it.",
+                Text = "The colors layers call good, warn and bad: the low, middle and high of rev lights and meters, the shift flash and blind-spot warnings. Layers given a color of their own keep it.",
                 Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 12, 0, 0)
             });
             if (!_themesOpen) return;
@@ -56,11 +56,11 @@ namespace AlmostFastOverlays
 
             if (custom)
             {
-                var colours = new StackPanel { Margin = new Thickness(0, 12, 0, 0) };
-                colours.Children.Add(CustomColour("Low (good)", _profile.CustomLow, v => _profile.CustomLow = v));
-                colours.Children.Add(CustomColour("Middle (warn)", _profile.CustomMid, v => _profile.CustomMid = v));
-                colours.Children.Add(CustomColour("High (bad)", _profile.CustomHigh, v => _profile.CustomHigh = v));
-                ThemeHost.Children.Add(colours);
+                var colors = new StackPanel { Margin = new Thickness(0, 12, 0, 0) };
+                colors.Children.Add(CustomColor("Low (good)", _profile.CustomLow, v => _profile.CustomLow = v));
+                colors.Children.Add(CustomColor("Middle (warn)", _profile.CustomMid, v => _profile.CustomMid = v));
+                colors.Children.Add(CustomColor("High (bad)", _profile.CustomHigh, v => _profile.CustomHigh = v));
+                ThemeHost.Children.Add(colors);
             }
         }
 
@@ -85,20 +85,20 @@ namespace AlmostFastOverlays
             return tile;
         }
 
-        private FrameworkElement CustomColour(string label, string value, Action<string> set)
+        private FrameworkElement CustomColor(string label, string value, Action<string> set)
         {
             var row = new Grid { Margin = new Thickness(0, 3, 0, 3) };
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(140) });
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(220) });
             row.Children.Add(new TextBlock { Text = label, VerticalAlignment = VerticalAlignment.Center });
             var field = new ColorField(this, value, null, () => _dashboard.AccentColor, false);
-            field.Changed += v => { set(v); ThemeChanged("Custom colours", false); };
+            field.Changed += v => { set(v); ThemeChanged("Custom colors", false); };
             Grid.SetColumn(field, 1);
             row.Children.Add(field);
             return row;
         }
 
-        /// <summary>A new theme: the preview, layer swatches and colour fields all follow it.</summary>
+        /// <summary>A new theme: the preview, layer swatches and color fields all follow it.</summary>
         private void ThemeChanged(string label, bool rebuild = true)
         {
             _renderer = null;

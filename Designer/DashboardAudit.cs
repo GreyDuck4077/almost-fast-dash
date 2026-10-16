@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 
 namespace AlmostFastOverlays
 {
-    /// <summary>A piece of text as a widget drew it: its size after any shrinking to fit, its colour and where its letters sit.</summary>
+    /// <summary>A piece of text as a widget drew it: its size after any shrinking to fit, its color and where its letters sit.</summary>
     internal sealed class DrawnText
     {
         public DashWidget Widget;
@@ -80,7 +80,7 @@ namespace AlmostFastOverlays
                             double ratio = Ratio(Over(text.Color, back), back), needed = text.Size >= LargeText ? LargeContrast : Contrast;
                             if (ratio < needed)
                                 findings.Add(new Finding { Screen = where, Widget = name, Text = text.Text, Problem = "contrast " + ratio.ToString("0.0") + ":1, needs " + needed + ":1" });
-                            // Letters past the widget's own box are cut off or drawn under its neighbours (a turned widget's
+                            // Letters past the widget's own box are cut off or drawn under its neighbors (a turned widget's
                             // text is placed before turning, so it can't be judged this way).
                             if (text.Widget != null && (!double.TryParse(text.Widget.Get("rotate", "0"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double turn) || Math.Abs(turn) < 0.01) &&
                                 !RectangleF.Inflate(text.Widget.Bounds, 2, 2).Contains(text.Ink))
@@ -131,7 +131,7 @@ namespace AlmostFastOverlays
             finally { bitmap.UnlockBits(data); }
         }
 
-        /// <summary>The typical colour behind a piece of text: the median brightness of the pixels its letters cover.</summary>
+        /// <summary>The typical color behind a piece of text: the median brightness of the pixels its letters cover.</summary>
         private static Color Behind(int[] pixels, int width, int height, RectangleF ink)
         {
             int x0 = Math.Max(0, (int)ink.Left), x1 = Math.Min(width - 1, (int)Math.Ceiling(ink.Right));
@@ -145,14 +145,14 @@ namespace AlmostFastOverlays
         }
 
         /// <summary>
-        /// A colour moved just far enough toward white (on a dark background) or black (on a light one) to stand out
+        /// A color moved just far enough toward white (on a dark background) or black (on a light one) to stand out
         /// from it by <paramref name="ratio"/>; unchanged when it already does. Keeps its hue as far as it can.
         /// </summary>
         public static Color Readable(Color color, Color background, double ratio = Contrast) =>
             Remember(color, background, ratio, -1, () => MakeReadable(color, background, ratio));
 
         /// <summary>
-        /// Painters ask for the same few colours every frame, and each answer takes some searching: answers are kept
+        /// Painters ask for the same few colors every frame, and each answer takes some searching: answers are kept
         /// (per thread, as renderers on different threads draw at once).
         /// </summary>
         [ThreadStatic] private static Dictionary<Tuple<int, int, double, float>, Color> _answers;
@@ -181,7 +181,7 @@ namespace AlmostFastOverlays
         }
 
         /// <summary>
-        /// A colour dimmed toward the background by up to <paramref name="share"/>, as far as it can go while still
+        /// A color dimmed toward the background by up to <paramref name="share"/>, as far as it can go while still
         /// standing out from it by <paramref name="ratio"/>: dimmer, but never unreadable.
         /// </summary>
         public static Color Dimmed(Color color, Color background, float share, double ratio = Contrast) =>
@@ -207,14 +207,14 @@ namespace AlmostFastOverlays
             return Ratio(dark, solid) >= Ratio(Color.White, solid) ? dark : Color.White;
         });
 
-        /// <summary>Text colour laid over what is behind it.</summary>
+        /// <summary>Text color laid over what is behind it.</summary>
         internal static Color Over(Color fore, Color back)
         {
             double a = fore.A / 255.0;
             return Color.FromArgb(255, (int)(fore.R * a + back.R * (1 - a)), (int)(fore.G * a + back.G * (1 - a)), (int)(fore.B * a + back.B * (1 - a)));
         }
 
-        /// <summary>The WCAG contrast ratio of two colours, 1 to 21.</summary>
+        /// <summary>The WCAG contrast ratio of two colors, 1 to 21.</summary>
         public static double Ratio(Color a, Color b)
         {
             double la = Luminance(a), lb = Luminance(b);

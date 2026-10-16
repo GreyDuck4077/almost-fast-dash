@@ -155,7 +155,7 @@ the radar can only be checked in a live session with `--live-check`.
 | `--ui-snapshot <scenario> <file.png>` | Opens a window in a scripted state and saves a picture of it. |
 | `--screen-test [report.txt]` | With the dashboard stopped: a test pattern on the wheel screen (a whole frame, numbered squares sent as areas, then a sliding bar sent as whole frames and as only what changed). Reports the screen's model and both frame rates. |
 | `--led-soak <COM port> <LED count> [--fast]` | Streams fast-changing frames to an LED board for 90 seconds and reports whether it kept up. |
-| `--light-frames <report.txt>` | Writes each dashboard's LED colours through a rev sweep and the preview states. |
+| `--light-frames <report.txt>` | Writes each dashboard's LED colors through a rev sweep and the preview states. |
 | `--designer-selftest <report.txt>` | Runs the end-to-end checks. They write settings next to the exe, so run them from a copy. |
 
 The render, audit and snapshot options read `settings.json` next to the exe,

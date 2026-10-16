@@ -25,6 +25,9 @@ On each dashboard's card:
 - **Design** opens the [designer](#the-designer).
 - **Set as default** makes it the dashboard used whenever no other one matches.
 
+Right-click a dashboard in the sidebar for the same, plus Open, Edit the screen
+design and Duplicate.
+
 **Track types.** Under *Use automatically for* on a dashboard's page, choose
 the track types it's for (Road, Oval, Dirt Road, Dirt Oval). When a session
 starts, the app switches to the matching dashboard. Turn off **Settings ›
@@ -49,7 +52,7 @@ Windows** starts it when you sign in.
 
 A flag fills the screen as it comes out (the screen stays steady while the
 lights flash), then hands the dashboard back. While a flag stays out (a
-caution, the final lap, black, repairs or blue), a glow in its colour runs
+caution, the final lap, black, repairs or blue), a glow in its color runs
 round the edge of the screen with a tab that names it. Red and checkered keep
 the whole screen. The checkered flag shows your result: position, class, best
 lap and places gained.
@@ -74,7 +77,7 @@ lap and places gained.
    Other. A light layer aimed at a role lights every part with that role, on
    every device.
 4. **Map.** One LED at a time lights up on the device, and you click where it
-   is on a drawing of the shape. After two neighbours the app follows the
+   is on a drawing of the shape. After two neighbors the app follows the
    chain on its own, so most devices take two clicks. Wiring that jumps is
    asked about LED by LED. Then you click a few LEDs to check the right ones
    light, or place every LED by hand if something's off. If an LED doesn't
@@ -94,7 +97,7 @@ Bright frames are dimmed to fit, so a whole bar lit white can't overload the
 port. An overloaded port drops the device off USB with its LEDs stuck on.
 Choose *a powered hub or its own power supply* to remove the limit.
 
-**Fast updates** (several colour changes per message) are used automatically
+**Fast updates** (several color changes per message) are used automatically
 when a board accepts them. Messages are kept within what these boards can take
 (26 bytes), and each one waits for the board's acknowledgement. A device that
 keeps disconnecting is retried less and less often. Devices are found again by
@@ -236,9 +239,16 @@ The workspace is laid out like an image editor:
   What you draw becomes an ordinary widget, selected and ready to style, and
   the rail goes back to Move. Esc does the same at any time.
 - **Canvas.** The screen at the dashboard's own resolution. Drag, resize and
-  multi-select. Widgets snap to edges and centres (hold Alt to stop snapping),
+  multi-select. Widgets snap to edges and centers (hold Alt to stop snapping),
   and Ctrl+wheel zooms. Shift+2 zooms to the selection, and Shift+1 (or
-  Ctrl+0) fits the whole screen.
+  Ctrl+0) fits the whole screen. An empty screen starts with a card of
+  one-click starters: a gear and revs, shift lights, lap times.
+- **What only shows at times** (a pit-lane banner, a low-fuel warning, a
+  flag, the blind-spot bars) is drawn faintly in the designer, so it can be
+  placed and styled. Point at one to see when it shows; select one and
+  Properties says so too, with a button to preview that moment.
+- **Keyboard shortcuts:** Ctrl+/ (or the keyboard button at the top) lists
+  them all. Every setting says what it does when you point at its name.
 - **Rulers and guides** (Rulers below the canvas, or Ctrl+R). Drag from a
   ruler onto the canvas for a guide: it snaps to the screen's edges and middle
   and to widgets as it goes (Alt stops it). Widgets snap to guides as they
@@ -252,11 +262,11 @@ The workspace is laid out like an image editor:
   - drag the line above the list to give Properties or Layers more room;
   - Alt-click a layer to clip it to the layer below (see Masks).
 - **Drawing.** Shapes and pen paths share their look:
-  - **Fill:** a colour, a linear or radial gradient, or a pattern in two
-    colours: stripes, checks, dots, carbon fibre, honeycomb, grid or brushed
-    metal, at any size and angle. Leave the second colour empty for
+  - **Fill:** a color, a linear or radial gradient, or a pattern in two
+    colors: stripes, checks, dots, carbon fibre, honeycomb, grid or brushed
+    metal, at any size and angle. Leave the second color empty for
     see-through.
-  - **Line:** a colour or a gradient, solid, dashed, dotted or dash-dot, with
+  - **Line:** a color or a gradient, solid, dashed, dotted or dash-dot, with
     round, flat or square ends and round, sharp or bevelled corners.
   - **Points:** double-click a path (or press Enter) to drag its points and
     their handles. Alt-click a point to switch it between corner and curve,
@@ -266,8 +276,8 @@ The workspace is laid out like an image editor:
   - **Recolor › Pattern**, in any widget's Style, paints it in a pattern: a
     rectangle outline in red and white stripes makes a kerb, and digits in
     brushed metal look machined.
-  - **Eyedropper:** every colour picker has **Pick from the screen**. Then
-    click any colour in the designer, on the canvas or a picture in the
+  - **Eyedropper:** every color picker has **Pick from the screen**. Then
+    click any color in the designer, on the canvas or a picture in the
     Library, to use it. Esc stops.
 
   ![Drawn shapes, patterns and pen paths](images/app-drawing.png)
@@ -306,9 +316,9 @@ The workspace is laid out like an image editor:
   - **Widgets**: text and values, the gear, bars and arc gauges (needles,
     ticks, numbers), shift lights, the leaderboard, the relative, tyres, a
     self-tracing track map, a radar of the cars around you, a traffic strip in
-    class colours, live graphs of any value, flags, blind-spot bars, panels,
+    class colors, live graphs of any value, flags, blind-spot bars, panels,
     shapes, gradients and images.
-  - **Quick values**: one-click items for the engine, lap, sectors, tyres,
+  - **Live data**: one-click items for the engine, lap, sectors, tyres,
     fuel, race, leaderboard, notices and the PC.
   - **Blocks**: ready-made cards, clusters and strips.
 - **Modules.** Your own creations, kept to reuse and share:
@@ -326,7 +336,7 @@ The workspace is laid out like an image editor:
   - Right-click a module to edit its details or delete it (it goes to the
     Recycle Bin). Blocks saved by earlier versions are listed here too.
   - **Options** make a module easy to adapt. Right-click a setting's name in
-    Properties › **Make this an option…**, and name it, such as "Colour" or
+    Properties › **Make this an option…**, and name it, such as "Color" or
     "Red from". Right-click other settings to link them to it too. Select the
     group and its options are at the top of Properties: change one and every
     linked setting follows. Saved as a module, the options are what people
@@ -334,10 +344,10 @@ The workspace is laid out like an image editor:
 
   ![Rulers, guides, and a tach's options](images/app-options.png)
 
-  ![Modules in the Library, and a placed module's colours](images/app-modules.png)
+  ![Modules in the Library, and a placed module's colors](images/app-modules.png)
 - **Restyling a selection** (several widgets, a group or a placed module):
-  - **Colours** lists every colour they use. Change one and it changes
-    everywhere it's used, so a module takes on your colours in a few clicks.
+  - **Colors** lists every color they use. Change one and it changes
+    everywhere it's used, so a module takes on your colors in a few clicks.
   - **Scale** resizes everything about its middle, text, lines and glows
     included, as if it had been built at that size.
 - **ƒx** turns any property into a live formula. **Show when** shows a widget
@@ -345,7 +355,7 @@ The workspace is laid out like an image editor:
 - **Shared tools** on every widget where they fit:
   - shape: bend, taper, bulge, slant;
   - fill direction, flip and rotate;
-  - style: recolour with a colour, gradient or texture, outline, drop shadow,
+  - style: recolor with a color, gradient or texture, outline, drop shadow,
     outer glow.
 - **Several widgets** selected show the settings they share, edited together.
   Ctrl+Shift+C and Ctrl+Shift+V copy and paste a widget's look.
@@ -354,8 +364,8 @@ The workspace is laid out like an image editor:
   next place.
 - **Screens.** A screen with a *Show when* condition (such as `OnPitRoad`) takes
   over while it's true. The others are pages that a wheel button steps through.
-- **Theme.** Presets, the accent colour, the font, the background and every
-  theme colour.
+- **Theme.** Presets, the accent color, the font, the background and every
+  theme color.
 - **Display resolution** moves a dashboard to another screen size.
 - **Undo and redo**, copy and paste, align and distribute.
 - **Export and Import** a whole dashboard, with its images and lights, as one
@@ -364,7 +374,7 @@ The workspace is laid out like an image editor:
 **Formulas** read like `FuelLapsLeft < 2 ? $bad : $text`. They support:
 - arithmetic and comparisons;
 - `and`, `or`, `not`, and `cond ? a : b`;
-- colours as `#RRGGBB` or as `$theme` names;
+- colors as `#RRGGBB` or as `$theme` names;
 - about 135 data fields;
 - about 40 functions, such as `format`, `laptime`, `fuel`, `steps`, `mix` and
   `blink`.
@@ -376,7 +386,7 @@ use, so nothing is missing:
 
 - **Live values:** each field shows its value from the preview as it plays.
 - **Examples:** every function has a worked example with its answer.
-- **The rest:** the language, the theme colours, the leaderboard and tyre
+- **The rest:** the language, the theme colors, the leaderboard and tyre
   fields, groups, pages and taps, and recipes.
 
 Search finds anything. **Insert** puts an entry into the formula you last
@@ -402,16 +412,16 @@ layers. Where layers overlap, the one higher in the list wins.
 Each layer has:
 
 - an **effect**: rev lights (from the car's own shift-light RPMs), meter,
-  centre meter, solid, blink, breathe, sweep, flag colours, blind spot,
+  center meter, solid, blink, breathe, sweep, flag colors, blind spot,
   gradient or blank;
 - the **LEDs** it lights: a role on every device (shift lights, sides, light
   bar, the light bar split down the middle…) or one device or part;
 - **Show when**: a condition such as `OnPitRoad && PitLimiter`;
 - a **blend** (over, or replace the whole target) and a brightness.
 
-The **colour theme** sets what `good`, `warn` and `bad` mean on the LEDs: the
+The **color theme** sets what `good`, `warn` and `bad` mean on the LEDs: the
 low, middle and high of rev lights and meters, the shift flash and blind-spot
-warnings. Pick one of 24 themes or choose your own three colours.
+warnings. Pick one of 24 themes or choose your own three colors.
 
 Out of the car or in a replay, the LEDs go dark. The checkered flag shows
 once, for ten seconds.

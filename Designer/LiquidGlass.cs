@@ -17,7 +17,7 @@ namespace AlmostFastOverlays
         public float Refraction;
         /// <summary>0 to 1: how bright the light on the rim is.</summary>
         public float Shine;
-        /// <summary>0 to 1: how far the colours split at the rim, as a prism does.</summary>
+        /// <summary>0 to 1: how far the colors split at the rim, as a prism does.</summary>
         public float Dispersion;
         /// <summary>The direction the light comes from, in degrees (0 is right, 90 down, 225 top left).</summary>
         public float Light;
@@ -28,7 +28,7 @@ namespace AlmostFastOverlays
 
     /// <summary>
     /// Apple-style Liquid Glass drawn pixel by pixel. The pane frosts what lies behind it, and its edge
-    /// is a rounded rim that works like a lens: it bends the backdrop, splits its colours a little, and
+    /// is a rounded rim that works like a lens: it bends the backdrop, splits its colors a little, and
     /// catches a bright highlight on the side facing the light with a fainter one opposite. The rim is
     /// found by blurring the pane's own shape, so any outline works: rounded, cut corners, bent or
     /// tapered by the Shape tools.
@@ -113,7 +113,7 @@ namespace AlmostFastOverlays
                     float cr = Sample(r, cw, ch, bx - nx * off * (1 + split), by - ny * off * (1 + split));
                     float cg = Sample(gr, cw, ch, bx - nx * off, by - ny * off);
                     float cb = Sample(bl, cw, ch, bx - nx * off * (1 - split), by - ny * off * (1 - split));
-                    // Toward the outer edge it also reflects what lies just outside, so light and colour from
+                    // Toward the outer edge it also reflects what lies just outside, so light and color from
                     // beside the pane wrap round its rim.
                     float reflect = 0.45f * refraction * rim * rim;
                     if (reflect > 0.01f)
@@ -125,7 +125,7 @@ namespace AlmostFastOverlays
                         cb += (Sample(bl, cw, ch, qx, qy) - cb) * reflect;
                     }
 
-                    // Seen through glass, colours are a little richer (Apple's vibrancy).
+                    // Seen through glass, colors are a little richer (Apple's vibrancy).
                     float grey = cr * 0.299f + cg * 0.587f + cb * 0.114f;
                     cr = grey + (cr - grey) * 1.35f; cg = grey + (cg - grey) * 1.35f; cb = grey + (cb - grey) * 1.35f;
                     // The glass's own tint.
@@ -140,7 +140,7 @@ namespace AlmostFastOverlays
 
                     // Light on the rim: a crisp highlight where it faces the light and a softer one on the far side,
                     // gathered at the outer edge, and a clean hairline of light all the way round. The light splits
-                    // a little as it leaves the rim, so it is tinted with the colours of a prism round the pane.
+                    // a little as it leaves the rim, so it is tinted with the colors of a prism round the pane.
                     float facing = nx * lx + ny * ly;
                     float near = Math.Max(0, facing), far = Math.Max(0, -facing);
                     float spec = shine * rim * (float)Math.Sqrt(rim) * (2.0f * near * near * near + 0.7f * far * far * far);
@@ -239,10 +239,10 @@ namespace AlmostFastOverlays
             }
         }
 
-        /// <summary>A spectrum colour for a direction round the pane, as light split by a prism.</summary>
+        /// <summary>A spectrum color for a direction round the pane, as light split by a prism.</summary>
         private static void Prism(float angle, out float r, out float g, out float b)
         {
-            // Hue runs round the rim; blue and violet sit at the top, warm colours lower down, as on Apple's glass.
+            // Hue runs round the rim; blue and violet sit at the top, warm colors lower down, as on Apple's glass.
             double hue = ((angle * 180 / Math.PI) + 360 + 330) % 360 / 60;
             double x = 1 - Math.Abs(hue % 2 - 1);
             double rr, gg, bb;

@@ -5,6 +5,30 @@ English. Every version is on the
 [releases page](https://github.com/Sota4077/almost-fast-dash/releases) with
 its exe and checksum.
 
+## 3.67 · 2026-10-16
+
+A first round of polish for anyone opening the designer for the first time.
+
+- **Right-click a dashboard in the sidebar:** Set as default, Open, Edit the
+  screen design, Duplicate. Setting the default from a card now updates the
+  sidebar's Default mark too.
+- **What only shows at times is drawn faintly in the designer:** a pit-lane
+  banner, a low-fuel warning, a flag, the blind-spot bars, anything with a
+  Show when that isn't true right now. Point at one to see when it shows;
+  select one and Properties explains it, with a button to preview that moment.
+  On the wheel and the PC nothing changes.
+- **An empty screen starts with a card** of one-click starters: a gear and
+  revs, shift lights, lap times.
+- **Every setting explains itself** when you point at its name: all 1,084 of
+  them, kept that way by a self-test.
+- **Layer thumbnails:** each layer shows a small picture of itself.
+- **Keyboard shortcuts** (Ctrl+/, or the keyboard button at the top).
+- The Library's Quick values are now **Live data**, and My modules waits at
+  the end until you've saved one. A search that finds nothing says so.
+- Spelling is consistently US English (color, center, license).
+- The light designer's layers turn on and off with an eye, like the screen
+  designer's.
+
 ## 3.66 · 2026-10-16
 
 Rulers and guides, and options for modules.
@@ -33,8 +57,8 @@ Repeat, zoom to the selection, and an eyedropper.
     next number, so one light with `=RevPct * 12 >= Slot` becomes a shift
     light row, and one `=Slot - 1` text becomes a dial's numbers.
 - **Zoom to selection** (Shift+2, or right-click); Shift+1 fits the screen.
-- **Eyedropper:** Pick from the screen in every colour picker, then click any
-  colour in the designer.
+- **Eyedropper:** Pick from the screen in every color picker, then click any
+  color in the designer.
 
 ## 3.64 · 2026-10-16
 
@@ -50,7 +74,7 @@ file.
 - **Sharing:** right-click a module › Export to a file to share. **Import…**
   in My modules, or dropping an `.afomodule` file on the screen, adds one.
   Modules are widgets and formulas only, so they're safe to pass around.
-- **Colours**, for several widgets, a group or a placed module: every colour
+- **Colors**, for several widgets, a group or a placed module: every color
   they use, once each. Change one and it changes everywhere it's used.
 - **Scale**, for the same: resizes everything about its middle, text, lines
   and glows included.
@@ -90,11 +114,11 @@ patterns for any widget.
   to reshape.
 - **Polygon** on the rail (Shift+U steps to it), and **Star** among the
   shapes: any number of sides, and a star's inner size.
-- **Fills** for shapes and paths: a colour, a linear or radial gradient, or a
-  pattern in two colours. The patterns are stripes, checks, dots, carbon fibre
+- **Fills** for shapes and paths: a color, a linear or radial gradient, or a
+  pattern in two colors. The patterns are stripes, checks, dots, carbon fibre
   (a proper 2×2 twill), honeycomb, grid and brushed metal, at any size and
   angle.
-- **Lines:** a colour or a gradient, solid, dashed, dotted or dash-dot, with
+- **Lines:** a color or a gradient, solid, dashed, dotted or dash-dot, with
   round, flat or square ends and round, sharp or bevelled corners.
 - **Recolor › Pattern** in every widget's Style paints it in a pattern. A
   rectangle outline in red and white stripes makes a kerb; digits in brushed
@@ -137,7 +161,7 @@ A formula reference to keep open while you build.
   opens a window to keep beside the designer, or on another display, while
   you build. It covers everything ƒx can use:
   - the language, step by step, with its order of operations;
-  - every theme colour, with its swatch;
+  - every theme color, with its swatch;
   - all 135 data fields by category, each with a live value from the
     preview;
   - all 37 functions, each with a worked example and its live answer;
@@ -257,7 +281,7 @@ Faster drawing, 60 frames a second, and a polish pass over every template.
   from 9.7 to 6.2 ms and Oval from 8.4 to 4.6. Where the time went:
   - a widget's state is worked out once per frame, not twice;
   - the background under changed widgets is copied back directly;
-  - a widget repainted only because a neighbour changed is copied from its
+  - a widget repainted only because a neighbor changed is copied from its
     last picture;
   - shadows, glows and outlines are mixed by the app's own compositor;
   - gauge rims are built once and reused, and their ticks drawn in a few
@@ -301,7 +325,7 @@ The screen pipeline, rebuilt for speed.
 - **No new 1.6 MB picture every frame.** The renderer reuses one, so memory
   stays flat while racing.
 - **Every M-PRO screen.** The 4", 4.3", 5" OLED, 6.8", 3.4" and 10" models
-  are recognised from what the screen reports, at their own sizes, with touch.
+  are recognized from what the screen reports, at their own sizes, with touch.
   Only the 5" has been tested so far.
 - **Dashboard on a monitor.** Show the running dashboard full screen on any
   other display, such as an HDMI dash screen or a spare monitor. The graphics
@@ -365,11 +389,11 @@ The screen pipeline, rebuilt for speed.
 - **Oval** becomes a pack-racing dashboard with a live radar of the cars
   around you.
 - **Halo** becomes an endurance and multiclass dashboard: one ring for revs and
-  the live delta, plus traffic in class colours.
+  the live delta, plus traffic in class colors.
 
 ## 3.47 · 2026-10-13
 
-- **Flags** fill the screen as they come out, then step aside to a coloured
+- **Flags** fill the screen as they come out, then step aside to a colored
   frame round the edge of the screen. The screen stays steady while the lights
   flash, and the checkered flag shows your result.
 
@@ -380,7 +404,7 @@ The screen pipeline, rebuilt for speed.
 ## 3.45 · 2026-10-13
 
 - An instrument finish for the flagship dashboards, and choices in the app take
-  the accent colour.
+  the accent color.
 
 ## 3.44 · 2026-10-13
 
@@ -409,7 +433,7 @@ The screen pipeline, rebuilt for speed.
 
 - Renamed **Almost Fast Dash**.
 - Six new dashboards built only from the designer's own tools.
-- Shared Style tools for every widget: recolour, outline, drop shadow and outer
+- Shared Style tools for every widget: recolor, outline, drop shadow and outer
   glow.
 - An opt-in update check.
 - Faster frames: only changed widgets are redrawn.
@@ -432,7 +456,7 @@ The screen pipeline, rebuilt for speed.
 - **Reliability:** each device sends on its own thread, with live connection
   status, automatic fast updates, and backing off when a device keeps
   dropping. Fixed wheel-screen LED boards crashing under fast-changing lights.
-- LED colour themes, and deeper reds and truer greens.
+- LED color themes, and deeper reds and truer greens.
 
 ## 3.0 – 3.12 · 2026-10-11
 

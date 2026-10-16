@@ -29,7 +29,7 @@ namespace AlmostFastOverlays
         public bool WavingFlags { get; set; } = true;
 
         /// <summary>
-        /// While a flag stays out (a caution, the final lap, black, repairs, blue), a glow in its colour runs
+        /// While a flag stays out (a caution, the final lap, black, repairs, blue), a glow in its color runs
         /// round the dashboard with a tab saying what it is.
         /// </summary>
         public bool FlagFrame { get; set; } = true;
@@ -146,7 +146,7 @@ namespace AlmostFastOverlays
     internal sealed class LayoutTheme
     {
         /// <summary>
-        /// The colour names as LEDs show them. The screen's red and green read pink and minty on an LED,
+        /// The color names as LEDs show them. The screen's red and green read pink and minty on an LED,
         /// so lights use a deeper red and a true green; warn and the rest match the screen.
         /// </summary>
         public static LayoutTheme ForLights() => new LayoutTheme { Bad = "#890711", Good = "#008000" };

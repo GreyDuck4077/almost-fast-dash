@@ -164,7 +164,7 @@ namespace AlmostFastOverlays
                 Check("static cache matches a plain render: " + template.Name, mismatches == 0, mismatches + " of " + states.Length + " states differ beyond rounding (largest " + worst + "/255); " + baked + " widgets baked");
             }
 
-            // The largest difference in any colour channel between two frames.
+            // The largest difference in any color channel between two frames.
             int Largest(System.Drawing.Bitmap x, System.Drawing.Bitmap y)
             {
                 int most = 0;
@@ -620,7 +620,7 @@ namespace AlmostFastOverlays
                             else if (p.ToArgb() != System.Drawing.Color.Black.ToArgb() && p.G > 120) other++;
                         }
                     Check("recolor paints only the widget's own pixels", red > 50 && other == 0, red + " red, " + other + " other");
-                    Check("outline is drawn in its colour", Enumerable.Range(0, 200).Any(k => outline.GetPixel(300 + k, 230).G > 200 && outline.GetPixel(300 + k, 230).R < 80));
+                    Check("outline is drawn in its color", Enumerable.Range(0, 200).Any(k => outline.GetPixel(300 + k, 230).G > 200 && outline.GetPixel(300 + k, 230).R < 80));
                 }
             }
 
@@ -656,7 +656,7 @@ namespace AlmostFastOverlays
                 DashWidget other = next.First(w => w.Type == "text");
                 Select(other);
                 PasteStyle();
-                Check("paste style copies colour and effects, not content", other.Get("color") == "#FF0000" && other.Get("fxGlow") == "6" && other.Get("text") == name.Get("text"));
+                Check("paste style copies color and effects, not content", other.Get("color") == "#FF0000" && other.Get("fxGlow") == "6" && other.Get("text") == name.Get("text"));
                 // Editing several together.
                 _selection.Clear(); _selection.Add(name); _selection.Add(other);
                 RefreshInspector();
@@ -895,7 +895,7 @@ namespace AlmostFastOverlays
                     oldNeon.Design.AllWidgets().Any(w => w.Name == "Shift horizon") && !oldNeon.Design.AllWidgets().Any(w => w.Name == "Fuel ring"),
                     tile.Get("corners", "") + " " + tile.Get("radius", "") + " / " + chip.Get("radius", ""));
 
-                // Schema 16: Halo and Oval are reworked; their names, colours, track types and flag choices stay, and nothing else changes.
+                // Schema 16: Halo and Oval are reworked; their names, colors, track types and flag choices stay, and nothing else changes.
                 var reworked = new AppSettings { SchemaVersion = 15 };
                 DashboardSettings oldHalo = DashboardSettings.CreateDesigned(DesignTemplates.Find("blank")), oldOval = DashboardSettings.CreateDesigned(DesignTemplates.Find("blank")),
                     ownDesign = DashboardSettings.CreateDesigned(DesignTemplates.Find("blank"));
@@ -910,25 +910,25 @@ namespace AlmostFastOverlays
                 int ownWidgets = ownDesign.Design.AllWidgets().Count();
                 reworked.Dashboards.AddRange(new[] { oldHalo, oldOval, ownDesign });
                 reworked.EnsureBuiltInDashboards();
-                Check("Halo and Oval take the reworked designs, keeping their names, colours, track types and flag choices",
+                Check("Halo and Oval take the reworked designs, keeping their names, colors, track types and flag choices",
                     oldHalo.Design.AllWidgets().Any(w => w.Type == "traffic") && oldOval.Design.AllWidgets().Any(w => w.Type == "radar") && oldHalo.Name == "Halo" &&
                     oldHalo.AccentColor == "#30D158" && !oldHalo.Design.FlagFrame && oldOval.RaceTypes.Contains(Disciplines.Oval) && ownDesign.Design.AllWidgets().Count() == ownWidgets);
 
-                // Schema 17: brighter labels where the colour is still a template's; a colour of the user's own stays.
+                // Schema 17: brighter labels where the color is still a template's; a color of the user's own stays.
                 var dimmer = new AppSettings { SchemaVersion = 16 };
-                DashboardSettings dimOval = DashboardSettings.CreateDesigned(DesignTemplates.Find("oval")), ownColours = DashboardSettings.CreateDesigned(DesignTemplates.Find("blank"));
+                DashboardSettings dimOval = DashboardSettings.CreateDesigned(DesignTemplates.Find("oval")), ownColors = DashboardSettings.CreateDesigned(DesignTemplates.Find("blank"));
                 dimOval.Id = "dashboard-dim";
                 dimOval.Design.Theme.Muted = "#8DA0BF";
                 DashWidget caption = dimOval.Design.AllWidgets().First(w => w.Name == "Ahead lengths caption");
                 caption.Set("color", "dim");
                 caption.Set("size", "10");
-                ownColours.Id = "dashboard-colours";
-                ownColours.Design.Theme.Muted = "#123456";
-                dimmer.Dashboards.AddRange(new[] { dimOval, ownColours });
+                ownColors.Id = "dashboard-colors";
+                ownColors.Design.Theme.Muted = "#123456";
+                dimmer.Dashboards.AddRange(new[] { dimOval, ownColors });
                 dimmer.EnsureBuiltInDashboards();
-                Check("labels brighten where the colour is still a template's, and a colour of your own stays",
-                    dimOval.Design.Theme.Muted == "#B6C5DD" && caption.Get("color") == "muted" && caption.Get("size") == "11" && ownColours.Design.Theme.Muted == "#123456",
-                    dimOval.Design.Theme.Muted + " " + caption.Get("color") + " " + caption.Get("size") + " " + ownColours.Design.Theme.Muted);
+                Check("labels brighten where the color is still a template's, and a color of your own stays",
+                    dimOval.Design.Theme.Muted == "#B6C5DD" && caption.Get("color") == "muted" && caption.Get("size") == "11" && ownColors.Design.Theme.Muted == "#123456",
+                    dimOval.Design.Theme.Muted + " " + caption.Get("color") + " " + caption.Get("size") + " " + ownColors.Design.Theme.Muted);
             }
 
             // ---------------- radar and traffic
@@ -1169,7 +1169,7 @@ namespace AlmostFastOverlays
 
             // ---------------- drawing: fills, patterns, paths, the Pen and editing points
             {
-                // Every pattern tile holds both its colours; every fill style makes a brush.
+                // Every pattern tile holds both its colors; every fill style makes a brush.
                 var tileProblems = new List<string>();
                 foreach (string pattern in Fills.Patterns)
                 {
@@ -1187,7 +1187,7 @@ namespace AlmostFastOverlays
                 foreach (string style in Fills.Styles)
                     using (System.Drawing.Brush brush = Fills.Brush(style, System.Drawing.Color.Red, System.Drawing.Color.Blue, 45, "Carbon", 100, 45, new System.Drawing.RectangleF(10, 10, 100, 60)))
                         if (brush == null) tileProblems.Add(style);
-                Check("drawing: every pattern shows both its colours, and every fill style makes a brush", tileProblems.Count == 0, string.Join(", ", tileProblems));
+                Check("drawing: every pattern shows both its colors, and every fill style makes a brush", tileProblems.Count == 0, string.Join(", ", tileProblems));
 
                 // Points as text and back, and every shape that turns into a path.
                 List<PathNode> parsed = PathNodes.Parse("0,0 1,0.5|0.9,0.2|1.1,0.8 0,1");
@@ -1249,20 +1249,20 @@ namespace AlmostFastOverlays
                     penned.H + " " + onScreen[0].P + " " + onScreen[2].P);
                 EndEditPath();
 
-                // A rectangle converted to a path keeps its place, its layer and its colours.
+                // A rectangle converted to a path keeps its place, its layer and its colors.
                 DashWidget rect = WidgetCatalog.Create("shape", 40, 40);
                 rect.Set("fill", "#123456");
                 AddWidgets(new[] { rect }, "Add");
                 int layer = _screen.Widgets.IndexOf(rect);
                 ConvertToPath(rect);
                 DashWidget converted = _screen.Widgets[layer];
-                Check("drawing: a rectangle converted to a path keeps its place, layer and colours",
+                Check("drawing: a rectangle converted to a path keeps its place, layer and colors",
                     converted.Type == "path" && converted.X == 40 && converted.W == rect.W && converted.Get("fill") == "#123456" && PathNodes.Parse(converted.Get("points", "")).Count == 4,
                     converted.Type + " " + converted.Get("fill"));
                 EndEditPath();
                 while (_screen.Widgets.Count > before) Undo();
 
-                // Recolor with a pattern: a panel painted in stripes shows both stripe colours.
+                // Recolor with a pattern: a panel painted in stripes shows both stripe colors.
                 var striped = new DashLayout { Width = 160, Height = 160 };
                 striped.Screens.Add(new DashScreen { Name = "Main" });
                 DashWidget panel = WidgetCatalog.Create("shape", 0, 0);
@@ -1344,7 +1344,7 @@ namespace AlmostFastOverlays
 
                 // Blend modes on black and white beneath.
                 uint white = 0xFFFFFFFF, black = 0xFF000000, red = 0xFFFF0000;
-                Check("masks: Multiply keeps a colour on white and black on black; Screen keeps a colour on black; Add brightens",
+                Check("masks: Multiply keeps a color on white and black on black; Screen keeps a color on black; Add brightens",
                     LayoutRenderer.BlendPixel(white, red, "Multiply") == red && LayoutRenderer.BlendPixel(black, red, "Multiply") == black &&
                     LayoutRenderer.BlendPixel(black, red, "Screen") == red && LayoutRenderer.BlendPixel(0xFF404040, 0xFF404040, "Add") == 0xFF808080,
                     LayoutRenderer.BlendPixel(white, red, "Multiply").ToString("X8") + " " + LayoutRenderer.BlendPixel(0xFF404040, 0xFF404040, "Add").ToString("X8"));
@@ -1444,15 +1444,15 @@ namespace AlmostFastOverlays
                     placed.All(w => w.Group == placed[0].Group && w.Group.Length > 0 && w.GroupName == "Self test module") && placed[0].Id != read.Widgets[0].Id,
                     placed[0].W + "x" + placed[0].H + " size " + placed[2].Get("size") + " line " + placed[0].Get("strokeWidth") + " image " + imageId);
 
-                // Restyling what's placed: one colour swatch changes every use, and Scale takes text and lines along.
+                // Restyling what's placed: one color swatch changes every use, and Scale takes text and lines along.
                 DashWidget red = WidgetCatalog.Create("shape", 100, 100), alsoRed = WidgetCatalog.Create("shape", 300, 140);
                 red.Set("fill", "#FF0000"); red.Set("stroke", "#00FF00"); red.Set("strokeWidth", "3");
                 alsoRed.Set("fill", "#ff0000"); alsoRed.Set("stroke", "#00FF00"); alsoRed.Set("strokeWidth", "3");
-                AddWidgets(new[] { red, alsoRed }, "Self test colours");
+                AddWidgets(new[] { red, alsoRed }, "Self test colors");
                 ColorField swatch = Inspector.Children.OfType<System.Windows.Controls.Grid>().SelectMany(g => g.Children.OfType<ColorField>())
                     .FirstOrDefault(f => string.Equals(f.Value, "#FF0000", StringComparison.OrdinalIgnoreCase));
                 swatch?.SetValue("#0000FF", true);
-                Check("modules: Selection colours lists a colour once and changes every use of it",
+                Check("modules: Selection colors lists a color once and changes every use of it",
                     swatch != null && red.Get("fill") == "#0000FF" && alsoRed.Get("fill") == "#0000FF" && red.Get("stroke") == "#00FF00",
                     swatch == null ? "no swatch" : red.Get("fill") + " " + alsoRed.Get("fill"));
                 System.Windows.Rect unscaled = Union(new[] { red, alsoRed });
@@ -1542,7 +1542,7 @@ namespace AlmostFastOverlays
                     ModuleOptions.Set(optioned.Screens[0].Widgets, "Paint", "accent");
                     using (System.Drawing.Bitmap frame = renderer.Render(optionScope.T, false, 4, 1, optioned.Screens[0])) after = frame.GetPixel(10, 20);
                 }
-                Check("options: changing an option redraws what's linked to it, theme colours included",
+                Check("options: changing an option redraws what's linked to it, theme colors included",
                     before.R > 240 && before.G < 20 && after.G > 180 && after.R < 80, before + " → " + after);
 
                 DashLayout.ScaleWidgets(optioned.Screens[0].Widgets, 2, 2);
@@ -1568,6 +1568,15 @@ namespace AlmostFastOverlays
                 sized.ScaleTo(1600, 960);
                 Check("guides: widgets snap to a guide, and guides follow the screen to a new size",
                     Math.Abs(nudge - 2) < 0.001 && sized.GuidesX[0] == 800 && sized.GuidesY[0] == 240, nudge + " " + sized.GuidesX[0] + " " + sized.GuidesY[0]);
+            }
+
+            // ---------------- the Library explains itself
+            {
+                List<string> unexplained = WidgetCatalog.All.SelectMany(t => t.Props.Where(p => !p.Hidden && string.IsNullOrWhiteSpace(p.Help)).Select(p => t.Id + "." + p.Key)).ToList();
+                List<string> undescribed = WidgetCatalog.All.Where(t => string.IsNullOrWhiteSpace(t.Description)).Select(t => t.Id)
+                    .Concat(QuickValues.All().Concat(DesignBlocks.BuiltIn()).Where(b => string.IsNullOrWhiteSpace(b.Description)).Select(b => b.Name)).ToList();
+                Check("library: every widget, block and setting says what it does", unexplained.Count == 0 && undescribed.Count == 0,
+                    string.Join(", ", unexplained.Concat(undescribed).Take(12)));
             }
 
             // ---------------- the formula reference

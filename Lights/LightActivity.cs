@@ -8,7 +8,7 @@ namespace AlmostFastOverlays
     /// <summary>One light layer lighting one LED group for a stretch of time.</summary>
     internal sealed class LightSpan
     {
-        public string Device, Group, Layer, Colour, Context;
+        public string Device, Group, Layer, Color, Context;
         public DateTime Started;
         public double From, To;
         public double Seconds => To - From;
@@ -25,7 +25,7 @@ namespace AlmostFastOverlays
 
         /// <param name="now">Seconds on any steady clock.</param>
         /// <param name="context">What was going on (flag, in or out of the car), kept with stretches that start now.</param>
-        /// <param name="gamma">Whether the frame went through gamma, so colours are named as they were designed.</param>
+        /// <param name="gamma">Whether the frame went through gamma, so colors are named as they were designed.</param>
         /// <returns>Stretches that have ended.</returns>
         public List<LightSpan> Observe(LightFrame frame, IReadOnlyList<DeviceSettings> devices, double now, string context, bool gamma = true)
         {
@@ -44,7 +44,7 @@ namespace AlmostFastOverlays
                         string key = device.Id + "|" + group.Id + "|" + layer;
                         if (!seen.Add(key)) continue;
                         if (_open.TryGetValue(key, out LightSpan span)) span.To = now;
-                        else _open[key] = new LightSpan { Device = device.Name, Group = group.Name, Layer = layer, Colour = ColourName(gamma ? Ungamma(c) : c), Context = context, Started = DateTime.Now, From = now, To = now };
+                        else _open[key] = new LightSpan { Device = device.Name, Group = group.Name, Layer = layer, Color = ColorName(gamma ? Ungamma(c) : c), Context = context, Started = DateTime.Now, From = now, To = now };
                     }
             }
             List<string> ended = _open.Where(kv => !seen.Contains(kv.Key) && now - kv.Value.To >= GapSeconds).Select(kv => kv.Key).ToList();
@@ -67,7 +67,7 @@ namespace AlmostFastOverlays
             return Color.FromArgb(U(c.R), U(c.G), U(c.B));
         }
 
-        public static string ColourName(Color c)
+        public static string ColorName(Color c)
         {
             int max = Math.Max(c.R, Math.Max(c.G, c.B));
             if (max == 0) return "off";

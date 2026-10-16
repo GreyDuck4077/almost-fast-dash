@@ -5,7 +5,7 @@ using System.Linq;
 namespace AlmostFastOverlays
 {
     /// <summary>
-    /// Module options: settings a module's maker made changeable in one place, such as its accent colour or its
+    /// Module options: settings a module's maker made changeable in one place, such as its accent color or its
     /// redline. Each is a value on every widget of the group (a property named "opt:" and the option's name, as the
     /// group's Slot is carried by each widget), and settings linked to it read it with the formula option("Name").
     /// </summary>
@@ -13,7 +13,7 @@ namespace AlmostFastOverlays
     {
         public const string Prefix = "opt:";
 
-        /// <summary>The option's value for a formula: a number when it is one, otherwise its text (a colour, a word…).</summary>
+        /// <summary>The option's value for a formula: a number when it is one, otherwise its text (a color, a word…).</summary>
         public static object Value(DashWidget widget, string name)
         {
             string raw = widget?.Get(Prefix + (name ?? "").Trim());

@@ -71,13 +71,13 @@ namespace AlmostFastOverlays
                         _lights?.Dispose();
                         Directory.CreateDirectory(_directory);
                         _lights = new StreamWriter(Path.Combine(_directory, "lights-" + DateTime.Now.ToString("yyyyMMdd-HHmmssfff") + ".csv"), false) { AutoFlush = true };
-                        _lights.WriteLine("started_local,seconds,device,group,layer,colour,while");
+                        _lights.WriteLine("started_local,seconds,device,group,layer,color,while");
                         PruneOldFiles("lights-*.csv");
                     }
                     _lights.WriteLine(string.Join(",",
                         span.Started.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
                         span.Seconds.ToString("0.0", CultureInfo.InvariantCulture),
-                        Csv(span.Device), Csv(span.Group), Csv(span.Layer), span.Colour, Csv(span.Context)));
+                        Csv(span.Device), Csv(span.Group), Csv(span.Layer), span.Color, Csv(span.Context)));
                 }
                 catch (IOException) { }
             }

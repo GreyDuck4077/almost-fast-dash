@@ -9,7 +9,7 @@ namespace AlmostFastOverlays
     {
         public string Id, Name, Description;
         public readonly List<PropDef> Props = new List<PropDef>();
-        /// <summary>Colours for one strip: null leaves an LED to the layers below.</summary>
+        /// <summary>Colors for one strip: null leaves an LED to the layers below.</summary>
         public Func<LightContext, Color?[]> Render;
         public PropDef Prop(string key) => Props.FirstOrDefault(p => p.Key == key);
     }
@@ -79,7 +79,7 @@ namespace AlmostFastOverlays
                 .Fill()
                 .Colors("good", "warn", "bad", 0.5, 0.8)
                 .Bool("flash", "Flash at shift point", "true", "Shift point")
-                .Color("flashColor", "Flash colour", "bad", "Shift point")
+                .Color("flashColor", "Flash color", "bad", "Shift point")
                 .Choice("flashStyle", "Flash style", "Flash", "Shift point", "Flash", "Solid", "Over fill")
                 .Number("flashMs", "Flash speed (ms)", "110", "Shift point", 40, 1000, 10);
 
@@ -90,23 +90,23 @@ namespace AlmostFastOverlays
                 .Fill()
                 .Colors("good", "warn", "bad", 0.5, 0.8);
 
-            Define("center", "Centre meter", "Grows one way for positive and the other for negative, such as lap delta. On a mirrored target the left half shows negative.", CenterMeter)
+            Define("center", "Center meter", "Grows one way for positive and the other for negative, such as lap delta. On a mirrored target the left half shows negative.", CenterMeter)
                 .Formula("value", "Value", "=Delta", "Value")
                 .Number("range", "Full scale", "1", "Value", 0.01, 1000, 0.1)
-                .Color("positive", "Positive colour", "good", "Colours")
-                .Color("negative", "Negative colour", "bad", "Colours")
+                .Color("positive", "Positive color", "good", "Colors")
+                .Color("negative", "Negative color", "bad", "Colors")
                 .Bool("smooth", "Smooth leading LED", "true", "Fill");
 
-            Define("solid", "Solid", "One steady colour. Pair with Show when for state lights such as the pit limiter.", c =>
+            Define("solid", "Solid", "One steady color. Pair with Show when for state lights such as the pit limiter.", c =>
                 {
                     var result = c.Empty();
                     Color color = c.Color("color");
                     for (int i = 0; i < result.Length; i++) result[i] = color;
                     return result;
                 })
-                .Color("color", "Colour", "accent", "Colour");
+                .Color("color", "Color", "accent", "Color");
 
-            Define("blink", "Blink", "Flashes between two colours (or off). Good for warnings.", c =>
+            Define("blink", "Blink", "Flashes between two colors (or off). Good for warnings.", c =>
                 {
                     var result = c.Empty();
                     int period = Math.Max(40, (int)c.Num("rateMs")) * 2;
@@ -115,12 +115,12 @@ namespace AlmostFastOverlays
                     for (int i = 0; i < result.Length; i++) result[i] = color;
                     return result;
                 })
-                .Color("color", "Colour", "warn", "Colour")
-                .Color("offColor", "Off colour", "", "Colour", "Empty shows the layers below between flashes.")
+                .Color("color", "Color", "warn", "Color")
+                .Color("offColor", "Off color", "", "Color", "Empty shows the layers below between flashes.")
                 .Number("rateMs", "Speed (ms)", "250", "Timing", 40, 2000, 10)
                 .Number("duty", "On time %", "50", "Timing", 5, 95, 5);
 
-            Define("breathe", "Breathe", "Slowly fades a colour up and down: a calm status light.", c =>
+            Define("breathe", "Breathe", "Slowly fades a color up and down: a calm status light.", c =>
                 {
                     var result = c.Empty();
                     double period = Math.Max(200, c.Num("periodMs"));
@@ -130,26 +130,26 @@ namespace AlmostFastOverlays
                     for (int i = 0; i < result.Length; i++) result[i] = color;
                     return result;
                 })
-                .Color("color", "Colour", "accent", "Colour")
+                .Color("color", "Color", "accent", "Color")
                 .Number("periodMs", "Cycle (ms)", "1600", "Timing", 200, 10000, 50)
                 .Number("minLevel", "Lowest level %", "10", "Timing", 0, 100, 5);
 
             Define("sweep", "Sweep", "A light that runs along the strip with a fading tail, such as a pit-limiter scanner.", Sweep)
-                .Color("color", "Colour", "info", "Colour")
+                .Color("color", "Color", "info", "Color")
                 .Choice("mode", "Motion", "Bounce", "Motion", "Bounce", "Loop")
                 .Number("periodMs", "One pass (ms)", "700", "Motion", 100, 5000, 50)
                 .Number("width", "Width (LEDs)", "1", "Motion", 1, 10)
                 .Number("tail", "Tail (LEDs)", "2", "Motion", 0, 10);
 
-            Define("flag", "Flag colours", "Shows the current flag in its own colours and patterns; dark when there is no flag.", FlagColors)
+            Define("flag", "Flag colors", "Shows the current flag in its own colors and patterns; dark when there is no flag.", FlagColors)
                 .Bool("pattern", "Animated patterns", "true", "Look");
 
             Define("spotter", "Blind spot", "Lights where a car is alongside: towards the front when it is ahead, the back when it is behind.", Spotter)
                 .Choice("side", "Side", "Auto", "Spotter", "Auto", "Left", "Right")
                 .Choice("style", "Style", "Position", "Spotter", "Position", "Halves", "Whole strip")
-                .Color("color", "Colour", "bad", "Colour");
+                .Color("color", "Color", "bad", "Color");
 
-            Define("gradient", "Gradient", "A still colour gradient along the strip: ambient or idle lighting.", c =>
+            Define("gradient", "Gradient", "A still color gradient along the strip: ambient or idle lighting.", c =>
                 {
                     var result = c.Empty();
                     Color a = c.Color("low"), m = c.Color("mid"), b = c.Color("high");
@@ -160,9 +160,9 @@ namespace AlmostFastOverlays
                     }
                     return result;
                 })
-                .Color("low", "Start colour", "accent", "Colours")
-                .Color("mid", "Middle colour", "info", "Colours")
-                .Color("high", "End colour", "purple", "Colours");
+                .Color("low", "Start color", "accent", "Colors")
+                .Color("mid", "Middle color", "info", "Colors")
+                .Color("high", "End color", "purple", "Colors");
 
             Define("blank", "Blank", "Turns the target off. Use with Replace and a Show when to black out LEDs, for example in the pits.", c =>
                 {
@@ -209,7 +209,7 @@ namespace AlmostFastOverlays
                 int half = Math.Max(40, (int)c.Num("flashMs"));
                 string style = c.Text("flashStyle");
                 bool on = style == "Solid" || ((c.Now / half) & 1) == 0;
-                // Over fill alternates the flash colour with the full rev fill, as the classic lights did.
+                // Over fill alternates the flash color with the full rev fill, as the classic lights did.
                 if (!on && style == "Over fill") return Fill(c, 1);
                 Color color = c.Color("flashColor");
                 for (int i = 0; i < result.Length; i++) result[i] = on ? color : System.Drawing.Color.Black;
@@ -292,7 +292,7 @@ namespace AlmostFastOverlays
         }
 
         /// <summary>
-        /// The colour of LED <paramref name="index"/> for a flag. With patterns, two-colour
+        /// The color of LED <paramref name="index"/> for a flag. With patterns, two-color
         /// flags alternate on <paramref name="blink"/> and the checkered flag alternates LEDs.
         /// Shared by the flag light layer and LED devices with the Flags role.
         /// </summary>
@@ -343,7 +343,7 @@ namespace AlmostFastOverlays
 
         // ------------------------------------------------------------------ shared fill
 
-        /// <summary>Lights a strip to a 0-1 fraction in the chosen direction and colour scheme.</summary>
+        /// <summary>Lights a strip to a 0-1 fraction in the chosen direction and color scheme.</summary>
         private static Color?[] Fill(LightContext c, double fraction)
         {
             var result = c.Empty();
@@ -357,7 +357,7 @@ namespace AlmostFastOverlays
             bool smooth = c.Bool("smooth"), gradient = mode == "Gradient", byLevel = mode == "By level";
             Color low = c.Color("low"), mid = c.Color("mid"), high = c.Color("high");
             double midAt = c.Num("midAt"), highAt = c.Num("highAt");
-            // By level: the whole strip takes one colour from how full it is, like a fuel gauge.
+            // By level: the whole strip takes one color from how full it is, like a fuel gauge.
             Color levelColor = fraction >= highAt ? high : fraction >= midAt ? mid : low;
             for (int i = 0; i < n; i++)
             {
@@ -419,11 +419,11 @@ namespace AlmostFastOverlays
             .Bool("smooth", "Smooth leading LED", "true", "Fill");
 
         private static LightEffect Colors(this LightEffect e, string low, string mid, string high, double midAt, double highAt) => e
-            .Choice("colorMode", "Colour mode", "Bands", "Colours", "Bands", "Gradient", "By level")
-            .Color("low", "Low", low, "Colours")
-            .Color("mid", "Middle", mid, "Colours")
-            .Color("high", "High", high, "Colours")
-            .Number("midAt", "Middle from", midAt.ToString(System.Globalization.CultureInfo.InvariantCulture), "Colours", 0, 1, 0.05)
-            .Number("highAt", "High from", highAt.ToString(System.Globalization.CultureInfo.InvariantCulture), "Colours", 0, 1, 0.05);
+            .Choice("colorMode", "Color mode", "Bands", "Colors", "Bands", "Gradient", "By level")
+            .Color("low", "Low", low, "Colors")
+            .Color("mid", "Middle", mid, "Colors")
+            .Color("high", "High", high, "Colors")
+            .Number("midAt", "Middle from", midAt.ToString(System.Globalization.CultureInfo.InvariantCulture), "Colors", 0, 1, 0.05)
+            .Number("highAt", "High from", highAt.ToString(System.Globalization.CultureInfo.InvariantCulture), "Colors", 0, 1, 0.05);
     }
 }

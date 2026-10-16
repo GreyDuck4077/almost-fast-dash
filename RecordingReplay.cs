@@ -195,7 +195,7 @@ namespace AlmostFastOverlays
             report.AppendLine("LIGHTS LONGER THAN 1 SECOND (rev lights left out)");
             foreach (LightSpan span in spans.Where(s => s.Seconds >= 1 && !revs.Contains(s.Layer)).OrderBy(s => s.From))
                 report.AppendLine(string.Format(CultureInfo.InvariantCulture, "  {0} to {1}  {2,5:0.0}s  {3} - {4}: {5} ({6})",
-                    Clock(span.From), Clock(span.To), span.Seconds, span.Device, span.Group, span.Layer, span.Colour));
+                    Clock(span.From), Clock(span.To), span.Seconds, span.Device, span.Group, span.Layer, span.Color));
             report.AppendLine();
             report.AppendLine("HOW OFTEN EACH LAYER LIT");
             foreach (var layer in spans.GroupBy(s => s.Layer).OrderBy(g => g.Key))

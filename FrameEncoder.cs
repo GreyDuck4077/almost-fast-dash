@@ -8,7 +8,7 @@ namespace AlmostFastOverlays
 {
     /// <summary>
     /// Turns dashboard frames into what an M-PRO screen takes, doing as little as it can: it finds which parts of
-    /// a frame changed since the one before, and encodes just those as 16-bit colour (RGB565), turned a quarter
+    /// a frame changed since the one before, and encodes just those as 16-bit color (RGB565), turned a quarter
     /// onto portrait panels.
     /// </summary>
     internal static unsafe class FrameEncoder
@@ -206,7 +206,7 @@ namespace AlmostFastOverlays
         }
 
         /// <summary>
-        /// 32-bit colour to 16-bit: the top 5 bits of red, 6 of green and 5 of blue. A see-through pixel (a dashboard
+        /// 32-bit color to 16-bit: the top 5 bits of red, 6 of green and 5 of blue. A see-through pixel (a dashboard
         /// with no background) is shown over black, as the screen has nothing behind it.
         /// </summary>
         internal static ushort Rgb565(int argb)

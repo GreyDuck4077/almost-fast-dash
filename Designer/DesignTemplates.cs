@@ -22,11 +22,11 @@ namespace AlmostFastOverlays
         public static readonly List<DesignTemplate> All = new List<DesignTemplate>
         {
             new DesignTemplate { Id = "roady", Name = "Roady", Accent = "#FF5A1F", Create = Readable(Roady),
-                Description = "The road flagship: a sweep of revs arching over a huge gear, shift colours from the car's own shift points, delta, pedals, bias and fuel." },
+                Description = "The road flagship: a sweep of revs arching over a huge gear, shift colors from the car's own shift points, delta, pedals, bias and fuel." },
             new DesignTemplate { Id = "roundy", Name = "Roundy", Accent = "#3D9BFF", OvalLights = true, Create = Readable(Roundy),
                 Description = "The oval flagship: curved blind-spot arcs, speed and gear in a rev ring, the cars around you and a lap-falloff chart of your stint." },
             new DesignTemplate { Id = "halo", Name = "Halo", Accent = "#30D158", Create = Readable(HaloRing),
-                Description = "Endurance and multiclass: one ring of revs over a live delta round the gear, your laps, stint, race and fuel, and the traffic around you in class colours." },
+                Description = "Endurance and multiclass: one ring of revs over a live delta round the gear, your laps, stint, race and fuel, and the traffic around you in class colors." },
             new DesignTemplate { Id = "oval", Name = "Oval", Accent = "#FFB020", OvalLights = true, Create = Readable(OvalRadar),
                 Description = "Pack racing: a live radar of the cars around you, the gaps ahead and behind in car lengths and how fast they're closing, laps to go and fuel." },
             new DesignTemplate { Id = "apex", Name = "Apex", Accent = "#2F8CFF", Create = Readable(Apex),
@@ -188,7 +188,7 @@ namespace AlmostFastOverlays
                 "unit", "=Starters > 0 ? \"/\" + Starters : \"\"", "unitColor", "muted");
         }
 
-        /// <summary>A short race-notice banner (flags, penalties, a personal best), coloured by urgency.</summary>
+        /// <summary>A short race-notice banner (flags, penalties, a personal best), colored by urgency.</summary>
         private static void Notice(Builder b, double x, double y, double w, double h)
         {
             const string tone = "=NoticeKind == \"Danger\" ? $bad : NoticeKind == \"Warning\" ? $warn : NoticeKind == \"Good\" ? $good : $accent";
@@ -433,10 +433,10 @@ namespace AlmostFastOverlays
 
         /// <summary>
         /// Endurance and multiclass. One ring round the gear does two jobs: revs across the top with the car's
-        /// shift colours, and the live delta across the bottom, growing green to the right as you gain and red
+        /// shift colors, and the live delta across the bottom, growing green to the right as you gain and red
         /// to the left as you lose. Your laps and stint are on the left, the race and fuel on the right (each
         /// panel has a second view on a tap), and along the bottom the cars within eight seconds either way,
-        /// in class colours, glowing when a faster class is coming up behind.
+        /// in class colors, glowing when a faster class is coming up behind.
         /// </summary>
         private static DashLayout HaloRing()
         {
@@ -812,7 +812,7 @@ namespace AlmostFastOverlays
             b.Text("Speed", 582, 226, 180, 60, "=format(Speed, \"0\")", "size", "52");
             b.Text("Speed unit", 582, 282, 180, 16, "=SpeedUnit", "size", "11", "tracking", "3", "weight", "Regular", "color", "muted");
 
-            b.Panel("Centre panel", 352, 34, 150, 300, "style", "Glass", "radius", "18");
+            b.Panel("Center panel", 352, 34, 150, 300, "style", "Glass", "radius", "18");
             b.Add("trackmap", "Track map", 358, 44, 138, 120, "lineWidth", "5", "carSize", "7");
             b.Metric("Lap", 352, 170, 150, 50, "LAP", "=LapText", "align", "Center", "valueSize", "22", "labelSize", "11", "labelTracking", "2");
             b.Metric("Delta", 352, 224, 150, 50, "DELTA", "=signed(Delta, 2)", "align", "Center", "valueSize", "22", "labelSize", "11", "labelTracking", "2", "valueColor", "=deltacolor(Delta)");
@@ -963,7 +963,7 @@ namespace AlmostFastOverlays
             });
             b.Screen("Race");
             b.Panel("Left panel", 10, 24, 270, 432, "style", "Liquid", "radius", "24");
-            b.Panel("Centre panel", 290, 24, 274, 432, "style", "Liquid", "radius", "24");
+            b.Panel("Center panel", 290, 24, 274, 432, "style", "Liquid", "radius", "24");
             b.Panel("Right panel", 574, 24, 270, 432, "style", "Liquid", "radius", "24");
 
             b.Metric("Last lap", 18, 36, 254, 70, "LAST LAP", "=laptime(LastLap)", "valueSize", "34", "valueColor", "=LastLapIsBest ? $purple : $text");

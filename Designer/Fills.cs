@@ -7,10 +7,10 @@ using System.Drawing.Imaging;
 namespace AlmostFastOverlays
 {
     /// <summary>
-    /// Fills shared by shapes, paths and the Style tools' recolouring: a solid colour, a linear or radial gradient, or a
-    /// pattern in two colours (stripes, checks, dots, carbon fibre, honeycomb, grid or brushed metal). A pattern is a
+    /// Fills shared by shapes, paths and the Style tools' recoloring: a solid color, a linear or radial gradient, or a
+    /// pattern in two colors (stripes, checks, dots, carbon fibre, honeycomb, grid or brushed metal). A pattern is a
     /// small tile drawn once per look and repeated, turned and scaled over the widget, so it costs about what a
-    /// gradient does. The second colour left empty is see-through.
+    /// gradient does. The second color left empty is see-through.
     /// </summary>
     internal static class Fills
     {
@@ -63,7 +63,7 @@ namespace AlmostFastOverlays
             return brush;
         }
 
-        /// <summary>The tile for a pattern in two colours, drawn once and kept.</summary>
+        /// <summary>The tile for a pattern in two colors, drawn once and kept.</summary>
         internal static Bitmap Tile(string pattern, Color a, Color b)
         {
             string key = pattern + "|" + a.ToArgb() + "|" + b.ToArgb();
@@ -147,7 +147,7 @@ namespace AlmostFastOverlays
                         }
                         case "Brushed":
                         {
-                            // Fine streaks of the first colour at random strengths, the same every time.
+                            // Fine streaks of the first color at random strengths, the same every time.
                             g.SmoothingMode = SmoothingMode.None;
                             var random = new Random(7);
                             for (int y = 0; y < height; y++)
@@ -164,7 +164,7 @@ namespace AlmostFastOverlays
                             break;
                         }
                         default:
-                            // Stripes: the first colour across the top half; turned, they run any way.
+                            // Stripes: the first color across the top half; turned, they run any way.
                             g.SmoothingMode = SmoothingMode.None;
                             g.FillRectangle(ink, 0, 0, t, t / 2);
                             break;
@@ -173,7 +173,7 @@ namespace AlmostFastOverlays
             return tile;
         }
 
-        /// <summary>A pen for a line: one colour or a gradient across the box, dashed or not, with its ends and corners.</summary>
+        /// <summary>A pen for a line: one color or a gradient across the box, dashed or not, with its ends and corners.</summary>
         public static Pen LinePen(Color a, Color? gradientTo, float angle, float width, string dash, string ends, string corners, RectangleF box)
         {
             Pen pen;

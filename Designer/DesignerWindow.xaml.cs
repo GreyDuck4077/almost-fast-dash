@@ -182,7 +182,7 @@ namespace AlmostFastOverlays
                 // The same redraw-what-changed renderer as the wheel; every edit invalidates it, so an
                 // animated preview only redraws the moving parts between edits.
                 _renderer = new LayoutRenderer((int)CanvasW, (int)CanvasH,
-                    new DashboardSettings { Layout = Layouts.Custom, Design = _layout, AccentColor = _dashboard.AccentColor }, _units) { Taps = _designTaps };
+                    new DashboardSettings { Layout = Layouts.Custom, Design = _layout, AccentColor = _dashboard.AccentColor }, _units) { Taps = _designTaps, GhostHidden = true };
                 _rendererDirty = false;
                 _designChanged = true;
             }
@@ -198,15 +198,77 @@ namespace AlmostFastOverlays
             TelemetrySnapshot snapshot = PreviewSnapshot(out bool flash, out int previousGear, out float progress);
             using (DrawingBitmap bitmap = _renderer.Render(snapshot, flash, previousGear, progress, _screen))
                 CopyToFrame(bitmap);
-            // Animation frames leave the selection overlay and layer list alone unless an error came or went.
+            // After an edit, the layers' pictures catch up (animation frames leave them be).
+            if (edited) UpdateLayerThumbs();
+            // Animation frames leave the selection overlay and layer list alone unless an error, or a widget hidden by
+            // its Show when, came or went.
             string errors = string.Join(",", _renderer.Errors.Keys.OrderBy(k => k));
-            if (edited || errors != _shownErrors)
+            Dictionary<string, string> ghostsBefore = _ghosts;
+            bool ghostsChanged = FindGhosts(snapshot, flash);
+            if (edited || errors != _shownErrors || ghostsChanged)
             {
                 _shownErrors = errors;
                 UpdateOverlay();
                 MarkLayerErrors();
             }
+            // A selected widget that just became a ghost, or stopped being one, says so in Properties (unless it's being typed in).
+            if (ghostsChanged && !Inspector.IsKeyboardFocusWithin && _selection.Any(w => ghostsBefore.ContainsKey(w.Id) != _ghosts.ContainsKey(w.Id)))
+                RefreshInspector();
             UpdateFormulaResults(snapshot, flash);
+        }
+
+        /// <summary>
+        /// The widgets on this screen drawn as ghosts right now, with what their tag says: hidden by their Show when,
+        /// or with nothing to show at this moment (no flag out, no car alongside).
+        /// </summary>
+        private Dictionary<string, string> _ghosts = new Dictionary<string, string>();
+
+        private bool FindGhosts(TelemetrySnapshot snapshot, bool flash)
+        {
+            var scope = new EvalScope { T = snapshot, Units = _units, Theme = _layout.Theme, Accent = _dashboard.AccentColor, ShiftFlashOn = flash, Taps = _designTaps };
+            var ghosts = new Dictionary<string, string>();
+            foreach (DashWidget w in _screen.Widgets)
+            {
+                if (w.Hidden) continue;
+                EvalScope own = LayoutRenderer.ForWidget(scope, w);
+                string visible = w.Get("visible", "");
+                if (!string.IsNullOrWhiteSpace(visible) && !Expr.Bool(Expr.Evaluate(LayoutRenderer.Strip(visible), own)))
+                {
+                    string condition = LayoutRenderer.Strip(visible).Trim();
+                    if (condition.Length > 46) condition = condition.Substring(0, 44).TrimEnd() + "…";
+                    ghosts[w.Id] = "Hidden now · shows when " + condition;
+                }
+                else if ((w.Type == "flag" || w.Type == "blindspot") && WidgetCatalog.Find(w.Type) is WidgetType type &&
+                    LayoutRenderer.Idle(w.Type, new WidgetContext(_renderer, null, own, w, type)))
+                    ghosts[w.Id] = w.Type == "flag" ? "A sample · shows the flag that's out" : "A sample · lights while a car is alongside";
+            }
+            if (ghosts.Count == _ghosts.Count && ghosts.All(g => _ghosts.TryGetValue(g.Key, out string tag) && tag == g.Value)) return false;
+            _ghosts = ghosts;
+            return true;
+        }
+
+        /// <summary>A dashed outline and a tag on each ghost, saying when it shows: one per group and condition.</summary>
+        private void AddGhostTags()
+        {
+            var muted = new SolidColorBrush(Color.FromArgb(130, 160, 172, 190));
+            foreach (var set in _screen.Widgets.Where(w => !w.Hidden && _ghosts.ContainsKey(w.Id))
+                .GroupBy(w => (string.IsNullOrEmpty(w.Group) ? w.Id : w.Group) + "|" + _ghosts[w.Id]))
+            {
+                Rect around = Union(set);
+                AddRect(around, muted, 1, true);
+                // The tag shows on the one pointed at, so a screen of warnings stays clear; a selected one says it in Properties.
+                if (set.Any(w => _selection.Contains(w)) || !set.Any(w => w == _hover || (_hover != null && !string.IsNullOrEmpty(w.Group) && w.Group == _hover.Group))) continue;
+                string condition = _ghosts[set.First().Id];
+                var tag = new Border
+                {
+                    Background = new SolidColorBrush(Color.FromArgb(225, 12, 15, 20)), CornerRadius = new CornerRadius(3 * Px), IsHitTestVisible = false,
+                    Padding = new Thickness(5 * Px, 1 * Px, 5 * Px, 2 * Px), BorderBrush = muted, BorderThickness = new Thickness(1 * Px),
+                    Child = new TextBlock { Text = condition, FontSize = 10.5 * Px, Foreground = new SolidColorBrush(Color.FromRgb(176, 186, 200)) }
+                };
+                Canvas.SetLeft(tag, around.X);
+                Canvas.SetTop(tag, around.Y - 17 * Px);
+                Overlay.Children.Add(tag);
+            }
         }
 
         /// <summary>The animated preview runs at full rate only while the designer is the window in use.</summary>
@@ -389,6 +451,7 @@ namespace AlmostFastOverlays
 
             foreach (DashWidget w in _screen.Widgets.Where(w => !w.Hidden && _renderer != null && _renderer.Errors.ContainsKey(w.Id)))
                 AddRect(RectOf(w), Brushes.OrangeRed, 1.5, true);
+            AddGhostTags();
 
             if (_hover != null && !_selection.Contains(_hover) && _drag == DragMode.None)
                 AddRect(RectOf(_hover), new SolidColorBrush(Color.FromArgb(150, accent.Color.R, accent.Color.G, accent.Color.B)), 1, false);
@@ -475,6 +538,7 @@ namespace AlmostFastOverlays
             AddDrawingPreview(accent);
             AddPenPreview(accent);
             AddEditPreview(accent);
+            UpdateStartCard();
         }
 
         private Rectangle _gridRect;
@@ -1606,6 +1670,7 @@ namespace AlmostFastOverlays
             Key key = e.Key == Key.System ? e.SystemKey : e.Key;
             if (ctrl && key == Key.S) { SaveDesign(false); e.Handled = true; return; }
             if (key == Key.F1) { FormulaReferenceWindow.Open(this, CurrentScope); e.Handled = true; return; }
+            if (ctrl && (key == Key.Oem2 || key == Key.Divide)) { ShowShortcuts(); e.Handled = true; return; }
 
             // Text fields keep their own keys.
             if (Keyboard.FocusedElement is TextBox || Keyboard.FocusedElement is ComboBox) return;
@@ -1658,19 +1723,39 @@ namespace AlmostFastOverlays
             PreviewCombo.SelectedItem = "Racing";
             DashWidget Find(string name) => _screen.Widgets.FirstOrDefault(w => w.Name == name);
             if (scenario.Contains("theme")) TabTheme.IsChecked = true;
+            if (scenario.Contains("shortcuts"))
+                Dispatcher.BeginInvoke(new Action(() => ShowShortcuts(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ui", "shortcuts-sheet.png"))), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
 
-            if (scenario.Contains("options"))
+            if (scenario.Contains("ghosts"))
             {
-                // Rulers and guides, and a tach whose colour and redline are options set in one place.
+                // What only shows at certain moments: ghosts with a tag saying when, so they can be placed and styled.
+                _screen.Widgets.Clear();
+                void Place(List<DashWidget> widgets, double x, double y)
+                {
+                    double left = widgets.Min(w => w.X), top = widgets.Min(w => w.Y);
+                    foreach (DashWidget w in widgets) { w.X += x - left; w.Y += y - top; _screen.Widgets.Add(w); }
+                }
+                foreach (DesignBlock block in DesignBlocks.BuiltIn().Where(b => b.Folder == "Warnings and spotter"))
+                    Place(block.Create(), block.Name == "Spotter bars" ? 0 : block.Name == "Low fuel warning" ? 60 : 480, block.Name == "Spotter bars" ? 90 : 60);
+                Place(new List<DashWidget> { WidgetCatalog.Create("flag", 0, 0) }, 300, 200);
+                Place(QuickValues.All().First(b => b.Folder == "Notification").Create(), 220, 360);
+                _rendererDirty = true;
+                Select(_screen.Widgets.First(w => w.Type == "flag"));
+                _hover = _screen.Widgets.First(w => w.Name == "Pit banner");
+                RequestRender();
+            }
+            else if (scenario.Contains("options"))
+            {
+                // Rulers and guides, and a tach whose color and redline are options set in one place.
                 _screen.Widgets.Clear();
                 List<DashWidget> tach = DesignBlocks.BuiltIn().First(b => b.Name == "Tach dial").Create();
                 string id = DashScreen.NewId("g");
                 foreach (DashWidget w in tach) { w.X += 277; w.Y += 90; w.Group = id; w.GroupName = "Tach"; _screen.Widgets.Add(w); }
-                ModuleOptions.Set(tach, "Colour", "#FF7A00");
+                ModuleOptions.Set(tach, "Color", "#FF7A00");
                 ModuleOptions.Set(tach, "Red from", "0.85");
-                tach[0].Set("color", ModuleOptions.Formula("Colour"));
+                tach[0].Set("color", ModuleOptions.Formula("Color"));
                 tach[0].Set("dangerAt", ModuleOptions.Formula("Red from"));
-                tach[1].Set("color", ModuleOptions.Formula("Colour"));
+                tach[1].Set("color", ModuleOptions.Formula("Color"));
                 _layout.GuidesX.Clear();
                 _layout.GuidesY.Clear();
                 _layout.GuidesX.AddRange(new double[] { 277, 427, 577 });
@@ -1785,11 +1870,11 @@ namespace AlmostFastOverlays
                     PlaceModule(light, new Point(690, 120), false);
                     PlaceModule(gear, new Point(540, 330), false);
                     PlaceModule(kerb, new Point(190, 120), false);
-                    // Properties scrolled to the placed module's colours.
+                    // Properties scrolled to the placed module's colors.
                     Dispatcher.BeginInvoke(new Action(() =>
                     {
-                        TextBlock colours = Inspector.Children.OfType<TextBlock>().FirstOrDefault(t => t.Text == "COLOURS");
-                        if (colours != null) InspectorScroller.ScrollToVerticalOffset(colours.TranslatePoint(new Point(0, 0), Inspector).Y - 120);
+                        TextBlock colors = Inspector.Children.OfType<TextBlock>().FirstOrDefault(t => t.Text == "COLOURS");
+                        if (colors != null) InspectorScroller.ScrollToVerticalOffset(colors.TranslatePoint(new Point(0, 0), Inspector).Y - 120);
                     }), System.Windows.Threading.DispatcherPriority.ContextIdle);
                 }
                 RequestRender();

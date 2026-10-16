@@ -194,11 +194,11 @@ namespace AlmostFastOverlays
 
     /// <summary>
     /// Estimates the current addressable LEDs draw and dims frames that would draw too much.
-    /// A typical RGB LED draws about 20 mA per colour channel at full level, 60 mA white.
+    /// A typical RGB LED draws about 20 mA per color channel at full level, 60 mA white.
     /// </summary>
     internal static class LedPower
     {
-        /// <summary>The default limit: plenty for rev lights and coloured alerts, while keeping a
+        /// <summary>The default limit: plenty for rev lights and colored alerts, while keeping a
         /// USB-powered wheel hub from browning out when a whole strip lights white.</summary>
         public const int DefaultMilliamps = 250;
         private const double MilliampsPerChannel = 20;
@@ -263,7 +263,7 @@ namespace AlmostFastOverlays
             {
                 _controller.Connect();
                 Name = _controller.QueryDeviceName();
-                // Fast updates (several colour runs a packet) only for a board that accepts them.
+                // Fast updates (several color runs a packet) only for a board that accepts them.
                 _controller.Batched = _controller.AcceptsBatches();
             }
             catch
@@ -418,7 +418,7 @@ namespace AlmostFastOverlays
 
     /// <summary>
     /// Sends a device's frames on its own thread, always the newest one. A board that takes a while
-    /// per frame (many colour runs without fast updates) then shows the latest frame as soon as it
+    /// per frame (many color runs without fast updates) then shows the latest frame as soon as it
     /// can, instead of slowing the light loop and every other device with it. A failed send is
     /// reported on the next Send, so the caller can reconnect.
     /// </summary>

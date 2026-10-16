@@ -83,7 +83,7 @@ namespace AlmostFastOverlays
                 .Number("glassDepth", "Rim depth", "12", "Glass", 2, 60)
                 .Number("glassRefraction", "Refraction %", "60", "Glass", 0, 100)
                 .Number("glassShine", "Shine %", "70", "Glass", 0, 100)
-                .Number("glassDispersion", "Colour fringe %", "35", "Glass", 0, 100)
+                .Number("glassDispersion", "Color fringe %", "35", "Glass", 0, 100)
                 .Number("glassLight", "Light from °", "235", "Glass", 0, 360, 5)
                 .ShapeTools()
                 .Text("title", "Title", "", "Title")
@@ -127,16 +127,16 @@ namespace AlmostFastOverlays
                 .Color("unitColor", "Unit color", "muted", "Colors")
                 .Number("glow", "Value glow", "0", "Effects", 0, 30);
 
-            Define("gear", "Gear", "Values", "", "The big gear readout with shift flash, neighbours and a rolling change animation.", 180, 170, WidgetPainters.Gear)
+            Define("gear", "Gear", "Values", "", "The big gear readout with shift flash, neighbors and a rolling change animation.", 180, 170, WidgetPainters.Gear)
                 .Formula("value", "Gear", "=Gear", "Content")
                 .Font()
                 .Number("size", "Size", "150", "Type", 10, 400)
                 .Color("color", "Color", "text", "Type")
                 .Formula("flash", "Flash when", "=ShiftFlash", "Shift")
                 .Color("flashColor", "Flash color", "bad", "Shift")
-                .Bool("neighbors", "Show next and previous gear", "true", "Neighbours")
-                .Color("neighborColor", "Neighbour color", "dim", "Neighbours")
-                .Number("neighborSize", "Neighbour size", "30", "Neighbours", 4, 120)
+                .Bool("neighbors", "Show next and previous gear", "true", "Neighbors")
+                .Color("neighborColor", "Neighbor color", "dim", "Neighbors")
+                .Number("neighborSize", "Neighbor size", "30", "Neighbors", 4, 120)
                 .Bool("animate", "Animate gear changes", "true", "Effects")
                 .Number("glow", "Glow", "0", "Effects", 0, 40)
                 .Color("glowColor", "Glow color", "", "Effects", "Empty uses the gear color.");
@@ -317,7 +317,7 @@ namespace AlmostFastOverlays
                 .Color("ringColor", "Range rings", "#70D8B860", "Colors")
                 .Number("glow", "Glow on your car", "10", "Effects", 0, 40);
 
-            Define("traffic", "Traffic", "Racing", "", "The cars within a few seconds either way on a strip, in class colours, glowing when a faster class is closing from behind.", 600, 40, RadarPainters.TrafficStrip)
+            Define("traffic", "Traffic", "Racing", "", "The cars within a few seconds either way on a strip, in class colors, glowing when a faster class is closing from behind.", 600, 40, RadarPainters.TrafficStrip)
                 .Number("seconds", "Seconds each way", "8", "Content", 2, 30)
                 .Bool("numbers", "Car numbers", "true", "Content")
                 .Bool("warn", "Faster class warning", "true", "Content")
@@ -394,7 +394,7 @@ namespace AlmostFastOverlays
                 .Font();
 
             // ------------------------------------------------------------ Decor
-            Define("shape", "Shape", "Decor", "\uF158", "Rectangles, ellipses, polygons, stars, lines, brackets and chevrons, filled with a colour, a gradient or a pattern.", 120, 80, WidgetPainters.Shape)
+            Define("shape", "Shape", "Decor", "\uF158", "Rectangles, ellipses, polygons, stars, lines, brackets and chevrons, filled with a color, a gradient or a pattern.", 120, 80, WidgetPainters.Shape)
                 .Choice("shape", "Shape", "Rectangle", "Shape", "Rectangle", "Ellipse", "Polygon", "Star", "Triangle", "Line", "Diagonal down", "Diagonal up", "Brackets", "Chevron")
                 .Number("sides", "Sides", "6", "Shape", 3, 24)
                 .Number("inner", "Inner size %", "50", "Shape", 5, 95)
@@ -475,14 +475,14 @@ namespace AlmostFastOverlays
             {
                 // The shared Style tools (see LayerStyle), applied to whatever the widget draws.
                 type.Props.Add(new PropDef { Key = "fxFill", Label = "Recolor", Kind = PropKind.Choice, Default = "None", Group = "Style", Choices = LayerStyle.FillModes,
-                    Help = "Lays a colour, a gradient, a pattern or an image over the widget's own pixels, keeping its shape." });
+                    Help = "Lays a color, a gradient, a pattern or an image over the widget's own pixels, keeping its shape." });
                 type.Props.Add(new PropDef { Key = "fxFillColor", Label = "Recolor with", Kind = PropKind.Color, Default = "accent", Group = "Style" });
                 type.Props.Add(new PropDef { Key = "fxFillColor2", Label = "Gradient to", Kind = PropKind.Color, Default = "bad", Group = "Style" });
                 type.Props.Add(new PropDef { Key = "fxFillAngle", Label = "Gradient angle", Kind = PropKind.Number, Default = "90", Group = "Style", Min = 0, Max = 360, Step = 5,
                     Help = "0 runs left to right, 90 top to bottom." });
                 type.Props.Add(new PropDef { Key = "fxPattern", Label = "Pattern", Kind = PropKind.Choice, Default = "Stripes", Group = "Style", Choices = Fills.Patterns });
                 type.Props.Add(new PropDef { Key = "fxPatternBack", Label = "Between the pattern", Kind = PropKind.Color, Default = "", Group = "Style",
-                    Help = "Empty keeps the widget's own colours between the pattern." });
+                    Help = "Empty keeps the widget's own colors between the pattern." });
                 type.Props.Add(new PropDef { Key = "fxPatternScale", Label = "Pattern size %", Kind = PropKind.Number, Default = "100", Group = "Style", Min = 25, Max = 800, Step = 5 });
                 type.Props.Add(new PropDef { Key = "fxPatternAngle", Label = "Pattern angle", Kind = PropKind.Number, Default = "45", Group = "Style", Min = 0, Max = 360, Step = 5 });
                 type.Props.Add(new PropDef { Key = "fxImage", Label = "Texture", Kind = PropKind.Image, Default = "", Group = "Style" });
@@ -527,6 +527,8 @@ namespace AlmostFastOverlays
                 Rule(type.Id, "fxGlow", nonZero, "fxGlowColor");
                 Rule(type.Id, "fxFade", v => v != "None", "fxFadeLength");
                 Rule(type.Id, "tapName", set, "tapViews", "tapDots");
+                // Every setting says what it does when the pointer rests on its name.
+                foreach (PropDef p in type.Props.Where(p => string.IsNullOrWhiteSpace(p.Help))) p.Help = WidgetHelp.For(type.Id, p.Key);
             }
         }
 
@@ -621,7 +623,7 @@ namespace AlmostFastOverlays
         private static WidgetType Hide(this WidgetType t) { t.Props[t.Props.Count - 1].Hidden = true; return t; }
 
         /// <summary>
-        /// A drawn shape's fill (a colour, a gradient or a pattern in two colours) and line (a colour or a gradient,
+        /// A drawn shape's fill (a color, a gradient or a pattern in two colors) and line (a color or a gradient,
         /// dashed or not, with its ends and corners).
         /// </summary>
         private static WidgetType FillAndLine(this WidgetType t, string fill, string stroke, string width) => t

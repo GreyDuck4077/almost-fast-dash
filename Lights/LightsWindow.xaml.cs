@@ -255,7 +255,7 @@ namespace AlmostFastOverlays
 
         /// <summary>
         /// How an LED output value looks on screen. LEDs give out light in proportion
-        /// to the value sent, while a monitor expects gamma-encoded colour, so the value
+        /// to the value sent, while a monitor expects gamma-encoded color, so the value
         /// is encoded for display; the glow follows its brightness.
         /// </summary>
         internal static void ShowLed(DrawingColor color, out Color hue, out double glow)
@@ -345,8 +345,18 @@ namespace AlmostFastOverlays
             grid.ColumnDefinitions.Add(new ColumnDefinition());
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-            var enabled = new CheckBox { IsChecked = layer.Enabled, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 0), ToolTip = "On or off" };
-            enabled.Click += (s, e) => { layer.Enabled = enabled.IsChecked == true; Commit(layer.Enabled ? "Enable layer" : "Disable layer"); RefreshLayers(); e.Handled = true; };
+            // An eye, as in the screen designer's layers: lit when the layer is on.
+            var enabled = new Button
+            {
+                Style = (Style)FindResource("Btn.Ghost"), Width = 28, Height = 28, Padding = new Thickness(0), Margin = new Thickness(-4, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center,
+                ToolTip = layer.Enabled ? "On: click to turn this layer off" : "Off: click to turn this layer on",
+                Content = new TextBlock
+                {
+                    Text = layer.Enabled ? "" : "", Style = (Style)FindResource("T.Icon"), FontSize = 13,
+                    Foreground = (Brush)FindResource(layer.Enabled ? "Brush.Accent" : "Brush.TextTertiary")
+                }
+            };
+            enabled.Click += (s, e) => { layer.Enabled = !layer.Enabled; Commit(layer.Enabled ? "Enable layer" : "Disable layer"); RefreshLayers(); e.Handled = true; };
             grid.Children.Add(enabled);
 
             var text = new StackPanel { Opacity = layer.Enabled ? 1 : 0.45 };
@@ -415,7 +425,7 @@ namespace AlmostFastOverlays
             return card;
         }
 
-        /// <summary>A small colour strip showing what a layer lights up with.</summary>
+        /// <summary>A small color strip showing what a layer lights up with.</summary>
         private Brush SwatchFor(LightLayer layer)
         {
             var scope = CurrentScope();
@@ -551,7 +561,7 @@ namespace AlmostFastOverlays
                             "Light presets", MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK) return;
                     LightProfile previous = _profile;
                     _profile = p.Create(_dashboard);
-                    // A preset changes the layers, not the colours chosen for them.
+                    // A preset changes the layers, not the colors chosen for them.
                     _profile.ThemeId = previous.ThemeId;
                     _profile.CustomLow = previous.CustomLow;
                     _profile.CustomMid = previous.CustomMid;

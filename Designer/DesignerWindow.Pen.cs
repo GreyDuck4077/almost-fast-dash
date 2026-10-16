@@ -329,7 +329,7 @@ namespace AlmostFastOverlays
             return true;
         }
 
-        /// <summary>A corner becomes a curve (handles along its neighbours' direction), and a curve a corner.</summary>
+        /// <summary>A corner becomes a curve (handles along its neighbors' direction), and a curve a corner.</summary>
         private void ToggleSmooth(int index)
         {
             PathNode n = _editNodes[index];

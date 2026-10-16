@@ -78,11 +78,11 @@ namespace AlmostFastOverlays
                         new PointF(size.Width * 0.96f - side, size.Height * 0.84f - side), new PointF(size.Width * 0.04f, size.Height * 0.84f - side),
                         new PointF((size.Width - side) / 2, (size.Height - side) / 2)
                     };
-                    Color[] colours = { Color.FromArgb(239, 68, 68), Color.FromArgb(34, 197, 94), Color.FromArgb(59, 130, 246), Color.FromArgb(234, 179, 8), Color.FromArgb(168, 85, 247) };
+                    Color[] colors = { Color.FromArgb(239, 68, 68), Color.FromArgb(34, 197, 94), Color.FromArgb(59, 130, 246), Color.FromArgb(234, 179, 8), Color.FromArgb(168, 85, 247) };
                     for (int i = 0; i < spots.Length; i++)
                     {
                         var square = new RectangleF(spots[i], new SizeF(side, side));
-                        using (var brush = new SolidBrush(colours[i])) g.FillRectangle(brush, square);
+                        using (var brush = new SolidBrush(colors[i])) g.FillRectangle(brush, square);
                         g.DrawString((i + 1).ToString(), number, Brushes.White, square, centre);
                         Caption("Squares 1 to 5, clockwise from the top left, then the middle");
                         Show();

@@ -273,7 +273,7 @@ namespace AlmostFastOverlays
         public StandingsEntry[] Standings { get; set; } = new StandingsEntry[0];
         /// <summary>A short race message (flags, penalties, a personal best), empty when there is none.</summary>
         public string Notice { get; set; } = "";
-        /// <summary>The kind of notice: Info, Good, Warning or Danger, for colouring it.</summary>
+        /// <summary>The kind of notice: Info, Good, Warning or Danger, for coloring it.</summary>
         public string NoticeKind { get; set; } = "";
 
         /// <summary>Made-up data for previews (the designer, gallery cards), not a live session.</summary>

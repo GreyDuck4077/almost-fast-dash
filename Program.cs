@@ -39,6 +39,8 @@ namespace AlmostFastOverlays
             }
 
 
+            string libraryDirectory = ParseOption(args, "--render-library");
+            if (libraryDirectory != null) return LibraryAudit.Run(libraryDirectory);
             string templateDirectory = ParseOption(args, "--render-templates");
             if (templateDirectory != null) return RenderTemplates(templateDirectory);
             string dashboardDirectory = ParseOption(args, "--render-dashboards");
@@ -214,7 +216,7 @@ namespace AlmostFastOverlays
                 AppSettings settings = SettingsStore.Load();
                 DashboardSettings dashboard = scenario.Contains("wide")
                     ? DashboardSettings.CreateDesigned(DesignTemplates.Road, 1280, 480)
-                    : DashboardSettings.CreateDesigned(DesignTemplates.Find(scenario.Contains("oval") ? "spotter" : "apex"));
+                    : DashboardSettings.CreateDesigned(DesignTemplates.Find(scenario.Contains("blank") ? "blank" : scenario.Contains("oval") ? "spotter" : "apex"));
                 var designer = new DesignerWindow(settings, dashboard, null) { Width = 1560, Height = 940 };
                 designer.Loaded += (s, e) => designer.Dispatcher.BeginInvoke(new Action(() => designer.PrepareSnapshot(scenario)), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
                 window = designer;

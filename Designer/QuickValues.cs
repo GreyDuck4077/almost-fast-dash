@@ -9,7 +9,7 @@ namespace AlmostFastOverlays
     /// </summary>
     internal static class QuickValues
     {
-        public const string Section = "Quick values";
+        public const string Section = "Live data";
 
         public static readonly string[] Folders = { "Engine", "Lap", "Sectors", "Tyres", "Fuel", "Race", "Leaderboard", "Notification", "System" };
 
@@ -79,7 +79,7 @@ namespace AlmostFastOverlays
             yield return Opponent("Car behind in the race", "The car one place behind: name, number, gap and last lap.", "Position + 1");
 
             // ---------------- Notification
-            yield return Block("Notification", "Race notices", "Shows flags, penalties, a personal best and low fuel for a few seconds, coloured by how urgent they are.", () =>
+            yield return Block("Notification", "Race notices", "Shows flags, penalties, a personal best and low fuel for a few seconds, colored by how urgent they are.", () =>
             {
                 const string tone = "NoticeKind == \"Danger\" ? $bad : NoticeKind == \"Warning\" ? $warn : NoticeKind == \"Good\" ? $good : $accent";
                 return new List<DashWidget>

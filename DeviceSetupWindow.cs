@@ -17,7 +17,7 @@ namespace AlmostFastOverlays
     /// <summary>
     /// Sets up an LED device step by step: find it, name it, describe its shape (LEDs around a
     /// screen, light bars, a strip), then show the app where each LED is. The device lights one
-    /// LED at a time and the user clicks where it is on the drawing; two neighbours are enough
+    /// LED at a time and the user clicks where it is on the drawing; two neighbors are enough
     /// for the app to follow an ordinary chain. Nothing is filled in from known devices: every
     /// device is described from scratch, so the lights never depend on assumptions about wiring.
     /// For a device that's already set up, only its shape and map are asked again (its name, power and
@@ -363,7 +363,7 @@ namespace AlmostFastOverlays
         private void Select(DeviceSettings found)
         {
             _device = SettingsStore.Clone(found);
-            // Nothing is assumed from a recognised board: its shape is described from scratch, and fast updates are detected when it connects.
+            // Nothing is assumed from a recognized board: its shape is described from scratch, and fast updates are detected when it connects.
             _layout = new LedLayout { Shape = "" };
             _mapper = null;
             _next.IsEnabled = true;
@@ -378,7 +378,7 @@ namespace AlmostFastOverlays
         {
             _title.Text = _existing == null ? "Name it" : "Name";
             _subtitle.Text = _existing == null
-                ? "Found " + _device.DetectedName + " on " + _device.Connection + ". Give it a name you'll recognise; it's how it appears everywhere in the app."
+                ? "Found " + _device.DetectedName + " on " + _device.Connection + ". Give it a name you'll recognize; it's how it appears everywhere in the app."
                 : _device.DetectedName + " on " + _device.Connection + ". The name appears everywhere in the app, including the light designer.";
             var body = new StackPanel();
             body.Children.Add(new TextBlock { Text = "Name", Style = (Style)FindResource("T.Label"), Margin = new Thickness(0, 0, 0, 8) });
@@ -411,7 +411,7 @@ namespace AlmostFastOverlays
         private void ShowShape()
         {
             _title.Text = "What does it look like?";
-            _subtitle.Text = "Pick the kind of device and count the LEDs in each part. Next you'll show the app where each LED is, so count exactly: a board sent colours for LEDs it doesn't have can freeze until it's unplugged.";
+            _subtitle.Text = "Pick the kind of device and count the LEDs in each part. Next you'll show the app where each LED is, so count exactly: a board sent colors for LEDs it doesn't have can freeze until it's unplugged.";
             var body = new StackPanel();
             var choices = new UniformGrid { Columns = 3, Margin = new Thickness(0, 0, 0, 18) };
             choices.Children.Add(ShapeChoice(LedShapes.Screen, "Screen with LEDs", "LEDs down the sides of a wheel screen, across the top, or both."));
@@ -656,7 +656,7 @@ namespace AlmostFastOverlays
         private async void ShowMap()
         {
             _title.Text = "Where is each LED?";
-            _subtitle.Text = "One LED at a time lights on your device. Click where it is on the drawing. After two neighbours the app follows the chain on its own, so most devices take two clicks.";
+            _subtitle.Text = "One LED at a time lights on your device. Click where it is on the drawing. After two neighbors the app follows the chain on its own, so most devices take two clicks.";
             _next.IsEnabled = false;
             _body.Content = new TextBlock { Text = "Connecting to " + _device.Name + "…", Style = (Style)FindResource("T.Secondary") };
             if (!await EnsurePreview(ShowMap)) return;
@@ -800,7 +800,7 @@ namespace AlmostFastOverlays
             else
             {
                 _mapPrompt.Text = "Your device may have " + led + (led == 1 ? " LED" : " LEDs");
-                _mapHint.Text = "The shape adds up to " + _layout.Total + ", but LED #" + (led + 1) + " didn't light, so it's past the end of the device. Go back and correct the counts; sending colours to LEDs a board doesn't have can make it freeze.";
+                _mapHint.Text = "The shape adds up to " + _layout.Total + ", but LED #" + (led + 1) + " didn't light, so it's past the end of the device. Go back and correct the counts; sending colors to LEDs a board doesn't have can make it freeze.";
                 var back = new Button { Content = "Back to the shape", Style = (Style)FindResource("Btn.Primary"), Margin = new Thickness(0, 0, 8, 0) };
                 back.Click += (s, e) => { _notLit = -1; Show(Step.Shape); };
                 buttons.Children.Add(back);

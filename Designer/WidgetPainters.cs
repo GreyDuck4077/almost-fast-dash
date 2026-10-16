@@ -248,7 +248,7 @@ namespace AlmostFastOverlays
         }
 
         /// <summary>
-        /// A colour along a gauge (0 at its start, 1 at its end): one colour, stepped shift colours,
+        /// A color along a gauge (0 at its start, 1 at its end): one color, stepped shift colors,
         /// or a blend through them.
         /// </summary>
         private static Color Tone(string mode, double at, Color low, Color warn, Color danger, double warnAt, double dangerAt)
@@ -646,7 +646,7 @@ namespace AlmostFastOverlays
 
         /// <summary>
         /// Tick marks and numbers just inside the ring. With <paramref name="litTo"/> at 0 or more, the scale
-        /// lights up as the value passes it: marks already reached take the colour the gauge has there and
+        /// lights up as the value passes it: marks already reached take the color the gauge has there and
         /// the numbers show full; those still ahead stay dim.
         /// </summary>
         private static void ArcScale(WidgetContext c, ArcRing ring, string colorMode, Color danger, double dangerAt, double litTo, Func<double, Color> colorAt)
@@ -664,7 +664,7 @@ namespace AlmostFastOverlays
             float Inside(float angle) => -ring.ThicknessAt(angle) / 2 - 4 - bezel;
             bool lighting = litTo >= 0;
             Color Dim(Color color, int share) => Color.FromArgb(color.A * share / 100, color);
-            // Marks of the same colour and weight go in one shape and are drawn together, not one at a time.
+            // Marks of the same color and weight go in one shape and are drawn together, not one at a time.
             var marks = new Dictionary<long, GraphicsPath>();
             for (int i = 0; i <= total; i++)
             {
@@ -1051,7 +1051,7 @@ namespace AlmostFastOverlays
         {
             Graphics g = c.G;
             RectangleF b = c.B;
-            BlindSpotZone zone = c.Choice("side") == "Right" ? c.T.RightBlindSpot : c.T.LeftBlindSpot;
+            BlindSpotZone zone = c.Sample ? BlindSpotZone.Beside : c.Choice("side") == "Right" ? c.T.RightBlindSpot : c.T.LeftBlindSpot;
             Color color = c.Color("color"), off = c.Color("offColor");
             float glow = (float)c.Num("glow");
             float radius = Math.Min(b.Width, b.Height) / 2;
@@ -1162,7 +1162,7 @@ namespace AlmostFastOverlays
 
         public static void Flag(WidgetContext c)
         {
-            RacingFlag flag = c.T.Flag;
+            RacingFlag flag = c.Sample ? RacingFlag.Yellow : c.T.Flag;
             if (flag == RacingFlag.None) return;
             Graphics g = c.G;
             RectangleF b = c.B;
@@ -1466,7 +1466,7 @@ namespace AlmostFastOverlays
 
         /// <summary>
         /// Lap falloff as columns, oldest on the left: each column rises with how much slower the lap was
-        /// than the best shown, blending toward the slow colour; the best lap is a short column in its own colour.
+        /// than the best shown, blending toward the slow color; the best lap is a short column in its own color.
         /// </summary>
         private static void LapColumns(WidgetContext c, double[] laps, int count, bool stint)
         {
@@ -1573,8 +1573,8 @@ namespace AlmostFastOverlays
         }
 
         /// <summary>
-        /// A drawn shape's glow, fill (a colour, a gradient or a pattern; an empty second colour is see-through) and line
-        /// (a colour or a gradient, dashed or not, with its ends and corners).
+        /// A drawn shape's glow, fill (a color, a gradient or a pattern; an empty second color is see-through) and line
+        /// (a color or a gradient, dashed or not, with its ends and corners).
         /// </summary>
         private static void FillAndLine(WidgetContext c, Graphics g, GraphicsPath shaped, RectangleF b, bool open)
         {

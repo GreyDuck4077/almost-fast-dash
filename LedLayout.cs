@@ -190,7 +190,7 @@ namespace AlmostFastOverlays
 
     /// <summary>
     /// Works out which LED is where from the user's clicks. LEDs are asked for in order: the user
-    /// clicks where each lit one is. Once two neighbours are placed, the chain is followed along the
+    /// clicks where each lit one is. Once two neighbors are placed, the chain is followed along the
     /// shape automatically until it runs off the end of a side, bar or strip, and the next LED is
     /// asked for. So an ordinary chain takes two clicks, and odd wiring still works, just with more.
     /// </summary>
@@ -223,7 +223,7 @@ namespace AlmostFastOverlays
 
         public bool Done => Next < 0;
 
-        /// <summary>True while the last LED placed has a lone neighbour still to find, so the direction isn't known yet.</summary>
+        /// <summary>True while the last LED placed has a lone neighbor still to find, so the direction isn't known yet.</summary>
         public bool Pending => _pendingSlot >= 0;
 
         public int LedAt(int slot) => slot >= 0 && slot < _slotLed.Length ? _slotLed[slot] : -1;
@@ -240,7 +240,7 @@ namespace AlmostFastOverlays
             if (!_followChain) { }
             else if (_pendingSlot >= 0 && led > 0 && _ledSlot[led - 1] == _pendingSlot)
             {
-                // Two neighbours known: if they're next to each other on the shape, follow the chain.
+                // Two neighbors known: if they're next to each other on the shape, follow the chain.
                 int step = Step(_pendingSlot, slot, out int[] path);
                 _pendingSlot = -1;
                 if (step != 0)

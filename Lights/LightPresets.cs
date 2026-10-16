@@ -111,7 +111,7 @@ namespace AlmostFastOverlays
 
         /// <summary>
         /// Rebuilds a dashboard's pre-layer light settings as layers, once, when settings from before
-        /// schema 8 are loaded. The colours, patterns, functions and brightness carry over.
+        /// schema 8 are loaded. The colors, patterns, functions and brightness carry over.
         /// </summary>
         public static LightProfile FromClassic(DashboardSettings d)
         {

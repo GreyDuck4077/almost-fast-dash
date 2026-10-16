@@ -184,12 +184,42 @@ namespace AlmostFastOverlays
             return grid;
         }
 
+        /// <summary>
+        /// For a widget drawn as a ghost: why it's faint, and a button to preview the moment it shows in, where there's one.
+        /// </summary>
+        private void AddGhostNotice(IEnumerable<DashWidget> widgets)
+        {
+            DashWidget ghost = widgets.FirstOrDefault(w => _ghosts.ContainsKey(w.Id));
+            if (ghost == null) return;
+            bool sample = ghost.Type == "flag" || ghost.Type == "blindspot";
+            string condition = LayoutRenderer.Strip(ghost.Get("visible", "")).Trim();
+            string moment = ghost.Type == "flag" ? "Yellow flag" : ghost.Type == "blindspot" ? "Cars alongside"
+                : condition.Contains("OnPitRoad") || condition.Contains("PitLimiter") || condition.Contains("OverPitLimit") ? "Pit lane"
+                : condition.Contains("Flag") ? "Yellow flag" : null;
+            Grid tip = sample
+                ? Tip("", "A sample", (ghost.Type == "flag" ? "No flag is out in this preview" : "No car is alongside in this preview") +
+                    ", so it's drawn faintly to place and style. On the screen it " + (ghost.Type == "flag" ? "shows the flag that's out." : "lights while a car is alongside."))
+                : Tip("", "Hidden right now", "It shows when " + (condition.Length > 80 ? condition.Substring(0, 78) + "…" : condition) +
+                    ". It's drawn faintly here to place and style; Show when is under Visibility.");
+            if (moment != null)
+            {
+                var see = new Button { Content = "Preview " + moment.ToLowerInvariant() + " ›", Style = (Style)FindResource("Btn.Ghost"), HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(-8, 2, 0, 0) };
+                see.Click += (s, e) => PreviewCombo.SelectedItem = moment;
+                ((StackPanel)tip.Children[1]).Children.Add(see);
+            }
+            Inspector.Children.Add(new Border
+            {
+                Background = (Brush)FindResource("Brush.AccentSubtle"), CornerRadius = new CornerRadius(8), Padding = new Thickness(10, 8, 10, 4), Margin = new Thickness(0, 10, 0, 0), Child = tip
+            });
+        }
+
         // ------------------------------------------------------------------ several selected
 
         private void BuildMultiInspector()
         {
             Inspector.Children.Add(Heading(_selection.Count + " widgets"));
             Inspector.Children.Add(Caption("Drag to move them together. Align and distribute below."));
+            AddGhostNotice(_selection);
             if (SelectionIsOneGroup(out _)) AddModuleOptions(_selection[0]);
             Inspector.Children.Add(SectionTitle("Align"));
             Inspector.Children.Add(AlignBar(true));
@@ -211,7 +241,7 @@ namespace AlmostFastOverlays
             arrange.Children.Add(ActionButton("", "Repeat…", RepeatSelection));
             Inspector.Children.Add(arrange);
             Inspector.Children.Add(ScaleRow());
-            AddSelectionColours(_selection);
+            AddSelectionColors(_selection);
 
             if (oneGroup)
             {
@@ -375,6 +405,7 @@ namespace AlmostFastOverlays
             if (!string.IsNullOrEmpty(widget.Group))
                 Inspector.Children.Add(Caption("In " + widget.GroupName + (widget.Slot != 0 ? " (Slot " + widget.Slot.ToString("0.##", CultureInfo.InvariantCulture) + ")" : "") +
                     ". Click the group on the canvas to select all of it.", 6));
+            AddGhostNotice(new[] { widget });
             AddModuleOptions(widget);
             // A tap zone, or a widget that shows on one of its views: flip the preview through the views here,
             // as a tap on a touch screen would.

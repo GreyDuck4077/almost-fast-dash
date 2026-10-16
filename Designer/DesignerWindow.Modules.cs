@@ -141,7 +141,7 @@ namespace AlmostFastOverlays
 
         /// <summary>
         /// Puts a module on the screen, centred on <paramref name="at"/> (or the screen), selected as one group so it
-        /// can be moved, scaled and recoloured at once.
+        /// can be moved, scaled and recolored at once.
         /// </summary>
         private void PlaceModule(DesignModule module, Point? at, bool askPanel)
         {
@@ -164,7 +164,7 @@ namespace AlmostFastOverlays
             DashWidget panel = askPanel && at.HasValue ? PanelAt(at.Value) : null;
             if (panel != null && !widgets.Any(w => w.Type == "panel")) AskPanelDrop(panel, widgets, label);
             else AddWidgets(widgets, label);
-            StatusText.Text = "Added " + module.Name + "." + (widgets.Count > 1 ? " Its colours are listed in Properties, to restyle it in one go." : "");
+            StatusText.Text = "Added " + module.Name + "." + (widgets.Count > 1 ? " Its colors are listed in Properties, to restyle it in one go." : "");
         }
 
         // ------------------------------------------------------------------ saving one
@@ -391,10 +391,10 @@ namespace AlmostFastOverlays
         // ------------------------------------------------------------------ restyling what's placed
 
         /// <summary>
-        /// Every colour the selected widgets use, one swatch each: changing it changes every widget that uses it,
-        /// so a placed module (or any group) is recoloured in one go. Colours behind a formula aren't listed.
+        /// Every color the selected widgets use, one swatch each: changing it changes every widget that uses it,
+        /// so a placed module (or any group) is recolored in one go. Colors behind a formula aren't listed.
         /// </summary>
-        private void AddSelectionColours(IList<DashWidget> widgets)
+        private void AddSelectionColors(IList<DashWidget> widgets)
         {
             var uses = new Dictionary<string, List<(DashWidget Widget, string Key, string Label)>>(StringComparer.OrdinalIgnoreCase);
             var order = new List<string>();
@@ -402,7 +402,7 @@ namespace AlmostFastOverlays
             {
                 WidgetType type = WidgetCatalog.Find(w.Type);
                 if (type == null) continue;
-                // A line with no width shows no colour.
+                // A line with no width shows no color.
                 bool noLine = type.Prop("strokeWidth") is PropDef width && double.TryParse(w.Get("strokeWidth", width.Default), NumberStyles.Float, CultureInfo.InvariantCulture, out double lineWidth) && lineWidth <= 0;
                 foreach (PropDef def in type.Props.Where(p => p.Kind == PropKind.Color && !p.Hidden && p.Applies(w, type)))
                 {
@@ -415,18 +415,18 @@ namespace AlmostFastOverlays
                 }
             }
             if (order.Count == 0) return;
-            Inspector.Children.Add(SectionTitle("Colours"));
-            Inspector.Children.Add(Caption("Every colour these use. Change one and it changes everywhere it's used.", 0));
-            foreach (string colour in order.OrderByDescending(c => uses[c].Count).Take(16))
+            Inspector.Children.Add(SectionTitle("Colors"));
+            Inspector.Children.Add(Caption("Every color these use. Change one and it changes everywhere it's used.", 0));
+            foreach (string color in order.OrderByDescending(c => uses[c].Count).Take(16))
             {
-                var targets = uses[colour];
-                var field = new ColorField(this, colour, _layout, () => _dashboard.AccentColor, true, false);
+                var targets = uses[color];
+                var field = new ColorField(this, color, _layout, () => _dashboard.AccentColor, true, false);
                 field.Changed += value =>
                 {
                     if (string.IsNullOrWhiteSpace(value)) return;
                     foreach (var target in targets) target.Widget.Set(target.Key, value);
                     RequestRender();
-                    CommitSoon("Recolour");
+                    CommitSoon("Recolor");
                 };
                 List<string> labels = targets.Select(t => t.Label).Distinct().ToList();
                 string label = string.Join(", ", labels.Take(2)) + (labels.Count > 2 ? "…" : "");

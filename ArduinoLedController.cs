@@ -11,7 +11,7 @@ namespace AlmostFastOverlays
     /// LEDs on an Arduino-based board that speaks the common sim-racing LED serial
     /// protocol, the one SimHub's Arduino firmware uses: the SSG DV-5 and LB-10, and boards
     /// flashed with the same widely used firmware. Packets are 01 01 FF length payload CRC-8;
-    /// payload 03 'N' asks the board its name, 03 '6' sets colour runs. No SimHub code is
+    /// payload 03 'N' asks the board its name, 03 '6' sets color runs. No SimHub code is
     /// used (see CREDITS.md).
     /// </summary>
     internal sealed class ArduinoLedController : IDisposable
@@ -67,7 +67,7 @@ namespace AlmostFastOverlays
         }
 
         /// <summary>
-        /// Whether the board takes several colour runs in one packet (fast updates): sends two runs that turn
+        /// Whether the board takes several color runs in one packet (fast updates): sends two runs that turn
         /// the first two LEDs off and checks the board acknowledges rather than rejects them (04 FF 02).
         /// </summary>
         public bool AcceptsBatches()
@@ -93,13 +93,13 @@ namespace AlmostFastOverlays
         }
 
         /// <summary>
-        /// Send a whole frame as one packet: several colour runs before the terminating
+        /// Send a whole frame as one packet: several color runs before the terminating
         /// mode 0. Far fewer packets and pauses than one packet per run.
         /// </summary>
         public bool Batched { get; set; }
 
         // Only the LEDs that changed are sent, with the whole frame resent every second in case a packet
-        // was lost, so a frame of many colours (a gradient, a sweep) doesn't cost a packet per LED each time.
+        // was lost, so a frame of many colors (a gradient, a sweep) doesn't cost a packet per LED each time.
         private const int FullFrameMilliseconds = 1000;
         private Color[] _shown;
         private int _fullFrameTick;
@@ -122,8 +122,8 @@ namespace AlmostFastOverlays
         }
 
         /// <summary>
-        /// The colour runs (start, count, colour) to send for a frame: every LED, or with <paramref name="shown"> only
-        /// the LEDs that differ from it. Neighbouring LEDs of one colour share a run.
+        /// The color runs (start, count, color) to send for a frame: every LED, or with <paramref name="shown"> only
+        /// the LEDs that differ from it. Neighboring LEDs of one color share a run.
         /// </summary>
         internal static System.Collections.Generic.List<Tuple<int, int, Color>> Runs(Color[] frame, Color[] shown, int count)
         {
@@ -143,15 +143,15 @@ namespace AlmostFastOverlays
         }
 
         /// <summary>
-        /// The most colour runs in one packet with fast updates. Boards on this protocol have a small receive
+        /// The most color runs in one packet with fast updates. Boards on this protocol have a small receive
         /// buffer: a DV-5 takes packets up to 26 bytes (3 runs), cuts off a 32-byte one and rejects anything
         /// bigger, and a steady stream of oversized packets crashes its LED controller until it's power-cycled.
         /// </summary>
         public const int MaxRunsPerPacket = 3;
 
         /// <summary>
-        /// The command payloads for some colour runs: each "6" command carries up to <paramref name="runsPerPacket"/>
-        /// mode-3 entries (start, count, colour) and ends with mode 0.
+        /// The command payloads for some color runs: each "6" command carries up to <paramref name="runsPerPacket"/>
+        /// mode-3 entries (start, count, color) and ends with mode 0.
         /// </summary>
         internal static System.Collections.Generic.List<byte[]> Payloads(System.Collections.Generic.IList<Tuple<int, int, Color>> runs, int runsPerPacket)
         {
