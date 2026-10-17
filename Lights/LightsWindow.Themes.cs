@@ -33,7 +33,7 @@ namespace AlmostFastOverlays
             header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             header.Children.Add(new Border { Width = 120, Height = 28, CornerRadius = new CornerRadius(7), Background = Ramp(current.Good, current.Warn, current.Bad), VerticalAlignment = VerticalAlignment.Center });
             var titles = new StackPanel { Margin = new Thickness(16, 0, 12, 0), VerticalAlignment = VerticalAlignment.Center };
-            titles.Children.Add(new TextBlock { Text = "COLOUR THEME", Style = (Style)FindResource("T.Overline") });
+            titles.Children.Add(new TextBlock { Text = "COLOR THEME", Style = (Style)FindResource("T.Overline") });
             titles.Children.Add(new TextBlock { Text = name, Style = (Style)FindResource("T.Title"), Margin = new Thickness(0, 2, 0, 0) });
             Grid.SetColumn(titles, 1);
             header.Children.Add(titles);

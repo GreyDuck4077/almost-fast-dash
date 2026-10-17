@@ -104,7 +104,7 @@ namespace AlmostFastOverlays
                 presets.Children.Add(chip);
             }
             sweepRow.Children.Add(presets);
-            circle.Children.Add(LabeledRow("Angle °", sweepRow, "How far round they go: 360 is a full circle, 180 a half. Negative goes anticlockwise."));
+            circle.Children.Add(LabeledRow("Angle °", sweepRow, "How far around they go: 360 is a full circle, 180 a half. Negative goes counterclockwise."));
             circle.Children.Add(LabeledRow("Radius", Number(spec.Radius, 5, 1, 5000, v => spec.Radius = v), "From the middle of the circle to the middle of each one, in pixels."));
             circle.Children.Add(LabeledRow("Start at °", Number(spec.Start, 15, -360, 360, v => spec.Start = v),
                 "Where the original sits on the circle: -90 is the top, 0 the right, 90 the bottom and 180 the left. The original stays put; the circle forms around it."));

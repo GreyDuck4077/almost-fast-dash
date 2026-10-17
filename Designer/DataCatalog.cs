@@ -156,9 +156,9 @@ namespace AlmostFastOverlays
 
             // ---------------- Engine
             Add("Engine", "OilTemp", "Oil temperature in your temperature unit; unknown (--) when the car doesn't report it.", s => Temp(s, s.T.OilTempC), "format(OilTemp, \"0\") + \"°\"");
-            Add("Engine", "OilPressure", "Oil pressure in BAR or PSI.", s => RaceFields.Pressure(s.Units, s.T.OilPressureBar), "format(OilPressure, \"0.0\")");
+            Add("Engine", "OilPressure", "Oil pressure in bar or psi.", s => RaceFields.Pressure(s.Units, s.T.OilPressureBar), "format(OilPressure, \"0.0\")");
             Add("Engine", "WaterTemp", "Water temperature in your temperature unit.", s => Temp(s, s.T.WaterTempC), "format(WaterTemp, \"0\") + \"°\"");
-            Add("Engine", "FuelPressure", "Fuel pressure in BAR or PSI.", s => RaceFields.Pressure(s.Units, s.T.FuelPressureBar), "format(FuelPressure, \"0.0\")");
+            Add("Engine", "FuelPressure", "Fuel pressure in bar or psi.", s => RaceFields.Pressure(s.Units, s.T.FuelPressureBar), "format(FuelPressure, \"0.0\")");
             Add("Engine", "Voltage", "Battery voltage.", s => s.T.Voltage, "format(Voltage, \"0.0\")");
             Add("Engine", "PressureUnit", "\"BAR\" or \"PSI\".", s => RaceFields.PressureLabel(s.Units));
             Add("Engine", "Drs", "DRS: -1 when the car has none, 0 off, 1 available soon, 2 ready, 3 open.", s => (double)s.T.DrsState);
@@ -191,7 +191,7 @@ namespace AlmostFastOverlays
                 string c = corner;
                 Add("Tires", c + "Temp", "Average " + c + " tire temperature from the pit crew (updates in the pits).", s => RaceFields.Tyre(s, c, "Temp"), "format(" + c + "Temp, \"0\") + \"°\"");
                 Add("Tires", c + "Wear", c + " tread left, 0 to 100% (updates in the pits).", s => RaceFields.Tyre(s, c, "Wear"), "format(" + c + "Wear, \"0\") + \"%\"");
-                Add("Tires", c + "Pressure", c + " pressure in BAR or PSI (the pit crew's cold reading).", s => RaceFields.Tyre(s, c, "Pressure"), "format(" + c + "Pressure, \"0.0\")");
+                Add("Tires", c + "Pressure", c + " pressure in bar or psi (the pit crew's cold reading).", s => RaceFields.Tyre(s, c, "Pressure"), "format(" + c + "Pressure, \"0.0\")");
             }
 
             // ---------------- Leaderboard

@@ -630,8 +630,11 @@
                             <TextBlock Text="Units" Style="{StaticResource T.Title}"/>
                             <TextBlock Text="Used by every dashboard." Style="{StaticResource T.Caption}" Margin="0,4,0,18"/>
                             <Grid Style="{StaticResource Row}">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                                <TextBlock Text="Speed" Style="{StaticResource T.Label}" VerticalAlignment="Center"/>
+                                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Text="Speed" Style="{StaticResource T.Label}"/>
+                                    <TextBlock Text="Speedometers and every speed readout." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                </StackPanel>
                                 <Border Grid.Column="1" Style="{StaticResource Segmented}">
                                     <StackPanel Orientation="Horizontal">
                                         <RadioButton x:Name="SpeedMph" Style="{StaticResource Segment}" GroupName="Speed" Content="MPH" Checked="Units_Changed"/>
@@ -641,8 +644,11 @@
                             </Grid>
                             <Border Style="{StaticResource Divider}"/>
                             <Grid Style="{StaticResource Row}">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                                <TextBlock Text="Fuel" Style="{StaticResource T.Label}" VerticalAlignment="Center"/>
+                                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Text="Fuel" Style="{StaticResource T.Label}"/>
+                                    <TextBlock Text="Fuel in the tank, use per lap and fuel to add." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                </StackPanel>
                                 <Border Grid.Column="1" Style="{StaticResource Segmented}">
                                     <StackPanel Orientation="Horizontal">
                                         <RadioButton x:Name="FuelLiters" Style="{StaticResource Segment}" GroupName="Fuel" Content="Liters" Checked="Units_Changed"/>
@@ -652,10 +658,10 @@
                             </Grid>
                             <Border Style="{StaticResource Divider}"/>
                             <Grid Style="{StaticResource Row}">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                                <StackPanel VerticalAlignment="Center">
+                                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
                                     <TextBlock Text="Fuel safety margin" Style="{StaticResource T.Label}"/>
-                                    <TextBlock Text="Extra laps of fuel counted into fuel to add" Style="{StaticResource T.Caption}"/>
+                                    <TextBlock Text="Extra laps of fuel counted into fuel to add." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
                                 </StackPanel>
                                 <Border Grid.Column="1" Style="{StaticResource Segmented}" VerticalAlignment="Center">
                                     <StackPanel Orientation="Horizontal">
@@ -668,8 +674,11 @@
                             </Grid>
                             <Border Style="{StaticResource Divider}"/>
                             <Grid Style="{StaticResource Row}">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                                <TextBlock Text="Temperature" Style="{StaticResource T.Label}" VerticalAlignment="Center"/>
+                                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+                                    <TextBlock Text="Temperature" Style="{StaticResource T.Label}"/>
+                                    <TextBlock Text="Oil, water, track, air and tire temperatures." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                </StackPanel>
                                 <Border Grid.Column="1" Style="{StaticResource Segmented}">
                                     <StackPanel Orientation="Horizontal">
                                         <RadioButton x:Name="TempC" Style="{StaticResource Segment}" GroupName="Temp" Content="°C" Checked="Units_Changed"/>
@@ -750,7 +759,22 @@
                     <Border Style="{StaticResource Card}">
                         <StackPanel>
                             <TextBlock Text="About" Style="{StaticResource T.Title}"/>
-                            <Grid Style="{StaticResource Row}" Margin="0,14,0,0">
+                            <!-- The app itself, and where to go for help, what changed and who it owes -->
+                            <Grid Margin="0,16,0,6">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                <Image Source="pack://application:,,,/AlmostFastDash;component/Assets/AppIcon.png" Width="48" Height="48" VerticalAlignment="Center"/>
+                                <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock x:Name="AboutVersion" Text="Almost Fast Dash" FontSize="16" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Free and open source (GPL-3.0), with no account, ads or tracking." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                            <WrapPanel Margin="-8,6,0,10">
+                                <Button Style="{StaticResource Btn.Ghost}" Content="User guide" Tag="https://github.com/Sota4077/almost-fast-dash/blob/main/docs/guide.md" Click="AboutLink_Click"/>
+                                <Button Style="{StaticResource Btn.Ghost}" Content="What's new" Tag="https://github.com/Sota4077/almost-fast-dash/blob/main/CHANGELOG.md" Click="AboutLink_Click"/>
+                                <Button Style="{StaticResource Btn.Ghost}" Content="Report a problem" Tag="https://github.com/Sota4077/almost-fast-dash/issues/new/choose" Click="AboutLink_Click"/>
+                                <Button Style="{StaticResource Btn.Ghost}" Content="Credits and license" Tag="https://github.com/Sota4077/almost-fast-dash/blob/main/CREDITS.md" Click="AboutLink_Click"/>
+                            </WrapPanel>
+                            <Grid Style="{StaticResource Row}" Margin="0,4,0,0">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                 <TextBlock Text="Settings file" Style="{StaticResource T.Label}" VerticalAlignment="Center"/>
                                 <TextBlock x:Name="SettingsPathText" Grid.Column="1" FontFamily="{StaticResource Font.Mono}" FontSize="12"

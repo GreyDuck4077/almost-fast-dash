@@ -113,7 +113,7 @@ resolution from 64×64 to 3840×3840. Templates scale to fit.
 ### Flags
 
 A flag fills the screen as it comes out and then hands the dashboard back.
-While a flag stays out, a glow in its color runs round the edge of the screen,
+While a flag stays out, a glow in its color runs around the edge of the screen,
 with a tab that names it. The checkered flag shows your result.
 
 <table>

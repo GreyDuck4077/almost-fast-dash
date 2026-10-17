@@ -596,7 +596,7 @@ namespace AlmostFastOverlays
             ThemeEditor.Children.Add(new TextBlock
             {
                 Style = (Style)FindResource("T.Caption"), Margin = new Thickness(0, 6, 0, 0),
-                Text = "A glow in the flag's color runs round the edge, with a tab at the top: during a caution, on the final lap, and while a black, repair or blue flag is out."
+                Text = "A glow in the flag's color runs around the edge, with a tab at the top: during a caution, on the final lap, and while a black, repair or blue flag is out."
             });
         }
 
@@ -646,8 +646,39 @@ namespace AlmostFastOverlays
             items.AddRange(FontNames());
             var combo = new ComboBox { ItemsSource = items, IsTextSearchEnabled = true, MaxDropDownHeight = 420 };
             combo.SelectedItem = items.FirstOrDefault(i => string.Equals(i, current, StringComparison.OrdinalIgnoreCase)) ?? (includeTheme ? "theme" : items.FirstOrDefault());
-            combo.ItemTemplate = null;
+            // Each font named in its own typeface, as design tools list them; "theme" says which font that is. The list
+            // only builds the rows in view, so hundreds of installed fonts open instantly.
+            var face = new FrameworkElementFactory(typeof(TextBlock));
+            face.SetBinding(TextBlock.TextProperty, new System.Windows.Data.Binding { Converter = new FontLabel(() => _layout?.Theme?.Font) });
+            face.SetBinding(TextBlock.FontFamilyProperty, new System.Windows.Data.Binding { Converter = new FontFace(() => _layout?.Theme?.Font) });
+            combo.ItemTemplate = new DataTemplate { VisualTree = face };
+            combo.ItemsPanel = new ItemsPanelTemplate(new FrameworkElementFactory(typeof(VirtualizingStackPanel)));
+            VirtualizingPanel.SetIsVirtualizing(combo, true);
+            TextSearch.SetTextPath(combo, ".");
             return combo;
+        }
+
+        /// <summary>A font's name in the list; "theme" names the theme's font.</summary>
+        private sealed class FontLabel : System.Windows.Data.IValueConverter
+        {
+            private readonly Func<string> _theme;
+            public FontLabel(Func<string> theme) { _theme = theme; }
+            public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) =>
+                value as string == "theme" ? "Theme font (" + (_theme() ?? "Bahnschrift") + ")" : value;
+            public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) => value;
+        }
+
+        /// <summary>The typeface a font's name is shown in.</summary>
+        private sealed class FontFace : System.Windows.Data.IValueConverter
+        {
+            private readonly Func<string> _theme;
+            public FontFace(Func<string> theme) { _theme = theme; }
+            public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+            {
+                string name = value as string == "theme" ? _theme() ?? "Bahnschrift" : value as string;
+                try { return new FontFamily(name ?? "Segoe UI"); } catch { return new FontFamily("Segoe UI"); }
+            }
+            public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture) => value;
         }
 
         internal static Color ToMedia(string hex)

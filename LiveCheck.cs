@@ -88,7 +88,7 @@ namespace AlmostFastOverlays
             report.AppendLine(string.Format(CultureInfo.InvariantCulture, "  fuel: {0:0.0} L of {1:0.0} L, sector {2} of {3}, session best {4}, class best {5}",
                 s.FuelLiters, s.FuelCapacityLiters, s.Sector, s.SectorCount, Fmt.LapTime(s.SessionBestLapSeconds), Fmt.LapTime(s.ClassBestLapSeconds)));
             foreach (TyreCorner tyre in s.Tyres)
-                report.AppendLine(string.Format(CultureInfo.InvariantCulture, "  tyre {0}: {1:0}/{2:0}/{3:0} C, wear {4:0.00}, {5:0} kPa", tyre.Name, tyre.TempOuter, tyre.TempMiddle, tyre.TempInner, tyre.Wear, tyre.PressureKpa));
+                report.AppendLine(string.Format(CultureInfo.InvariantCulture, "  tire {0}: {1:0}/{2:0}/{3:0} C, wear {4:0.00}, {5:0} kPa", tyre.Name, tyre.TempOuter, tyre.TempMiddle, tyre.TempInner, tyre.Wear, tyre.PressureKpa));
             report.AppendLine(string.Format(CultureInfo.InvariantCulture, "  race: {0:0.00} laps to go, fuel per lap {1:0.000} L over {2} clean laps{3}, fuel to add {4:0.00} L",
                 s.LapsToGo, s.FuelPerLapAverage, s.FuelLapsMeasured, s.FuelLapsMeasured < 3 ? " (early estimate)" : "", s.FuelToFinish));
             report.AppendLine("  around you (gap from iRacing's per-car time estimates; by distance in brackets, as it was worked out before):");

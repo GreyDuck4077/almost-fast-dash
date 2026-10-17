@@ -239,6 +239,13 @@ namespace AlmostFastOverlays
             body.Children.Add(new TextBlock { Text = "WLED ON YOUR NETWORK", Style = (Style)FindResource("T.Overline"), Margin = new Thickness(0, 26, 0, 8) });
             var wled = new StackPanel { Orientation = Orientation.Horizontal };
             var address = new TextBox { Width = 240, ToolTip = "The controller's IP address, such as 192.168.1.40, or its name" };
+            // What to type, until something's typed.
+            var addressHint = new TextBlock
+            {
+                Text = "192.168.1.40 or wled.local", IsHitTestVisible = false, Margin = new Thickness(12, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center,
+                Foreground = (Brush)FindResource("Brush.TextTertiary")
+            };
+            address.TextChanged += (s, e) => addressHint.Visibility = address.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
             var lookUp = new Button { Content = "Look up", Margin = new Thickness(8, 0, 0, 0) };
             async Task LookUp()
             {
@@ -259,7 +266,10 @@ namespace AlmostFastOverlays
             }
             lookUp.Click += async (s, e) => await LookUp();
             address.KeyDown += async (s, e) => { if (e.Key == Key.Enter) await LookUp(); };
-            wled.Children.Add(address);
+            var addressHost = new Grid();
+            addressHost.Children.Add(address);
+            addressHost.Children.Add(addressHint);
+            wled.Children.Add(addressHost);
             wled.Children.Add(lookUp);
             body.Children.Add(wled);
             _body.Content = body;
@@ -779,7 +789,12 @@ namespace AlmostFastOverlays
                     : asking == 0 ? "It's the bright white LED. Placed LEDs glow faintly so you can keep your bearings."
                     : "The chain jumped or reached the end of a part, so the app needs LED #" + (asking + 1) + " too.";
                 _next.IsEnabled = false;
-                var missing = new Button { Content = "LED #" + (asking + 1) + " didn't light up", Style = (Style)FindResource("Btn.Ghost"), HorizontalAlignment = HorizontalAlignment.Left, Padding = new Thickness(0, 2, 0, 2) };
+                var missing = new Button
+                {
+                    Content = "LED #" + (asking + 1) + " didn't light up ›", Style = (Style)FindResource("Btn.Ghost"), Foreground = (Brush)FindResource("Brush.Accent"),
+                    HorizontalAlignment = HorizontalAlignment.Left, Padding = new Thickness(0, 2, 0, 2),
+                    ToolTip = "Nothing lit on the device: the app checks whether the shape has more LEDs than the device, or whether it's showing anything at all"
+                };
                 missing.Click += (s, e) => { _notLit = asking; RenderMap(); };
                 _verify.Children.Add(missing);
                 _verify.Visibility = Visibility.Visible;
@@ -829,7 +844,7 @@ namespace AlmostFastOverlays
         {
             _mapPrompt.Text = _doubted ? "Let's fix it" : "Did the right LED light up each time?";
             _mapHint.Text = _doubted
-                ? "Some LEDs don't follow the chain the app worked out, such as one side wired the other way round. Place every LED by hand instead: the app lights each in turn and you click where it is."
+                ? "Some LEDs don't follow the chain the app worked out, such as one side wired the other way around. Place every LED by hand instead: the app lights each in turn and you click where it is."
                 : "If each LED you clicked lit up in the same place on your device, the map is right.";
             var buttons = new StackPanel { Orientation = Orientation.Horizontal };
             if (!_doubted)

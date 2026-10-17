@@ -26,7 +26,7 @@ namespace AlmostFastOverlays
             new DesignTemplate { Id = "roundy", Name = "Roundy", Accent = "#3D9BFF", OvalLights = true, Create = Readable(Roundy),
                 Description = "The oval flagship: curved blind-spot arcs, speed and gear in a rev ring, the cars around you and a lap-falloff chart of your stint." },
             new DesignTemplate { Id = "halo", Name = "Halo", Accent = "#30D158", Create = Readable(HaloRing),
-                Description = "Endurance and multiclass: one ring of revs over a live delta round the gear, your laps, stint, race and fuel, and the traffic around you in class colors." },
+                Description = "Endurance and multiclass: one ring of revs over a live delta around the gear, your laps, stint, race and fuel, and the traffic around you in class colors." },
             new DesignTemplate { Id = "oval", Name = "Oval", Accent = "#FFB020", OvalLights = true, Create = Readable(OvalRadar),
                 Description = "Pack racing: a live radar of the cars around you, the gaps ahead and behind in car lengths and how fast they're closing, laps to go and fuel." },
             new DesignTemplate { Id = "apex", Name = "Apex", Accent = "#2F8CFF", Create = Readable(Apex),

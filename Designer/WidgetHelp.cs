@@ -136,7 +136,7 @@ namespace AlmostFastOverlays
             ["segments"] = "Splits it into this many blocks; 0 for a smooth fill.",
             ["flash"] = "When it flashes, such as =ShiftFlash at the shift point.",
             ["start"] = "Where the arc begins, in degrees: 0 is the right, 90 the bottom, 180 the left.",
-            ["sweep"] = "How far round the arc goes, in degrees: 270 leaves a gap at the bottom.",
+            ["sweep"] = "How far around the arc goes, in degrees: 270 leaves a gap at the bottom.",
             ["ticks"] = "How many major divisions the scale has; 0 for none.",
             ["minorTicks"] = "How many small ticks between each major one.",
             ["tickLength"] = "How long the ticks are, in pixels.",

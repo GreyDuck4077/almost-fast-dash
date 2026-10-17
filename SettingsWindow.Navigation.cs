@@ -34,6 +34,14 @@ namespace AlmostFastOverlays
             // The first gallery card as the pointer finds it: its picture playing the animated lap.
             if (scenario.Contains("hover") && _galleryCards.Count > 0 && _galleryCards[0].Child is StackPanel stack && stack.Children[0] is Border picture)
                 StartCardMotion(picture, _settings.Dashboards[0], new UnitSystem(_settings.General), true);
+            // "…-scroll900": the page scrolled down that far, to see all of a long page.
+            var scroll = System.Text.RegularExpressions.Regex.Match(scenario, @"scroll(\d+)");
+            if (scroll.Success)
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    foreach (ScrollViewer page in new[] { GalleryPage, EditorPage, SettingsPage, AppPage })
+                        if (page.Visibility == Visibility.Visible) page.ScrollToVerticalOffset(double.Parse(scroll.Groups[1].Value));
+                }), System.Windows.Threading.DispatcherPriority.Loaded);
         }
 
         /// <summary>A sidebar sub-item: the name, with a small marker on the right.</summary>

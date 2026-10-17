@@ -5,6 +5,28 @@ English. Every version is on the
 [releases page](https://github.com/Sota4077/almost-fast-dash/releases) with
 its exe and checksum.
 
+## 3.71 · 2026-10-17
+
+A polish pass over the whole app.
+
+- **The Font list shows every font in its own typeface,** and "theme" now
+  says which font it is: "Theme font (Bahnschrift)". The list opens at once
+  even with hundreds of fonts installed.
+- **Tap views no longer pile up in the designer.** A card's other views (the
+  ones a tap switches to) used to show faded on top of the view in front. Now
+  only the view you're on shows; Next in Properties steps through the rest.
+- **An About card in Settings:** the version, and links to the user guide,
+  what's new, reporting a problem, and credits and license.
+- **Settings line up:** the unit choices sit on the right like every other
+  setting, each with a line saying what it changes.
+- **The light designer's Effect and LEDs pickers run full width,** so long
+  choices such as "Every LED on shift-light devices" aren't cut off.
+- **Device setup** shows what to type for a WLED address, and "LED #n didn't
+  light up" now looks like the link it is.
+- **The formula reference's search box** says what you can search for.
+- US English everywhere: "around", "color theme", "parentheses", and
+  pressures in bar or psi.
+
 ## 3.70 · 2026-10-16
 
 - **Every button has a name** screen readers and Windows automation can read:

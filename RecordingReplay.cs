@@ -178,7 +178,7 @@ namespace AlmostFastOverlays
                 report.AppendLine(string.Format(CultureInfo.InvariantCulture, "  at the end: oil {0:0.0} C {1:0.00} bar, water {2:0.0} C, fuel pressure {3:0.00} bar, {4:0.0} V, DRS {5}, tank {6:0.0} L, {7} sectors",
                     final.OilTempC, final.OilPressureBar, final.WaterTempC, final.FuelPressureBar, final.Voltage, final.DrsState, final.FuelCapacityLiters, final.SectorCount));
                 foreach (TyreCorner t in final.Tyres)
-                    report.AppendLine(string.Format(CultureInfo.InvariantCulture, "  tyre {0}: {1:0}/{2:0}/{3:0} C (outer/middle/inner), wear {4:0.00}, {5:0} kPa", t.Name, t.TempOuter, t.TempMiddle, t.TempInner, t.Wear, t.PressureKpa));
+                    report.AppendLine(string.Format(CultureInfo.InvariantCulture, "  tire {0}: {1:0}/{2:0}/{3:0} C (outer/middle/inner), wear {4:0.00}, {5:0} kPa", t.Name, t.TempOuter, t.TempMiddle, t.TempInner, t.Wear, t.PressureKpa));
                 foreach (StandingsEntry r in final.Standings.Take(6))
                     report.AppendLine(string.Format(CultureInfo.InvariantCulture, "  P{0} #{1} {2} ({3}) best {4} last {5} gap {6}", r.Position, r.CarNumber, r.Name, r.ClassName, Fmt.LapTime(r.BestLap), Fmt.LapTime(r.LastLap), RaceFields.GapText(r)));
             }

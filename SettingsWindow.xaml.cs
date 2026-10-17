@@ -81,6 +81,7 @@ namespace AlmostFastOverlays
 
             Version version = Assembly.GetExecutingAssembly().GetName().Version;
             VersionText.Text = $"Version {version.Major}.{version.Minor} · Changes save automatically";
+            AboutVersion.Text = $"Almost Fast Dash {version.Major}.{version.Minor}";
             SettingsPathText.Text = SettingsStore.FilePath;
             Loaded += (s, e) => CheckForUpdate();
             Closing += (s, e) => { FlushSave(); _ledTimer.Stop(); _statusTimer.Stop(); _mirror.Dispose(); PreviewRequest.Clear(); StopLivePreview(); };
@@ -480,7 +481,7 @@ namespace AlmostFastOverlays
             BlinkLengthValue.Text = length + " ms";
             HoldValue.Text = hold == 0 ? "Off" : (hold / 1000.0).ToString("0.##") + " s";
             double total = (count * length * 2 + hold) / 1000.0;
-            AlertSummary.Text = $"A green, yellow or white flag fills the screen for about {total:0.#} seconds, steady while the lights flash, then the dashboard returns. A caution or final lap keeps a frame round it.";
+            AlertSummary.Text = $"A green, yellow or white flag fills the screen for about {total:0.#} seconds, steady while the lights flash, then the dashboard returns. A caution or final lap keeps a frame around it.";
         }
 
         private void AssignmentChanged(object sender, RoutedEventArgs e)
@@ -891,6 +892,13 @@ namespace AlmostFastOverlays
             string logs = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs");
             Directory.CreateDirectory(logs);
             Process.Start("explorer.exe", "\"" + logs + "\"");
+        }
+
+        /// <summary>About's links (the guide, what's new, reporting a problem, credits) open in the browser.</summary>
+        private void AboutLink_Click(object sender, RoutedEventArgs e)
+        {
+            if (!((sender as FrameworkElement)?.Tag is string url)) return;
+            try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); } catch { }
         }
 
         private void OpenSettingsFolder_Click(object sender, RoutedEventArgs e)

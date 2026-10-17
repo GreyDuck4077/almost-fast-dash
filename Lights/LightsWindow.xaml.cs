@@ -631,6 +631,15 @@ namespace AlmostFastOverlays
             return row;
         }
 
+        /// <summary>A label over a full-width editor, for pickers whose choices have long names.</summary>
+        private StackPanel Stacked(string label, FrameworkElement editor, double top = 3)
+        {
+            var row = new StackPanel { Margin = new Thickness(0, top, 0, 3) };
+            row.Children.Add(new TextBlock { Text = label, Foreground = (Brush)FindResource("Brush.TextSecondary"), Margin = new Thickness(0, 0, 0, 4) });
+            row.Children.Add(editor);
+            return row;
+        }
+
         private void RefreshInspector()
         {
             Inspector.Children.Clear();
@@ -663,7 +672,7 @@ namespace AlmostFastOverlays
                 RefreshLayers();
                 RefreshInspector();
             };
-            Inspector.Children.Add(Row("Effect", effectCombo));
+            Inspector.Children.Add(Stacked("Effect", effectCombo));
             Inspector.Children.Add(Caption(effect.Description, 0));
             List<LedTarget> targets = LedTargets.For(Devices);
             List<object> targetItems = TargetItems(targets, layer.Target);
@@ -677,7 +686,7 @@ namespace AlmostFastOverlays
                 RefreshLayers();
                 RefreshInspector();
             };
-            Inspector.Children.Add(Row("LEDs", targetCombo));
+            Inspector.Children.Add(Stacked("LEDs", targetCombo, 12));
             Inspector.Children.Add(Caption(targets.FirstOrDefault(x => x.Id == layer.Target)?.Description ?? "Aimed at a device or group that isn't set up right now.", 0));
 
             Inspector.Children.Add(Section("When and how"));

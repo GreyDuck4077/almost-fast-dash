@@ -274,6 +274,14 @@ namespace AlmostFastOverlays
         public bool GhostHidden { get; set; }
         private const double GhostOpacity = 0.28;
 
+        /// <summary>
+        /// Whether a widget hidden by this Show when shows as a ghost in the designer. A tap view's widgets don't: they're
+        /// the panel's other faces, flipped through with Next in Properties, and would crowd the view that's showing.
+        /// </summary>
+        internal bool Ghosts(string visible) => GhostHidden && !IsTapView(visible);
+
+        internal static bool IsTapView(string visible) => visible != null && visible.IndexOf("tap(", StringComparison.OrdinalIgnoreCase) >= 0;
+
         /// <summary>Widgets that show nothing at quiet moments: no flag out, no car alongside.</summary>
         internal static bool Idle(string type, WidgetContext c)
         {
@@ -787,7 +795,7 @@ namespace AlmostFastOverlays
                 // A hidden widget draws nothing, whatever its other values do (in the designer, a faint ghost of itself).
                 string visible = widget.Get("visible", "");
                 bool hidden = !string.IsNullOrWhiteSpace(visible) && !Expr.Bool(Expr.Evaluate(Strip(visible), scope));
-                if (hidden && !GhostHidden) return 1;
+                if (hidden && !Ghosts(visible)) return 1;
                 int hash = hidden ? 23 : 17;
                 foreach (PropDef prop in type.Props)
                 {
@@ -953,7 +961,7 @@ namespace AlmostFastOverlays
             bool ghost = false;
             if (!string.IsNullOrWhiteSpace(visible) && !Expr.Bool(Expr.Evaluate(Strip(visible), scope)))
             {
-                if (!GhostHidden) return;
+                if (!Ghosts(visible)) return;
                 ghost = true;
             }
             // In the designer, a widget with nothing to show right now (no flag out, no car alongside) shows a ghost

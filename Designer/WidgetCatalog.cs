@@ -499,7 +499,7 @@ namespace AlmostFastOverlays
                     Help = "A soft halo around the whole widget. (A gauge's own Glow lights only its lit parts.)" });
                 type.Props.Add(new PropDef { Key = "fxGlowColor", Label = "Glow color", Kind = PropKind.Color, Default = "accent", Group = "Style" });
                 type.Props.Add(new PropDef { Key = "fxFade", Label = "Fade", Kind = PropKind.Choice, Default = "None", Group = "Style", Choices = LayerStyle.FadeModes,
-                    Help = "Fades the widget out toward an edge, the sides, the edges or all round, like a gradient mask." });
+                    Help = "Fades the widget out toward an edge, the sides, the edges or all around, like a gradient mask." });
                 type.Props.Add(new PropDef { Key = "fxFadeLength", Label = "Fade length %", Kind = PropKind.Number, Default = "35", Group = "Style", Min = 2, Max = 100 });
                 type.Props.Add(new PropDef { Key = "fxBlend", Label = "Blend", Kind = PropKind.Choice, Default = "Normal", Group = "Style", Choices = LayerStyle.BlendModes,
                     Help = "How it mixes with what's beneath: Screen and Add brighten, for light and glows; Multiply darkens, for shade; Overlay adds contrast." });

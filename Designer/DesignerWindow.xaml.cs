@@ -232,7 +232,7 @@ namespace AlmostFastOverlays
                 if (w.Hidden) continue;
                 EvalScope own = LayoutRenderer.ForWidget(scope, w);
                 string visible = w.Get("visible", "");
-                if (!string.IsNullOrWhiteSpace(visible) && !Expr.Bool(Expr.Evaluate(LayoutRenderer.Strip(visible), own)))
+                if (!string.IsNullOrWhiteSpace(visible) && !LayoutRenderer.IsTapView(visible) && !Expr.Bool(Expr.Evaluate(LayoutRenderer.Strip(visible), own)))
                 {
                     string condition = LayoutRenderer.Strip(visible).Trim();
                     if (condition.Length > 46) condition = condition.Substring(0, 44).TrimEnd() + "…";
@@ -1879,7 +1879,7 @@ namespace AlmostFastOverlays
                     // Properties scrolled to the placed module's colors.
                     Dispatcher.BeginInvoke(new Action(() =>
                     {
-                        TextBlock colors = Inspector.Children.OfType<TextBlock>().FirstOrDefault(t => t.Text == "COLOURS");
+                        TextBlock colors = Inspector.Children.OfType<TextBlock>().FirstOrDefault(t => t.Text == "COLORS");
                         if (colors != null) InspectorScroller.ScrollToVerticalOffset(colors.TranslatePoint(new Point(0, 0), Inspector).Y - 120);
                     }), System.Windows.Threading.DispatcherPriority.ContextIdle);
                 }

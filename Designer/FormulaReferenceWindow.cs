@@ -147,7 +147,18 @@ namespace AlmostFastOverlays
             heading.Children.Add(new TextBlock { Text = "Everything ƒx can use. Keep it open while you build.", Style = Res<Style>("T.Caption"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 10) });
             _search.ToolTip = "Search every field, function and example";
             _search.TextChanged += (s, e) => Filter();
-            heading.Children.Add(_search);
+            // What to search for, until something's typed (Ctrl+F comes back here).
+            var hint = new TextBlock
+            {
+                Text = "Search: fuel, gap, color…  (Ctrl+F)", IsHitTestVisible = false, Margin = new Thickness(12, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center,
+                Foreground = (Brush)FindResource("Brush.TextTertiary")
+            };
+            _search.TextChanged += (s, e) => hint.Visibility = _search.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
+            var searchHost = new Grid { Margin = _search.Margin };
+            _search.Margin = new Thickness(0);
+            searchHost.Children.Add(_search);
+            searchHost.Children.Add(hint);
+            heading.Children.Add(searchHost);
             DockPanel.SetDock(heading, Dock.Top);
             side.Children.Add(heading);
             side.Children.Add(new ScrollViewer { Content = _nav, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });
@@ -208,7 +219,7 @@ namespace AlmostFastOverlays
             Item("==  !=  <  >  <=  >=", "Compare. Text compares without caring about capitals. A single = works like ==.", "Gear == 1");
             Item("and  or  not", "Combine conditions; && || and ! work too.", "OnPitRoad and not PitLimiter");
             Item("condition ? a : b", "Chooses a or b. Chain them for more than two choices.", "Delta < 0 ? $good : Delta > 0 ? $bad : $text");
-            Item("( )", "Brackets work first.", "(LapsRemaining + 1) * FuelPerLap");
+            Item("( )", "Parentheses work first.", "(LapsRemaining + 1) * FuelPerLap");
             Prose("Order, first to last: not and minus signs, then * / %, then + -, then < > <= >=, then == !=, then and, then or, then ? :. " +
                   "Use brackets whenever it isn't obvious.");
             Prose("Common mistakes: text needs quotes (\"PIT\", not PIT); a function needs brackets even with nothing in them; " +

@@ -53,7 +53,7 @@ Windows** starts it when you sign in.
 A flag fills the screen as it comes out (the screen stays steady while the
 lights flash), then hands the dashboard back. While a flag stays out (a
 caution, the final lap, black, repairs or blue), a glow in its color runs
-round the edge of the screen with a tab that names it. Red and checkered keep
+around the edge of the screen with a tab that names it. Red and checkered keep
 the whole screen. The checkered flag shows your result: position, class, best
 lap and places gained.
 
@@ -285,7 +285,7 @@ The workspace is laid out like an image editor:
   copies of the selection, shown on the canvas as you set them up:
   - **Rows and columns:** how many across and down, and the gap between them.
   - **Around a circle:** how many in all, the angle they cover (360 all the
-    way round, 180 half, negative goes anticlockwise), the radius, and where
+    way around, 180 half, negative goes counterclockwise), the radius, and where
     the original sits (-90 the top, 0 the right). Copies either **follow the
     circle**, turning like a dial's ticks, or **keep upright**, like its
     numbers, and can take an **extra turn** each for a twisting ring.
