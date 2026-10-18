@@ -55,6 +55,7 @@ namespace AlmostFastDash.Designer
             CheckTrustworthyNumbers();
             CheckInstrumentFinish();
             CheckRadarAndTraffic();
+            CheckRadarSides();
             CheckDashboardOnPc();
             CheckToolRail();
             CheckDrawing();

@@ -189,6 +189,20 @@ namespace AlmostFastDash.Designer
             }
         }
 
+        /// <summary>
+        /// Checks: which side the radar draws cars on in pack racing, played through it with known lanes (RadarScenarios).
+        /// Where nothing iRacing sends can tell, the result is only reported.
+        /// </summary>
+        private void CheckRadarSides()
+        {
+            foreach (AlmostFastDash.Checks.RadarScenarios.Result r in AlmostFastDash.Checks.RadarScenarios.Run())
+            {
+                string share = (r.WrongShare * 100).ToString("0.0") + "% of frames on the wrong side";
+                if (!r.Knowable) _report.Add("INFO  radar sides, can't be known: " + r.Name + ": " + share);
+                else Check("radar sides: " + r.Name, r.WrongShare <= r.MaxWrong, share + (r.FirstWrong.Length > 0 ? "; first " + r.FirstWrong : ""));
+            }
+        }
+
         /// <summary>Checks: radar and traffic.</summary>
         private void CheckRadarAndTraffic()
         {

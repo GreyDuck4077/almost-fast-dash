@@ -26,6 +26,12 @@ namespace AlmostFastDash.CommandLine
 #if CHECKS
             string selfTestReport = ParseOption(args, "--designer-selftest");
             if (selfTestReport != null) return Checks.CheckRunner.Run(selfTestReport);
+            string radarReport = ParseOption(args, "--radar-scenarios");
+            if (radarReport != null)
+            {
+                File.WriteAllText(radarReport, Checks.RadarScenarios.Report(Checks.RadarScenarios.Run()));
+                return 0;
+            }
 #endif
             string soakPort = ParseOption(args, "--led-soak");
             if (soakPort != null) return LedSoak.Run(soakPort, int.TryParse(ParseOption(args, soakPort), out int soakLeds) ? soakLeds : 16,

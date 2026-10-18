@@ -21,10 +21,25 @@ namespace AlmostFastDash.Runner
         {
             _enabled = enabled;
             _directory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs");
-            if (_enabled) OpenNewFile();
         }
 
         public string DirectoryPath => _enabled ? _directory : null;
+
+        /// <summary>Where the radar last drew the cars near you, written with each line of the radar log.</summary>
+        private string _radarCars = "";
+
+        /// <summary>
+        /// Notes where the radar placed the cars within 25 metres: number, metres ahead (+) or behind (-), the lane it's
+        /// drawn in (-1 left, 0 in line, 1 right) and A when the spotter has it alongside. "#12@-7.1:0.0;#5@-7.4:1.0A".
+        /// </summary>
+        public void NoteRadarCars(RadarCar[] cars)
+        {
+            if (!_enabled) return;
+            _radarCars = string.Join(";", (cars ?? new RadarCar[0]).Where(c => Math.Abs(c.Meters) <= 25).Select(c =>
+                "#" + (string.IsNullOrEmpty(c.Number) ? "idx" + c.CarIdx.ToString(CultureInfo.InvariantCulture) : c.Number) + "@" +
+                c.Meters.ToString("0.0", CultureInfo.InvariantCulture) + ":" + c.Lane.ToString("0.0", CultureInfo.InvariantCulture) +
+                (c.Alongside ? "A" : "")));
+        }
 
         public void RecordRadar(
             int rawLeftRight,
@@ -37,7 +52,9 @@ namespace AlmostFastDash.Runner
             if ((now - _lastWriteUtc).TotalMilliseconds < 100) return;
             _lastWriteUtc = now;
 
-            if (_writer.BaseStream.Length >= MaximumFileBytes) OpenNewFile();
+            // A file is started only once there's something to write, so starts without a session don't push out
+            // the logs of a race.
+            if (_writer == null || _writer.BaseStream.Length >= MaximumFileBytes) OpenNewFile();
             _writer.Write(now.ToString("O", CultureInfo.InvariantCulture));
             _writer.Write(',');
             _writer.Write(rawLeftRight.ToString(CultureInfo.InvariantCulture));
@@ -47,7 +64,9 @@ namespace AlmostFastDash.Runner
             _writer.Write(',');
             _writer.Write(left);
             _writer.Write(',');
-            _writer.WriteLine(right);
+            _writer.Write(right);
+            _writer.Write(',');
+            _writer.WriteLine(_radarCars);
             if ((now - _lastFlushUtc).TotalSeconds >= 1)
             {
                 _writer.Flush();
@@ -94,7 +113,7 @@ namespace AlmostFastDash.Runner
             Directory.CreateDirectory(_directory);
             string path = Path.Combine(_directory, "radar-" + DateTime.Now.ToString("yyyyMMdd-HHmmssfff") + ".csv");
             _writer = new StreamWriter(path, false) { AutoFlush = false };
-            _writer.WriteLine("timestamp_utc,car_left_right,nearest_delta_lap_pct,left_led_zone,right_led_zone");
+            _writer.WriteLine("timestamp_utc,car_left_right,nearest_delta_lap_pct,left_led_zone,right_led_zone,radar_cars");
             _lastFlushUtc = DateTime.UtcNow;
             PruneOldFiles("radar-*.csv");
         }

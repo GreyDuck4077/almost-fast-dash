@@ -181,7 +181,8 @@ and `release-check.ps1` the whole pre-release check.
 
 The end-to-end checks drive the real app: they build every template and draw
 it in every state, compare redrawing only what changed with a full redraw, step
-flags through their timeline, edit designs through the designer's own commands
+flags through their timeline, play pack racing through the radar with
+known lanes and count the cars it draws on the wrong side, edit designs through the designer's own commands
 (draw, mask, group, repeat, undo), save and reload, and run the light layers.
 Each one prints PASS or FAIL with what it found.
 

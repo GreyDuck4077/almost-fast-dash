@@ -5,6 +5,25 @@ English. Every version is on the
 [releases page](https://github.com/Sota4077/almost-fast-dash/releases) with
 its exe and checksum.
 
+## 3.74 · 2026-10-18
+
+The radar puts cars behind you on the right side more often.
+
+- **A car the spotter saw beside you remembers which side it was on.** When it
+  drops back and your follower pulls level with it, it goes back to that side
+  instead of the radar guessing, which used to swap the two.
+- **A car on your bumper stays in your lane.** A follower bump drafting, or
+  two cars nose to tail behind you, could read a little under a car length
+  apart and be drawn beside you or each other for 15 seconds.
+- **The spotter's call goes to the car level with you,** not to one a little
+  further back that was beside you a moment ago.
+- Every one of these is now played through the radar in the automatic checks,
+  with known lanes. Where nothing iRacing sends can tell a car's side (two cars
+  arriving level behind you, neither ever beside you), it's still a guess.
+- **The radar log records where it drew each car,** and a log is started only
+  once there's something to write, so the logs of a race aren't pushed out by
+  starts without one. Turn on Diagnostic logs in Settings to keep them.
+
 ## 3.73 · 2026-10-18
 
 The code, reorganized so anyone can find their way around it. The app works

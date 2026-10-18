@@ -27,6 +27,7 @@ namespace AlmostFastDash.IRacing
                 car.PaceCar = pace.Contains(car.CarIdx);
             });
             s.Radar = _radar.Cars;
+            _diagnostics?.NoteRadarCars(_radar.Cars);
             s.AheadMeters = _radar.AheadMeters;
             s.BehindMeters = _radar.BehindMeters;
             s.AheadClosing = _radar.AheadClosing;

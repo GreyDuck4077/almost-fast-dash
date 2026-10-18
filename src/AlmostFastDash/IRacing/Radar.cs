@@ -28,14 +28,18 @@ namespace AlmostFastDash.IRacing
     /// Builds the radar from iRacing's data. How far each car is ahead or behind comes from every car's
     /// position round the lap, so it is exact. iRacing doesn't say where the others are across the track, so
     /// lanes are worked out from what is certain:
-    /// - The spotter says how many cars are alongside on each side. Those are matched to the nearest cars,
-    ///   and a car keeps the side it was given while it stays alongside.
+    /// - The spotter says how many cars are alongside on each side. Those are matched to the cars level with
+    ///   you (they can't be in your lane), else the nearest cars, and a car keeps the side it was given while it
+    ///   stays alongside. Each car remembers the side the spotter last saw it on, for 90 seconds.
     /// - Two cars less than a car length apart along the track can't be in the same lane. So a row of cars
-    ///   (a two-by-two formation, a pack two or three wide) is spread across lanes. The other line goes on
-    ///   the side the spotter last saw a car beside you, or straddles your lane when that's not known.
+    ///   (a two-by-two formation, a pack two or three wide) is spread across lanes. Of two level cars, the one
+    ///   the spotter saw beside you earlier is the one out of line, on the side it was seen; otherwise the one
+    ///   that was nearer stays in line. The other line goes on the side the spotter last saw a car beside you,
+    ///   or straddles your lane when that's not known.
     /// - A car keeps its lane while that evidence lasts, and afterwards for 15 seconds while it's within
     ///   three car lengths of you (your bubble) or 6 seconds further off. Then it drifts into line with
     ///   you, which is where a car is drawn when nothing says otherwise.
+    /// Checks\RadarScenarios.cs plays pack racing through this with known lanes and counts its mistakes.
     /// </summary>
     internal sealed class RadarTracker
     {
@@ -45,11 +49,19 @@ namespace AlmostFastDash.IRacing
         public const double Reach = 80;
         /// <summary>Two cars closer than this along the track (middle to middle) must be side by side.</summary>
         public const double Overlap = 4.6;
+        /// <summary>A car this close along the track (middle to middle) is level with you: closer than a car in your lane
+        /// can get, even bumper to bumper with positions a little rough.</summary>
+        private const double Level = 3.0;
+        /// <summary>Two cars this close along the track push one out of line; once out, it stays out while they're within
+        /// <see cref="Overlap"/>. A car glued to another's bumper reads about a car length apart, sometimes a little less.</summary>
+        private const double PushOut = 4.0;
         private const double AlongsideWindow = 7.5, LaneHold = 6.0, LaneSpeed = 3.0, ClosingSmoothing = 0.5;
         /// <summary>Your bubble: cars this close (three car lengths) keep their lane for <see cref="BubbleHold"/> seconds.</summary>
         private const double Bubble = 15, BubbleHold = 15;
         /// <summary>How long the side the other line is on is remembered after the spotter last saw a car beside you.</summary>
         private const double LineMemory = 90;
+        /// <summary>How long the side the spotter last saw a car on settles which of two level cars is in your lane.</summary>
+        private const double SideMemory = 90;
 
         private sealed class Seen
         {
@@ -58,6 +70,9 @@ namespace AlmostFastDash.IRacing
             public int Side;
             public float Lane;
             public bool Updated;
+            /// <summary>The side the spotter last had this car beside you on (0 never), and when.</summary>
+            public int Spotted;
+            public double SpottedTime = double.NegativeInfinity;
         }
 
         private readonly Dictionary<int, Seen> _seen = new Dictionary<int, Seen>();
@@ -140,6 +155,10 @@ namespace AlmostFastDash.IRacing
             else if (time - _otherLineTime > LineMemory) _otherLine = 0;
             var candidates = near.Where(p => Math.Abs(p.Value) <= AlongsideWindow).OrderBy(p => Math.Abs(p.Value)).Select(p => p.Key)
                 .ToList();
+            // Cars level with you can't be in your lane: when they're enough to explain the spotter, it's them beside you,
+            // even if a car a little further back was beside you a moment ago.
+            List<int> level = candidates.Where(i => Math.Abs(_seen[i].Meters) < Level).ToList();
+            if (level.Count > 0 && level.Count >= wantLeft + wantRight) candidates = level;
             var left = new List<int>();
             var right = new List<int>();
             // Your bubble: a car within three car lengths keeps its lane far longer than one further off.
@@ -163,29 +182,40 @@ namespace AlmostFastDash.IRacing
             for (int k = 0; k < left.Count; k++) alongside[left[k]] = -1 - k;
             for (int k = 0; k < right.Count; k++) alongside[right[k]] = 1 + k;
 
-            // 2. Every other car, nearest first, goes in a lane no car within a car length of it is in: the lane it
-            // had while the evidence for it lasts, else in line with you, else the other line's side.
+            // 2. Every other car goes in a lane no car within a car length of it is in: the lane it had while the evidence
+            // for it lasts, else in line with you, else out of line. Cars holding a lane go first, then cars the spotter
+            // hasn't seen beside you, nearest first, then the ones it has. So of two cars level behind you, the one seen
+            // on a side earlier is the one that leaves your lane, and it goes back to that side.
             var along = near.ToDictionary(p => p.Key, p => p.Value);
-            var placed = new List<KeyValuePair<double, int>> { new KeyValuePair<double, int>(0, 0) };
-            foreach (KeyValuePair<int, int> a in alongside) placed.Add(new KeyValuePair<double, int>(along[a.Key], a.Value));
+            // Where each placed car is, its lane, and whether it's you.
+            var placed = new List<(double At, int Lane, bool You)> { (0, 0, true) };
+            foreach (KeyValuePair<int, int> a in alongside) placed.Add((along[a.Key], a.Value, false));
             int line = _otherLine != 0 ? _otherLine : 1;
             var lanes = new Dictionary<int, int>(alongside);
-            foreach (KeyValuePair<int, double> p in near.Where(p => !alongside.ContainsKey(p.Key)).OrderBy(p => Math.Abs(p.Value)))
+            int Spotted(Seen s) => time - s.SpottedTime < SideMemory ? s.Spotted : 0;
+            var order = near.Where(p => !alongside.ContainsKey(p.Key))
+                .OrderBy(p => _seen[p.Key].Side != 0 && Recent(_seen[p.Key]) ? 0 : Spotted(_seen[p.Key]) == 0 ? 1 : 2)
+                .ThenBy(p => Math.Abs(p.Value))
+                .ToList();
+            foreach (KeyValuePair<int, double> p in order)
             {
                 Seen s = _seen[p.Key];
                 double at = p.Value;
-                bool Free(int lane) => !placed.Any(q => q.Value == lane && Math.Abs(q.Key - at) < Overlap);
+                // A car can be right behind you in your lane (the spotter says when one's beside you), and nose to tail with
+                // another; it's pushed out of a lane only by a car it clearly overlaps.
+                bool Free(int lane) => !placed.Any(q => q.Lane == lane && Math.Abs(q.At - at) < (q.You ? Level : lane == 0 ? PushOut : Overlap));
                 int chosen;
                 if (s.Side != 0 && Recent(s) && Free(s.Side)) chosen = s.Side;
                 else if (Free(0)) chosen = 0;
                 else
                 {
-                    // Too close to a car in your lane to be in it: fresh evidence it's in the other line.
-                    chosen = new[] { line, -line, 2 * line, -2 * line }.FirstOrDefault(Free);
+                    // Too close to a car in your lane to be in it: fresh evidence it's out of line, on the side the spotter
+                    // last saw it, or the other line's.
+                    chosen = new[] { Spotted(s), line, -line, 2 * line, -2 * line }.FirstOrDefault(lane => lane != 0 && Free(lane));
                     if (chosen != 0) s.LaneTime = time;
                 }
                 lanes[p.Key] = chosen;
-                placed.Add(new KeyValuePair<double, int>(at, chosen));
+                placed.Add((at, chosen, false));
             }
 
             // A car out of line that is still level with a car in your lane (or with you) keeps its evidence fresh.
@@ -196,8 +226,8 @@ namespace AlmostFastDash.IRacing
                 List<int> partners = lanes.Keys.Where(k => lanes[k] == 0 && !alongside.ContainsKey(k) &&
                     Math.Abs(along[k] - along[car]) < Overlap)
                     .ToList();
-                if (partners.Count > 0 || Math.Abs(along[car]) < Overlap) _seen[car].LaneTime = time;
-                if (_otherLine != 0 || Math.Abs(lanes[car]) != 1) continue;
+                if (partners.Count > 0 || Math.Abs(along[car]) < Level) _seen[car].LaneTime = time;
+                if (_otherLine != 0 || Math.Abs(lanes[car]) != 1 || Spotted(_seen[car]) == lanes[car]) continue;
                 foreach (int partner in partners)
                 {
                     drawn[car] = lanes[car] * 0.5f;
@@ -216,6 +246,8 @@ namespace AlmostFastDash.IRacing
                     s.Side = side;
                     s.LaneTime = time;
                     s.Lane = side;
+                    s.Spotted = side;
+                    s.SpottedTime = time;
                 }
                 else
                 {
