@@ -300,8 +300,8 @@ dashboard does behind the main figures:
 
 - **[User guide](docs/guide.md)**: dashboards, devices, the designer, light
   profiles and settings.
-- **[Development](docs/development.md)**: building, the project layout, the
-  automatic checks and the command line.
+- **[Development](docs/development.md)**: building, how the code fits together,
+  the automatic checks and the command line.
 - **[Credits](CREDITS.md)**: whose published work this builds on, and how.
 
 ## Building
@@ -309,11 +309,13 @@ dashboard does behind the main figures:
 You need the .NET SDK. The app it builds needs only Windows 10 or 11.
 
 ```powershell
-dotnet build -c Release
+dotnet build src/AlmostFastDash -c Release
 ```
 
-The result is `bin\Release\net48\AlmostFastDash.exe`: the whole application in
-one file. See [Development](docs/development.md) for the rest.
+The result is `src\AlmostFastDash\bin\Release\net48\AlmostFastDash.exe`: the
+whole application in one file. `dotnet test` runs every end-to-end check. See
+[Development](docs/development.md) for how the code is laid out and fits
+together.
 
 ## License
 

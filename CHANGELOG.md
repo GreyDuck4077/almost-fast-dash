@@ -5,6 +5,29 @@ English. Every version is on the
 [releases page](https://github.com/Sota4077/almost-fast-dash/releases) with
 its exe and checksum.
 
+## 3.73 · 2026-10-18
+
+The code, reorganized so anyone can find their way around it. The app works
+exactly as before: every check passes, and dashboards, flags, lights and a race
+replay come out identical to 3.72.
+
+- **A conventional layout:** `src/AlmostFastDash` for the app and
+  `tests/AlmostFastDash.Tests` for its checks, with a solution file. The app
+  has a folder and namespace for each part (iRacing, formulas, dashboards,
+  rendering, output, devices, lights, designer, UI, settings, the dashboard
+  loop and the command-line tools).
+- **No more giant files.** The biggest classes are split into files named for
+  what they hold, every template has its own file, and long methods such as
+  the one that reads each sample from iRacing read as their steps. The main
+  window's class is now called MainWindow.
+- **`dotnet test` runs the end-to-end checks,** one test per check, and GitHub
+  runs them on every change. The checks are no longer inside the exe you
+  download, which is 129 KB smaller.
+- **Lines are at most 140 characters,** unused `using` lines are gone, and the
+  developer guide explains how the parts fit together.
+- What's new no longer comes back after an update that has nothing new to
+  show, such as this one.
+
 ## 3.72 · 2026-10-17
 
 Says less, everywhere.

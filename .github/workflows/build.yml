@@ -1,0 +1,26 @@
+# Builds the app and runs every end-to-end check on each push and pull request.
+# The checks draw dashboards and open the designer off screen, so they need Windows.
+name: Build and check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the app
+        run: dotnet build src/AlmostFastDash/AlmostFastDash.csproj -c Release
+
+      - name: Run the end-to-end checks
+        run: dotnet test tests/AlmostFastDash.Tests/AlmostFastDash.Tests.csproj -c Release --logger "console;verbosity=normal"
+
+      - name: Keep the exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: AlmostFastDash
+          path: src/AlmostFastDash/bin/Release/net48/AlmostFastDash.exe

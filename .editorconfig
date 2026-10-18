@@ -11,9 +11,13 @@ trim_trailing_whitespace = true
 [*.md]
 trim_trailing_whitespace = false
 
+[*.cs]
+# Lines stay within 140 characters; braces go on their own lines.
+max_line_length = 140
+csharp_new_line_before_open_brace = all
+
 # Code tidiness the editor flags as you type (and a build with -p:EnforceCodeStyleInBuild=true reports):
 # usings, members, parameters and assignments nothing uses, and fields that are never reassigned.
-[*.cs]
 dotnet_diagnostic.IDE0005.severity = warning
 dotnet_diagnostic.IDE0044.severity = warning
 dotnet_diagnostic.IDE0051.severity = warning

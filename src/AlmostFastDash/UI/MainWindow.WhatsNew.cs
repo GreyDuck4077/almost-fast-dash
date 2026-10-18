@@ -11,7 +11,7 @@ namespace AlmostFastDash.UI
         /// <summary>After an update, the Dashboards page says once what's new; "Got it" puts it away until the next one.</summary>
         private void RefreshWhatsNew()
         {
-            bool show = !_settings.General.ShowWelcome && _settings.General.SeenVersion != WhatsNew.Version &&
+            bool show = !_settings.General.ShowWelcome && WhatsNew.IsNewTo(_settings.General.SeenVersion) &&
                 WhatsNew.Highlights.Length > 0;
             if (!show)
             {

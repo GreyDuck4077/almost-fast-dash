@@ -14,7 +14,7 @@
     <UseWPF>true</UseWPF>
     <AssemblyName>AlmostFastDash</AssemblyName>
     <Product>Almost Fast Dash</Product>
-    <Version>3.72.0</Version>
+    <Version>3.73.0</Version>
     <RootNamespace>AlmostFastDash</RootNamespace>
     <DebugType>none</DebugType>
     <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
@@ -34,6 +34,11 @@
     <Optimize>true</Optimize>
     <DefineConstants>$(DefineConstants);CHECKS</DefineConstants>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- .NET Framework's reference assemblies, so the app builds without Visual Studio's targeting pack; build time only. -->
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
 
   <ItemGroup>
     <Reference Include="Microsoft.VisualBasic" />

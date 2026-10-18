@@ -134,6 +134,10 @@ namespace AlmostFastDash.Designer
                     fresh.General.ShowWelcome && fresh.General.SeenVersion == WhatsNew.Version &&
                     new GeneralSettings().SeenVersion != WhatsNew.Version && WhatsNew.Highlights.Length > 0,
                     fresh.General.SeenVersion + " / " + WhatsNew.Version);
+                // What's new shows once per set of highlights: not again for a release that has none of its own.
+                Check("What's new shows only highlights someone hasn't seen",
+                    WhatsNew.IsNewTo("") && WhatsNew.IsNewTo("3.71") && !WhatsNew.IsNewTo(WhatsNew.HighlightsVersion) &&
+                    !WhatsNew.IsNewTo(WhatsNew.Version) && !WhatsNew.IsNewTo(fresh.General.SeenVersion));
 
                 // Schema 20: the shipped pit-lane label in US spelling; a label of the user's own stays.
                 var british = new AppSettings { SchemaVersion = 19 };

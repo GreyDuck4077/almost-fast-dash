@@ -4,29 +4,108 @@ How Almost Fast Dash is built, how it's laid out, and how it's checked before
 every release.
 
 - [Building](#building)
-- [Design principles](#design-principles)
+- [How it fits together](#how-it-fits-together)
 - [Project layout](#project-layout)
+- [Design principles](#design-principles)
 - [Automatic checks](#automatic-checks)
 - [Command line](#command-line)
 - [Code style](#code-style)
 
 ## Building
 
-You need the [.NET SDK](https://dotnet.microsoft.com/download). The app it
-builds runs on Windows 10 or 11 with nothing else installed.
+You need the [.NET SDK](https://dotnet.microsoft.com/download) on Windows. The
+app it builds runs on Windows 10 or 11 with nothing else installed.
 
 ```powershell
-dotnet build -c Release
+dotnet build src/AlmostFastDash -c Release
+dotnet test
 ```
 
-`bin\Release\net48\AlmostFastDash.exe` is the whole application: one file,
-targeting .NET Framework 4.8 (part of Windows) and referencing only Windows'
-own assemblies.
+`src\AlmostFastDash\bin\Release\net48\AlmostFastDash.exe` is the whole
+application: one file, targeting .NET Framework 4.8 (part of Windows) and
+referencing only Windows' own assemblies. `dotnet test` builds the app with its
+end-to-end checks and runs them, one test per check. `AlmostFastDash.sln` opens
+both projects in Visual Studio or Rider.
+
+## How it fits together
+
+The one exe is three programs, chosen by the command line in `Program.cs`:
+
+- **The app's window** (no options): `UI\MainWindow`, where dashboards, devices
+  and settings are chosen. It opens the screen designer (`Designer\`) and the
+  light designer (`Lights\LightsWindow`).
+- **The dashboard** (`--run`): `Runner\DashboardRunner`, which runs in the
+  background, started and stopped by the window's start button.
+- **Tools** (`--render-templates`, `--live-check` and the rest):
+  `CommandLine\`, for development and support.
+
+The window and the dashboard are separate processes. They share `settings.json`
+(the window writes it; the dashboard reloads it when it changes) and talk
+through small files next to the exe: `preview.request` (show this preview),
+`screen.status` (how the screen keeps up), `dashboard.running`,
+`dashboard.active` and `dashboard.hidden`.
+
+What the dashboard does, about 60 times a second:
+
+```
+iRacing's shared memory
+  └─ IRacing\IRacingSdk                reads the raw telemetry and session YAML
+      └─ IRacing\IRacingTelemetrySource  turns it into a TelemetrySnapshot: gaps,
+                                         fuel, flags, the race order, the radar
+          ├─ Runner\DashboardRunner      the loop: which dashboard, when to draw
+          │   └─ Rendering\LayoutRenderer   draws the dashboard's DashLayout
+          │       │   (Dashboards\): widgets, each value worked out by a formula
+          │       │   (Formulas\Expr) and painted by Rendering\WidgetPainters
+          │       ├─ Output\ScreenSender    sends the changed areas to the wheel
+          │       │                         screen (Output\WheelScreen, USB)
+          │       └─ Output\MonitorOutput   or shows it on the PC
+          └─ Lights\LightLoop           works out every LED from the dashboard's
+              └─ Devices\LedDeviceLink  light layers and sends them to each device
+```
+
+Good places to start reading:
+
+- `TelemetrySnapshot` (`IRacing\`): everything a dashboard can show.
+- `DashLayout` and `WidgetCatalog` (`Dashboards\`): what a dashboard is made
+  of, and every widget with its settings.
+- `LayoutRenderer.Render` (`Rendering\`): how a frame is drawn, and
+  `LayoutRenderer.Changes.cs` for how only what changed is redrawn.
+- `DataCatalog` and `Functions` (`Formulas\`): every value and function a
+  formula can use.
+- `Dashboards\Templates\`: the starting dashboards, built with the same calls a
+  user's design is made of.
+
+## Project layout
+
+Everything the app is made of is in `src\AlmostFastDash`, one folder (and
+namespace) per part. `GlobalUsings.cs` opens every part to every file.
+
+| Folder | What's there |
+| --- | --- |
+| `IRacing\` | Reading iRacing: shared memory, the session YAML, `TelemetrySnapshot`, gaps, fuel, laps, the radar's lanes, track maps and the made-up lap previews use. |
+| `Formulas\` | The formula language (`Expr`), its functions, and the live values it can read. |
+| `Dashboards\` | What a dashboard is (`DashLayout`, widgets and their settings), the templates, blocks, modules, the readability audit and export files. |
+| `Rendering\` | Drawing a dashboard: `LayoutRenderer`, the widget painters, fills, layer effects, Liquid Glass, flags and the radar. |
+| `Output\` | Where a frame goes: the wheel screen over USB (`WheelScreen`, `ScreenSender`, `FrameEncoder`) or a window on the PC (`MonitorOutput`). |
+| `Devices\` | LED devices (serial, Adalight, WLED), their shapes and mapping, and wheel buttons. |
+| `Lights\` | Light layers and effects, the LED loop, and the light designer. |
+| `Designer\` | The screen designer window, split by part: `DesignerWindow.Tools.cs`, `.Inspector.cs`, `.Layers.cs` and so on. |
+| `UI\` | The main window (split by page), the device wizard, the look (`Theme.xaml`) and shared window pieces. |
+| `Settings\` | `settings.json`: what's in it, saving with backups, and upgrading settings from earlier versions. |
+| `Runner\` | The dashboard's loop, its precise timer, previews and diagnostic logs. |
+| `CommandLine\` | The developer and support tools. |
+| `Checks\` | The end-to-end checks, built only into the Checks configuration. |
+
+Outside `src`: `tests\AlmostFastDash.Tests` runs the checks,
+`Firmware\Adalight\` holds a ready-to-flash Arduino sketch, `docs\` the guides,
+and `release-check.ps1` the whole pre-release check.
 
 ## Design principles
 
-- **One standalone exe.** No installer, no NuGet packages and no other
-  software required. Everything uses Windows and .NET Framework 4.8 built-ins:
+- **One standalone exe.** No installer, nothing in the app from NuGet, and no
+  other software required (the build uses Microsoft's reference-assembly
+  package only to compile). Everything uses Windows and .NET Framework 4.8
+  built-ins:
   - WinUSB for the wheel screen;
   - shared memory for iRacing's telemetry;
   - serial ports and UDP for LED devices;
@@ -85,11 +164,11 @@ own assemblies.
     closes when it's Off.
   - Show when: `IRacingTelemetrySource.CarStateOf` reads where the driver is
     from `IsInGarage`, `IsOnTrack`, `IsReplayPlaying` and `CamCarIdx`.
-    `Program.Shown` decides with `GeneralSettings.ShowsAt`. When hidden, the
+    `DashboardRunner.Shown` decides with `GeneralSettings.ShowsAt`. When hidden, the
     loop sends the wheel screen one black frame and draws nothing, and
     `MonitorOutput.Update` hides the window (full screen goes black). The run
     process notes the hidden point in `dashboard.hidden` for the header.
-  - Only the running dashboard writes `dashboard.window`. The settings window
+  - Only the running dashboard writes `dashboard.window`. The main window
     unlocks the overlay by keeping `overlay.unlock` fresh, the way
     `preview.request` works, so the overlay can't be left unlocked.
 - **Readable at a glance.** Text is at least 16 px on an 854×480 screen (14 in
@@ -98,36 +177,35 @@ own assemblies.
 - **Device-agnostic.** Nothing user-facing names a particular wheel or light
   bar. Devices are described by shape, role and protocol.
 
-## Project layout
-
-| Path | What's there |
-| --- | --- |
-| `Program.cs` | Entry point, the command line, and the loop that drives the wheel screen. |
-| `IRacingSdk.cs` | Reads iRacing's shared-memory telemetry and YAML session string. |
-| `IRacingTelemetrySource.cs` | Turns iRacing's data into a `TelemetrySnapshot`: gaps, fuel, the race order, and the preview snapshots. |
-| `Radar.cs` | `RadarTracker`: places nearby cars along the track and works out their lanes. |
-| `WheelScreen.cs` | Drives VoCore's M-PRO screens through WinUSB: every model's size, whole frames and areas, touch. |
-| `ScreenSender.cs`, `FrameEncoder.cs` | Sending to the wheel screen on its own thread: finding what changed, encoding it and reconnecting. |
-| `MonitorOutput.cs`, `WindowPlacement.cs` | The dashboard on the PC: full screen on another display, in a window, or over the game. Also where the window and overlay sit (`dashboard.window`) and the overlay's unlock request (`overlay.unlock`). |
-| `ScreenStats.cs`, `ScreenTest.cs` | The screen's measured performance, and the `--screen-test` pattern. |
-| `LedDevices.cs`, `ArduinoLedController.cs`, `LedLayout.cs` | LED devices: the serial, Adalight and WLED protocols, and each device's shape. |
-| `WheelButtons.cs` | Wheel and button-box buttons through Windows' joystick interface. |
-| `AppSettings.cs` | Settings, schema migrations, and saving with backups. |
-| `SettingsWindow.*`, `Theme.xaml` | The main window and the app's look. |
-| `Designer\` | The dashboard designer, the widget painters, `LayoutRenderer`, the templates (`DesignTemplates.cs`) and the readability audit (`DashboardAudit.cs`). |
-| `Lights\` | Light profiles, effects, themes, the LED loop and the light designer. |
-| `Firmware\Adalight\` | A ready-to-flash Arduino sketch for Adalight strips. |
-| `release-check.ps1` | Builds the app and runs every automatic check. |
-
 ## Automatic checks
 
-`release-check.ps1` builds the app and runs every check on a clean copy:
+The end-to-end checks drive the real app: they build every template and draw
+it in every state, compare redrawing only what changed with a full redraw, step
+flags through their timeline, edit designs through the designer's own commands
+(draw, mask, group, repeat, undo), save and reload, and run the light layers.
+Each one prints PASS or FAIL with what it found.
 
-- the designer and light self-tests, including a readability audit of every
-  template;
-- a render of every template;
-- the light frames;
-- a replay of your latest finished iRacing recording.
+They need the designer's private members, so they're compiled into the app
+itself, in a configuration of its own: `Checks` is Release plus the
+`src\AlmostFastDash\Checks` folder and the `--designer-selftest` option. The
+exe you ship is built without them. `tests\AlmostFastDash.Tests` builds the
+Checks exe, starts it in an empty folder as a first run would, and turns each
+line of its report into a test:
+
+```powershell
+dotnet test
+```
+
+GitHub runs the same build and checks on every push and pull request
+(`.github\workflows\build.yml`).
+
+Before a release, `release-check.ps1` does all of it on a clean copy:
+
+- builds the app;
+- runs the end-to-end checks, including a readability audit of every template;
+- renders every template;
+- writes the light frames;
+- replays your latest finished iRacing recording.
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\release-check.ps1
@@ -150,13 +228,15 @@ the radar can only be checked in a live session with `--live-check`.
 | `--render-templates <folder>` | Saves a picture of every template in each of its states, plus the second views and other screen sizes. |
 | `--render-dashboards <folder>` | Saves a picture of every dashboard in `settings.json`, in each state and on each page. |
 | `--render-flags <folder>` | Saves every flag screen, each flag that stays out stepping aside to its frame, and every dashboard framed for a caution and for the final lap. |
+| `--render-library <folder>` | Saves contact sheets of every Library item and a list of every setting. |
 | `--audit-dashboards <report.txt>` | Checks every template and saved dashboard, as drawn on every screen and tap view, for text that's too small, too faint, runs into other text, reaches past its widget's edge or is taller than its space. Exits with 1 when it finds anything. |
 | `--profile-dashboards <report.txt>` | Times every template and saved dashboard drawing 480 frames of the animated lap, as the wheel draws them. Reports each one's median, mean and slowest frames, and the widgets that took the time. |
 | `--ui-snapshot <scenario> <file.png>` | Opens a window in a scripted state and saves a picture of it. |
 | `--screen-test [report.txt]` | With the dashboard stopped: a test pattern on the wheel screen (a whole frame, numbered squares sent as areas, then a sliding bar sent as whole frames and as only what changed). Reports the screen's model and both frame rates. |
 | `--led-soak <COM port> <LED count> [--fast]` | Streams fast-changing frames to an LED board for 90 seconds and reports whether it kept up. |
 | `--light-frames <report.txt>` | Writes each dashboard's LED colors through a rev sweep and the preview states. |
-| `--designer-selftest <report.txt>` | Runs the end-to-end checks. They write settings next to the exe, so run them from a copy. |
+| `--controllers <report.txt>` | Lists the game controllers Windows sees and the buttons held on each. |
+| `--designer-selftest <report.txt>` | Checks build only: runs the end-to-end checks. They write settings next to the exe, so run them from a copy (`dotnet test` does). |
 
 The render, audit and snapshot options read `settings.json` next to the exe,
 so run them from a scratch copy rather than your real install.
@@ -164,17 +244,31 @@ so run them from a scratch copy rather than your real install.
 ## Code style
 
 `.editorconfig` sets one style for every file: four spaces, Windows line
-endings, UTF-8 and no trailing whitespace. It also flags unused usings,
-members, parameters and assignments, and fields that could be `readonly`.
-Visual Studio and VS Code show these as you type. To check the whole project
-in one go:
+endings, UTF-8, no trailing whitespace, braces on their own lines and lines of
+at most 140 characters. It also flags unused usings, members, parameters and
+assignments, and fields that could be `readonly`. Visual Studio, Rider and VS
+Code show these as you type. To check the whole project in one go:
 
 ```powershell
-dotnet build -c Release -p:EnforceCodeStyleInBuild=true
+dotnet build src/AlmostFastDash -c Release -p:EnforceCodeStyleInBuild=true -p:GenerateDocumentationFile=true
 ```
 
-The compiler reports unused usings only in a build that also generates
-documentation (`-p:GenerateDocumentationFile=true`).
+(The compiler reports unused usings only in a build that also generates
+documentation.)
 
-Write code the way the code around it is written. Comments explain *why*,
-in plain English.
+- **One main type per file**, named after it; small types that only serve it
+  (an enum, a little record) can sit with it. A large class is split into
+  partial files named after the part they hold: `DesignerWindow.Tools.cs`,
+  `LayoutRenderer.Changes.cs`, `MainWindow.Settings.cs`.
+- **A folder per part, and a namespace per folder** (`AlmostFastDash.Rendering`
+  for `Rendering\`). Two kinds of partial file keep their class's namespace in a
+  folder of their own: the checks (`Checks\`) and the templates
+  (`Dashboards\Templates\`).
+- **Comments explain why**, in plain English. Most classes and members have a
+  summary.
+- **Calls that take settings as name and value pairs**, as the templates do,
+  keep each pair on one line.
+- On-screen text is short and in US English. Explanations belong in the
+  [user guide](guide.md), not on the screen.
+
+Write code the way the code around it is written.

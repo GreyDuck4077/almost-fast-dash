@@ -4,6 +4,8 @@ using System.Linq;
 
 namespace AlmostFastDash.Settings
 {
+    // Upgrading settings saved by earlier versions: EnsureBuiltInDashboards runs each step a saved
+    // schema is missing, in order, so any old settings.json comes up to date when it's loaded.
     internal sealed partial class AppSettings
     {
         /// <summary>Makes sure there is at least one dashboard and upgrades settings from earlier versions.</summary>

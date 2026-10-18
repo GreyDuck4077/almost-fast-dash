@@ -8,7 +8,8 @@ page credits them and explains exactly what was used.
 
 ## iRacing SDK
 
-The telemetry reader (`IRacingSdk.cs`) is a new C# implementation of the
+The telemetry reader (`src/AlmostFastDash/IRacing`: `IRacingSdk.cs`, `Telemetry.cs`,
+`SessionData.cs`, `Yaml.cs` and `IRacingEnums.cs`) is a new C# implementation of the
 iRacing SDK's shared-memory telemetry format (`Local\IRSDKMemMapFileName`) and
 its YAML session string. Its flag, engine-warning and spotter definitions (names
 and values, such as `servicible` and `oneLapToGreen`) and the memory layout
@@ -53,7 +54,7 @@ from iRacingSDK.Net is included.
 
 ## VoCore M-PRO screens
 
-The wheel-screen driver (`WheelScreen.cs`) speaks the USB protocol of VoCore's
+The wheel-screen driver (`src/AlmostFastDash/Output/WheelScreen.cs`) speaks the USB protocol of VoCore's
 M-PRO screens (USB C872:1004) through Windows' built-in WinUSB driver.
 
 **How the protocol was worked out.** When the app first drove the screen

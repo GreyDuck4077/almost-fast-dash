@@ -38,7 +38,7 @@
         <Border Background="{StaticResource Brush.Sidebar}" BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,0,1,0">
             <DockPanel Margin="14,20,14,16">
                 <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="8,0,0,26">
-                    <Image Source="Assets/AppIcon.png" Width="40" Height="40" RenderOptions.BitmapScalingMode="HighQuality"/>
+                    <Image Source="pack://application:,,,/AlmostFastDash;component/Assets/AppIcon.png" Width="40" Height="40" RenderOptions.BitmapScalingMode="HighQuality"/>
                     <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
                         <TextBlock Text="Almost Fast Dash" FontFamily="{StaticResource Font.Display}" FontSize="15" FontWeight="SemiBold"/>
                         <TextBlock Text="Sim racing studio" Style="{StaticResource T.Caption}" Margin="0,1,0,0"/>
