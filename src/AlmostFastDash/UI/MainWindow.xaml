@@ -1,4 +1,4 @@
-<Window x:Class="AlmostFastDash.UI.SettingsWindow"
+<Window x:Class="AlmostFastDash.UI.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Almost Fast Dash" Width="1280" Height="840" MinWidth="1100" MinHeight="700"
@@ -109,7 +109,7 @@
                             </Button>
                         </StackPanel>
                     </Border>
-                    <!-- Where the dashboard shows: the wheel screen or the PC, one at a time (SettingsWindow.Screens.cs) -->
+                    <!-- Where the dashboard shows: the wheel screen or the PC, one at a time (MainWindow.Screens.cs) -->
                     <Border Style="{StaticResource RunControl}" Padding="14,4,4,4" Margin="0,11,14,11">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="Show on" FontSize="12" Foreground="{StaticResource Brush.TextSecondary}" VerticalAlignment="Center" Margin="0,0,8,0"/>
@@ -125,7 +125,7 @@
                             </Button>
                         </StackPanel>
                     </Border>
-                    <!-- When it shows: at which points in iRacing; hidden at the others (SettingsWindow.Screens.cs) -->
+                    <!-- When it shows: at which points in iRacing; hidden at the others (MainWindow.Screens.cs) -->
                     <Border Style="{StaticResource RunControl}" Padding="14,4,4,4" Margin="0,11,0,11">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="Show when" FontSize="12" Foreground="{StaticResource Brush.TextSecondary}" VerticalAlignment="Center" Margin="0,0,8,0"/>
@@ -163,7 +163,7 @@
                             </StackPanel>
                         </Button>
                     </Grid>
-                    <!-- A new install's first steps, each with its live state (SettingsWindow.Welcome.cs) -->
+                    <!-- A new install's first steps, each with its live state (MainWindow.Welcome.cs) -->
                     <Border x:Name="WelcomeCard" Style="{StaticResource Card}" Margin="0,0,0,24" Visibility="Collapsed">
                         <StackPanel>
                             <Grid>

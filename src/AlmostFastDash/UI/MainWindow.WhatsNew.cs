@@ -5,7 +5,7 @@ using System.Windows.Media;
 
 namespace AlmostFastDash.UI
 {
-    public partial class SettingsWindow
+    public partial class MainWindow
     {
         private Border _whatsNewCard;
 

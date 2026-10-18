@@ -73,7 +73,7 @@ namespace AlmostFastDash.CommandLine
             }
             else
             {
-                var settingsWindow = new SettingsWindow { Width = 1360, Height = 900, Offline = true };
+                var settingsWindow = new MainWindow { Width = 1360, Height = 900, Offline = true };
                 settingsWindow.Loaded += (s, e) => settingsWindow.Dispatcher.BeginInvoke(new Action(() => settingsWindow.PrepareSnapshot(scenario)), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
                 window = settingsWindow;
             }

@@ -17,7 +17,7 @@ namespace AlmostFastDash.UI
     /// The Devices page: each LED device with its live connection status, a test, its settings and
     /// an on/off switch. Adding a device, or setting up its LEDs again, goes through the device wizard.
     /// </summary>
-    public partial class SettingsWindow
+    public partial class MainWindow
     {
         private bool _deviceBusy;
         private readonly Dictionary<string, Tuple<Ellipse, TextBlock>> _deviceStatus = new Dictionary<string, Tuple<Ellipse, TextBlock>>();

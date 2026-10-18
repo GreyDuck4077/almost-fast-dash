@@ -7,7 +7,7 @@ namespace AlmostFastDash.UI
     /// What a new user needs to know first: the welcome card's three steps (where the dashboard shows: a wheel
     /// screen or the PC; add LED devices; start the dashboard), each with its live state.
     /// </summary>
-    public partial class SettingsWindow
+    public partial class MainWindow
     {
         /// <summary>The welcome card, while it's wanted: each step marked done as it is.</summary>
         private void RefreshWelcome()

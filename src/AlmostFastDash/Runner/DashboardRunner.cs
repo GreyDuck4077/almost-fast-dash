@@ -113,7 +113,7 @@ namespace AlmostFastDash.Runner
             DashboardRuntime runtime,
             DiagnosticLogger diagnostics)
         {
-            // While iRacing isn't connected, the settings window's live preview can show on the wheel.
+            // While iRacing isn't connected, the main window's live preview can show on the wheel.
             var preview = new PreviewRequest();
             var stats = new ScreenStats();
             MonitorOutput monitor = null;
@@ -160,13 +160,13 @@ namespace AlmostFastDash.Runner
                             }
                             monitor = MonitorOutput.Follow(monitor, runtime.Settings.General, runtime.Dashboard.Name, runtime.Dashboard.ScreenSize());
                         }
-                        // Show when (at the top of the settings window): the dashboard shows only at the chosen points in
+                        // Show when (at the top of the main window): the dashboard shows only at the chosen points in
                         // iRacing. Before iRacing is running, and for a preview, it shows as it always has.
                         GeneralSettings general = runtime.Settings.General;
                         bool shown = Shown(snapshot, general);
                         NoteHidden(shown ? (CarState?)null : snapshot.CarState);
                         // The dashboard on the PC follows it. Over the game it also waits for iRacing (or a preview)
-                        // unless it's wanted always, and it's unlocked while the settings window is placing it.
+                        // unless it's wanted always, and it's unlocked while the main window is placing it.
                         if (monitor != null)
                         {
                             bool overlay = monitor.Mode == MonitorOutput.Overlay;
@@ -330,7 +330,7 @@ namespace AlmostFastDash.Runner
         private static CarState? _hiddenNoted;
 
         /// <summary>
-        /// Tells the settings window when the running dashboard is hidden by Show when, and at which point in iRacing
+        /// Tells the main window when the running dashboard is hidden by Show when, and at which point in iRacing
         /// (dashboard.hidden); written only when that changes.
         /// </summary>
         private static void NoteHidden(CarState? hidden)
@@ -344,88 +344,6 @@ namespace AlmostFastDash.Runner
             }
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }
-        }
-
-        /// <summary>
-        /// Owns the active dashboard and its renderer, reloading settings.json when
-        /// it changes and following the session's track type when auto-switch is on.
-        /// </summary>
-        private sealed class DashboardRuntime : IDisposable
-        {
-            private DateTime _settingsWriteUtc;
-            private string _discipline;
-            private string _previewId;
-
-            public DashboardRuntime()
-            {
-                _settingsWriteUtc = SettingsStore.LastWriteUtc();
-                Settings = SettingsStore.Load();
-                Dashboard = Select();
-                Renderer = CreateRenderer();
-                WriteActive();
-            }
-
-            public AppSettings Settings { get; private set; }
-            public DashboardSettings Dashboard { get; private set; }
-            public LayoutRenderer Renderer { get; private set; }
-
-            /// <summary>Returns true when the renderer or LED settings were replaced.</summary>
-            /// <param name="previewId">A dashboard the settings window is previewing, shown instead while set.</param>
-            public bool Refresh(string discipline, string previewId = null)
-            {
-                DateTime writeUtc = SettingsStore.LastWriteUtc();
-                bool settingsChanged = writeUtc != _settingsWriteUtc;
-                bool disciplineChanged = discipline != null && discipline != _discipline;
-                bool previewChanged = previewId != _previewId;
-                if (!settingsChanged && !disciplineChanged && !previewChanged) return false;
-                _previewId = previewId;
-
-                if (discipline != null) _discipline = discipline;
-                if (settingsChanged)
-                {
-                    // A copy that can't be read right now is tried again next time; the current settings stay.
-                    if (!SettingsStore.TryLoad(out AppSettings reloaded)) return false;
-                    _settingsWriteUtc = writeUtc;
-                    Settings = reloaded;
-                }
-
-                DashboardSettings next = Select();
-                if (!settingsChanged && next.Id == Dashboard.Id)
-                {
-                    WriteActive();
-                    return false;
-                }
-                Dashboard = next;
-                Renderer.Dispose();
-                Renderer = CreateRenderer();
-                WriteActive();
-                return true;
-            }
-
-            private DashboardSettings Select() =>
-                _previewId != null && Settings.Dashboards.Any(d => d.Id == _previewId)
-                    ? Settings.Dashboards.First(d => d.Id == _previewId)
-                    : Settings.ResolveDashboard(_discipline);
-
-            private LayoutRenderer CreateRenderer()
-            {
-                System.Drawing.Size size = Dashboard.ScreenSize();
-                // Tap views stay put while the same dashboard is redrawn after a settings change, and start
-                // again from the first view on another dashboard.
-                if (_tapsFor != Dashboard.Id) { _taps.Clear(); _tapsFor = Dashboard.Id; }
-                return new LayoutRenderer(size.Width, size.Height, Dashboard, new UnitSystem(Settings.General)) { Taps = _taps, SharedOutput = true, ReuseFingerprints = true };
-            }
-
-            private readonly Dictionary<string, int> _taps = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-            private string _tapsFor;
-
-            private void WriteActive()
-            {
-                try { File.WriteAllText(ActiveDashboardPath, Dashboard.Id + "\n" + (_discipline ?? "")); }
-                catch { }
-            }
-
-            public void Dispose() => Renderer?.Dispose();
         }
 
         /// <summary>Appends an unexpected error to Logs\crash.log, so a dashboard that stopped can be looked into.</summary>

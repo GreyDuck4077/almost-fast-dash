@@ -34,7 +34,7 @@ namespace AlmostFastDash
             };
             application.DispatcherUnhandledException += (sender, e) =>
             {
-                // Keep the settings window alive and leave a trace instead of vanishing.
+                // Keep the main window alive and leave a trace instead of vanishing.
                 try { File.AppendAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings-error.txt"), DateTime.Now + Environment.NewLine + e.Exception + Environment.NewLine); }
                 catch { }
                 MessageBox.Show(e.Exception.Message, "Almost Fast Dash", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -45,7 +45,7 @@ namespace AlmostFastDash
                 Source = new Uri("pack://application:,,,/AlmostFastDash;component/UI/Theme.xaml")
             });
             DarkTitleBar.ForEveryWindow();
-            application.Run(new SettingsWindow());
+            application.Run(new MainWindow());
             return 0;
         }
     }

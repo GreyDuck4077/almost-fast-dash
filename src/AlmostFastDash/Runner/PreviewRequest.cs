@@ -35,7 +35,7 @@ namespace AlmostFastDash.Runner
         /// <summary>True while a preview other than live data has been asked for recently.</summary>
         public bool Active => DashboardId != null && State != LiveIRacing;
 
-        // ------------------------------------------------------------------ settings window side
+        // ------------------------------------------------------------------ main window side
 
         /// <summary>Asks a running dashboard to show this preview (call at least every second while it's open).</summary>
         public static void Write(string dashboardId, string state)
@@ -83,7 +83,7 @@ namespace AlmostFastDash.Runner
                         DashboardId = null;
                         return;
                     }
-                    // A file caught while the settings window rewrites it reads empty or locked: keep the last request
+                    // A file caught while the main window rewrites it reads empty or locked: keep the last request
                     // rather than dropping to the default dashboard for a moment (two full redraws and a flash).
                     string[] lines = File.ReadAllLines(FilePath);
                     if (lines.Length < 2 || string.IsNullOrWhiteSpace(lines[0]) || Array.IndexOf(States, lines[1].Trim()) < 0) return;

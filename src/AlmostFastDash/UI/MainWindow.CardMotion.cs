@@ -7,7 +7,7 @@ using System.Windows.Threading;
 
 namespace AlmostFastDash.UI
 {
-    public partial class SettingsWindow
+    public partial class MainWindow
     {
         // ==================================================================
         // A gallery card comes alive under the pointer: its picture plays the animated lap

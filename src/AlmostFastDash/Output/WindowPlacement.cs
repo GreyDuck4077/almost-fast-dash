@@ -10,7 +10,7 @@ namespace AlmostFastDash.Output
     /// <summary>
     /// Where the dashboard's window and its place over the game sit: the dashboard area in screen pixels, kept in
     /// dashboard.window next to the settings. Only the running dashboard writes it, since it owns those windows,
-    /// so settings.json keeps a single writer (the settings window).
+    /// so settings.json keeps a single writer (the main window).
     /// </summary>
     internal static class WindowPlacement
     {
@@ -102,9 +102,9 @@ namespace AlmostFastDash.Output
     }
 
     /// <summary>
-    /// The settings window keeps overlay.unlock fresh while the dashboard over the game is being moved and resized.
+    /// The main window keeps overlay.unlock fresh while the dashboard over the game is being moved and resized.
     /// The running dashboard unlocks it only while the file is fresh, so it locks again by itself when the
-    /// settings window closes or moves on.
+    /// main window closes or moves on.
     /// </summary>
     internal static class OverlayUnlock
     {

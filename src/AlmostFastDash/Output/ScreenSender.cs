@@ -16,10 +16,10 @@ namespace AlmostFastDash.Output
     /// </summary>
     internal sealed class ScreenSender : IDisposable
     {
-        /// <summary>The connected screen's model and size, for the settings window and the template picker.</summary>
+        /// <summary>The connected screen's model and size, for the main window and the template picker.</summary>
         internal static readonly string InfoPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "screen.info");
 
-        /// <summary>There while the dashboard is connected to the screen, so the settings window can say so.</summary>
+        /// <summary>There while the dashboard is connected to the screen, so the main window can say so.</summary>
         internal static readonly string LinkPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "screen.link");
 
         private readonly Func<GeneralSettings> _settings;

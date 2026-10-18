@@ -80,7 +80,7 @@ namespace AlmostFastDash.Settings
         /// Writes settings.json whole or not at all: a new copy is written beside it and swapped in, the old
         /// one becoming settings.json.bak. Every ten minutes of saving, a dated copy also goes into
         /// SettingsBackups (the last twelve are kept). Each process writes its own temporary file, so the
-        /// settings window and the dashboard can never write into the same one.
+        /// main window and the dashboard can never write into the same one.
         /// </summary>
         public static void Save(AppSettings settings)
         {

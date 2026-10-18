@@ -8,7 +8,7 @@ namespace AlmostFastDash.UI
     /// The notification-area icon: with Settings › Minimize to the system tray on, minimizing hides the
     /// window there. The icon reopens it, and its menu starts or stops the dashboard or quits.
     /// </summary>
-    public partial class SettingsWindow
+    public partial class MainWindow
     {
         private Forms.NotifyIcon _tray;
 

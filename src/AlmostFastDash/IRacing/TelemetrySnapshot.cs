@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Linq;
 
 namespace AlmostFastDash.IRacing
 {
@@ -353,5 +355,39 @@ namespace AlmostFastDash.IRacing
 
         /// <summary>How many clean laps the fuel use is averaged over; under three it is an early estimate.</summary>
         public int FuelLapsMeasured { get; set; }
+    }
+
+    /// <summary>
+    /// One tyre. iRacing reports tyre temperatures, wear and pressures from the pit crew, so they
+    /// update when the car stops in the pits rather than live. Temperatures are °C, pressure kPa,
+    /// wear the share of tread left (1 is new); NaN when unknown.
+    /// </summary>
+    internal sealed class TyreCorner
+    {
+        public string Name;
+        public double TempInner = double.NaN, TempMiddle = double.NaN, TempOuter = double.NaN;
+        public double WearInner = double.NaN, WearMiddle = double.NaN, WearOuter = double.NaN;
+        public double PressureKpa = double.NaN;
+
+        public double Temp => Average(TempInner, TempMiddle, TempOuter);
+        public double Wear => Average(WearInner, WearMiddle, WearOuter);
+
+        private static double Average(params double[] values)
+        {
+            double[] known = values.Where(v => !double.IsNaN(v)).ToArray();
+            return known.Length == 0 ? double.NaN : known.Average();
+        }
+    }
+
+    /// <summary>One car on the leaderboard.</summary>
+    internal sealed class StandingsEntry
+    {
+        public int Position, ClassPosition, CarIdx, Laps, LapsBehind, IRating;
+        public string Name, CarNumber, CarName, ClassName, License;
+        public Color ClassColor = Color.Gray, LicenseColor = Color.Gray;
+        public double LastLap, BestLap;
+        /// <summary>Seconds behind the leader, behind the car one place ahead, and to you (negative when ahead of you).</summary>
+        public double GapToLeader, Interval, DeltaToPlayer;
+        public bool IsPlayer, InPits;
     }
 }

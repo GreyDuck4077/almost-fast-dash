@@ -13,7 +13,7 @@ namespace AlmostFastDash.Devices
 
     /// <summary>
     /// Shares each LED device's connection state between processes: whichever is driving the devices
-    /// (the dashboard, or the settings window's preview) writes it when a state changes, and the Devices
+    /// (the dashboard, or the main window's preview) writes it when a state changes, and the Devices
     /// page reads it while one of them is running. Nothing is written while states hold steady.
     /// </summary>
     internal static class DeviceStatus

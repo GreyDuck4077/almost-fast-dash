@@ -13,7 +13,7 @@ namespace AlmostFastDash.UI
     /// The screens the dashboard shows on, on the Devices page: the wheel screen's status and "Send only what
     /// changed", and the dashboard on the PC: in a window, over the game, or full screen on another display.
     /// </summary>
-    public partial class SettingsWindow
+    public partial class MainWindow
     {
         private bool _screenPresent, _fillingMonitors, _watchingDisplays;
         private DateTime _screenCheckedAt = DateTime.MinValue;

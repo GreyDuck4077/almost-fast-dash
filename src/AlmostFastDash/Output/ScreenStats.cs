@@ -9,7 +9,7 @@ namespace AlmostFastDash.Output
     /// How the wheel screen is really keeping up, measured while the dashboard runs: frames a second, the time to
     /// draw a frame, and the time to send it down the USB cable with how much of the screen that was. Drawing and
     /// sending happen on different threads, so each reports its own. Every five seconds the figures go to
-    /// screen.status, where the settings window and --live-check read them.
+    /// screen.status, where the main window and --live-check read them.
     /// </summary>
     internal sealed class ScreenStats
     {

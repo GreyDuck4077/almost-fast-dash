@@ -10,7 +10,7 @@ using DrawingColor = System.Drawing.Color;
 
 namespace AlmostFastDash.UI
 {
-    public partial class SettingsWindow
+    public partial class MainWindow
     {
         private LightRenderer _previewLights;
         private LightProfile _previewLightsProfile;
