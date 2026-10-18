@@ -1,0 +1,1560 @@
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
+using System.IO;
+using System.Linq;
+
+namespace AlmostFastDash.Rendering
+{
+    /// <summary>Renderers that can tell cheaply whether their next frame would differ.</summary>
+    internal interface IStateRenderer
+    {
+        int StateHash(TelemetrySnapshot telemetry, bool shiftFlashOn, int gearAnimationFrame);
+    }
+
+    /// <summary>
+    /// Draws a designed (<see cref="DashLayout"/>) dashboard: every dashboard is one. It also
+    /// fingerprints what a frame would show, so the screen is only redrawn when that changes.
+    /// </summary>
+    internal sealed class LayoutRenderer : IDashboardRenderer, IStateRenderer
+    {
+        private readonly int _width, _height;
+        private readonly DashLayout _layout;
+        private readonly string _accent;
+        private readonly UnitSystem _units;
+        private readonly FlagPainter _flags;
+        private readonly FlagTimeline _timeline;
+        private WavingFlag _waving;
+        private FlagFramePainter _flagFrame;
+        private Bitmap _flagLayer;
+        /// <summary>Fixes the flags' clock (fades, breeze, frame) at one moment in milliseconds, for previews and tests; null follows the clock.</summary>
+        public int? FlagClock { get; set; }
+        /// <summary>Holds the clock (time formulas, blink) at one moment, for tests; null follows the PC clock.</summary>
+        public DateTime? FixedNow { get; set; }
+        private readonly Dictionary<string, Font> _fonts = new Dictionary<string, Font>();
+        private readonly Dictionary<string, Bitmap> _images = new Dictionary<string, Bitmap>();
+
+        public LayoutRenderer(int width, int height, DashboardSettings settings, UnitSystem units)
+        {
+            _width = width;
+            _height = height;
+            _layout = settings?.Design ?? DesignTemplates.Blank();
+            _layout.Normalize();
+            _accent = settings?.AccentColor ?? "#2DD4BF";
+            _units = units ?? UnitSystem.Default;
+            _flags = new FlagPainter(width, height);
+            _timeline = new FlagTimeline(settings?.Alerts?.BlinkMilliseconds ?? new AlertSettings().BlinkMilliseconds);
+        }
+
+        public DashLayout Layout => _layout;
+
+        /// <summary>What the flags show now: a flag over the screen, a frame round the dashboard, or neither.</summary>
+        public FlagView Flags(TelemetrySnapshot t) => Flags(t, FlagClock ?? Environment.TickCount);
+
+        private FlagView Flags(TelemetrySnapshot t, int now) =>
+            _timeline.At(t ?? TelemetrySnapshot.Disconnected, now, _layout.FullScreenFlags, _layout.FlagFrame);
+
+        /// <summary>Forgets the flags seen so far, so the next one alerts in full again.</summary>
+        public void ResetFlags() => _timeline.Reset();
+
+        /// <summary>Widget ids whose last draw failed, with the reason; shown by the designer.</summary>
+        public Dictionary<string, string> Errors { get; } = new Dictionary<string, string>();
+
+        public EvalScope Scope(TelemetrySnapshot t, bool shiftFlashOn) => new EvalScope
+        {
+            T = t ?? TelemetrySnapshot.Disconnected,
+            Units = _units,
+            Theme = _layout.Theme,
+            Accent = _accent,
+            ShiftFlashOn = shiftFlashOn,
+            Now = FixedNow ?? DateTime.Now,
+            Page = _page % Math.Max(1, Pages.Count) + 1,
+            PageCount = Math.Max(1, Pages.Count),
+            Taps = Taps
+        };
+
+        /// <summary>
+        /// Which view each tap zone is on, by its tap name (see <see cref="Tap"/>). The designer shares its
+        /// own, so a view chosen there stays chosen while the design is edited.
+        /// </summary>
+        public Dictionary<string, int> Taps { get; set; } = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+        private DashScreen _shown;
+
+        /// <summary>
+        /// A tap on the screen at a point in the dashboard's own pixels. The top-most widget there that has a
+        /// tap name moves on to its next view, wrapping round. Returns whether anything changed.
+        /// </summary>
+        public bool Tap(double x, double y, TelemetrySnapshot t = null)
+        {
+            EvalScope scope = Scope(t ?? TelemetrySnapshot.Disconnected, false);
+            DashScreen screen = _shown ?? ActiveScreen(scope);
+            for (int i = screen.Widgets.Count - 1; i >= 0; i--)
+            {
+                DashWidget widget = screen.Widgets[i];
+                string name = widget.Get("tapName", "")?.Trim();
+                if (widget.Hidden || string.IsNullOrEmpty(name) || !widget.Bounds.Contains((float)x, (float)y)) continue;
+                EvalScope own = ForWidget(scope, widget);
+                string visible = widget.Get("visible", "");
+                if (!string.IsNullOrWhiteSpace(visible) && !Expr.Bool(Expr.Evaluate(Strip(visible), own))) continue;
+                int views = TapViews(widget);
+                Taps.TryGetValue(name, out int view);
+                Taps[name] = (view + 1) % views;
+                return true;
+            }
+            return false;
+        }
+
+        internal static int TapViews(DashWidget widget) => Math.Max(2, Math.Min(9, (int)Math.Round(Expr.Num(widget.Get("tapViews", "2")))));
+
+        /// <summary>The screen to show: the first conditional screen that matches, else the current page.</summary>
+        public DashScreen ActiveScreen(EvalScope scope)
+        {
+            foreach (DashScreen screen in _layout.Screens)
+                if (!string.IsNullOrWhiteSpace(screen.Condition) && Expr.Bool(Expr.Evaluate(Strip(screen.Condition), scope)))
+                    return screen;
+            List<DashScreen> pages = Pages;
+            return pages.Count == 0 ? _layout.Screens[0] : pages[_page % pages.Count];
+        }
+
+        /// <summary>The screens without a condition: the pages a wheel button steps through.</summary>
+        private List<DashScreen> Pages => _layout.Screens.Where(s => string.IsNullOrWhiteSpace(s.Condition)).ToList();
+
+        private int _page;
+
+        /// <summary>Steps to the next page (1) or the previous one (-1), wrapping round.</summary>
+        public void StepPage(int delta)
+        {
+            int count = Math.Max(1, Pages.Count);
+            _page = ((_page + delta) % count + count) % count;
+        }
+
+        public Bitmap Render(TelemetrySnapshot t, bool shiftFlashOn, int previousGear, float gearTransitionProgress) =>
+            Render(t, shiftFlashOn, previousGear, gearTransitionProgress, null);
+
+        /// <summary>Renders a frame; the designer passes the screen being edited.</summary>
+        public Bitmap Render(TelemetrySnapshot t, bool shiftFlashOn, int previousGear, float gearTransitionProgress, DashScreen forceScreen)
+        {
+            t = t ?? TelemetrySnapshot.Disconnected;
+            int now = FlagClock ?? Environment.TickCount;
+            FlagView flags = Flags(t, now);
+            LastChanged = new Rectangle(0, 0, _width, _height);
+            if (flags.Full)
+            {
+                _outputHoldsFrame = false;
+                // The flag covers everything, so the dashboard isn't drawn; it is redrawn in full when the flag goes.
+                ForgetFrame();
+                Bitmap cover = SharedOutput ? Output() : new Bitmap(_width, _height, PixelFormat.Format32bppArgb);
+                DrawFlag(cover, flags.Takeover, t, now);
+                return cover;
+            }
+            Bitmap bitmap = RenderDashboard(t, shiftFlashOn, previousGear, gearTransitionProgress, forceScreen);
+            if (flags.Frame == RacingFlag.None && flags.Alpha <= 0) return bitmap;
+            // Drawn over the output, so the next frame can't start from it, and all of this one may have changed.
+            _outputHoldsFrame = false;
+            LastChanged = new Rectangle(0, 0, _width, _height);
+            // The frame and a fading flag go over the finished frame (a copy, never the one kept for the next).
+            if (flags.Frame != RacingFlag.None)
+                (_flagFrame ?? (_flagFrame = new FlagFramePainter(_width, _height))).Draw(bitmap, flags.Frame, flags.FrameAlpha, now);
+            if (flags.Alpha > 0)
+            {
+                Bitmap layer = _flagLayer ?? (_flagLayer = new Bitmap(_width, _height, PixelFormat.Format32bppArgb));
+                DrawFlag(layer, flags.Takeover, t, now);
+                using (Graphics g = Graphics.FromImage(bitmap))
+                using (var attributes = new ImageAttributes())
+                {
+                    attributes.SetColorMatrix(new ColorMatrix { Matrix33 = flags.Alpha });
+                    g.InterpolationMode = InterpolationMode.NearestNeighbor;
+                    g.DrawImage(layer, new Rectangle(0, 0, _width, _height), 0, 0, _width, _height, GraphicsUnit.Pixel, attributes);
+                }
+            }
+            return bitmap;
+        }
+
+        /// <summary>A flag over the whole bitmap: waving cloth, or the still picture.</summary>
+        private void DrawFlag(Bitmap target, RacingFlag flag, TelemetrySnapshot t, int now)
+        {
+            if (_layout.WavingFlags)
+            {
+                (_waving ?? (_waving = new WavingFlag(_width, _height, _flags))).Draw(target, flag, t, now);
+                return;
+            }
+            using (Graphics g = Graphics.FromImage(target))
+            {
+                g.CompositingMode = CompositingMode.SourceCopy;
+                g.DrawImageUnscaled(_flags.Picture(flag, t), 0, 0);
+            }
+        }
+
+        private Bitmap RenderDashboard(TelemetrySnapshot t, bool shiftFlashOn, int previousGear, float gearTransitionProgress, DashScreen forceScreen)
+        {
+            if (CacheStatic && RedrawChangesOnly)
+            {
+                EvalScope live = Scope(t, shiftFlashOn);
+                _shown = forceScreen ?? ActiveScreen(live);
+                return RenderChanges(_shown, live, previousGear, gearTransitionProgress);
+            }
+
+            var bitmap = new Bitmap(_width, _height, PixelFormat.Format32bppArgb);
+            using (Graphics g = Graphics.FromImage(bitmap))
+            {
+                DashKit.Prepare(g);
+                _target = bitmap;
+                _targetAreas = null;
+                EvalScope scope = Scope(t, shiftFlashOn);
+                DashScreen screen = forceScreen ?? ActiveScreen(scope);
+                _shown = screen;
+                Errors.Clear();
+                HashSet<string> baked = null;
+                if (CacheStatic)
+                {
+                    BaseLayer layer = Base(screen, scope);
+                    g.CompositingMode = CompositingMode.SourceCopy;
+                    g.DrawImageUnscaled(layer.Bitmap, 0, 0);
+                    g.CompositingMode = CompositingMode.SourceOver;
+                    baked = layer.Baked;
+                }
+                else
+                {
+                    g.CompositingMode = CompositingMode.SourceCopy;
+                    g.DrawImageUnscaled(Background(), 0, 0);
+                    g.CompositingMode = CompositingMode.SourceOver;
+                }
+                foreach (DashWidget widget in screen.Widgets)
+                {
+                    if (widget.Hidden || (baked != null && baked.Contains(widget.Id))) continue;
+                    long started = Timings != null ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
+                    try { DrawWidget(g, widget, scope, previousGear, gearTransitionProgress); }
+                    catch (Exception e) { Errors[widget.Id] = e.Message; }
+                    if (Timings != null)
+                    {
+                        Timings.TryGetValue(widget.Name ?? widget.Id, out double sum);
+                        Timings[widget.Name ?? widget.Id] = sum + (System.Diagnostics.Stopwatch.GetTimestamp() - started) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+                    }
+                }
+            }
+            return bitmap;
+        }
+
+        // ------------------------------------------------------------------ static layer cache
+
+        /// <summary>
+        /// When on, the background and every widget that can never change (no formulas,
+        /// no live data) are drawn once per screen into a base image that each frame
+        /// starts from. The device runtime builds a new renderer whenever settings
+        /// change, so the cache cannot go stale there; the designer, which edits the
+        /// design in place, turns this off.
+        /// </summary>
+        public bool CacheStatic { get; set; } = true;
+
+        /// <summary>When set (by the self-test), each live widget's drawing time is added up here in milliseconds.</summary>
+        internal Dictionary<string, double> Timings { get; set; }
+
+        /// <summary>When set (by the dashboard audit), every piece of text drawn is noted here, at the size it was drawn.</summary>
+        internal List<DrawnText> TextLog { get; set; }
+
+        /// <summary>Leaves all text out (the audit's view of what is behind the text).</summary>
+        internal bool SkipText { get; set; }
+
+        // ------------------------------------------------------------------ redrawing only what changed
+
+        /// <summary>
+        /// With the static cache on, keep the last frame and redraw only the areas of widgets whose
+        /// fingerprint changed (and whatever overlaps them), clipped to those areas. Same pixels as a
+        /// full redraw, a fraction of the work: most of a dashboard holds still from frame to frame.
+        /// </summary>
+        public bool RedrawChangesOnly { get; set; } = true;
+
+        /// <summary>
+        /// The designer's view: widgets hidden right now by their Show when are drawn as a faint ghost instead of
+        /// not at all, so a warning that only appears on pit road can still be seen, placed and styled.
+        /// </summary>
+        public bool GhostHidden { get; set; }
+        private const double GhostOpacity = 0.28;
+
+        /// <summary>
+        /// Whether a widget hidden by this Show when shows as a ghost in the designer. A tap view's widgets don't: they're
+        /// the panel's other faces, flipped through with Next in Properties, and would crowd the view that's showing.
+        /// </summary>
+        internal bool Ghosts(string visible) => GhostHidden && !IsTapView(visible);
+
+        internal static bool IsTapView(string visible) => visible != null && visible.IndexOf("tap(", StringComparison.OrdinalIgnoreCase) >= 0;
+
+        /// <summary>Widgets that show nothing at quiet moments: no flag out, no car alongside.</summary>
+        internal static bool Idle(string type, WidgetContext c)
+        {
+            switch (type)
+            {
+                case "flag": return c.T.Flag == RacingFlag.None;
+                case "blindspot": return (c.Choice("side") == "Right" ? c.T.RightBlindSpot : c.T.LeftBlindSpot) == BlindSpotZone.None;
+                default: return false;
+            }
+        }
+
+        /// <summary>
+        /// Render hands back the same bitmap every time instead of a new copy: it belongs to the renderer, isn't
+        /// to be disposed, and holds the frame only until the next Render. The wheel runtime copies each frame
+        /// straight on to its screens, so this saves a 1.6 MB allocation (and the garbage) every frame.
+        /// </summary>
+        internal bool SharedOutput { get; set; }
+
+        /// <summary>
+        /// The fingerprints StateHash works out are used again by the Render that follows for the same telemetry,
+        /// instead of evaluating every widget's formulas twice a frame. Only for the wheel runtime, where nothing
+        /// changes between the two; the designer edits widgets in between.
+        /// </summary>
+        internal bool ReuseFingerprints { get; set; }
+
+        private readonly Dictionary<string, int> _fingerprints = new Dictionary<string, int>();
+        private TelemetrySnapshot _fingerprintsFor;
+        private bool _fingerprintsFlash;
+
+        /// <summary>A widget's fingerprint: the one StateHash just worked out for this telemetry when there is one.</summary>
+        private int Fingerprint(DashWidget widget, EvalScope scope, int previousGear, float progress)
+        {
+            // The gear's fingerprint follows its change animation, which StateHash doesn't have.
+            if (ReuseFingerprints && widget.Type != "gear" && ReferenceEquals(scope.T, _fingerprintsFor) && scope.ShiftFlashOn == _fingerprintsFlash &&
+                _fingerprints.TryGetValue(widget.Id, out int known))
+                return known;
+            return WidgetHash(widget, scope, previousGear, progress);
+        }
+
+        private Bitmap _frame, _output;
+        private DashScreen _frameScreen;
+        private bool _frameConnected;
+        private Dictionary<string, int> _drawn = new Dictionary<string, int>();
+
+        /// <summary>How much of the last frame was redrawn, 0 to 1 (for the self-test).</summary>
+        internal double LastRedrawShare { get; private set; }
+
+        /// <summary>
+        /// The part of the last frame that can differ from the one before it: the areas redrawn, empty when nothing
+        /// was, or the whole frame after a flag or anything else drawn over it all. A window showing the dashboard
+        /// copies and uploads just this.
+        /// </summary>
+        public Rectangle LastChanged { get; private set; }
+
+        /// <summary>The shared output still holds the last frame exactly (no flag drawn over it since), so only what changed needs copying into it.</summary>
+        private bool _outputHoldsFrame;
+
+        private void ForgetFrame() => _frameScreen = null;
+
+        /// <summary>
+        /// Drops the cached base images and the kept frame after the design itself was edited in
+        /// place (the designer calls this on every edit); the next frame is drawn in full.
+        /// </summary>
+        public void Invalidate()
+        {
+            foreach (BaseLayer layer in _bases.Values) layer.Bitmap.Dispose();
+            _bases.Clear();
+            ForgetStyled();
+            ForgetFrame();
+            _areas.Clear();
+        }
+
+        private Bitmap RenderChanges(DashScreen screen, EvalScope scope, int previousGear, float progress)
+        {
+            BaseLayer layer = Base(screen, scope);
+            var full = new Rectangle(0, 0, _width, _height);
+            if (_frame == null) _frame = new Bitmap(_width, _height, PixelFormat.Format32bppArgb);
+            bool redrawAll = _frameScreen != screen || _frameConnected != scope.T.Connected;
+
+            long started = Timings != null ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
+            // Fingerprint every live widget; the ones that changed mark their reach as dirty.
+            var hashes = new Dictionary<string, int>(screen.Widgets.Count);
+            var dirty = new List<Rectangle>();
+            foreach (DashWidget widget in screen.Widgets)
+            {
+                if (widget.Hidden || layer.Baked.Contains(widget.Id)) continue;
+                int hash;
+                try { hash = Fingerprint(widget, scope, previousGear, progress); }
+                catch { hash = Environment.TickCount; }
+                hashes[widget.Id] = hash;
+                if (!redrawAll && (!_drawn.TryGetValue(widget.Id, out int before) || before != hash))
+                {
+                    foreach (RectangleF paints in Areas(widget)) dirty.Add(Rectangle.Intersect(full, Outward(paints)));
+                    if (Timings != null)
+                    {
+                        Timings.TryGetValue("changed: " + widget.Name, out double times);
+                        Timings["changed: " + widget.Name] = times + 1;
+                    }
+                }
+            }
+            if (redrawAll) dirty = new List<Rectangle> { full };
+            else dirty = Merge(dirty, full);
+            Rectangle changed = Rectangle.Empty;
+            foreach (Rectangle r in dirty) changed = changed.IsEmpty ? r : Rectangle.Union(changed, r);
+            Time("(fingerprints)", ref started);
+
+            long area = 0;
+            if (dirty.Count > 0)
+            {
+                // Start the areas again from the base image (background and fixed widgets): a straight copy of its
+                // pixels, row by row.
+                Restore(layer.Bitmap, dirty);
+                Time("(background restored)", ref started);
+                using (Graphics g = Graphics.FromImage(_frame))
+                {
+                    DashKit.Prepare(g);
+                    _target = _frame;
+                    _targetAreas = dirty;
+                    // All the areas are redone together, clipped to their union: each widget is drawn once,
+                    // however many areas it touches.
+                    using (var region = new Region(Rectangle.Empty))
+                    {
+                        foreach (Rectangle r in dirty)
+                        {
+                            area += (long)r.Width * r.Height;
+                            region.Union(r);
+                        }
+                        g.SetClip(region, CombineMode.Replace);
+                    }
+                    foreach (DashWidget widget in screen.Widgets)
+                    {
+                        if (widget.Hidden || layer.Baked.Contains(widget.Id) || !dirty.Any(r => Touches(widget, r))) continue;
+                        try
+                        {
+                            // A widget redrawn only because something near it changed (its own fingerprint held)
+                            // goes from its finished picture: one image copy instead of drawing it again.
+                            bool steady = !redrawAll && _drawn.TryGetValue(widget.Id, out int before) && before == hashes[widget.Id];
+                            DrawWidget(g, widget, scope, previousGear, progress, steady);
+                            Errors.Remove(widget.Id);
+                        }
+                        catch (Exception e) { Errors[widget.Id] = e.Message; }
+                        Time(widget.Name ?? widget.Id, ref started);
+                    }
+                    g.ResetClip();
+                }
+            }
+            LastRedrawShare = (double)area / ((long)_width * _height);
+            _drawn = hashes;
+            _frameScreen = screen;
+            _frameConnected = scope.T.Connected;
+            if (!SharedOutput) return _frame.Clone(full, PixelFormat.Format32bppArgb);
+            // A straight copy of the pixels into the one output bitmap (flag frames go on it, never on _frame): only
+            // what changed, while the output still holds the last frame.
+            Bitmap output = Output();
+            if (!_outputHoldsFrame) changed = full;
+            if (!changed.IsEmpty)
+            {
+                BitmapData from = _frame.LockBits(changed, ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+                BitmapData to = output.LockBits(changed, ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
+                try
+                {
+                    long row = (long)changed.Width * 4;
+                    unsafe
+                    {
+                        for (int y = 0; y < changed.Height; y++)
+                            Buffer.MemoryCopy((byte*)from.Scan0 + (long)y * from.Stride, (byte*)to.Scan0 + (long)y * to.Stride, row, row);
+                    }
+                }
+                finally
+                {
+                    _frame.UnlockBits(from);
+                    output.UnlockBits(to);
+                }
+            }
+            _outputHoldsFrame = true;
+            LastChanged = changed;
+            Time("(copied out)", ref started);
+            return output;
+        }
+
+        /// <summary>With Timings on (the profiler), adds the time since <paramref name="since"/> under a name and restarts it.</summary>
+        private void Time(string name, ref long since)
+        {
+            if (Timings == null) return;
+            long now = System.Diagnostics.Stopwatch.GetTimestamp();
+            Timings.TryGetValue(name, out double sum);
+            Timings[name] = sum + (now - since) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+            since = now;
+        }
+
+        private Bitmap Output() => _output ?? (_output = new Bitmap(_width, _height, PixelFormat.Format32bppArgb));
+
+        /// <summary>Copies the base image's pixels into the frame over each area (the same as drawing it there 1:1, much cheaper).</summary>
+        private void Restore(Bitmap from, List<Rectangle> areas)
+        {
+            foreach (Rectangle area in areas)
+            {
+                if (area.Width <= 0 || area.Height <= 0) continue;
+                BitmapData source = from.LockBits(area, ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+                BitmapData target = _frame.LockBits(area, ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
+                try
+                {
+                    long row = (long)area.Width * 4;
+                    unsafe
+                    {
+                        for (int y = 0; y < area.Height; y++)
+                            Buffer.MemoryCopy((byte*)source.Scan0 + (long)y * source.Stride, (byte*)target.Scan0 + (long)y * target.Stride, row, row);
+                    }
+                }
+                finally
+                {
+                    from.UnlockBits(source);
+                    _frame.UnlockBits(target);
+                }
+            }
+        }
+
+        private static Rectangle Outward(RectangleF r) =>
+            Rectangle.FromLTRB((int)Math.Floor(r.Left), (int)Math.Floor(r.Top), (int)Math.Ceiling(r.Right), (int)Math.Ceiling(r.Bottom));
+
+        /// <summary>
+        /// Joins dirty areas where one box costs less than two (overlapping areas would otherwise be
+        /// drawn twice); past half the screen, just redraws it all.
+        /// </summary>
+        private static List<Rectangle> Merge(List<Rectangle> rects, Rectangle full)
+        {
+            rects.RemoveAll(r => r.Width <= 0 || r.Height <= 0);
+            long Area(Rectangle r) => (long)r.Width * r.Height;
+            bool merged = true;
+            while (merged)
+            {
+                merged = false;
+                for (int i = 0; i < rects.Count && !merged; i++)
+                    for (int j = i + 1; j < rects.Count; j++)
+                    {
+                        Rectangle a = rects[i], b = rects[j], union = Rectangle.Union(a, b);
+                        if (Area(union) > Area(a) + Area(b) - Area(Rectangle.Intersect(a, b)) + 4000) continue;
+                        rects[i] = union;
+                        rects.RemoveAt(j);
+                        merged = true;
+                        break;
+                    }
+            }
+            long area = 0;
+            foreach (Rectangle r in rects) area += (long)r.Width * r.Height;
+            return area * 2 > (long)full.Width * full.Height ? new List<Rectangle> { full } : rects;
+        }
+
+        private sealed class BaseLayer
+        {
+            public Bitmap Bitmap;
+            public HashSet<string> Baked;
+        }
+
+        private readonly Dictionary<string, BaseLayer> _bases = new Dictionary<string, BaseLayer>();
+        private Bitmap _background;
+        private string _backgroundKey;
+
+        /// <summary>Widget types that read telemetry directly, whatever their properties say.</summary>
+        private static readonly HashSet<string> LiveTypes = new HashSet<string> { "gear", "relative", "blindspot", "flag", "progress", "trace", "deltatrace", "laphistory", "standings", "tyres", "graph", "trackmap", "radar", "traffic" };
+
+        private static bool IsStatic(DashWidget widget)
+        {
+            WidgetType type = WidgetCatalog.Find(widget.Type);
+            if (type == null || LiveTypes.Contains(widget.Type)) return false;
+            // Clipped and blended widgets depend on what's beneath them, so they're drawn with it, never ahead.
+            if (Clipped(widget) || widget.Get("fxBlend", "Normal") != "Normal") return false;
+            // A tap zone shows which view it's on.
+            if (!string.IsNullOrWhiteSpace(widget.Get("tapName", "")) && Expr.Bool(widget.Get("tapDots", "true"))) return false;
+            foreach (PropDef prop in type.Props)
+            {
+                string raw = widget.Get(prop.Key, prop.Default);
+                // A formula with no data in it (such as "=1") never changes.
+                if (IsFormula(raw, prop) && !Expr.Compile(Strip(raw)).IsConstant) return false;
+            }
+            return true;
+        }
+
+        /// <summary>How far a widget can draw outside its box (glows, gear neighbors).</summary>
+        private static RectangleF Reach(DashWidget widget)
+        {
+            // Everything a widget can paint must fall inside this, or redrawing only what changed would leave stale pixels.
+            float Num(string key, float fallback, float formula) =>
+                widget.Get(key) is string raw && raw.StartsWith("=") ? formula : (float)Math.Max(0, Expr.Num(widget.Get(key, fallback.ToString(System.Globalization.CultureInfo.InvariantCulture))));
+            float margin = 6 + 2 * Num("glow", widget.Type == "arc" ? 9 : widget.Type == "shiftlights" ? 10 : widget.Type == "blindspot" ? 14 : 0, 40);
+            RectangleF b = widget.Bounds;
+            switch (widget.Type)
+            {
+                case "gear": margin += 1.4f * Math.Max(30, Num("neighborSize", 30, 120)); break;
+                case "panel": margin += 24; break; // the Liquid style's soft shadow
+                case "shape": margin += Num("strokeWidth", 2, 30); break;
+                case "text":
+                case "metric":
+                    margin += 0.1f * Num(widget.Type == "text" ? "size" : "valueSize", widget.Type == "text" ? 28 : 32, 300);
+                    if (widget.Type == "text" && !Expr.Bool(widget.Get("fit", "true"))) b.Inflate(b.Width, 0);
+                    break;
+                case "arc":
+                    float over = Math.Max(0, Num("needleLength", 100, 130) - 100) / 100f;
+                    margin += over * Math.Max(b.Width, b.Height) / 2 + Num("needleWidth", 5, 24);
+                    break;
+            }
+            // The Style effects reach past the drawing: a shadow by its blur and offset, a glow, an outline.
+            float offset = Math.Max(Math.Abs(SignedNum(widget, "fxShadowX", 0, 60)), Math.Abs(SignedNum(widget, "fxShadowY", 4, 60)));
+            margin += Math.Max(Math.Max(2 * Num("fxGlow", 0, 60), Num("fxShadow", 0, 60) > 0 ? 2 * Num("fxShadow", 0, 60) + offset : 0), Num("fxOutline", 0, 30)) + 2;
+            if (Math.Abs(Expr.Num(widget.Get("rotate", "0")) % 360) > 0.01 || IsFormula(widget.Get("rotate", "0"), new PropDef { Kind = PropKind.Number }))
+            {
+                // A turned widget can reach anywhere within the circle around its box.
+                float half = (float)Math.Sqrt(b.Width * b.Width + b.Height * b.Height) / 2;
+                b = new RectangleF(b.X + b.Width / 2 - half, b.Y + b.Height / 2 - half, half * 2, half * 2);
+            }
+            b.Inflate(margin, margin);
+            return b;
+        }
+
+        private readonly Dictionary<DashWidget, RectangleF[]> _areas = new Dictionary<DashWidget, RectangleF[]>();
+
+        /// <summary>
+        /// Where a widget can paint, as one or more boxes. Usually that is its <see cref="Reach"/>. A big arc
+        /// gauge only paints a strip along its ring, so it gives short boxes along the ring instead. A sweep
+        /// across the whole screen then redraws that strip and not everything inside the arch.
+        /// </summary>
+        private bool Touches(DashWidget widget, RectangleF region)
+        {
+            foreach (RectangleF area in Areas(widget))
+                if (area.IntersectsWith(region)) return true;
+            return false;
+        }
+
+        private RectangleF[] Areas(DashWidget widget)
+        {
+            if (_areas.TryGetValue(widget, out RectangleF[] known)) return known;
+            RectangleF[] areas = widget.Type == "arc" ? ArcStrips(widget) : null;
+            if (areas == null) areas = new[] { Reach(widget) };
+            _areas[widget] = areas;
+            return areas;
+        }
+
+        private static RectangleF[] ArcStrips(DashWidget widget)
+        {
+            WidgetType type = WidgetCatalog.Find("arc");
+            string Raw(string key) => widget.Get(key, type.Prop(key)?.Default) ?? "";
+            bool Fixed(params string[] keys) => keys.All(k => !Raw(k).StartsWith("="));
+            // Anything that can move the drawing about, or that draws across the face, needs the whole box.
+            if (!Fixed("start", "sweep", "thickness", "glow", "oval", "needle", "needleLength", "tickLength", "numberSize", "rimWidth", "flipX", "flipY", "rotate")) return null;
+            string needle = Raw("needle");
+            if (needle == "Needle" || needle == "Line") return null;
+            if (Math.Abs(Expr.Num(Raw("rotate"))) > 0.01) return null;
+            if (new[] { "fxFill", "fxOutline", "fxShadow", "fxGlow" }.Any(k => { string v = widget.Get(k); return v != null && v != "0" && v != "None"; })) return null;
+            float N(string key) => (float)Expr.Num(Raw(key));
+            float thickness = N("thickness"), glow = Math.Max(0, N("glow")), start = N("start"), sweep = N("sweep");
+            if (Math.Abs(sweep) < 1) return null;
+            RectangleF b = widget.Bounds;
+            float margin = thickness / 2 + glow / 2 + 1;
+            bool oval = Expr.Bool(Raw("oval"));
+            float radius = Math.Max(4, Math.Min(b.Width, b.Height) / 2 - margin);
+            var ring = new ArcRing
+            {
+                Center = new PointF(b.X + b.Width / 2, b.Y + b.Height / 2), Thickness = thickness, Start = start, Sweep = sweep,
+                RadiusX = oval ? Math.Max(4, b.Width / 2 - margin) : radius, RadiusY = oval ? Math.Max(4, b.Height / 2 - margin) : radius
+            };
+            bool ticks = Raw("ticks").StartsWith("=") || Expr.Num(Raw("ticks")) > 0;
+            bool numbers = ticks && (Raw("numbers").StartsWith("=") || Expr.Bool(Raw("numbers")));
+            float marker = needle == "Marker" ? thickness * Math.Max(0, N("needleLength") / 100 - 1) / 2 + N("needleWidth") : 0;
+            // Out to the glow and the marker; in to the ticks and the numbers (a number is drawn 0.85 of its
+            // size inside the ticks and is at most two digits wide).
+            // Bezel lines sit just outside both edges of the band, and push the marks further in.
+            float bezel = Raw("rim").Trim().Length > 0 ? WidgetPainters.BezelGap + Math.Max(0.5f, N("rimWidth")) + 1.5f : 0;
+            float outward = Math.Max(thickness / 2 + marker + glow, thickness / 2 + bezel + 1) + 3;
+            float inward = Math.Max(thickness / 2 + glow, thickness / 2 + 4 + bezel + (ticks ? N("tickLength") : 0) + (numbers ? N("numberSize") * 1.9f : 0)) + 3;
+            const float pad = 3;
+            float cap = thickness / 2 + glow;
+            int pieces = Math.Max(1, (int)Math.Ceiling(Math.Abs(sweep) / 10));
+            var strips = new RectangleF[pieces];
+            for (int i = 0; i < pieces; i++)
+            {
+                float a0 = start + sweep * i / pieces, a1 = start + sweep * (i + 1) / pieces;
+                float minX = float.MaxValue, minY = float.MaxValue, maxX = float.MinValue, maxY = float.MinValue;
+                foreach (float a in new[] { a0, (a0 + a1) / 2, a1 })
+                    foreach (PointF p in new[] { ring.At(a, outward), ring.At(a, -inward) })
+                    {
+                        minX = Math.Min(minX, p.X); maxX = Math.Max(maxX, p.X);
+                        minY = Math.Min(minY, p.Y); maxY = Math.Max(maxY, p.Y);
+                    }
+                // The round caps at the two ends reach past the ring's ends.
+                float grow = pad + (i == 0 || i == pieces - 1 ? cap : 0);
+                var strip = RectangleF.FromLTRB(minX - grow, minY - grow, maxX + grow, maxY + grow);
+                if (Expr.Bool(Raw("flipX"))) strip.X = b.Left + b.Right - strip.Right;
+                if (Expr.Bool(Raw("flipY"))) strip.Y = b.Top + b.Bottom - strip.Bottom;
+                strips[i] = strip;
+            }
+            return strips;
+        }
+
+        /// <summary>A number setting that may be negative (such as a shadow offset); a formula counts as the given limit.</summary>
+        private static float SignedNum(DashWidget widget, string key, float fallback, float formula)
+        {
+            string raw = widget.Get(key);
+            if (raw != null && raw.StartsWith("=")) return formula;
+            double v = Expr.Num(raw ?? fallback.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            return double.IsNaN(v) ? 0 : (float)v;
+        }
+
+        private BaseLayer Base(DashScreen screen, EvalScope scope)
+        {
+            if (_bases.TryGetValue(screen.Id, out BaseLayer cached)) return cached;
+            var layer = new BaseLayer { Bitmap = new Bitmap(_width, _height, PixelFormat.Format32bppArgb), Baked = new HashSet<string>() };
+            using (Graphics g = Graphics.FromImage(layer.Bitmap))
+            {
+                DashKit.Prepare(g);
+                g.DrawImageUnscaled(Background(), 0, 0);
+                // A static widget can move into the base only if nothing live is drawn under it,
+                // otherwise drawing it early would put it below that live widget.
+                var liveBelow = new List<RectangleF>();
+                foreach (DashWidget widget in screen.Widgets)
+                {
+                    if (widget.Hidden) continue;
+                    if (IsStatic(widget))
+                    {
+                        RectangleF reach = Reach(widget);
+                        if (!liveBelow.Any(r => r.IntersectsWith(reach)))
+                        {
+                            try { DrawWidget(g, widget, scope, 0, 1); layer.Baked.Add(widget.Id); }
+                            catch { }
+                            continue;
+                        }
+                    }
+                    liveBelow.AddRange(Areas(widget));
+                }
+            }
+            _bases[screen.Id] = layer;
+            return layer;
+        }
+
+        internal bool IsBaked(DashScreen screen, DashWidget widget) =>
+            _bases.TryGetValue(screen.Id, out BaseLayer layer) && layer.Baked.Contains(widget.Id);
+
+        private Bitmap Background()
+        {
+            LayoutTheme t = _layout.Theme;
+            string key = t.BackgroundStyle + "|" + t.Background + "|" + t.Background2 + "|" + _accent;
+            if (_background != null && key == _backgroundKey) return _background;
+            _background?.Dispose();
+            _background = new Bitmap(_width, _height, PixelFormat.Format32bppArgb);
+            using (Graphics g = Graphics.FromImage(_background))
+            {
+                DashKit.Prepare(g);
+                DrawBackground(g);
+            }
+            _backgroundKey = key;
+            return _background;
+        }
+
+        public int StateHash(TelemetrySnapshot t, bool shiftFlashOn, int gearAnimationFrame)
+        {
+            unchecked
+            {
+                EvalScope scope = Scope(t, shiftFlashOn);
+                int now = FlagClock ?? Environment.TickCount;
+                FlagView flags = Flags(scope.T, now);
+                int flagHash = FlagHash(flags, scope.T, now);
+                if (flags.Full) return flagHash;
+                DashScreen screen = ActiveScreen(scope);
+                int hash = screen.Id.GetHashCode();
+                hash = hash * 31 + gearAnimationFrame;
+                hash = hash * 31 + (scope.T.Connected ? 1 : 0);
+                if (ReuseFingerprints)
+                {
+                    _fingerprints.Clear();
+                    _fingerprintsFor = scope.T;
+                    _fingerprintsFlash = shiftFlashOn;
+                }
+                foreach (DashWidget widget in screen.Widgets)
+                {
+                    if (widget.Hidden) continue;
+                    int fingerprint = WidgetHash(widget, scope, 0, 1);
+                    if (ReuseFingerprints) _fingerprints[widget.Id] = fingerprint;
+                    hash = hash * 31 + fingerprint;
+                }
+                return hash * 31 + flagHash;
+            }
+        }
+
+        /// <summary>A fingerprint of what the flags add to a frame: the flag and how far it has faded, the cloth's movement, the frame's breath.</summary>
+        private int FlagHash(FlagView flags, TelemetrySnapshot t, int now)
+        {
+            unchecked
+            {
+                int hash = 0;
+                if (flags.Alpha > 0)
+                {
+                    hash = (int)flags.Takeover * 7919 + (int)(flags.Alpha * 48) * 131 + FlagPainter.Key(flags.Takeover, t).GetHashCode();
+                    if (_layout.WavingFlags) hash = hash * 31 + WavingFlag.Frame(now);
+                }
+                if (flags.Frame != RacingFlag.None)
+                    hash = hash * 31 + (int)flags.Frame * 104729 + (int)(flags.FrameAlpha * 48) * 17 + FlagFramePainter.Breath(now);
+                return hash;
+            }
+        }
+
+        /// <summary>
+        /// A fingerprint of everything a widget would draw: its formula results and, for widgets
+        /// that read telemetry directly, that data. Equal fingerprints mean identical pixels.
+        /// </summary>
+        private int WidgetHash(DashWidget widget, EvalScope scope, int previousGear, float progress)
+        {
+            unchecked
+            {
+                WidgetType type = WidgetCatalog.Find(widget.Type);
+                if (type == null) return 0;
+                scope = ForWidget(scope, widget);
+                // A hidden widget draws nothing, whatever its other values do (in the designer, a faint ghost of itself).
+                string visible = widget.Get("visible", "");
+                bool hidden = !string.IsNullOrWhiteSpace(visible) && !Expr.Bool(Expr.Evaluate(Strip(visible), scope));
+                if (hidden && !Ghosts(visible)) return 1;
+                int hash = hidden ? 23 : 17;
+                foreach (PropDef prop in type.Props)
+                {
+                    string raw = widget.Get(prop.Key, prop.Default);
+                    if (!IsFormula(raw, prop)) continue;
+                    object value = Expr.Evaluate(Strip(raw), scope);
+                    // Exact values: even a tiny change moves an anti-aliased edge.
+                    hash = hash * 31 + (value is double d ? d.GetHashCode() : value is Color c ? c.ToArgb() : Expr.Text(value).GetHashCode());
+                }
+                TelemetrySnapshot t = scope.T;
+                // Several widgets look different while iRacing isn't connected.
+                hash = hash * 31 + (t.Connected ? 1 : 0);
+                // A tap zone's dots show which view it's on.
+                string tapName = widget.Get("tapName", "");
+                if (!string.IsNullOrWhiteSpace(tapName) && scope.Taps != null)
+                {
+                    scope.Taps.TryGetValue(tapName.Trim(), out int view);
+                    hash = hash * 31 + view * 7 + TapViews(widget) * 101;
+                }
+                // Data-heavy widgets read more than their properties show.
+                switch (widget.Type)
+                {
+                    case "gear": hash = hash * 31 + t.Gear * 7 + previousGear * 13 + (int)(progress * 1000) + t.MaxForwardGear * 3; break;
+                    case "relative": hash = hash * 31 + RelativeHash(t); break;
+                    case "laphistory": hash = hash * 31 + (t.RecentLapSeconds?.Length ?? 0) * 17 + (int)(t.BestLapSeconds * 1000) + ArrayHash(t.RecentLapSeconds) * 7 + ArrayHash(t.StintLapSeconds); break;
+                    case "progress":
+                        hash = hash * 31 + t.LapsCompleted * 13 + t.LapColorVersion + (int)t.SessionSecondsRemaining + t.TotalLaps * 7 + (int)t.ProgressMode;
+                        // Which laps ran under yellow colors their blocks.
+                        if (t.YellowCompletedLaps != null) for (int i = 0; i < t.YellowCompletedLaps.Length; i++) if (t.YellowCompletedLaps[i]) hash = hash * 31 + i + 1;
+                        break;
+                    case "blindspot": hash = hash * 31 + (int)t.LeftBlindSpot * 5 + (int)t.RightBlindSpot; break;
+                    case "flag": hash = hash * 31 + (int)t.Flag; break;
+                    case "standings": hash = hash * 31 + StandingsHash(t) + (int)(t.SessionBestLapSeconds * 1000); break;
+                    case "tyres": hash = hash * 31 + TyresHash(t); break;
+                    case "trace": hash = hash * 31 + t.TraceVersion; break;
+                    case "deltatrace": hash = hash * 31 + System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(t.DeltaTrace ?? new float[0]); break;
+                    case "graph": hash = hash * 31 + SampleGraph(widget, type, scope).Version; break;
+                    case "trackmap": hash = hash * 31 + MapHash(t); break;
+                    case "radar": hash = hash * 31 + RadarHash(t); break;
+                    case "traffic": hash = hash * 31 + MapHash(t) + (int)(t.ReferenceLapSeconds * 10) + (int)t.SpeedMph; break;
+                }
+                DashWidget clipBase = ClipBase(widget);
+                if (clipBase != null) hash = hash * 31 + (clipBase.Hidden ? 3 : WidgetHash(clipBase, scope, previousGear, progress));
+                return hash;
+            }
+        }
+
+        /// <summary>
+        /// The radar's cars, the gaps its sensors show and how far you've driven (the lanes move), all exact:
+        /// even a fraction of a pixel moves an anti-aliased edge.
+        /// </summary>
+        private static int RadarHash(TelemetrySnapshot t)
+        {
+            unchecked
+            {
+                int hash = t.AheadMeters.GetHashCode() * 31 + t.BehindMeters.GetHashCode();
+                hash = hash * 31 + (t.LapFraction * t.TrackLengthMiles).GetHashCode();
+                foreach (RadarCar car in t.Radar ?? new RadarCar[0])
+                    hash = hash * 31 + car.CarIdx * 7 + car.Meters.GetHashCode() * 13 + car.Lane.GetHashCode() * 17 + (car.Alongside ? 1 : 0) + (car.PaceCar ? 2 : 0)
+                        + (car.Number?.GetHashCode() ?? 0) + car.ClassColor.ToArgb();
+                return hash;
+            }
+        }
+
+        /// <summary>A grouped widget sees its group's number as Slot, and its module options.</summary>
+        internal static EvalScope ForWidget(EvalScope scope, DashWidget widget)
+        {
+            if (string.IsNullOrEmpty(widget.Group)) return scope;
+            if (widget.Props != null)
+                foreach (string key in widget.Props.Keys)
+                    if (key.StartsWith(ModuleOptions.Prefix, StringComparison.Ordinal)) return scope.ForGroup(widget);
+            return scope.WithSlot(widget.Slot);
+        }
+
+        private readonly Dictionary<string, GraphHistory> _graphs = new Dictionary<string, GraphHistory>();
+
+        /// <summary>A Graph widget's history, topped up with a sample of its values when one is due.</summary>
+        private GraphHistory SampleGraph(DashWidget widget, WidgetType type, EvalScope scope)
+        {
+            if (!_graphs.TryGetValue(widget.Id, out GraphHistory history)) _graphs[widget.Id] = history = new GraphHistory();
+            double Value(string key)
+            {
+                string raw = widget.Get(key, type.Prop(key)?.Default) ?? "";
+                if (raw.Trim().Length == 0) return double.NaN;
+                return Expr.Num(Expr.Evaluate(Strip(raw), scope));
+            }
+            history.Sample(scope.Now, Math.Max(1, Expr.Num(widget.Get("seconds", "10"))), Value("value"), Value("value2"));
+            return history;
+        }
+
+        /// <summary>The history a Graph widget draws (sampling it if a sample is due).</summary>
+        internal GraphHistory Graph(WidgetContext c) => SampleGraph(c.Widget, c.Type, c.Scope);
+
+        private static int MapHash(TelemetrySnapshot t)
+        {
+            unchecked
+            {
+                int hash = (t.TrackMap?.Key?.GetHashCode() ?? 0) * 31 + (int)(t.MapProgress * 100) + t.PlayerCarIdx * 7;
+                // Positions to a two-thousandth of a lap: smooth on screen without redrawing for nothing.
+                foreach (float d in t.CarLapDist ?? new float[0]) hash = hash * 31 + (int)Math.Round(d * 2000);
+                foreach (StandingsEntry r in t.Standings ?? new StandingsEntry[0]) hash = hash * 31 + (r.InPits ? 1 : 0) + r.CarIdx;
+                return hash;
+            }
+        }
+
+        private static int ArrayHash(double[] values)
+        {
+            unchecked
+            {
+                int hash = 0;
+                if (values != null) foreach (double v in values) hash = hash * 31 + v.GetHashCode();
+                return hash;
+            }
+        }
+
+        private static int StandingsHash(TelemetrySnapshot t)
+        {
+            unchecked
+            {
+                int hash = 0;
+                foreach (StandingsEntry r in t.Standings ?? new StandingsEntry[0])
+                    hash = hash * 31 + r.CarIdx * 7 + r.Position + (int)Math.Round(r.GapToLeader * 10) * 13 + (int)(r.LastLap * 1000) + (int)(r.BestLap * 1000) + (r.InPits ? 1 : 0);
+                return hash;
+            }
+        }
+
+        private static int TyresHash(TelemetrySnapshot t)
+        {
+            unchecked
+            {
+                int hash = 0;
+                foreach (TyreCorner c in t.Tyres ?? new TyreCorner[0])
+                    hash = hash * 31 + (c.Temp + c.TempInner * 3 + c.TempOuter * 7 + c.Wear * 1000 + c.PressureKpa * 11).GetHashCode();
+                return hash;
+            }
+        }
+
+        private static int RelativeHash(TelemetrySnapshot t)
+        {
+            unchecked
+            {
+                int hash = 0;
+                foreach (RelativeEntry r in t.Relatives ?? new RelativeEntry[0])
+                    hash = hash * 31 + (r.Name?.GetHashCode() ?? 0) + (int)Math.Round(r.Gap * 10) * 7 + r.Position + (r.InPits ? 1 : 0);
+                return hash;
+            }
+        }
+
+        internal static bool IsFormula(string raw, PropDef prop) =>
+            raw != null && (raw.StartsWith("=") || (prop.Kind == PropKind.Formula && raw.Trim().Length > 0));
+
+        internal static string Strip(string raw) => raw != null && raw.StartsWith("=") ? raw.Substring(1) : raw;
+
+        /// <param name="steady">The widget's fingerprint held since the last frame: it's being redrawn only because
+        /// something near it changed, so its finished picture can be laid down instead of drawing it again.</param>
+        private void DrawWidget(Graphics g, DashWidget widget, EvalScope scope, int previousGear, float progress, bool steady = false)
+        {
+            WidgetType type = WidgetCatalog.Find(widget.Type);
+            if (type == null) return;
+            scope = ForWidget(scope, widget);
+            var context = new WidgetContext(this, g, scope, widget, type) { PreviousGear = previousGear, GearProgress = progress };
+            string visible = widget.Get("visible", "");
+            bool ghost = false;
+            if (!string.IsNullOrWhiteSpace(visible) && !Expr.Bool(Expr.Evaluate(Strip(visible), scope)))
+            {
+                if (!Ghosts(visible)) return;
+                ghost = true;
+            }
+            // In the designer, a widget with nothing to show right now (no flag out, no car alongside) shows a ghost
+            // of what it would.
+            if (GhostHidden && !ghost && Idle(widget.Type, context)) ghost = context.Sample = true;
+
+            double opacity = Math.Max(0, Math.Min(100, context.Num("opacity"))) / 100.0 * (ghost ? GhostOpacity : 1);
+            if (opacity <= 0.001) return;
+            bool flipX = context.Bool("flipX"), flipY = context.Bool("flipY");
+            float rotate = (float)(context.Num("rotate") % 360);
+            RectangleF b = context.B;
+            LayerStyle style = LayerStyle.From(context);
+            // Clipped to the layer below: drawn only where that layer is, and not at all while it's hidden.
+            DashWidget clipBase = ClipBase(widget);
+            if (clipBase != null && !Shows(clipBase, scope)) return;
+            // A widget that can never change (no live data, no formulas) but couldn't go into the base
+            // image, because something live sits beneath it, is kept as a finished picture: redrawing it
+            // when something near it changes is then one image copy instead of drawing it again.
+            bool still = CacheStatic && Still(widget);
+            if (opacity >= 0.999 && !style.Any && !still && !(steady && CacheStatic) && clipBase == null)
+            {
+                GraphicsState state = g.Save();
+                Turn(g, b, flipX, flipY, rotate);
+                context.FlipX = flipX;
+                context.FlipY = flipY;
+                type.Draw(context);
+                g.Restore(state);
+                DrawTapDots(g, widget, scope);
+                return;
+            }
+
+            // Partial opacity or Style effects: draw into a layer first, so overlapping parts fade together
+            // and the effects can work on the drawn result. The finished picture (effects beneath, widget
+            // on top) is kept per widget and reused while the widget's fingerprint holds, so a styled
+            // widget that didn't change costs one image copy when something near it redraws. Plain widgets that held
+            // still since the last frame are kept the same way.
+            int hash = Fingerprint(widget, scope, previousGear, progress);
+            if (!_styled.TryGetValue(widget.Id, out StyledPicture picture) || picture.Hash != hash)
+            {
+                picture?.Bitmap.Dispose();
+                picture = Compose(widget, type, scope, previousGear, progress, style, b, flipX, flipY, rotate, context.Sample);
+                if (clipBase != null) Mask(picture, clipBase, scope);
+                picture.Hash = hash;
+                _styled[widget.Id] = picture;
+            }
+            if (style.BlendMode != "Normal") Blend(g, picture, style.BlendMode, (float)opacity);
+            else if (opacity >= 0.999) g.DrawImageUnscaled(picture.Bitmap, picture.At.X, picture.At.Y);
+            else
+                using (ImageAttributes attributes = LayerStyle.Fade((float)opacity))
+                    g.DrawImage(picture.Bitmap, picture.At, 0, 0, picture.At.Width, picture.At.Height, GraphicsUnit.Pixel, attributes);
+            DrawTapDots(g, widget, scope);
+        }
+
+        // ------------------------------------------------------------------ clipping masks and blending
+
+        /// <summary>The bitmap being drawn now, and the areas of it being redrawn (null: all of it), for blended widgets.</summary>
+        private Bitmap _target;
+        private List<Rectangle> _targetAreas;
+
+        /// <summary>Each base's shape, drawn on its own, kept while its fingerprint holds: the mask for what clips to it.</summary>
+        private readonly Dictionary<string, StyledPicture> _masks = new Dictionary<string, StyledPicture>();
+
+        private static bool Clipped(DashWidget widget) => Expr.Bool(widget.Get("clip", "false"));
+
+        private DashScreen ScreenOf(DashWidget widget) => _layout.Screens.FirstOrDefault(s => s.Widgets.Contains(widget));
+
+        /// <summary>
+        /// The layer a clipped widget shows through: the nearest below it that isn't clipped itself, so several clipped
+        /// layers in a row share one base. Null when the widget isn't clipped, or nothing is below it.
+        /// </summary>
+        internal DashWidget ClipBase(DashWidget widget)
+        {
+            if (!Clipped(widget)) return null;
+            DashScreen screen = ScreenOf(widget);
+            if (screen == null) return null;
+            for (int i = screen.Widgets.IndexOf(widget) - 1; i >= 0; i--)
+                if (!Clipped(screen.Widgets[i])) return screen.Widgets[i];
+            return null;
+        }
+
+        /// <summary>Whether a widget is on the screen now: not hidden in the designer, and its Show when (if any) true.</summary>
+        private bool Shows(DashWidget widget, EvalScope scope)
+        {
+            if (widget.Hidden) return false;
+            string visible = widget.Get("visible", "");
+            return string.IsNullOrWhiteSpace(visible) || Expr.Bool(Expr.Evaluate(Strip(visible), ForWidget(scope, widget)));
+        }
+
+        /// <summary>
+        /// Keeps a clipped widget's picture only where its base is drawn: each pixel scaled by the base's own coverage
+        /// there (its shape as drawn, without its Style effects), and nothing beyond the base.
+        /// </summary>
+        private unsafe void Mask(StyledPicture picture, DashWidget clipBase, EvalScope scope)
+        {
+            StyledPicture mask = MaskOf(clipBase, scope);
+            Rectangle at = picture.At, m = mask.At;
+            BitmapData p = picture.Bitmap.LockBits(new Rectangle(0, 0, at.Width, at.Height), ImageLockMode.ReadWrite, PixelFormat.Format32bppPArgb);
+            BitmapData q = mask.Bitmap.LockBits(new Rectangle(0, 0, m.Width, m.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppPArgb);
+            try
+            {
+                for (int y = 0; y < at.Height; y++)
+                {
+                    uint* row = (uint*)((byte*)p.Scan0 + (long)y * p.Stride);
+                    int my = at.Y + y - m.Y;
+                    uint* maskRow = my >= 0 && my < m.Height ? (uint*)((byte*)q.Scan0 + (long)my * q.Stride) : null;
+                    for (int x = 0; x < at.Width; x++)
+                    {
+                        uint pixel = row[x];
+                        if (pixel == 0) continue;
+                        int mx = at.X + x - m.X;
+                        uint cover = maskRow != null && mx >= 0 && mx < m.Width ? maskRow[mx] >> 24 : 0;
+                        if (cover == 255) continue;
+                        row[x] = cover == 0 ? 0 : ScaleAll(pixel, cover);
+                    }
+                }
+            }
+            finally
+            {
+                picture.Bitmap.UnlockBits(p);
+                mask.Bitmap.UnlockBits(q);
+            }
+        }
+
+        private StyledPicture MaskOf(DashWidget clipBase, EvalScope scope)
+        {
+            int hash = WidgetHash(clipBase, scope, 0, 1);
+            if (_masks.TryGetValue(clipBase.Id, out StyledPicture mask) && mask.Hash == hash) return mask;
+            mask?.Bitmap.Dispose();
+            WidgetType type = WidgetCatalog.Find(clipBase.Type);
+            EvalScope own = ForWidget(scope, clipBase);
+            var read = new WidgetContext(this, null, own, clipBase, type);
+            mask = Compose(clipBase, type, own, 0, 1, new LayerStyle(), read.B, read.Bool("flipX"), read.Bool("flipY"), (float)(read.Num("rotate") % 360));
+            mask.Hash = hash;
+            _masks[clipBase.Id] = mask;
+            return mask;
+        }
+
+        /// <summary>A premultiplied pixel at a coverage from 0 to 255: every channel scaled, exactly, without a division.</summary>
+        private static uint ScaleAll(uint pixel, uint cover)
+        {
+            uint Scale(uint v) { uint t = v * cover + 128; return (t + (t >> 8)) >> 8; }
+            return Scale(pixel >> 24) << 24 | Scale((pixel >> 16) & 255) << 16 | Scale((pixel >> 8) & 255) << 8 | Scale(pixel & 255);
+        }
+
+        /// <summary>
+        /// Lays a widget's picture over what's beneath it with a blend mode, within the areas being redrawn only (so a
+        /// redraw of part of the screen blends each pixel once). Multiply darkens, Screen and Add brighten, Overlay
+        /// adds contrast; where nothing is beneath, the picture is laid as it is.
+        /// </summary>
+        private unsafe void Blend(Graphics g, StyledPicture picture, string mode, float opacity)
+        {
+            if (_target == null)
+            {
+                g.DrawImageUnscaled(picture.Bitmap, picture.At.X, picture.At.Y);
+                return;
+            }
+            g.Flush(FlushIntention.Sync);
+            var whole = new Rectangle(0, 0, _target.Width, _target.Height);
+            Rectangle at = Rectangle.Intersect(picture.At, whole);
+            if (at.IsEmpty) return;
+            // The areas being redrawn, as rectangles that don't overlap.
+            var areas = new List<Rectangle>();
+            using (var region = new Region(Rectangle.Empty))
+            {
+                foreach (Rectangle area in _targetAreas ?? new List<Rectangle> { whole }) region.Union(area);
+                region.Intersect(at);
+                using (var identity = new Matrix())
+                    foreach (RectangleF scan in region.GetRegionScans(identity)) areas.Add(Rectangle.Round(scan));
+            }
+            uint fade = (uint)Math.Round(Math.Max(0, Math.Min(1, opacity)) * 255);
+            foreach (Rectangle r in areas.Where(a => a.Width > 0 && a.Height > 0))
+            {
+                BitmapData dst = _target.LockBits(r, ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
+                BitmapData src = picture.Bitmap.LockBits(new Rectangle(r.X - picture.At.X, r.Y - picture.At.Y, r.Width, r.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppPArgb);
+                try
+                {
+                    for (int y = 0; y < r.Height; y++)
+                    {
+                        uint* under = (uint*)((byte*)dst.Scan0 + (long)y * dst.Stride), top = (uint*)((byte*)src.Scan0 + (long)y * src.Stride);
+                        for (int x = 0; x < r.Width; x++)
+                        {
+                            uint t = top[x];
+                            if (t == 0) continue;
+                            if (fade < 255) t = ScaleAll(t, fade);
+                            under[x] = BlendPixel(under[x], t, mode);
+                        }
+                    }
+                }
+                finally
+                {
+                    _target.UnlockBits(dst);
+                    picture.Bitmap.UnlockBits(src);
+                }
+            }
+        }
+
+        /// <summary>A premultiplied pixel blended onto a straight one beneath it.</summary>
+        internal static uint BlendPixel(uint under, uint top, string mode)
+        {
+            uint ta = top >> 24, ua = under >> 24;
+            if (ta == 0) return under;
+            float a = ta / 255f;
+            // The top's own color, un-premultiplied.
+            float tr = ((top >> 16) & 255) / a, tg = ((top >> 8) & 255) / a, tb = (top & 255) / a;
+            float ur = (under >> 16) & 255, ug = (under >> 8) & 255, ub = under & 255;
+            float Mix(float u, float c)
+            {
+                float blended;
+                switch (mode)
+                {
+                    case "Multiply": blended = u * c / 255f; break;
+                    case "Screen": blended = 255f - (255f - u) * (255f - c) / 255f; break;
+                    case "Add": blended = Math.Min(255f, u + c); break;
+                    case "Overlay": blended = u < 128 ? 2 * u * c / 255f : 255f - 2 * (255f - u) * (255f - c) / 255f; break;
+                    default: blended = c; break;
+                }
+                // Over nothing there's nothing to blend with: the top shows as it is.
+                float under01 = ua / 255f;
+                blended = blended * under01 + c * (1 - under01);
+                return u + (blended - u) * a;
+            }
+            uint r = (uint)Math.Max(0, Math.Min(255, Math.Round(Mix(ur, tr)))), gg = (uint)Math.Max(0, Math.Min(255, Math.Round(Mix(ug, tg)))), b = (uint)Math.Max(0, Math.Min(255, Math.Round(Mix(ub, tb))));
+            uint outA = ua + (ta * (255 - ua) + 127) / 255;
+            if (ua == 0)
+            {
+                // Nothing beneath: the picture's own color at its own coverage.
+                r = (uint)Math.Min(255, Math.Round(tr)); gg = (uint)Math.Min(255, Math.Round(tg)); b = (uint)Math.Min(255, Math.Round(tb));
+            }
+            return outA << 24 | r << 16 | gg << 8 | b;
+        }
+
+        /// <summary>A row of small dots along the bottom of a tap zone: one per view, the current one lit.</summary>
+        private static void DrawTapDots(Graphics g, DashWidget widget, EvalScope scope)
+        {
+            string name = widget.Get("tapName", "")?.Trim();
+            if (string.IsNullOrEmpty(name) || !Expr.Bool(widget.Get("tapDots", "true"))) return;
+            int views = TapViews(widget), view = 0;
+            scope.Taps?.TryGetValue(name, out view);
+            RectangleF b = widget.Bounds;
+            float d = Math.Max(3, Math.Min(6, b.Height / 18)), gap = d * 1.4f;
+            float total = views * d + (views - 1) * gap, x = b.X + (b.Width - total) / 2, y = b.Bottom - d - Math.Max(4, d * 1.4f);
+            Color text = Expr.ParseHex(scope.Theme?.Text) ?? Color.White;
+            for (int i = 0; i < views; i++)
+                using (var brush = new SolidBrush(Color.FromArgb(i == view % views ? 210 : 60, text)))
+                    g.FillEllipse(brush, x + i * (d + gap), y, d, d);
+        }
+
+        private sealed class StyledPicture
+        {
+            public Bitmap Bitmap;
+            public Rectangle At;
+            public int Hash;
+        }
+
+        private readonly Dictionary<string, StyledPicture> _styled = new Dictionary<string, StyledPicture>();
+
+        /// <summary>Draws a widget into a layer exactly as big as it can reach, then lays its Style effects beneath it.</summary>
+        private StyledPicture Compose(DashWidget widget, WidgetType type, EvalScope scope, int previousGear, float progress, LayerStyle style,
+            RectangleF b, bool flipX, bool flipY, float rotate, bool sample = false)
+        {
+            Rectangle at = Outward(Reach(widget));
+            if (at.Width < 1 || at.Height < 1) at = new Rectangle((int)b.X, (int)b.Y, Math.Max(1, (int)b.Width), Math.Max(1, (int)b.Height));
+            // Premultiplied pictures blend back exactly; see-through panels would lose precision otherwise.
+            var layer = new Bitmap(at.Width, at.Height, PixelFormat.Format32bppPArgb);
+            Matrix place;
+            using (Graphics lg = Graphics.FromImage(layer))
+            {
+                DashKit.Prepare(lg);
+                lg.TranslateTransform(-at.X, -at.Y);
+                Turn(lg, b, flipX, flipY, rotate);
+                place = lg.Transform;
+                var inner = new WidgetContext(this, lg, scope, widget, type) { PreviousGear = previousGear, GearProgress = progress, FlipX = flipX, FlipY = flipY, Sample = sample };
+                type.Draw(inner);
+            }
+            // No effects to lay beneath it: the layer is the finished picture.
+            if (!style.NeedsCompose)
+            {
+                place.Dispose();
+                return new StyledPicture { Bitmap = layer, At = at };
+            }
+            using (layer)
+            using (place)
+                return new StyledPicture { Bitmap = style.Compose(layer, b, place), At = at };
+        }
+
+        private readonly Dictionary<string, Bitmap> _glass = new Dictionary<string, Bitmap>();
+
+        /// <summary>
+        /// A pane of Liquid Glass, made once per shape, place, setting and backdrop and then kept. The backdrop
+        /// is the screen's background with every fixed widget beneath the pane (images, shapes, gradients,
+        /// other panes). Live widgets are left out: the glass would have to be made again every frame. The
+        /// renderer owns the bitmap: callers must not dispose it.
+        /// </summary>
+        internal Bitmap Glass(DashWidget pane, EvalScope scope, Rectangle at, GraphicsPath shape, GlassSettings settings)
+        {
+            Bitmap background = Background();
+            int margin = LiquidGlass.Margin(settings);
+            Rectangle area = Rectangle.Intersect(Rectangle.Inflate(at, margin, margin), new Rectangle(0, 0, _width, _height));
+            if (area.Width < 1 || area.Height < 1) area = new Rectangle(Math.Max(0, Math.Min(_width - 1, at.X)), Math.Max(0, Math.Min(_height - 1, at.Y)), 1, 1);
+            var beneath = new List<DashWidget>();
+            DashScreen screen = _layout.Screens.FirstOrDefault(s => s.Widgets.Contains(pane));
+            if (screen != null)
+                foreach (DashWidget widget in screen.Widgets)
+                {
+                    if (widget == pane) break;
+                    if (!widget.Hidden && Still(widget) && Touches(widget, area)) beneath.Add(widget);
+                }
+
+            int outline = 17;
+            foreach (PointF p in shape.PathPoints) outline = outline * 31 + (int)Math.Round(p.X * 8) * 7 + (int)Math.Round(p.Y * 8);
+            int under = 0;
+            foreach (DashWidget widget in beneath) under = under * 31 + widget.Id.GetHashCode() * 7 + WidgetHash(widget, scope, 0, 1);
+            string key = at + "|" + outline + "|" + shape.PointCount + "|" + settings.Key + "|" + _backgroundKey + "|" + under;
+            if (_glass.TryGetValue(key, out Bitmap made)) return made;
+            if (_glass.Count >= 64) ForgetGlass();
+
+            int[] backdrop;
+            using (var behind = new Bitmap(area.Width, area.Height, PixelFormat.Format32bppArgb))
+            {
+                using (Graphics g = Graphics.FromImage(behind))
+                {
+                    DashKit.Prepare(g);
+                    g.TranslateTransform(-area.X, -area.Y);
+                    g.DrawImageUnscaled(background, 0, 0);
+                    foreach (DashWidget widget in beneath)
+                        try { DrawWidget(g, widget, scope, 0, 1); }
+                        catch { }
+                }
+                backdrop = LiquidGlass.Pixels(behind);
+            }
+            return _glass[key] = LiquidGlass.Render(backdrop, area, at, shape, settings);
+        }
+
+        private void ForgetGlass()
+        {
+            foreach (Bitmap pane in _glass.Values) pane.Dispose();
+            _glass.Clear();
+        }
+
+        private void ForgetStyled()
+        {
+            foreach (StyledPicture picture in _styled.Values) picture.Bitmap.Dispose();
+            _styled.Clear();
+            foreach (StyledPicture mask in _masks.Values) mask.Bitmap.Dispose();
+            _masks.Clear();
+            ForgetGlass();
+            _still.Clear();
+            ForgetShapes();
+        }
+
+        private readonly Dictionary<string, bool> _still = new Dictionary<string, bool>();
+        private readonly Dictionary<string, GraphicsPath> _shapes = new Dictionary<string, GraphicsPath>();
+
+        /// <summary>
+        /// A shape kept by a key describing its geometry (such as a warped bar's segments), built once.
+        /// The renderer owns it: callers must not dispose it.
+        /// </summary>
+        internal GraphicsPath Shape(string key, Func<GraphicsPath> build)
+        {
+            if (_shapes.TryGetValue(key, out GraphicsPath path)) return path;
+            if (_shapes.Count >= 4000) ForgetShapes();
+            return _shapes[key] = build();
+        }
+
+        private void ForgetShapes()
+        {
+            foreach (GraphicsPath path in _shapes.Values) path.Dispose();
+            _shapes.Clear();
+        }
+
+        /// <summary>Whether a widget never changes, worked out once per widget (and again after an edit).</summary>
+        private bool Still(DashWidget widget)
+        {
+            if (!_still.TryGetValue(widget.Id, out bool still)) _still[widget.Id] = still = IsStatic(widget);
+            return still;
+        }
+
+        /// <summary>Mirrors and turns everything drawn next about the middle of a widget's box.</summary>
+        private static void Turn(Graphics g, RectangleF b, bool flipX, bool flipY, float rotate)
+        {
+            if (!flipX && !flipY && Math.Abs(rotate) < 0.01f) return;
+            float cx = b.X + b.Width / 2, cy = b.Y + b.Height / 2;
+            g.TranslateTransform(cx, cy);
+            if (Math.Abs(rotate) >= 0.01f) g.RotateTransform(rotate);
+            g.ScaleTransform(flipX ? -1 : 1, flipY ? -1 : 1);
+            g.TranslateTransform(-cx, -cy);
+        }
+
+        private void DrawBackground(Graphics g)
+        {
+            LayoutTheme theme = _layout.Theme;
+            Color bg = Expr.ParseHex(theme.Background) ?? DashKit.Background;
+            Color bg2 = Expr.ParseHex(theme.Background2) ?? bg;
+            Color accent = Expr.ParseHex(_accent) ?? Color.Teal;
+            switch (theme.BackgroundStyle)
+            {
+                case "None":
+                    // See-through: over the game, the game shows wherever no widget is drawn. On a wheel screen it's black.
+                    g.Clear(Color.Transparent);
+                    break;
+                case "Solid":
+                    g.Clear(bg);
+                    break;
+                case "Gradient":
+                    using (var brush = new LinearGradientBrush(new Rectangle(0, -1, _width, _height + 2), bg2, bg, 90f)) g.FillRectangle(brush, 0, 0, _width, _height);
+                    break;
+                case "Aurora":
+                {
+                    // Soft color blooms for the glass panels to sit over, like a blurred wallpaper.
+                    using (var brush = new LinearGradientBrush(new Rectangle(0, -1, _width, _height + 2), bg2, bg, 90f)) g.FillRectangle(brush, 0, 0, _width, _height);
+                    Color info = Expr.ParseHex(theme.Info) ?? Color.RoyalBlue, purple = Expr.ParseHex(theme.Purple) ?? Color.MediumPurple;
+                    void Bloom(float cx, float cy, float rx, float ry, Color color, int alpha)
+                    {
+                        using (var path = new GraphicsPath())
+                        {
+                            path.AddEllipse(cx - rx, cy - ry, rx * 2, ry * 2);
+                            using (var bloom = new PathGradientBrush(path) { CenterColor = Color.FromArgb(alpha, color), SurroundColors = new[] { Color.FromArgb(0, color) } })
+                                g.FillPath(bloom, path);
+                        }
+                    }
+                    Bloom(_width * 0.18f, _height * 0.12f, _width * 0.42f, _height * 0.62f, accent, 64);
+                    Bloom(_width * 0.86f, _height * 0.92f, _width * 0.44f, _height * 0.66f, info, 56);
+                    Bloom(_width * 0.78f, _height * 0.02f, _width * 0.32f, _height * 0.42f, purple, 40);
+                    Bloom(_width * 0.5f, _height * 0.5f, _width * 0.3f, _height * 0.45f, accent, 22);
+                    break;
+                }
+                case "Vignette":
+                    g.Clear(bg2);
+                    using (var path = new GraphicsPath())
+                    {
+                        path.AddRectangle(new RectangleF(-_width * 0.2f, -_height * 0.2f, _width * 1.4f, _height * 1.4f));
+                        using (var brush = new PathGradientBrush(path) { CenterColor = bg2, SurroundColors = new[] { bg }, FocusScales = new PointF(0.55f, 0.4f) })
+                            g.FillRectangle(brush, 0, 0, _width, _height);
+                    }
+                    break;
+                default:
+                    g.Clear(bg);
+                    using (var path = new GraphicsPath())
+                    {
+                        path.AddEllipse(_width * 0.15f, -_height * 0.55f, _width * 0.7f, _height * 1.1f);
+                        using (var bloom = new PathGradientBrush(path) { CenterColor = Color.FromArgb(22, accent), SurroundColors = new[] { Color.FromArgb(0, accent) } })
+                            g.FillPath(bloom, path);
+                    }
+                    break;
+            }
+        }
+
+        public Font Font(string family, float px, bool bold)
+        {
+            if (string.IsNullOrWhiteSpace(family) || family.Equals("theme", StringComparison.OrdinalIgnoreCase)) family = _layout.Theme.Font;
+            px = Math.Max(1, Math.Min(600, px));
+            string key = family + "|" + px.ToString("0.#") + "|" + bold;
+            if (_fonts.TryGetValue(key, out Font font)) return font;
+            FontStyle style = bold ? FontStyle.Bold : FontStyle.Regular;
+            try
+            {
+                font = new Font(family, px, style, GraphicsUnit.Pixel);
+                // GDI+ silently substitutes unknown families; fall back to the house face instead.
+                if (!font.Name.Equals(family, StringComparison.OrdinalIgnoreCase) && !family.Equals(_layout.Theme.Font, StringComparison.OrdinalIgnoreCase))
+                {
+                    font.Dispose();
+                    return Font("theme", px, bold);
+                }
+            }
+            catch
+            {
+                font = new Font("Segoe UI", px, style, GraphicsUnit.Pixel);
+            }
+            _fonts[key] = font;
+            return font;
+        }
+
+        public Bitmap Image(string id)
+        {
+            if (string.IsNullOrEmpty(id)) return null;
+            if (_images.TryGetValue(id, out Bitmap cached)) return cached;
+            Bitmap bitmap = null;
+            try
+            {
+                if (_layout.Images.TryGetValue(id, out string base64))
+                    using (var stream = new MemoryStream(Convert.FromBase64String(base64)))
+                    using (var loaded = new Bitmap(stream))
+                        bitmap = new Bitmap(loaded);
+            }
+            catch { bitmap = null; }
+            _images[id] = bitmap;
+            return bitmap;
+        }
+
+        public void Dispose()
+        {
+            foreach (Font font in _fonts.Values) font.Dispose();
+            _fonts.Clear();
+            foreach (Bitmap image in _images.Values) image?.Dispose();
+            _images.Clear();
+            foreach (BaseLayer layer in _bases.Values) layer.Bitmap.Dispose();
+            _bases.Clear();
+            _background?.Dispose();
+            _frame?.Dispose();
+            _frame = null;
+            _output?.Dispose();
+            _output = null;
+            ForgetStyled();
+            _flags.Dispose();
+            _waving?.Dispose();
+            _flagFrame?.Dispose();
+            _flagLayer?.Dispose();
+        }
+    }
+
+    /// <summary>One widget being drawn: its bounds and typed access to its resolved properties.</summary>
+    internal sealed class WidgetContext
+    {
+        private readonly Dictionary<string, object> _resolved = new Dictionary<string, object>();
+
+        public WidgetContext(LayoutRenderer renderer, Graphics g, EvalScope scope, DashWidget widget, WidgetType type)
+        {
+            Renderer = renderer;
+            G = g;
+            Scope = scope;
+            Widget = widget;
+            Type = type;
+            B = widget.Bounds;
+        }
+
+        public LayoutRenderer Renderer { get; }
+        /// <summary>Draw a sample of what it shows (the designer's ghost of a widget with nothing to show now).</summary>
+        public bool Sample { get; set; }
+        public Graphics G { get; }
+        public EvalScope Scope { get; }
+        public DashWidget Widget { get; }
+        public WidgetType Type { get; }
+        public RectangleF B { get; }
+        public TelemetrySnapshot T => Scope.T;
+        public int PreviousGear { get; set; }
+        public float GearProgress { get; set; } = 1;
+        /// <summary>The widget is mirrored; its text is turned back so it still reads the right way round.</summary>
+        public bool FlipX { get; set; }
+        public bool FlipY { get; set; }
+
+        /// <summary>The smallest text this design can show readably (see <see cref="ReadableText"/>); dense rows may go a little under it.</summary>
+        public float MinText => (float)ReadableText.FloorFor(Renderer?.Layout ?? new DashLayout());
+        public float MinDenseText => (float)Math.Round(MinText * 0.86);
+
+        public string Raw(string key) => Widget.Get(key, Type.Prop(key)?.Default ?? "");
+
+        public bool IsFormula(string key)
+        {
+            PropDef def = Type.Prop(key);
+            return def != null && LayoutRenderer.IsFormula(Raw(key), def);
+        }
+
+        /// <summary>The property's value: a formula result, or the literal text.</summary>
+        public object Value(string key)
+        {
+            if (_resolved.TryGetValue(key, out object cached)) return cached;
+            string raw = Raw(key);
+            object value = IsFormula(key) ? Expr.Evaluate(LayoutRenderer.Strip(raw), Scope) : raw;
+            _resolved[key] = value;
+            return value;
+        }
+
+        public double Num(string key)
+        {
+            object value = Value(key);
+            if (value is string s && string.IsNullOrWhiteSpace(s)) value = Type.Prop(key)?.Default;
+            double d = Expr.Num(value);
+            return double.IsNaN(d) || double.IsInfinity(d) ? 0 : d;
+        }
+
+        public bool Bool(string key) => Expr.Bool(Value(key));
+        public string Text(string key) => Expr.Text(Value(key));
+        public string Choice(string key) => Text(key);
+
+        public Color Color(string key, Color? fallback = null)
+        {
+            object value = Value(key);
+            Color? color = Expr.Color(value, Scope);
+            if (color.HasValue) return color.Value;
+            if (fallback.HasValue) return fallback.Value;
+            return Expr.Color(Type.Prop(key)?.Default, Scope) ?? System.Drawing.Color.White;
+        }
+
+        /// <summary>Null when the property is empty, for optional colors such as fills.</summary>
+        public Color? OptionalColor(string key)
+        {
+            object value = Value(key);
+            if (value is string s && string.IsNullOrWhiteSpace(s)) return null;
+            return Expr.Color(value, Scope);
+        }
+
+        public Color Theme(string token) => Expr.Color(token, Scope) ?? System.Drawing.Color.White;
+
+        public Font Font(float px, bool bold) => Renderer.Font(Text("font"), px, bold);
+    }
+}

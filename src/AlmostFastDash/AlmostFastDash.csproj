@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Builds one self-contained AlmostFastDash.exe. It targets .NET Framework 4.8,
+    which ships with Windows 10 and 11, and references only assemblies that are part
+    of Windows, so nothing else has to sit next to the exe.
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <PlatformTarget>x86</PlatformTarget>
+    <Prefer32Bit>true</Prefer32Bit>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>AlmostFastDash</AssemblyName>
+    <Product>Almost Fast Dash</Product>
+    <Version>3.72.0</Version>
+    <RootNamespace>AlmostFastDash</RootNamespace>
+    <DebugType>none</DebugType>
+    <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
+    <!-- Nothing needs an .exe.config: no binding redirects, and .NET 4.8 is the only runtime. -->
+    <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
+    <!-- Pointer code turns frames into the screen's pixel format (FrameEncoder.cs). -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Configurations>Debug;Release;Checks</Configurations>
+  </PropertyGroup>
+
+  <!--
+    Checks is Release plus the end-to-end checks in Checks\ and the command-line option that runs
+    them (designer-selftest). The checks drive the designer from inside, through its private members, so they're compiled
+    into a build of the app rather than a separate assembly. tests\AlmostFastDash.Tests runs that build.
+  -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Checks'">
+    <Optimize>true</Optimize>
+    <DefineConstants>$(DefineConstants);CHECKS</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="Microsoft.VisualBasic" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Management" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Web.Extensions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\AppIcon.png" />
+    <Resource Include="Assets\AppIcon.ico" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(Configuration)' != 'Checks'">
+    <Compile Remove="Checks\**" />
+  </ItemGroup>
+</Project>

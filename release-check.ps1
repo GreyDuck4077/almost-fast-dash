@@ -7,6 +7,7 @@
 
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
+$project = Join-Path $root 'src\AlmostFastDash'
 $work = Join-Path ([IO.Path]::GetTempPath()) ('afd-release-check-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))
 New-Item -ItemType Directory -Path $work | Out-Null
 $failed = $false
@@ -24,22 +25,22 @@ function Step([string]$name, [scriptblock]$check) {
 Write-Host "Almost Fast Dash release check  ($work)"
 
 Step 'Build (Release)' {
-    $output = & dotnet build (Join-Path $root 'AlmostFastDash.csproj') -c Release 2>&1 | Out-String
+    $output = & dotnet build (Join-Path $project 'AlmostFastDash.csproj') -c Release 2>&1 | Out-String
     if ($LASTEXITCODE -ne 0 -or $output -notmatch 'Build succeeded') { throw ($output -split "`n" | Select-String ' error ' | Select-Object -First 3 | Out-String).Trim() }
-    Copy-Item (Join-Path $root 'bin\Release\net48\AlmostFastDash.exe') $work
+    Copy-Item (Join-Path $project 'bin\Release\net48\AlmostFastDash.exe') $work
     'one exe, ' + [math]::Round((Get-Item (Join-Path $work 'AlmostFastDash.exe')).Length / 1KB) + ' KB'
 }
 if ($failed) { exit 1 }
 $exe = Join-Path $work 'AlmostFastDash.exe'
 
-Step 'Designer and light self-tests' {
-    $report = Join-Path $work 'selftest.txt'
-    Start-Process $exe -ArgumentList '--designer-selftest', $report -WorkingDirectory $work -Wait
-    $summary = Get-Content $report | Select-String 'CHECKS (PASSED|FAILED)|CRASHED' | Select-Object -First 1
-    if ($summary -eq $null -or $summary.Line -notmatch '^ALL \d+ CHECKS PASSED') {
-        throw ((Get-Content $report | Select-String '^FAIL|CRASHED' | Select-Object -First 5 | Out-String).Trim())
+Step 'End-to-end checks' {
+    # dotnet test builds the app's Checks configuration and runs every check in it, one test each.
+    $output = & dotnet test (Join-Path $root 'tests\AlmostFastDash.Tests\AlmostFastDash.Tests.csproj') -c Release 2>&1 | Out-String
+    $summary = $output -split "`n" | Select-String 'Passed!|Failed!' | Select-Object -First 1
+    if ($LASTEXITCODE -ne 0 -or $summary -eq $null -or $summary.Line -notmatch 'Passed!') {
+        throw (($output -split "`n" | Select-String '^\s*Failed |error' | Select-Object -First 5 | Out-String).Trim())
     }
-    $summary.Line
+    $summary.Line -replace '^.*Passed:\s*(\d+).*$', 'all $1 tests passed'
 }
 
 Step 'Templates render' {
@@ -81,5 +82,5 @@ Write-Host ''
 if ($failed) { Write-Host 'Release check FAILED. Reports are in the folder above.' -ForegroundColor Red; exit 1 }
 Write-Host 'Release check passed.' -ForegroundColor Green
 # For the release notes, so people can check their download (the exe isn't code-signed).
-Write-Host ('SHA-256 of AlmostFastDash.exe: ' + (Get-FileHash (Join-Path $root 'bin\Release\net48\AlmostFastDash.exe') -Algorithm SHA256).Hash.ToLowerInvariant())
+Write-Host ('SHA-256 of AlmostFastDash.exe: ' + (Get-FileHash (Join-Path $project 'bin\Release\net48\AlmostFastDash.exe') -Algorithm SHA256).Hash.ToLowerInvariant())
 exit 0

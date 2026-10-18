@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Runs the app's end-to-end checks with dotnet test, one test per check. The checks themselves are
+    compiled into the app's Checks build (src/AlmostFastDash/Checks); this project builds that, then
+    starts it in an empty folder and reads its report.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <PlatformTarget>x86</PlatformTarget>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="MSTest.TestAdapter" Version="3.6.4" />
+    <PackageReference Include="MSTest.TestFramework" Version="3.6.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The Checks build of the app (Release plus the checks); its exe lands next to the tests. -->
+    <ProjectReference Include="..\..\src\AlmostFastDash\AlmostFastDash.csproj" SetConfiguration="Configuration=Checks" />
+  </ItemGroup>
+</Project>
