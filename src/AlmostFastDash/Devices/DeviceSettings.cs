@@ -1,14 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.IO.Ports;
 using System.Linq;
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
-using System.Threading;
 using System.Web.Script.Serialization;
-using Microsoft.Win32;
 
 namespace AlmostFastDash.Devices
 {

@@ -1,12 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Drawing;
-using System.Drawing.Imaging;
-using System.Runtime.InteropServices;
-using Microsoft.Win32;
-using Microsoft.Win32.SafeHandles;
-
 namespace AlmostFastDash.Output
 {
     internal sealed class ConnectionResult

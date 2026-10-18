@@ -1,10 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.IO;
-using System.Linq;
-using System.Web.Script.Serialization;
-
 namespace AlmostFastDash.Settings
 {
     internal static class Disciplines
