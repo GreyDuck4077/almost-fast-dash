@@ -22,4 +22,10 @@ namespace AlmostFastDash.Rendering
                 return renderer.Render(snapshot, false, snapshot.Gear, 1f);
         }
     }
+
+    /// <summary>Renderers that can tell cheaply whether their next frame would differ.</summary>
+    internal interface IStateRenderer
+    {
+        int StateHash(TelemetrySnapshot telemetry, bool shiftFlashOn, int gearAnimationFrame);
+    }
 }

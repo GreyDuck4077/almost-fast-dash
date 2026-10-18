@@ -1023,8 +1023,8 @@ namespace AlmostFastDash.UI
         {
             try
             {
-                if (!File.Exists(Program.DashboardStatusPath)) return false;
-                if (!int.TryParse(File.ReadAllText(Program.DashboardStatusPath).Trim(), out int pid)) return false;
+                if (!File.Exists(DashboardRunner.DashboardStatusPath)) return false;
+                if (!int.TryParse(File.ReadAllText(DashboardRunner.DashboardStatusPath).Trim(), out int pid)) return false;
                 Process process = Process.GetProcessById(pid);
                 // The exe was called AlmostFastOverlays before the rename; either is ours.
                 return !process.HasExited && (string.Equals(process.ProcessName, "AlmostFastDash", StringComparison.OrdinalIgnoreCase) ||
@@ -1048,7 +1048,7 @@ namespace AlmostFastDash.UI
             string active = null, discipline = null;
             try
             {
-                string[] lines = File.ReadAllLines(Program.ActiveDashboardPath);
+                string[] lines = File.ReadAllLines(DashboardRunner.ActiveDashboardPath);
                 active = lines.Length > 0 ? lines[0].Trim() : null;
                 discipline = lines.Length > 1 ? lines[1].Trim() : null;
             }
@@ -1058,7 +1058,7 @@ namespace AlmostFastDash.UI
             StatusPill.ToolTip = shown == null ? null : "Showing " + shown.Name + (string.IsNullOrEmpty(discipline) ? "" : " for a " + discipline.ToLowerInvariant() + " track");
             // Hidden by Show when at this point in iRacing (the running dashboard notes it in dashboard.hidden).
             string hidden = null;
-            try { if (File.Exists(Program.HiddenPath)) hidden = File.ReadAllText(Program.HiddenPath).Trim(); }
+            try { if (File.Exists(DashboardRunner.HiddenPath)) hidden = File.ReadAllText(DashboardRunner.HiddenPath).Trim(); }
             catch { }
             if (!string.IsNullOrEmpty(hidden) && Enum.TryParse(hidden, out CarState at))
             {
