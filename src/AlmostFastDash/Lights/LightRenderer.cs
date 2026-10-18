@@ -55,7 +55,10 @@ namespace AlmostFastDash.Lights
 
         public static string DeviceSignature(IEnumerable<DeviceSettings> devices) =>
             string.Join(";", (devices ?? Enumerable.Empty<DeviceSettings>()).Select(d => d == null ? "" :
-                d.Id + ":" + d.LedCount + ":" + d.Enabled + ":" + string.Join(",", d.Groups.Select(g => g.Id + g.Purpose + g.From + "-" + g.To + g.Reverse + (g.Leds == null ? "" : "[" + string.Join(".", g.Leds) + "]")))));
+                d.Id + ":" + d.LedCount + ":" + d.Enabled + ":" +
+                string.Join(",",
+                d.Groups.Select(g => g.Id + g.Purpose + g.From + "-" + g.To + g.Reverse +
+                (g.Leds == null ? "" : "[" + string.Join(".", g.Leds) + "]")))));
 
         /// <summary>Layer ids whose condition or properties failed on the last frame, with the reason.</summary>
         public Dictionary<string, string> Errors { get; } = new Dictionary<string, string>();
@@ -69,7 +72,8 @@ namespace AlmostFastDash.Lights
                 ShiftFlashOn = DataCatalog.AtShiftPoint(t) && ((now / 140) & 1) == 0
             };
             var composed = _counts.Select(n => new Color?[n]).ToArray();
-            var frame = new LightFrame { Leds = _counts.Select(n => new Color[n]).ToArray(), Owners = _counts.Select(n => new string[n]).ToArray() };
+            var frame = new LightFrame { Leds = _counts.Select(n => new Color[n]).ToArray(), Owners = _counts.Select(n => new string[n])
+                .ToArray() };
             Errors.Clear();
 
             // Bottom of the list first, so higher layers paint over it.
@@ -79,7 +83,8 @@ namespace AlmostFastDash.Lights
                 if (!layer.Enabled) continue;
                 try
                 {
-                    if (!string.IsNullOrWhiteSpace(layer.Condition) && !Expr.Bool(Expr.Evaluate(LayoutRenderer.Strip(layer.Condition), scope)))
+                    if (!string.IsNullOrWhiteSpace(layer.Condition) &&
+                        !Expr.Bool(Expr.Evaluate(LayoutRenderer.Strip(layer.Condition), scope)))
                         continue;
                     LightEffect effect = LightEffects.Find(layer.Effect);
                     if (effect == null || !_targets.TryGetValue(layer.Target, out LedTarget target)) continue;
@@ -89,7 +94,8 @@ namespace AlmostFastDash.Lights
                     for (int s = 0; s < strips.Count; s++)
                     {
                         LedRef[] strip = strips[s];
-                        var context = new LightContext { Scope = scope, Layer = layer, Effect = effect, Target = target, Strip = s, StripCount = strips.Count, Length = strip.Length, Now = now };
+                        var context = new LightContext { Scope = scope, Layer = layer, Effect = effect, Target = target, Strip = s,
+                            StripCount = strips.Count, Length = strip.Length, Now = now };
                         Color?[] colors = effect.Render(context);
                         for (int i = 0; i < strip.Length && i < colors.Length; i++)
                         {

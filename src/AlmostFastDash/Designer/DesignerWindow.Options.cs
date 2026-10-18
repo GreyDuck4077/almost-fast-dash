@@ -13,7 +13,8 @@ namespace AlmostFastDash.Designer
         // ==================================================================
 
         private List<DashWidget> GroupMembers(DashWidget widget) =>
-            string.IsNullOrEmpty(widget.Group) ? new List<DashWidget> { widget } : _screen.Widgets.Where(w => w.Group == widget.Group).ToList();
+            string.IsNullOrEmpty(widget.Group) ? new List<DashWidget> { widget } : _screen.Widgets.Where(w => w.Group == widget.Group)
+            .ToList();
 
         /// <summary>
         /// The group's options at the top of Properties: each edited the way the settings linked to it are (a color,
@@ -30,7 +31,8 @@ namespace AlmostFastDash.Designer
             {
                 string option = name;
                 List<(DashWidget Widget, PropDef Def)> uses = ModuleOptions.Uses(group, option).ToList();
-                PropDef shape = uses.Select(u => u.Def).FirstOrDefault() ?? new PropDef { Key = "option", Label = option, Kind = PropKind.Text, Default = "" };
+                PropDef shape = uses.Select(u => u.Def)
+                    .FirstOrDefault() ?? new PropDef { Key = "option", Label = option, Kind = PropKind.Text, Default = "" };
                 FrameworkElement editor = LiteralEditor(shape, member.Get(ModuleOptions.Prefix + option, ""), (value, structural) =>
                 {
                     ModuleOptions.Set(group, option, value);
@@ -40,8 +42,10 @@ namespace AlmostFastDash.Designer
                 });
                 var remove = new Button
                 {
-                    Style = (Style)FindResource("Btn.Ghost"), Width = 26, Height = 26, Padding = new Thickness(0), Margin = new Thickness(4, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center,
-                    Content = new TextBlock { Text = "×", FontSize = 14 }, ToolTip = "Stop being an option: the settings linked to it keep its value"
+                    Style = (Style)FindResource("Btn.Ghost"), Width = 26, Height = 26, Padding = new Thickness(0),
+                        Margin = new Thickness(4, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center,
+                    Content = new TextBlock { Text = "×", FontSize = 14 },
+                    ToolTip = "Stop being an option: the settings linked to it keep its value"
                 };
                 remove.Click += (s, e) =>
                 {
@@ -59,7 +63,9 @@ namespace AlmostFastDash.Designer
                 Grid.SetColumn(remove, 1);
                 line.Children.Add(remove);
                 string linked = uses.Count == 0 ? "Not linked to any setting yet."
-                    : "Linked to " + string.Join(", ", uses.Select(u => (string.IsNullOrWhiteSpace(u.Widget.Name) ? u.Widget.Type : u.Widget.Name) + " › " + u.Def.Label).Distinct().Take(6)) + (uses.Count > 6 ? "…" : "") + ".";
+                    : "Linked to " + string.Join(", ",
+                        uses.Select(u => (string.IsNullOrWhiteSpace(u.Widget.Name) ? u.Widget.Type : u.Widget.Name) + " › " + u.Def.Label)
+                        .Distinct().Take(6)) + (uses.Count > 6 ? "…" : "") + ".";
                 Inspector.Children.Add(LabeledRow(option, line, linked));
             }
             Inspector.Children.Add(Caption("Right-click a setting's name to add or link an option.", 2));

@@ -16,7 +16,8 @@ namespace AlmostFastDash.IRacing
             foreach (CarDetails car in t.CarDetails ?? new CarDetails[0])
                 if (car?.Driver != null && car.Driver.CarIsPaceCar) pace.Add(car.CarIdx);
             double time = ReadTelemetryDouble(t, "SessionTime");
-            _radar.Update(t.CarIdxLapDistPct, t.CarIdxOnPitRoad, ReadTelemetryInt(t, "PlayerCarIdx"), s.TrackLengthMiles * 1609.344, carLeftRight, time, car =>
+            _radar.Update(t.CarIdxLapDistPct, t.CarIdxOnPitRoad, ReadTelemetryInt(t, "PlayerCarIdx"), s.TrackLengthMiles * 1609.344,
+                carLeftRight, time, car =>
             {
                 if (byCar.TryGetValue(car.CarIdx, out StandingsEntry row))
                 {
@@ -39,7 +40,8 @@ namespace AlmostFastDash.IRacing
                 if (details == null) return null;
                 foreach (CarDetails detail in details)
                     if (detail != null && detail.CarIdx == playerIndex && detail.Driver != null)
-                        return (string.IsNullOrWhiteSpace(detail.Driver.CarScreenNameShort) ? detail.Driver.CarScreenName : detail.Driver.CarScreenNameShort)?.ToUpperInvariant();
+                        return (string.IsNullOrWhiteSpace(detail.Driver.CarScreenNameShort) ? detail.Driver.CarScreenName
+                            : detail.Driver.CarScreenNameShort)?.ToUpperInvariant();
             }
             catch { }
             return null;
@@ -64,7 +66,8 @@ namespace AlmostFastDash.IRacing
                         if (d != null)
                         {
                             byIndex[d.CarIdx] = d;
-                            if (d.CarIdx == player && d.Driver != null && d.Driver.CarClassEstLapTime > 10) lapSeconds = d.Driver.CarClassEstLapTime;
+                            if (d.CarIdx == player && d.Driver != null &&
+                                d.Driver.CarClassEstLapTime > 10) lapSeconds = d.Driver.CarClassEstLapTime;
                         }
 
                 double playerTotal = (laps != null && player < laps.Length ? laps[player] : 0) + distances[player];

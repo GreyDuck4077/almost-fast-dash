@@ -48,15 +48,18 @@ namespace AlmostFastDash.UI
             if (_loading) return;
             _settings.General.SpeedUnit = SpeedKph.IsChecked == true ? "KPH" : "MPH";
             _settings.General.FuelUnit = FuelGallons.IsChecked == true ? "Gallons" : "Liters";
-            _settings.General.FuelReserveLaps = FuelReserve2.IsChecked == true ? 2 : FuelReserve1.IsChecked == true ? 1 : FuelReserveHalf.IsChecked == true ? 0.5 : 0;
-            if (TempC.IsChecked == true || TempF.IsChecked == true) _settings.General.TemperatureUnit = TempC.IsChecked == true ? "Celsius" : "Fahrenheit";
+            _settings.General.FuelReserveLaps = FuelReserve2.IsChecked == true ? 2 : FuelReserve1.IsChecked == true ? 1
+                : FuelReserveHalf.IsChecked == true ? 0.5 : 0;
+            if (TempC.IsChecked == true || TempF.IsChecked == true) _settings.General.TemperatureUnit = TempC.IsChecked == true ? "Celsius"
+                : "Fahrenheit";
             Save();
         }
 
         private void StartPage_Changed(object sender, RoutedEventArgs e)
         {
             if (_loading) return;
-            _settings.General.StartPage = OpenDevices.IsChecked == true ? "Devices" : OpenSettings.IsChecked == true ? "Settings" : "Dashboards";
+            _settings.General.StartPage = OpenDevices.IsChecked == true ? "Devices" : OpenSettings.IsChecked == true ? "Settings"
+                : "Dashboards";
             Save();
         }
 
@@ -150,13 +153,16 @@ namespace AlmostFastDash.UI
             object shell = Activator.CreateInstance(shellType);
             try
             {
-                object shortcut = shellType.InvokeMember("CreateShortcut", BindingFlags.InvokeMethod, null, shell, new object[] { StartupShortcutPath });
+                object shortcut = shellType.InvokeMember("CreateShortcut", BindingFlags.InvokeMethod, null, shell,
+                    new object[] { StartupShortcutPath });
                 Type t = shortcut.GetType();
                 string exe = Assembly.GetEntryAssembly().Location;
                 t.InvokeMember("TargetPath", BindingFlags.SetProperty, null, shortcut, new object[] { exe });
                 t.InvokeMember("Arguments", BindingFlags.SetProperty, null, shortcut, new object[] { "--run" });
-                t.InvokeMember("WorkingDirectory", BindingFlags.SetProperty, null, shortcut, new object[] { System.IO.Path.GetDirectoryName(exe) });
-                t.InvokeMember("Description", BindingFlags.SetProperty, null, shortcut, new object[] { "Start the Almost Fast Dash iRacing dashboard automatically" });
+                t.InvokeMember("WorkingDirectory", BindingFlags.SetProperty, null, shortcut,
+                    new object[] { System.IO.Path.GetDirectoryName(exe) });
+                t.InvokeMember("Description", BindingFlags.SetProperty, null, shortcut,
+                    new object[] { "Start the Almost Fast Dash iRacing dashboard automatically" });
                 t.InvokeMember("Save", BindingFlags.InvokeMethod, null, shortcut, null);
                 Marshal.FinalReleaseComObject(shortcut);
             }

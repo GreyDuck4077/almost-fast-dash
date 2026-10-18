@@ -18,7 +18,8 @@ namespace AlmostFastDash.Dashboards
         /// </summary>
         public int Count = 8;
         public double Sweep = 360, Radius = 120, Start = -90;
-        /// <summary>Copies turn with the circle (like a dial's ticks) or stay upright (like its numbers), plus a turn of their own each.</summary>
+        /// <summary>Copies turn with the circle (like a dial's ticks) or stay upright (like its numbers), plus a turn of their own
+        /// each.</summary>
         public bool Follow = true;
         public double TurnEach;
         /// <summary>Numbers them 1, 2, 3… in order, as their groups' Slot, for formulas such as RevPct * 10 >= Slot.</summary>

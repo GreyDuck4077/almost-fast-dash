@@ -24,7 +24,8 @@ namespace AlmostFastDash.Tests
 
         /// <summary>The first line of the report: "ALL n CHECKS PASSED", "n OF m CHECKS FAILED" or "CRASHED".</summary>
         [TestMethod]
-        public void EveryCheckPasses() => Assert.IsTrue(Report.Value[0].StartsWith("ALL "), string.Join(Environment.NewLine, Report.Value.Take(20)));
+        public void EveryCheckPasses() => Assert.IsTrue(Report.Value[0].StartsWith("ALL "),
+            string.Join(Environment.NewLine, Report.Value.Take(20)));
 
         [TestMethod]
         [DynamicData(nameof(Checks), DynamicDataSourceType.Method, DynamicDataDisplayName = nameof(CheckName))]
@@ -35,11 +36,13 @@ namespace AlmostFastDash.Tests
         {
             string[] report = Report.Value;
             // A crash leaves a stack trace instead of check lines; that's one failure, not dozens.
-            if (report[0] == "CRASHED") return new[] { new object[] { 1, "FAIL  the checks crashed: " + string.Join(" ", report.Skip(1).Take(3)) } };
+            if (report[0] == "CRASHED") return new[] { new object[] { 1,
+                "FAIL  the checks crashed: " + string.Join(" ", report.Skip(1).Take(3)) } };
             return report.Skip(1).Where(line => !line.StartsWith("INFO")).Select((line, index) => new object[] { index + 1, line });
         }
 
-        public static string CheckName(MethodInfo method, object[] row) => "#" + row[0] + " " + ((string)row[1]).Substring(6).Split(new[] { "  (" }, StringSplitOptions.None)[0];
+        public static string CheckName(MethodInfo method, object[] row) => "#" + row[0] + " " + ((string)row[1]).Substring(6)
+            .Split(new[] { "  (" }, StringSplitOptions.None)[0];
 
         private static string[] RunChecks()
         {
@@ -49,7 +52,8 @@ namespace AlmostFastDash.Tests
             string exe = Path.Combine(folder, "AlmostFastDash.exe");
             File.Copy(built, exe);
             string report = Path.Combine(folder, "report.txt");
-            using (Process run = Process.Start(new ProcessStartInfo(exe, "--designer-selftest \"" + report + "\"") { WorkingDirectory = folder, UseShellExecute = false }))
+            using (Process run = Process.Start(new ProcessStartInfo(exe,
+                "--designer-selftest \"" + report + "\"") { WorkingDirectory = folder, UseShellExecute = false }))
             {
                 if (!run.WaitForExit((int)Longest.TotalMilliseconds))
                 {

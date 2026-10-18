@@ -21,7 +21,8 @@ namespace AlmostFastDash.Designer
             var search = new TextBox { ToolTip = "Search widgets and blocks" };
             var hint = new TextBlock
             {
-                Text = "Search widgets and blocks", IsHitTestVisible = false, Margin = new Thickness(12, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center,
+                Text = "Search widgets and blocks", IsHitTestVisible = false, Margin = new Thickness(12, 0, 0, 0),
+                    VerticalAlignment = VerticalAlignment.Center,
                 Foreground = (Brush)FindResource("Brush.TextTertiary")
             };
             search.TextChanged += (s, e) => hint.Visibility = search.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -39,7 +40,8 @@ namespace AlmostFastDash.Designer
         {
             host.Children.Clear();
             bool Match(string name, string description) =>
-                filter.Length == 0 || name.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0 || (description ?? "").IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0;
+                filter.Length == 0 || name.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0 || (description ?? "")
+                .IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0;
 
             // Your own modules come first once there are some; until then their hint waits at the end.
             bool haveModules = Modules().Count > 0;
@@ -50,7 +52,8 @@ namespace AlmostFastDash.Designer
             if (quick.Count > 0)
             {
                 host.Children.Add(SectionTitle(QuickValues.Section));
-                foreach (IGrouping<string, DesignBlock> folder in quick.GroupBy(b => b.Folder).OrderBy(f => Array.IndexOf(QuickValues.Folders, f.Key)))
+                foreach (IGrouping<string, DesignBlock> folder in quick.GroupBy(b => b.Folder)
+                    .OrderBy(f => Array.IndexOf(QuickValues.Folders, f.Key)))
                     host.Children.Add(BlockFolder(folder.Key, folder.ToList(), filter.Length > 0, QuickValues.Section));
             }
             List<DesignBlock> blocks = DesignBlocks.BuiltIn().Where(b => Match(b.Name, b.Description) || Match(b.Folder, null)).ToList();
@@ -83,14 +86,18 @@ namespace AlmostFastDash.Designer
         private Border WidgetTile(WidgetType type)
         {
             var row = new DockPanel { VerticalAlignment = VerticalAlignment.Center };
-            var icon = new TextBlock { Text = type.Icon, Style = (Style)FindResource("T.Icon"), FontSize = 14, Width = 18, Foreground = (Brush)FindResource("Brush.Accent"), VerticalAlignment = VerticalAlignment.Center };
+            var icon = new TextBlock { Text = type.Icon, Style = (Style)FindResource("T.Icon"), FontSize = 14, Width = 18,
+                Foreground = (Brush)FindResource("Brush.Accent"), VerticalAlignment = VerticalAlignment.Center };
             DockPanel.SetDock(icon, Dock.Left);
             row.Children.Add(icon);
-            row.Children.Add(new TextBlock { Text = type.Name, FontSize = 12, Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
+            row.Children.Add(new TextBlock { Text = type.Name, FontSize = 12, Margin = new Thickness(8, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
             var tile = new Border
             {
-                Height = 34, Margin = new Thickness(2), Padding = new Thickness(9, 0, 6, 0), CornerRadius = new CornerRadius(7), Cursor = Cursors.Hand,
-                Background = (Brush)FindResource("Brush.Surface"), BorderBrush = (Brush)FindResource("Brush.Border"), BorderThickness = new Thickness(1),
+                Height = 34, Margin = new Thickness(2), Padding = new Thickness(9, 0, 6, 0), CornerRadius = new CornerRadius(7),
+                    Cursor = Cursors.Hand,
+                Background = (Brush)FindResource("Brush.Surface"), BorderBrush = (Brush)FindResource("Brush.Border"),
+                BorderThickness = new Thickness(1),
                 Child = row, ToolTip = type.Name + "\n" + type.Description + "\n\nClick to add, or drag onto the screen."
             };
             HookTile(tile, () => AddWidgetAtCenter(type.Id), () => new DataObject("afo-widget", type.Id));
@@ -108,7 +115,8 @@ namespace AlmostFastDash.Designer
         }
 
         private StackPanel BlockFolder(string name, List<DesignBlock> blocks, bool searching, string section) =>
-            LibraryFolder(name, blocks.Count, searching, section, false, content => { foreach (DesignBlock block in blocks) content.Children.Add(BlockRow(block)); });
+            LibraryFolder(name, blocks.Count, searching, section, false,
+            content => { foreach (DesignBlock block in blocks) content.Children.Add(BlockRow(block)); });
 
         /// <summary>
         /// A folder in the Library that opens and closes with a click and remembers it while the designer runs. What's
@@ -119,7 +127,8 @@ namespace AlmostFastDash.Designer
             var panel = new StackPanel { Margin = new Thickness(0, 0, 0, 4) };
             string key = section + "/" + name;
             bool open = searching || (openAtFirst ? !ClosedFolders.Contains(key) : OpenFolders.Contains(key));
-            var content = new StackPanel { Visibility = open ? Visibility.Visible : Visibility.Collapsed, Margin = new Thickness(10, 0, 0, 4) };
+            var content = new StackPanel { Visibility = open ? Visibility.Visible : Visibility.Collapsed,
+                Margin = new Thickness(10, 0, 0, 4) };
             void Fill() { if (content.Children.Count == 0) fill(content); }
             if (open) Fill();
 
@@ -133,16 +142,20 @@ namespace AlmostFastDash.Designer
             header.Children.Add(chevron);
             var title = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
             title.Children.Add(Glyph("", 14, "Brush.Accent"));
-            title.Children.Add(new TextBlock { Text = name, FontWeight = FontWeights.SemiBold, FontSize = 12.5, Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center });
+            title.Children.Add(new TextBlock { Text = name, FontWeight = FontWeights.SemiBold, FontSize = 12.5,
+                Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center });
             Grid.SetColumn(title, 1);
             header.Children.Add(title);
-            var count = new TextBlock { Text = items.ToString(), Style = (Style)FindResource("T.Caption"), VerticalAlignment = VerticalAlignment.Center };
+            var count = new TextBlock { Text = items.ToString(), Style = (Style)FindResource("T.Caption"),
+                VerticalAlignment = VerticalAlignment.Center };
             Grid.SetColumn(count, 2);
             header.Children.Add(count);
             var row = new Border
             {
-                Margin = new Thickness(0, 2, 0, 2), Padding = new Thickness(2, 6, 10, 6), CornerRadius = new CornerRadius(8), Cursor = Cursors.Hand,
-                Background = (Brush)FindResource("Brush.Surface"), BorderBrush = (Brush)FindResource("Brush.Border"), BorderThickness = new Thickness(1), Child = header
+                Margin = new Thickness(0, 2, 0, 2), Padding = new Thickness(2, 6, 10, 6), CornerRadius = new CornerRadius(8),
+                    Cursor = Cursors.Hand,
+                Background = (Brush)FindResource("Brush.Surface"), BorderBrush = (Brush)FindResource("Brush.Border"),
+                BorderThickness = new Thickness(1), Child = header
             };
             row.MouseEnter += (s, e) => row.Background = (Brush)FindResource("Brush.SurfaceHover");
             row.MouseLeave += (s, e) => row.Background = (Brush)FindResource("Brush.Surface");
@@ -172,13 +185,16 @@ namespace AlmostFastDash.Designer
             grid.Children.Add(icon);
             var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
             text.Children.Add(new TextBlock { Text = block.Name, FontWeight = FontWeights.SemiBold, FontSize = 12.5 });
-            text.Children.Add(new TextBlock { Text = block.Description, Style = (Style)FindResource("T.Caption"), FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap });
+            text.Children.Add(new TextBlock { Text = block.Description, Style = (Style)FindResource("T.Caption"), FontSize = 12,
+                TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap });
             Grid.SetColumn(text, 1);
             grid.Children.Add(text);
             var row = new Border
             {
-                Margin = new Thickness(0, 2, 0, 2), Padding = new Thickness(4, 5, 8, 5), CornerRadius = new CornerRadius(8), Cursor = Cursors.Hand,
-                Background = (Brush)FindResource("Brush.Surface"), BorderBrush = (Brush)FindResource("Brush.Border"), BorderThickness = new Thickness(1),
+                Margin = new Thickness(0, 2, 0, 2), Padding = new Thickness(4, 5, 8, 5), CornerRadius = new CornerRadius(8),
+                    Cursor = Cursors.Hand,
+                Background = (Brush)FindResource("Brush.Surface"), BorderBrush = (Brush)FindResource("Brush.Border"),
+                BorderThickness = new Thickness(1),
                 Child = grid, ToolTip = block.Description + "\n\nClick to add, or drag onto the screen."
             };
             HookTile(row, () =>

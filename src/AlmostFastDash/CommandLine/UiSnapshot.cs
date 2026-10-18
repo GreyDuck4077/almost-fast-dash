@@ -21,7 +21,8 @@ namespace AlmostFastDash.CommandLine
             if (scenario.StartsWith("wizard"))
             {
                 AppSettings settings = SettingsStore.Load();
-                var wizard = new DeviceSetupWindow(settings, null, () => false, () => System.Threading.Tasks.Task.FromResult(true)) { Width = 820, Height = 680 };
+                var wizard = new DeviceSetupWindow(settings, null, () => false,
+                    () => System.Threading.Tasks.Task.FromResult(true)) { Width = 820, Height = 680 };
                 wizard.Offline = true;
                 wizard.Loaded += (s, e) => wizard.JumpTo(scenario.Substring("wizard-".Length));
                 window = wizard;
@@ -29,7 +30,8 @@ namespace AlmostFastDash.CommandLine
             else if (scenario.StartsWith("device-settings"))
             {
                 AppSettings settings = SettingsStore.Load();
-                DeviceSettings device = settings.General.Devices.LastOrDefault() ?? new DeviceSettings { Name = "Wheel LEDs", Port = "COM6", LedCount = 16 };
+                DeviceSettings device = settings.General.Devices.LastOrDefault() ?? new DeviceSettings { Name = "Wheel LEDs",
+                    Port = "COM6", LedCount = 16 };
                 window = new DeviceSettingsWindow(device, "Connected · fast updates");
             }
             else if (scenario.StartsWith("lights"))
@@ -46,14 +48,18 @@ namespace AlmostFastDash.CommandLine
                 // "template-picker" with no wheel screen and no size chosen before; "template-picker-found" with a screen plugged in.
                 var general = new GeneralSettings();
                 window = TemplatePicker.Build(null, new UnitSystem(general), general,
-                    scenario.EndsWith("found") ? new System.Drawing.Size(ScreenSizes.DefaultWidth, ScreenSizes.DefaultHeight) : (System.Drawing.Size?)null, (t, s) => { });
+                    scenario.EndsWith("found") ? new System.Drawing.Size(ScreenSizes.DefaultWidth, ScreenSizes.DefaultHeight)
+                    : (System.Drawing.Size?)null,
+                    (t, s) => { });
             }
             else if (scenario.StartsWith("formulas"))
             {
                 // "formulas", or "formulas-fuel" already searched for fuel.
                 AppSettings settings = SettingsStore.Load();
-                var scope = new EvalScope { T = IRacingTelemetrySource.CreatePreviewSnapshot(), Units = new UnitSystem(settings.General), Theme = settings.GetDefaultDashboard().Design?.Theme ?? new LayoutTheme() };
-                FormulaReferenceWindow reference = FormulaReferenceWindow.Create(() => scope, scenario.Contains("-") ? scenario.Substring(scenario.IndexOf('-') + 1) : null);
+                var scope = new EvalScope { T = IRacingTelemetrySource.CreatePreviewSnapshot(), Units = new UnitSystem(settings.General),
+                    Theme = settings.GetDefaultDashboard().Design?.Theme ?? new LayoutTheme() };
+                FormulaReferenceWindow reference = FormulaReferenceWindow.Create(() => scope,
+                    scenario.Contains("-") ? scenario.Substring(scenario.IndexOf('-') + 1) : null);
                 reference.Width = 1060;
                 reference.Height = 780;
                 window = reference;
@@ -65,13 +71,16 @@ namespace AlmostFastDash.CommandLine
                     ? DashboardSettings.CreateDesigned(DesignTemplates.Road, 1280, 480)
                     : DashboardSettings.CreateDesigned(DesignTemplates.Find(scenario.Contains("blank") ? "blank" : scenario.Contains("oval") ? "spotter" : "apex"));
                 var designer = new DesignerWindow(settings, dashboard, null) { Width = 1560, Height = 940 };
-                designer.Loaded += (s, e) => designer.Dispatcher.BeginInvoke(new Action(() => designer.PrepareSnapshot(scenario)), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+                designer.Loaded += (s, e) => designer.Dispatcher.BeginInvoke(new Action(() => designer.PrepareSnapshot(scenario)),
+                    System.Windows.Threading.DispatcherPriority.ApplicationIdle);
                 window = designer;
             }
             else
             {
                 var settingsWindow = new MainWindow { Width = 1360, Height = 900, Offline = true };
-                settingsWindow.Loaded += (s, e) => settingsWindow.Dispatcher.BeginInvoke(new Action(() => settingsWindow.PrepareSnapshot(scenario)), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+                settingsWindow.Loaded += (s,
+                    e) => settingsWindow.Dispatcher.BeginInvoke(new Action(() => settingsWindow.PrepareSnapshot(scenario)),
+                    System.Windows.Threading.DispatcherPriority.ApplicationIdle);
                 window = settingsWindow;
             }
             window.WindowStartupLocation = WindowStartupLocation.Manual;
@@ -83,16 +92,20 @@ namespace AlmostFastDash.CommandLine
             {
                 timer.Stop();
                 var content = (FrameworkElement)window.Content;
-                var target = new System.Windows.Media.Imaging.RenderTargetBitmap((int)content.ActualWidth, (int)content.ActualHeight, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
+                var target = new System.Windows.Media.Imaging.RenderTargetBitmap((int)content.ActualWidth, (int)content.ActualHeight, 96,
+                    96, System.Windows.Media.PixelFormats.Pbgra32);
                 // Glass windows are see-through; compose them over a dark desktop-like backdrop like the real blur.
                 var backdrop = new System.Windows.Media.DrawingVisual();
                 using (var dc = backdrop.RenderOpen())
-                    dc.DrawRectangle(new System.Windows.Media.LinearGradientBrush(System.Windows.Media.Color.FromRgb(20, 30, 46), System.Windows.Media.Color.FromRgb(8, 10, 16), 45), null, new Rect(0, 0, content.ActualWidth, content.ActualHeight));
+                    dc.DrawRectangle(new System.Windows.Media.LinearGradientBrush(System.Windows.Media.Color.FromRgb(20, 30, 46),
+                        System.Windows.Media.Color.FromRgb(8, 10, 16), 45),
+                        null, new Rect(0, 0, content.ActualWidth, content.ActualHeight));
                 target.Render(backdrop);
                 if (window.Background is System.Windows.Media.SolidColorBrush tint && tint.Color.A < 255)
                 {
                     var tintLayer = new System.Windows.Media.DrawingVisual();
-                    using (var dc = tintLayer.RenderOpen()) dc.DrawRectangle(tint, null, new Rect(0, 0, content.ActualWidth, content.ActualHeight));
+                    using (var dc = tintLayer.RenderOpen()) dc.DrawRectangle(tint, null,
+                        new Rect(0, 0, content.ActualWidth, content.ActualHeight));
                     target.Render(tintLayer);
                 }
                 target.Render(content);

@@ -91,7 +91,8 @@ namespace AlmostFastDash.Formulas
                 case null: return "";
                 case string s: return s;
                 case bool b: return b ? "true" : "false";
-                case double d: return double.IsNaN(d) ? "--" : Math.Abs(d - Math.Round(d)) < 1e-9 ? Math.Round(d).ToString("0", CultureInfo.InvariantCulture) : d.ToString("0.###", CultureInfo.InvariantCulture);
+                case double d: return double.IsNaN(d) ? "--" : Math.Abs(d - Math.Round(d)) < 1e-9 ? Math.Round(d)
+                    .ToString("0", CultureInfo.InvariantCulture) : d.ToString("0.###", CultureInfo.InvariantCulture);
                 case Color c: return SettingsStore.ToHex(c);
                 default: return Convert.ToString(value, CultureInfo.InvariantCulture);
             }
@@ -178,7 +179,8 @@ namespace AlmostFastDash.Formulas
                 Func<EvalScope, object> a = _a.Build(), b = _b.Build();
                 switch (_op)
                 {
-                    case "+": return s => { object x = a(s), y = b(s); return x is string || y is string ? (object)(Text(x) + Text(y)) : Num(x) + Num(y); };
+                    case "+": return s => { object x = a(s),
+                        y = b(s); return x is string || y is string ? (object)(Text(x) + Text(y)) : Num(x) + Num(y); };
                     case "-": return s => Num(a(s)) - Num(b(s));
                     case "*": return s => Num(a(s)) * Num(b(s));
                     case "/": return s => { double d = Num(b(s)); return d == 0 ? 0 : Num(a(s)) / d; };
@@ -223,7 +225,8 @@ namespace AlmostFastDash.Formulas
             {
                 FunctionInfo fn = Functions.Find(_name) ?? throw new FormatException("Unknown function '" + _name + "'");
                 if (_args.Count < fn.MinArgs || _args.Count > fn.MaxArgs)
-                    throw new FormatException(_name + " takes " + (fn.MinArgs == fn.MaxArgs ? fn.MinArgs.ToString() : fn.MinArgs + "-" + fn.MaxArgs) + " values");
+                    throw new FormatException(_name + " takes " +
+                        (fn.MinArgs == fn.MaxArgs ? fn.MinArgs.ToString() : fn.MinArgs + "-" + fn.MaxArgs) + " values");
                 var args = new Func<EvalScope, object>[_args.Count];
                 for (int i = 0; i < args.Length; i++) args[i] = _args[i].Build();
                 Func<EvalScope, object[], object> run = fn.Run;
@@ -275,7 +278,8 @@ namespace AlmostFastDash.Formulas
             private static readonly string[][] Levels =
             {
                 // A single "=" is accepted as "==" because that is how people write it.
-                new[] { "||" }, new[] { "&&" }, new[] { "==", "!=", "=" }, new[] { "<=", ">=", "<", ">" }, new[] { "+", "-" }, new[] { "*", "/", "%" }
+                new[] { "||" }, new[] { "&&" }, new[] { "==", "!=", "=" }, new[] { "<=", ">=", "<", ">" }, new[] { "+", "-" },
+                    new[] { "*", "/", "%" }
             };
 
             private Node ParseBinary(int level)

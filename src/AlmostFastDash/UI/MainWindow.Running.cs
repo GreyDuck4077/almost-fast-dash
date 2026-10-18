@@ -110,7 +110,8 @@ namespace AlmostFastDash.UI
             catch { }
             DashboardSettings shown = _settings.Dashboards.FirstOrDefault(d => d.Id == active);
             ActiveText.Text = shown == null ? "" : " · " + shown.Name;
-            StatusPill.ToolTip = shown == null ? null : "Showing " + shown.Name + (string.IsNullOrEmpty(discipline) ? "" : " for a " + discipline.ToLowerInvariant() + " track");
+            StatusPill.ToolTip = shown == null ? null
+                : "Showing " + shown.Name + (string.IsNullOrEmpty(discipline) ? "" : " for a " + discipline.ToLowerInvariant() + " track");
             // Hidden by Show when at this point in iRacing (the running dashboard notes it in dashboard.hidden).
             string hidden = null;
             try { if (File.Exists(DashboardRunner.HiddenPath)) hidden = File.ReadAllText(DashboardRunner.HiddenPath).Trim(); }

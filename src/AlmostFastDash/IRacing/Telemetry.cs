@@ -113,7 +113,8 @@ namespace AlmostFastDash.IRacing
                 };
             }
             int end = Array.IndexOf(file, (byte)0, sessionOffset, sessionLength);
-            var session = new SessionData(Yaml.Parse(Encoding.GetEncoding(1252).GetString(file, sessionOffset, (end < 0 ? sessionOffset + sessionLength : end) - sessionOffset)));
+            var session = new SessionData(Yaml.Parse(Encoding.GetEncoding(1252)
+                .GetString(file, sessionOffset, (end < 0 ? sessionOffset + sessionLength : end) - sessionOffset)));
             for (long at = dataOffset; at + bufLen <= file.Length; at += bufLen)
             {
                 var buffer = new byte[bufLen];

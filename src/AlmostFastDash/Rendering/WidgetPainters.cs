@@ -37,13 +37,16 @@ namespace AlmostFastDash.Rendering
                             Paint.Glow(g, shadow, Color.FromArgb(150, 0, 0, 0), 10, 0.7f);
                         // Real glass: the backdrop frosted and bent by a lens-like rim that catches the light.
                         RectangleF extent = path.GetBounds();
-                        var at = Rectangle.FromLTRB((int)Math.Floor(extent.Left) - 1, (int)Math.Floor(extent.Top) - 1, (int)Math.Ceiling(extent.Right) + 1, (int)Math.Ceiling(extent.Bottom) + 1);
+                        var at = Rectangle.FromLTRB((int)Math.Floor(extent.Left) - 1, (int)Math.Floor(extent.Top) - 1,
+                            (int)Math.Ceiling(extent.Right) + 1, (int)Math.Ceiling(extent.Bottom) + 1);
                         if (at.Width * at.Height <= 2_000_000)
                         {
                             Bitmap pane = c.Renderer.Glass(c.Widget, c.Scope, at, path, new GlassSettings
                             {
-                                Frost = (float)c.Num("glassFrost"), Depth = (float)c.Num("glassDepth"), Refraction = (float)c.Num("glassRefraction") / 100,
-                                Shine = (float)c.Num("glassShine") / 100, Dispersion = (float)c.Num("glassDispersion") / 100, Light = (float)c.Num("glassLight"), Tint = fill
+                                Frost = (float)c.Num("glassFrost"), Depth = (float)c.Num("glassDepth"),
+                                    Refraction = (float)c.Num("glassRefraction") / 100,
+                                Shine = (float)c.Num("glassShine") / 100, Dispersion = (float)c.Num("glassDispersion") / 100,
+                                Light = (float)c.Num("glassLight"), Tint = fill
                             });
                             g.DrawImageUnscaled(pane, at.X, at.Y);
                             bw = 0;
@@ -51,7 +54,8 @@ namespace AlmostFastDash.Rendering
                         }
                         using (var body = new SolidBrush(Color.FromArgb(Math.Min(fill.A, (byte)150), fill))) g.FillPath(body, path);
                         RectangleF shaped = path.GetBounds();
-                        using (var sheen = new LinearGradientBrush(Paint.Grow(shaped, 0, 1), Color.FromArgb(34, 255, 255, 255), Color.FromArgb(3, 255, 255, 255), 90f))
+                        using (var sheen = new LinearGradientBrush(Paint.Grow(shaped, 0, 1), Color.FromArgb(34, 255, 255, 255),
+                            Color.FromArgb(3, 255, 255, 255), 90f))
                         {
                             sheen.Blend = new Blend { Positions = new[] { 0f, 0.5f, 1f }, Factors = new[] { 0f, 0.85f, 1f } };
                             g.FillPath(sheen, path);
@@ -66,7 +70,8 @@ namespace AlmostFastDash.Rendering
                             using (GraphicsPath top = tool.Apply(rim)) g.DrawPath(highlight, top);
                         }
                         g.Restore(state);
-                        using (var rim = new LinearGradientBrush(Paint.Grow(b, 0, 1), Color.FromArgb(105, 255, 255, 255), Color.FromArgb(18, 255, 255, 255), 90f))
+                        using (var rim = new LinearGradientBrush(Paint.Grow(b, 0, 1), Color.FromArgb(105, 255, 255, 255),
+                            Color.FromArgb(18, 255, 255, 255), 90f))
                         using (var pen = new Pen(rim, Math.Max(1f, bw)))
                             g.DrawPath(pen, path);
                         bw = 0;
@@ -77,7 +82,9 @@ namespace AlmostFastDash.Rendering
                         break;
                     case "Glass":
                         using (var brush = new SolidBrush(Color.FromArgb(Math.Min(fill.A, (byte)185), fill))) g.FillPath(brush, path);
-                        using (var sheen = new LinearGradientBrush(Paint.Grow(b, 0, 1), Color.FromArgb(26, 255, 255, 255), Color.FromArgb(4, 255, 255, 255), 90f)) g.FillPath(sheen, path);
+                        using (var sheen = new LinearGradientBrush(Paint.Grow(b, 0, 1), Color.FromArgb(26, 255, 255, 255),
+                            Color.FromArgb(4, 255, 255, 255), 90f)) g.FillPath(sheen,
+                            path);
                         using (var highlight = new Pen(Color.FromArgb(46, 255, 255, 255), 1))
                             g.DrawLine(highlight, b.X + r, b.Y + 1, b.Right - (corners == "Cut diagonal" ? 1 : r), b.Y + 1);
                         border = Color.FromArgb(Math.Min(border.A, (byte)200), border);
@@ -86,7 +93,9 @@ namespace AlmostFastDash.Rendering
                         using (var brush = new SolidBrush(fill)) g.FillPath(brush, path);
                         break;
                     case "Tinted":
-                        using (var brush = new LinearGradientBrush(Paint.Grow(b, 0, 1), Color.FromArgb(70, tint), Color.FromArgb(22, tint), 90f)) g.FillPath(brush, path);
+                        using (var brush = new LinearGradientBrush(Paint.Grow(b, 0, 1), Color.FromArgb(70, tint), Color.FromArgb(22, tint),
+                        90f)) g.FillPath(brush,
+                        path);
                         border = Color.FromArgb(150, tint);
                         break;
                 }
@@ -111,7 +120,8 @@ namespace AlmostFastDash.Rendering
             if (!string.IsNullOrEmpty(title))
             {
                 float size = (float)c.Num("titleSize");
-                Paint.Text(g, c, title, size, false, c.Color("titleColor"), new RectangleF(b.X + 14, b.Y + 6, b.Width - 28, size + 8), StringAlignment.Near, "Top", false, 0, Color.Empty, false);
+                Paint.Text(g, c, title, size, false, c.Color("titleColor"), new RectangleF(b.X + 14, b.Y + 6, b.Width - 28, size + 8),
+                    StringAlignment.Near, "Top", false, 0, Color.Empty, false);
             }
         }
 
@@ -121,7 +131,8 @@ namespace AlmostFastDash.Rendering
             if (c.Choice("case") == "UPPER") text = text.ToUpperInvariant();
             float glow = (float)c.Num("glow");
             Paint.Text(c.G, c, text, (float)c.Num("size"), c.Choice("weight") != "Regular", c.Color("color"), c.B,
-                Paint.Align(c.Choice("align")), c.Choice("valign"), c.Bool("fit"), glow, c.OptionalColor("glowColor") ?? c.Color("color"), c.Bool("shadow"),
+                Paint.Align(c.Choice("align")), c.Choice("valign"), c.Bool("fit"), glow, c.OptionalColor("glowColor") ?? c.Color("color"),
+                c.Bool("shadow"),
                 (float)c.Num("tracking"));
         }
 
@@ -131,7 +142,8 @@ namespace AlmostFastDash.Rendering
             RectangleF b = c.B;
             if (image == null)
             {
-                using (var pen = new Pen(Color.FromArgb(90, 255, 255, 255), 1) { DashStyle = DashStyle.Dash }) c.G.DrawRectangle(pen, b.X, b.Y, b.Width, b.Height);
+                using (var pen = new Pen(Color.FromArgb(90, 255, 255, 255), 1) { DashStyle = DashStyle.Dash }) c.G.DrawRectangle(pen, b.X,
+                    b.Y, b.Width, b.Height);
                 return;
             }
             RectangleF target = b;
@@ -175,7 +187,8 @@ namespace AlmostFastDash.Rendering
                 if (!string.IsNullOrEmpty(unit))
                 {
                     float unitSize = (float)c.Num("unitSize");
-                    runs.Add(new Paint.Run(" " + unit, c.Font(unitSize > 0 ? unitSize : Math.Max(c.MinText, valueSize * 0.42f), unitSize > 0), c.Color("unitColor")));
+                    runs.Add(new Paint.Run(" " + unit,
+                        c.Font(unitSize > 0 ? unitSize : Math.Max(c.MinText, valueSize * 0.42f), unitSize > 0), c.Color("unitColor")));
                 }
                 Paint.Runs(g, c, runs, area, a, valign, true, glow, valueColor);
             }
@@ -186,21 +199,26 @@ namespace AlmostFastDash.Rendering
                     DrawValue(inner, align, "Middle");
                     break;
                 case "Label left":
-                    Paint.Text(g, c, label, labelSize, false, labelColor, inner, StringAlignment.Near, "Middle", true, 0, Color.Empty, false, tracking);
+                    Paint.Text(g, c, label, labelSize, false, labelColor, inner, StringAlignment.Near, "Middle", true, 0, Color.Empty,
+                    false, tracking);
                     DrawValue(inner, StringAlignment.Far, "Middle");
                     break;
                 case "Label below":
                 {
                     float labelH = labelSize + 10;
                     DrawValue(new RectangleF(inner.X, inner.Y + 4, inner.Width, inner.Height - labelH - 4), align, "Middle");
-                    Paint.Text(g, c, label, labelSize, false, labelColor, new RectangleF(inner.X, inner.Bottom - labelH, inner.Width, labelH - 4), align, "Middle", true, 0, Color.Empty, false, tracking);
+                    Paint.Text(g, c, label, labelSize, false, labelColor,
+                        new RectangleF(inner.X, inner.Bottom - labelH, inner.Width, labelH - 4), align, "Middle", true, 0, Color.Empty,
+                        false, tracking);
                     break;
                 }
                 default:
                 {
                     float labelH = labelSize + 10;
-                    Paint.Text(g, c, label, labelSize, false, labelColor, new RectangleF(inner.X, inner.Y + 4, inner.Width, labelH), align, "Middle", true, 0, Color.Empty, false, tracking);
-                    DrawValue(new RectangleF(inner.X, inner.Y + 4 + labelH, inner.Width, Math.Max(4, inner.Height - labelH - 8)), align, "Middle");
+                    Paint.Text(g, c, label, labelSize, false, labelColor, new RectangleF(inner.X, inner.Y + 4, inner.Width, labelH), align,
+                        "Middle", true, 0, Color.Empty, false, tracking);
+                    DrawValue(new RectangleF(inner.X, inner.Y + 4 + labelH, inner.Width, Math.Max(4, inner.Height - labelH - 8)), align,
+                        "Middle");
                     break;
                 }
             }
@@ -230,11 +248,14 @@ namespace AlmostFastDash.Rendering
                 flash ? color : c.OptionalColor("glowColor") ?? color, false);
             if (!c.Bool("neighbors") || !connected) return;
             string prev = gear < 0 ? "" : gear == 0 ? "R" : gear == 1 ? "N" : (gear - 1).ToString();
-            string next = gear < 0 ? "N" : gear == 0 ? "1" : c.T.MaxForwardGear > 0 && gear >= c.T.MaxForwardGear ? "" : (gear + 1).ToString();
+            string next = gear < 0 ? "N" : gear == 0 ? "1" : c.T.MaxForwardGear > 0 && gear >= c.T.MaxForwardGear ? "" : (gear + 1)
+                .ToString();
             float ns = (float)c.Num("neighborSize");
             Color nc = c.Color("neighborColor");
-            Paint.Text(g, c, prev, ns, true, nc, new RectangleF(b.X - ns * 1.2f, b.Y, ns * 1.4f, b.Height), StringAlignment.Center, "Middle", false, 0, Color.Empty, false);
-            Paint.Text(g, c, next, ns, true, nc, new RectangleF(b.Right - ns * 0.2f, b.Y, ns * 1.4f, b.Height), StringAlignment.Center, "Middle", false, 0, Color.Empty, false);
+            Paint.Text(g, c, prev, ns, true, nc, new RectangleF(b.X - ns * 1.2f, b.Y, ns * 1.4f, b.Height), StringAlignment.Center,
+                "Middle", false, 0, Color.Empty, false);
+            Paint.Text(g, c, next, ns, true, nc, new RectangleF(b.Right - ns * 0.2f, b.Y, ns * 1.4f, b.Height), StringAlignment.Center,
+                "Middle", false, 0, Color.Empty, false);
         }
 
         // ================================================================== Gauges

@@ -362,7 +362,8 @@ namespace AlmostFastDash.IRacing
         }
 
         /// <summary>The track, the session, where you are in it, the car's warning lights and its shift points.</summary>
-        private void AddSessionDetails(Telemetry telemetry, SessionFlags sessionFlags, SessionProgressMode progressMode, bool greenActive, bool yellowActive)
+        private void AddSessionDetails(Telemetry telemetry, SessionFlags sessionFlags, SessionProgressMode progressMode, bool greenActive,
+            bool yellowActive)
         {
             CarDetails[] details = telemetry.CarDetails;
             _latest.Relatives = BuildRelatives(telemetry, details);
@@ -390,7 +391,8 @@ namespace AlmostFastDash.IRacing
                 (telemetry["IsReplayPlaying"] is bool replay && replay);
             _latest.CarState = CarStateOf(telemetry["IsOnTrack"] is bool inCar && inCar, telemetry["IsInGarage"] is bool garage && garage,
                 telemetry["IsReplayPlaying"] is bool replaying && replaying,
-                telemetry["CamCarIdx"] == null ? -1 : ReadTelemetryInt(telemetry, "CamCarIdx"), ReadTelemetryInt(telemetry, "PlayerCarIdx"));
+                telemetry["CamCarIdx"] == null ? -1 : ReadTelemetryInt(telemetry, "CamCarIdx"),
+                ReadTelemetryInt(telemetry, "PlayerCarIdx"));
             SessionData session = telemetry.SessionData;
             if (session != null)
             {

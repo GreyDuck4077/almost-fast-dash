@@ -21,7 +21,8 @@ namespace AlmostFastDash.Designer
             name.TextChanged += (s, e) => { if (name.Text.Trim().Length > 0) { _screen.Name = name.Text.Trim(); ScreenEdited(); } };
             Inspector.Children.Add(LabeledRow("Name", name));
 
-            Inspector.Children.Add(new TextBlock { Text = "Show when", Foreground = (Brush)FindResource("Brush.TextSecondary"), Margin = new Thickness(0, 10, 0, 4) });
+            Inspector.Children.Add(new TextBlock { Text = "Show when", Foreground = (Brush)FindResource("Brush.TextSecondary"),
+                Margin = new Thickness(0, 10, 0, 4) });
             var condition = new FormulaBox(this, _screen.Condition, CurrentScope, "e.g. OnPitRoad");
             condition.Changed += text => { _screen.Condition = text.Trim(); ScreenEdited(); };
             _liveFormulas.Add(condition);
@@ -34,14 +35,17 @@ namespace AlmostFastDash.Designer
             var resize = new Button { Content = "Change…", Margin = new Thickness(8, 0, 0, 0) };
             DockPanel.SetDock(resize, Dock.Right);
             resolution.Children.Add(resize);
-            resolution.Children.Add(new TextBlock { Text = current.Width + " × " + current.Height + " pixels", VerticalAlignment = VerticalAlignment.Center, FontWeight = FontWeights.SemiBold });
+            resolution.Children.Add(new TextBlock { Text = current.Width + " × " + current.Height + " pixels",
+                VerticalAlignment = VerticalAlignment.Center, FontWeight = FontWeights.SemiBold });
             Inspector.Children.Add(resolution);
             System.Drawing.Size? wheel = ScreenSizes.Detect();
             Inspector.Children.Add(Caption(wheel == null
                 ? "Change it to match your display; everything scales to fit."
                 : wheel.Value == current
                     ? "Matches your wheel screen."
-                    : "Your wheel screen is " + wheel.Value.Width + " × " + wheel.Value.Height + ". This dashboard fits it without stretching.", 6));
+                    : "Your wheel screen is " + wheel.Value.Width + " × " + wheel.Value.Height +
+                        ". This dashboard fits it without stretching.",
+                        6));
             resize.Click += (s, e) =>
             {
                 System.Drawing.Size? chosen = ScreenSizePicker.Ask(this, "Display resolution",
@@ -55,9 +59,11 @@ namespace AlmostFastDash.Designer
 
             Inspector.Children.Add(SectionTitle("Pages"));
             int pages = _layout.Screens.Count(s => string.IsNullOrWhiteSpace(s.Condition));
-            Inspector.Children.Add(Caption("Screens without a Show-when condition are pages (" + pages + " here). Pick wheel buttons to step through them."));
+            Inspector.Children.Add(Caption("Screens without a Show-when condition are pages (" + pages +
+                " here). Pick wheel buttons to step through them."));
             Inspector.Children.Add(LabeledRow("Next page", ButtonPicker(() => _layout.PageButton, v => _layout.PageButton = v)));
-            Inspector.Children.Add(LabeledRow("Previous page", ButtonPicker(() => _layout.PageBackButton, v => _layout.PageBackButton = v)));
+            Inspector.Children.Add(LabeledRow("Previous page",
+                ButtonPicker(() => _layout.PageBackButton, v => _layout.PageBackButton = v)));
 
             Inspector.Children.Add(SectionTitle("Quick start"));
             Inspector.Children.Add(Tip("", "Ready-made blocks", "Cards and clusters in the Library are the fastest start."));
@@ -68,7 +74,8 @@ namespace AlmostFastDash.Designer
             Inspector.Children.Add(SectionTitle("Shortcuts"));
             var sheet = new Button
             {
-                Content = "Show every shortcut (Ctrl+/)", Style = (Style)FindResource("Btn.Ghost"), Foreground = (Brush)FindResource("Brush.Accent"),
+                Content = "Show every shortcut (Ctrl+/)", Style = (Style)FindResource("Btn.Ghost"),
+                    Foreground = (Brush)FindResource("Brush.Accent"),
                 HorizontalAlignment = HorizontalAlignment.Left, Padding = new Thickness(0, 2, 0, 2)
             };
             sheet.Click += (s, e) => ShowShortcuts();
@@ -82,7 +89,8 @@ namespace AlmostFastDash.Designer
             var row = new DockPanel();
             var label = new TextBlock
             {
-                Text = WheelButtons.Describe(get()), TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center,
+                Text = WheelButtons.Describe(get()), TextTrimming = TextTrimming.CharacterEllipsis,
+                    VerticalAlignment = VerticalAlignment.Center,
                 Foreground = (Brush)FindResource("Brush.TextSecondary")
             };
             label.ToolTip = label.Text;

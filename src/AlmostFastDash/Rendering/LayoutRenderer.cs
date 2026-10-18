@@ -23,7 +23,8 @@ namespace AlmostFastDash.Rendering
         private WavingFlag _waving;
         private FlagFramePainter _flagFrame;
         private Bitmap _flagLayer;
-        /// <summary>Fixes the flags' clock (fades, breeze, frame) at one moment in milliseconds, for previews and tests; null follows the clock.</summary>
+        /// <summary>Fixes the flags' clock (fades, breeze, frame) at one moment in milliseconds, for previews and tests; null follows the
+        /// clock.</summary>
         public int? FlagClock { get; set; }
         /// <summary>Holds the clock (time formulas, blink) at one moment, for tests; null follows the PC clock.</summary>
         public DateTime? FixedNow { get; set; }
@@ -182,7 +183,8 @@ namespace AlmostFastDash.Rendering
             }
         }
 
-        private Bitmap RenderDashboard(TelemetrySnapshot t, bool shiftFlashOn, int previousGear, float gearTransitionProgress, DashScreen forceScreen)
+        private Bitmap RenderDashboard(TelemetrySnapshot t, bool shiftFlashOn, int previousGear, float gearTransitionProgress,
+            DashScreen forceScreen)
         {
             if (CacheStatic && RedrawChangesOnly)
             {
@@ -225,7 +227,8 @@ namespace AlmostFastDash.Rendering
                     if (Timings != null)
                     {
                         Timings.TryGetValue(widget.Name ?? widget.Id, out double sum);
-                        Timings[widget.Name ?? widget.Id] = sum + (System.Diagnostics.Stopwatch.GetTimestamp() - started) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+                        Timings[widget.Name ?? widget.Id] = sum +
+                            (System.Diagnostics.Stopwatch.GetTimestamp() - started) * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
                     }
                 }
             }
@@ -274,7 +277,8 @@ namespace AlmostFastDash.Rendering
         /// </summary>
         internal bool Ghosts(string visible) => GhostHidden && !IsTapView(visible);
 
-        internal static bool IsTapView(string visible) => visible != null && visible.IndexOf("tap(", StringComparison.OrdinalIgnoreCase) >= 0;
+        internal static bool IsTapView(string visible) => visible != null &&
+            visible.IndexOf("tap(", StringComparison.OrdinalIgnoreCase) >= 0;
 
         /// <summary>Widgets that show nothing at quiet moments: no flag out, no car alongside.</summary>
         internal static bool Idle(string type, WidgetContext c)
@@ -435,19 +439,24 @@ namespace AlmostFastDash.Rendering
                     g.Clear(bg);
                     break;
                 case "Gradient":
-                    using (var brush = new LinearGradientBrush(new Rectangle(0, -1, _width, _height + 2), bg2, bg, 90f)) g.FillRectangle(brush, 0, 0, _width, _height);
+                    using (var brush = new LinearGradientBrush(new Rectangle(0, -1, _width, _height + 2), bg2, bg,
+                    90f)) g.FillRectangle(brush,
+                    0, 0, _width, _height);
                     break;
                 case "Aurora":
                 {
                     // Soft color blooms for the glass panels to sit over, like a blurred wallpaper.
-                    using (var brush = new LinearGradientBrush(new Rectangle(0, -1, _width, _height + 2), bg2, bg, 90f)) g.FillRectangle(brush, 0, 0, _width, _height);
+                    using (var brush = new LinearGradientBrush(new Rectangle(0, -1, _width, _height + 2), bg2, bg,
+                        90f)) g.FillRectangle(brush,
+                        0, 0, _width, _height);
                     Color info = Expr.ParseHex(theme.Info) ?? Color.RoyalBlue, purple = Expr.ParseHex(theme.Purple) ?? Color.MediumPurple;
                     void Bloom(float cx, float cy, float rx, float ry, Color color, int alpha)
                     {
                         using (var path = new GraphicsPath())
                         {
                             path.AddEllipse(cx - rx, cy - ry, rx * 2, ry * 2);
-                            using (var bloom = new PathGradientBrush(path) { CenterColor = Color.FromArgb(alpha, color), SurroundColors = new[] { Color.FromArgb(0, color) } })
+                            using (var bloom = new PathGradientBrush(path) { CenterColor = Color.FromArgb(alpha, color),
+                                SurroundColors = new[] { Color.FromArgb(0, color) } })
                                 g.FillPath(bloom, path);
                         }
                     }
@@ -462,7 +471,8 @@ namespace AlmostFastDash.Rendering
                     using (var path = new GraphicsPath())
                     {
                         path.AddRectangle(new RectangleF(-_width * 0.2f, -_height * 0.2f, _width * 1.4f, _height * 1.4f));
-                        using (var brush = new PathGradientBrush(path) { CenterColor = bg2, SurroundColors = new[] { bg }, FocusScales = new PointF(0.55f, 0.4f) })
+                        using (var brush = new PathGradientBrush(path) { CenterColor = bg2, SurroundColors = new[] { bg },
+                            FocusScales = new PointF(0.55f, 0.4f) })
                             g.FillRectangle(brush, 0, 0, _width, _height);
                     }
                     break;
@@ -471,7 +481,8 @@ namespace AlmostFastDash.Rendering
                     using (var path = new GraphicsPath())
                     {
                         path.AddEllipse(_width * 0.15f, -_height * 0.55f, _width * 0.7f, _height * 1.1f);
-                        using (var bloom = new PathGradientBrush(path) { CenterColor = Color.FromArgb(22, accent), SurroundColors = new[] { Color.FromArgb(0, accent) } })
+                        using (var bloom = new PathGradientBrush(path) { CenterColor = Color.FromArgb(22, accent),
+                            SurroundColors = new[] { Color.FromArgb(0, accent) } })
                             g.FillPath(bloom, path);
                     }
                     break;
@@ -480,7 +491,8 @@ namespace AlmostFastDash.Rendering
 
         public Font Font(string family, float px, bool bold)
         {
-            if (string.IsNullOrWhiteSpace(family) || family.Equals("theme", StringComparison.OrdinalIgnoreCase)) family = _layout.Theme.Font;
+            if (string.IsNullOrWhiteSpace(family) ||
+                family.Equals("theme", StringComparison.OrdinalIgnoreCase)) family = _layout.Theme.Font;
             px = Math.Max(1, Math.Min(600, px));
             string key = family + "|" + px.ToString("0.#") + "|" + bold;
             if (_fonts.TryGetValue(key, out Font font)) return font;
@@ -489,7 +501,8 @@ namespace AlmostFastDash.Rendering
             {
                 font = new Font(family, px, style, GraphicsUnit.Pixel);
                 // GDI+ silently substitutes unknown families; fall back to the house face instead.
-                if (!font.Name.Equals(family, StringComparison.OrdinalIgnoreCase) && !family.Equals(_layout.Theme.Font, StringComparison.OrdinalIgnoreCase))
+                if (!font.Name.Equals(family, StringComparison.OrdinalIgnoreCase) &&
+                    !family.Equals(_layout.Theme.Font, StringComparison.OrdinalIgnoreCase))
                 {
                     font.Dispose();
                     return Font("theme", px, bold);

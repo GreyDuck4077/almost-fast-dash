@@ -32,12 +32,14 @@ namespace AlmostFastDash.Designer
 
         private void Import_Click(object sender, RoutedEventArgs e)
         {
-            var dialog = new Microsoft.Win32.OpenFileDialog { Title = "Import dashboard design", Filter = "Almost Fast Dash dashboard (*.afodash)|*.afodash|All files|*.*" };
+            var dialog = new Microsoft.Win32.OpenFileDialog { Title = "Import dashboard design",
+                Filter = "Almost Fast Dash dashboard (*.afodash)|*.afodash|All files|*.*" };
             if (dialog.ShowDialog(this) != true) return;
             DesignPackage package;
             try { package = DesignPackage.Read(dialog.FileName); }
             catch (Exception exception) { StatusText.Text = "Import failed: " + exception.Message; return; }
-            if (MessageBox.Show(this, "Replace this design with \"" + package.Name + "\"? You can undo this.", "Import design", MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK)
+            if (MessageBox.Show(this, "Replace this design with \"" + package.Name + "\"? You can undo this.", "Import design",
+                MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK)
                 return;
             _layout = package.Design;
             _layout.Normalize();

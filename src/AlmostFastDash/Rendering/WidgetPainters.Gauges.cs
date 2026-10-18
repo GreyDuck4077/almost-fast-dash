@@ -31,7 +31,8 @@ namespace AlmostFastDash.Rendering
             double warnAt = c.Num("warnAt"), dangerAt = c.Num("dangerAt");
             bool zones = c.Bool("zones");
             Color ColorAt(double at) => Tone(colorMode, at, baseColor, warn, danger, warnAt, dangerAt);
-            Color TrackAt(double at) => !zones ? track : at >= dangerAt ? Color.FromArgb(120, danger) : at >= warnAt ? Color.FromArgb(95, warn) : track;
+            Color TrackAt(double at) => !zones ? track : at >= dangerAt ? Color.FromArgb(120, danger) : at >= warnAt
+                ? Color.FromArgb(95, warn) : track;
 
             // One stretch of the ring: pens for a plain circle (as it has always been drawn), outlines for ovals and tapers.
             void Band(float from, float span, Color color, bool round, bool lit, bool softGlow)
@@ -44,8 +45,12 @@ namespace AlmostFastDash.Rendering
                     {
                         if (softGlow)
                             for (int k = 3; k >= 1; k--)
-                                using (var pen = new Pen(Color.FromArgb(28, color), thickness + glow * k / 3f) { StartCap = cap, EndCap = cap }) g.DrawArc(pen, ring.Rect, from, span);
-                        else using (var pen = new Pen(Color.FromArgb(55, color), thickness + glow) { StartCap = cap, EndCap = cap }) g.DrawArc(pen, ring.Rect, from, span);
+                                using (var pen = new Pen(Color.FromArgb(28, color), thickness + glow * k / 3f) { StartCap = cap,
+                                    EndCap = cap }) g.DrawArc(pen,
+                                    ring.Rect, from, span);
+                        else using (var pen = new Pen(Color.FromArgb(55, color), thickness + glow) { StartCap = cap,
+                            EndCap = cap }) g.DrawArc(pen,
+                            ring.Rect, from, span);
                     }
                     using (var pen = new Pen(color, thickness) { StartCap = cap, EndCap = cap }) g.DrawArc(pen, ring.Rect, from, span);
                     return;
@@ -66,7 +71,8 @@ namespace AlmostFastDash.Rendering
                 {
                     bool on = flash || i < lit;
                     double at = (i + 0.5) / n;
-                    Band(start + i * step + step * 0.12f, step * 0.76f, on ? (flash ? flashColor : ColorAt(at)) : TrackAt(at), false, on, false);
+                    Band(start + i * step + step * 0.12f, step * 0.76f, on ? (flash ? flashColor : ColorAt(at)) : TrackAt(at), false, on,
+                        false);
                 }
             }
             else
@@ -135,7 +141,8 @@ namespace AlmostFastDash.Rendering
                     continue;
                 }
                 // The line's outline is worked out once (its shape only changes with the ring's) and filled each frame.
-                string key = string.Join("|", "bezel", ring.Center, ring.RadiusX, ring.RadiusY, ring.Thickness, ring.Taper, ring.Start, ring.Sweep, width, side);
+                string key = string.Join("|", "bezel", ring.Center, ring.RadiusX, ring.RadiusY, ring.Thickness, ring.Taper, ring.Start,
+                    ring.Sweep, width, side);
                 GraphicsPath outline = c.Renderer.Shape(key, () =>
                 {
                     var path = new GraphicsPath();
@@ -153,7 +160,8 @@ namespace AlmostFastDash.Rendering
         /// lights up as the value passes it: marks already reached take the color the gauge has there and
         /// the numbers show full; those still ahead stay dim.
         /// </summary>
-        private static void ArcScale(WidgetContext c, ArcRing ring, string colorMode, Color danger, double dangerAt, double litTo, Func<double, Color> colorAt)
+        private static void ArcScale(WidgetContext c, ArcRing ring, string colorMode, Color danger, double dangerAt, double litTo,
+            Func<double, Color> colorAt)
         {
             int major = (int)Math.Round(c.Num("ticks"));
             if (major <= 0) return;
@@ -201,7 +209,8 @@ namespace AlmostFastDash.Rendering
                 Color face = c.Theme("background");
                 Color color = DashboardAudit.Readable(red ? danger : numberColor, face, 6);
                 if (lighting && at > litTo + 1e-6) color = DashboardAudit.Dimmed(color, face, 0.55f, 6);
-                Paint.Text(g, c, number.ToString("0.##"), size, true, color, new RectangleF(p.X - size * 1.6f, p.Y - size * 0.7f, size * 3.2f, size * 1.4f),
+                Paint.Text(g, c, number.ToString("0.##"), size, true, color,
+                    new RectangleF(p.X - size * 1.6f, p.Y - size * 0.7f, size * 3.2f, size * 1.4f),
                     StringAlignment.Center, "Middle", false, 0, Color.Empty, false);
             }
         }
@@ -249,7 +258,8 @@ namespace AlmostFastDash.Rendering
                     path.AddLine(o, tip);
                     using (var outline = (GraphicsPath)path.Clone())
                     {
-                        if (glow > 0) using (var wide = new Pen(color, width)) { outline.Widen(wide); Paint.Glow(g, outline, color, glow * 0.6f); }
+                        if (glow > 0) using (var wide = new Pen(color, width)) { outline.Widen(wide); Paint.Glow(g, outline, color,
+                            glow * 0.6f); }
                     }
                     using (var pen = new Pen(color, width) { StartCap = LineCap.Round, EndCap = LineCap.Round }) g.DrawPath(pen, path);
                 }
@@ -257,7 +267,8 @@ namespace AlmostFastDash.Rendering
                 {
                     float tail = width * 2.5f;
                     PointF P(float along, float side) => new PointF(o.X + ux * along + px * side, o.Y + uy * along + py * side);
-                    path.AddPolygon(new[] { P(0, width / 2), P(len, width * 0.15f), P(len, -width * 0.15f), P(0, -width / 2), P(-tail, -width * 0.3f), P(-tail, width * 0.3f) });
+                    path.AddPolygon(new[] { P(0, width / 2), P(len, width * 0.15f), P(len, -width * 0.15f), P(0, -width / 2),
+                        P(-tail, -width * 0.3f), P(-tail, width * 0.3f) });
                     if (glow > 0) Paint.Glow(g, path, color, glow * 0.6f);
                     using (var brush = new SolidBrush(color)) g.FillPath(brush, path);
                 }

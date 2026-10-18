@@ -44,7 +44,9 @@ namespace AlmostFastDash.Designer
         {
             List<DesignModule> all = Modules();
             List<DesignModule> shown = all.Where(m => filter.Length == 0 ||
-                new[] { m.Name, m.Description, m.Author, m.Category }.Any(t => (t ?? "").IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0)).ToList();
+                new[] { m.Name, m.Description, m.Author, m.Category }.Any(t => (t ?? "")
+                .IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0))
+                .ToList();
             if (filter.Length > 0 && shown.Count == 0) return;
 
             var header = new Grid();
@@ -53,7 +55,8 @@ namespace AlmostFastDash.Designer
             header.Children.Add(SectionTitle("My modules"));
             var import = new Button
             {
-                Style = (Style)FindResource("Btn.Ghost"), Content = "Import…", Height = 26, Padding = new Thickness(8, 0, 8, 0), Margin = new Thickness(0, 8, 0, 4),
+                Style = (Style)FindResource("Btn.Ghost"), Content = "Import…", Height = 26, Padding = new Thickness(8, 0, 8, 0),
+                    Margin = new Thickness(0, 8, 0, 4),
                 VerticalAlignment = VerticalAlignment.Bottom, ToolTip = "Import shared modules (.afomodule), or drop them on the screen."
             };
             import.Click += (s, e) => ImportModules();
@@ -76,11 +79,13 @@ namespace AlmostFastDash.Designer
                 into.Children.Add(grid);
             }
             // One category shows its pictures straight away; several get folders, open to start with.
-            var categories = shown.GroupBy(m => (m.Category ?? "").Trim(), StringComparer.OrdinalIgnoreCase).OrderBy(c => c.Key.Length == 0 ? 1 : 0).ToList();
+            var categories = shown.GroupBy(m => (m.Category ?? "").Trim(), StringComparer.OrdinalIgnoreCase)
+                .OrderBy(c => c.Key.Length == 0 ? 1 : 0).ToList();
             if (categories.Count == 1) Cards(host, shown);
             else
                 foreach (IGrouping<string, DesignModule> category in categories)
-                    host.Children.Add(LibraryFolder(category.Key.Length == 0 ? "Other" : category.Key, category.Count(), filter.Length > 0, "My modules", true,
+                    host.Children.Add(LibraryFolder(category.Key.Length == 0 ? "Other" : category.Key, category.Count(), filter.Length > 0,
+                        "My modules", true,
                         content => Cards(content, category)));
         }
 
@@ -92,13 +97,16 @@ namespace AlmostFastDash.Designer
                 Height = 62, CornerRadius = new CornerRadius(6), Background = (Brush)FindResource("Brush.Bg"), ClipToBounds = true,
                 Child = new Image { Source = ModulePicture(module), Stretch = Stretch.Uniform, Margin = new Thickness(3) }
             });
-            stack.Children.Add(new TextBlock { Text = module.Name, FontSize = 12, FontWeight = FontWeights.SemiBold, Margin = new Thickness(2, 5, 2, 0), TextTrimming = TextTrimming.CharacterEllipsis });
+            stack.Children.Add(new TextBlock { Text = module.Name, FontSize = 12, FontWeight = FontWeights.SemiBold,
+                Margin = new Thickness(2, 5, 2, 0), TextTrimming = TextTrimming.CharacterEllipsis });
             string by = string.IsNullOrWhiteSpace(module.Author) ? "" : "By " + module.Author.Trim();
             var card = new Border
             {
                 Margin = new Thickness(2), Padding = new Thickness(5, 5, 5, 6), CornerRadius = new CornerRadius(8), Cursor = Cursors.Hand,
-                Background = (Brush)FindResource("Brush.Surface"), BorderBrush = (Brush)FindResource("Brush.Border"), BorderThickness = new Thickness(1), Child = stack,
-                ToolTip = module.Name + (module.Description.Length > 0 ? "\n" + module.Description : "") + (by.Length > 0 ? "\n" + by : "") +
+                Background = (Brush)FindResource("Brush.Surface"), BorderBrush = (Brush)FindResource("Brush.Border"),
+                BorderThickness = new Thickness(1), Child = stack,
+                ToolTip = module.Name + (module.Description.Length > 0 ? "\n" + module.Description : "") +
+                (by.Length > 0 ? "\n" + by : "") +
                     "\n\nClick or drag to add. Right-click for more."
             };
             HookTile(card, () => PlaceModule(module, null, false), () => new DataObject("afo-module", module));
@@ -183,11 +191,13 @@ namespace AlmostFastDash.Designer
                 return;
             }
             // The last name given as the maker, so it only needs typing once.
-            DesignModule latest = Modules().Where(m => !string.IsNullOrWhiteSpace(m.Author)).OrderByDescending(m => m.Saved).FirstOrDefault();
+            DesignModule latest = Modules().Where(m => !string.IsNullOrWhiteSpace(m.Author)).OrderByDescending(m => m.Saved)
+                .FirstOrDefault();
             module.Author = latest?.Author ?? "";
             if (!ModuleDialog(module, "Save as module", true, out bool exportToo)) return;
             string path = DesignModule.PathFor(module.Name);
-            if (File.Exists(path) && MessageBox.Show(this, "You already have a module called \"" + module.Name + "\". Replace it?", "Save as module",
+            if (File.Exists(path) &&
+                MessageBox.Show(this, "You already have a module called \"" + module.Name + "\". Replace it?", "Save as module",
                 MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK) return;
             try
             {
@@ -218,7 +228,8 @@ namespace AlmostFastDash.Designer
                 Child = new Image { Source = ModulePicture(module), Stretch = Stretch.Uniform }
             });
             System.Drawing.SizeF size = module.Size();
-            picture.Children.Add(Caption(module.Widgets.Count + (module.Widgets.Count == 1 ? " widget" : " widgets") + ", " + Math.Round(size.Width) + " × " + Math.Round(size.Height) +
+            picture.Children.Add(Caption(module.Widgets.Count + (module.Widgets.Count == 1 ? " widget" : " widgets") + ", " +
+                Math.Round(size.Width) + " × " + Math.Round(size.Height) +
                 (module.Images.Count > 0 ? ", " + module.Images.Count + (module.Images.Count == 1 ? " image" : " images") : "") + ".", 8));
             picture.Children.Add(Caption("Modules hold only widgets and formulas, so they're safe to share.", 8));
             body.Children.Add(picture);
@@ -226,7 +237,8 @@ namespace AlmostFastDash.Designer
             var fields = new StackPanel();
             Grid.SetColumn(fields, 2);
             body.Children.Add(fields);
-            TextBlock Label(string text, double top = 12) => new TextBlock { Text = text, Style = (Style)FindResource("T.Secondary"), Margin = new Thickness(0, top, 0, 4) };
+            TextBlock Label(string text, double top = 12) => new TextBlock { Text = text, Style = (Style)FindResource("T.Secondary"),
+                Margin = new Thickness(0, top, 0, 4) };
             var name = new TextBox { Text = module.Name, MaxLength = 60 };
             fields.Children.Add(Label("Name", 0));
             fields.Children.Add(name);
@@ -234,15 +246,18 @@ namespace AlmostFastDash.Designer
             fields.Children.Add(Label("Category"));
             fields.Children.Add(category);
             var chips = new WrapPanel { Margin = new Thickness(0, 4, 0, 0) };
-            foreach (string suggestion in SuggestedCategories.Concat(Modules().Select(m => (m.Category ?? "").Trim())).Where(c => c.Length > 0)
+            foreach (string suggestion in SuggestedCategories.Concat(Modules().Select(m => (m.Category ?? "").Trim()))
+                .Where(c => c.Length > 0)
                 .Distinct(StringComparer.OrdinalIgnoreCase).Take(12))
             {
-                var chip = new Button { Content = suggestion, Style = (Style)FindResource("Btn.Ghost"), Height = 24, FontSize = 12, Padding = new Thickness(8, 0, 8, 0), Margin = new Thickness(0, 0, 4, 4) };
+                var chip = new Button { Content = suggestion, Style = (Style)FindResource("Btn.Ghost"), Height = 24, FontSize = 12,
+                    Padding = new Thickness(8, 0, 8, 0), Margin = new Thickness(0, 0, 4, 4) };
                 chip.Click += (s, e) => category.Text = suggestion;
                 chips.Children.Add(chip);
             }
             fields.Children.Add(chips);
-            var description = new TextBox { Text = module.Description, MaxLength = 400, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, Height = 62, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
+            var description = new TextBox { Text = module.Description, MaxLength = 400, AcceptsReturn = true,
+                TextWrapping = TextWrapping.Wrap, Height = 62, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
             fields.Children.Add(Label("What it shows"));
             fields.Children.Add(description);
             var author = new TextBox { Text = module.Author, MaxLength = 60 };
@@ -254,12 +269,15 @@ namespace AlmostFastDash.Designer
                 export = new CheckBox { Style = (Style)FindResource("Switch"), VerticalAlignment = VerticalAlignment.Center };
                 var exportRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 14, 0, 0) };
                 exportRow.Children.Add(export);
-                exportRow.Children.Add(new TextBlock { Text = "Also export a file to share", Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center });
+                exportRow.Children.Add(new TextBlock { Text = "Also export a file to share", Margin = new Thickness(10, 0, 0, 0),
+                    VerticalAlignment = VerticalAlignment.Center });
                 fields.Children.Add(exportRow);
             }
-            var ok = new Button { Content = saving ? "Save module" : "Save", Style = (Style)FindResource("Btn.Primary"), IsDefault = true, MinWidth = 110, Margin = new Thickness(8, 0, 0, 0) };
+            var ok = new Button { Content = saving ? "Save module" : "Save", Style = (Style)FindResource("Btn.Primary"), IsDefault = true,
+                MinWidth = 110, Margin = new Thickness(8, 0, 0, 0) };
             var cancel = new Button { Content = "Cancel", IsCancel = true, MinWidth = 90 };
-            var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 18, 0, 0) };
+            var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,
+                Margin = new Thickness(0, 18, 0, 0) };
             buttons.Children.Add(cancel);
             buttons.Children.Add(ok);
             fields.Children.Add(buttons);
@@ -291,7 +309,8 @@ namespace AlmostFastDash.Designer
             if (!ModuleDialog(module, "Module details", false, out _)) return;
             string path = DesignModule.PathFor(module.Name);
             bool moved = !string.Equals(Path.GetFullPath(path), Path.GetFullPath(oldPath ?? path), StringComparison.OrdinalIgnoreCase);
-            if (moved && File.Exists(path) && MessageBox.Show(this, "You already have a module called \"" + module.Name + "\". Replace it?", "Module details",
+            if (moved && File.Exists(path) &&
+                MessageBox.Show(this, "You already have a module called \"" + module.Name + "\". Replace it?", "Module details",
                 MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK)
             {
                 ModulesChanged();
@@ -315,7 +334,8 @@ namespace AlmostFastDash.Designer
 
         private void DeleteModule(DesignModule module)
         {
-            if (MessageBox.Show(this, "Delete \"" + module.Name + "\" from your modules? It goes to the Recycle Bin, so you can bring it back.", "Delete module",
+            if (MessageBox.Show(this,
+                "Delete \"" + module.Name + "\" from your modules? It goes to the Recycle Bin, so you can bring it back.", "Delete module",
                 MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK) return;
             try
             {
@@ -330,7 +350,8 @@ namespace AlmostFastDash.Designer
         }
 
         private static void Recycle(string path) =>
-            Microsoft.VisualBasic.FileIO.FileSystem.DeleteFile(path, Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs, Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
+            Microsoft.VisualBasic.FileIO.FileSystem.DeleteFile(path, Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs,
+            Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
 
         // ------------------------------------------------------------------ sharing
 
@@ -377,7 +398,9 @@ namespace AlmostFastDash.Designer
             ModulesChanged();
             if (added.Count > 0 && !_libraryOpen) ShowLibrary(true);
             if (placeAt.HasValue) foreach (DesignModule module in added) PlaceModule(module, placeAt, false);
-            string message = added.Count == 0 ? "" : "Imported " + string.Join(", ", added.Select(m => "\"" + m.Name + "\"")) + (placeAt.HasValue ? "." : ". Find it in the Library under My modules.");
+            string message = added.Count == 0 ? ""
+                : "Imported " + string.Join(", ", added.Select(m => "\"" + m.Name + "\"")) + (placeAt.HasValue ? "."
+                : ". Find it in the Library under My modules.");
             if (problems.Count > 0) message += (message.Length > 0 ? " " : "") + "Couldn't import " + string.Join(", ", problems) + ".";
             StatusText.Text = message;
         }
@@ -403,14 +426,18 @@ namespace AlmostFastDash.Designer
                 WidgetType type = WidgetCatalog.Find(w.Type);
                 if (type == null) continue;
                 // A line with no width shows no color.
-                bool noLine = type.Prop("strokeWidth") is PropDef width && double.TryParse(w.Get("strokeWidth", width.Default), NumberStyles.Float, CultureInfo.InvariantCulture, out double lineWidth) && lineWidth <= 0;
+                bool noLine = type.Prop("strokeWidth") is PropDef width &&
+                    double.TryParse(w.Get("strokeWidth", width.Default), NumberStyles.Float, CultureInfo.InvariantCulture,
+                    out double lineWidth) &&
+                    lineWidth <= 0;
                 foreach (PropDef def in type.Props.Where(p => p.Kind == PropKind.Color && !p.Hidden && p.Applies(w, type)))
                 {
                     if (noLine && def.Key.StartsWith("stroke")) continue;
                     string raw = (w.Get(def.Key, def.Default) ?? "").Trim();
                     if (raw.Length == 0 || raw.StartsWith("=")) continue;
                     string key = raw.StartsWith("#") ? raw.ToUpperInvariant() : raw.ToLowerInvariant();
-                    if (!uses.TryGetValue(key, out var list)) { uses[key] = list = new List<(DashWidget, string, string)>(); order.Add(key); }
+                    if (!uses.TryGetValue(key, out var list)) { uses[key] = list = new List<(DashWidget, string,
+                        string)>(); order.Add(key); }
                     list.Add((w, def.Key, def.Label));
                 }
             }
@@ -430,7 +457,8 @@ namespace AlmostFastDash.Designer
                 };
                 List<string> labels = targets.Select(t => t.Label).Distinct().ToList();
                 string label = string.Join(", ", labels.Take(2)) + (labels.Count > 2 ? "…" : "");
-                Grid row = LabeledRow(label, field, targets.Count + (targets.Count == 1 ? " setting: " : " settings: ") + string.Join(", ", labels));
+                Grid row = LabeledRow(label, field,
+                    targets.Count + (targets.Count == 1 ? " setting: " : " settings: ") + string.Join(", ", labels));
                 Inspector.Children.Add(row);
             }
         }
@@ -445,7 +473,8 @@ namespace AlmostFastDash.Designer
             Rect before = Union(_selection);
             DashLayout.ScaleWidgets(_selection, factor, factor);
             Rect after = Union(_selection);
-            double dx = Math.Round(before.X + before.Width / 2 - (after.X + after.Width / 2)), dy = Math.Round(before.Y + before.Height / 2 - (after.Y + after.Height / 2));
+            double dx = Math.Round(before.X + before.Width / 2 - (after.X + after.Width / 2)),
+                dy = Math.Round(before.Y + before.Height / 2 - (after.Y + after.Height / 2));
             foreach (DashWidget w in _selection) { w.X += dx; w.Y += dy; }
             _rendererDirty = true;
             Commit("Scale");
@@ -457,12 +486,15 @@ namespace AlmostFastDash.Designer
         /// <summary>A percentage box and a button that scales the selection, everything in it included.</summary>
         private FrameworkElement ScaleRow()
         {
-            var box = new TextBox { Text = "100", FontFamily = (FontFamily)FindResource("Font.Mono"), FontSize = 12, Width = 56, VerticalContentAlignment = VerticalAlignment.Center };
+            var box = new TextBox { Text = "100", FontFamily = (FontFamily)FindResource("Font.Mono"), FontSize = 12, Width = 56,
+                VerticalContentAlignment = VerticalAlignment.Center };
             AttachWheel(box, 5, v => box.Text = Math.Max(5, v).ToString("0", CultureInfo.InvariantCulture));
-            var apply = new Button { Content = "Scale", Height = 30, Padding = new Thickness(12, 0, 12, 0), Margin = new Thickness(8, 0, 0, 0) };
+            var apply = new Button { Content = "Scale", Height = 30, Padding = new Thickness(12, 0, 12, 0),
+                Margin = new Thickness(8, 0, 0, 0) };
             void Go()
             {
-                if (!double.TryParse(box.Text.Trim().TrimEnd('%'), NumberStyles.Float, CultureInfo.InvariantCulture, out double percent) || percent < 5 || percent > 1000)
+                if (!double.TryParse(box.Text.Trim().TrimEnd('%'), NumberStyles.Float, CultureInfo.InvariantCulture, out double percent) ||
+                    percent < 5 || percent > 1000)
                 {
                     StatusText.Text = "Scale by a percentage from 5 to 1000.";
                     return;
@@ -473,7 +505,8 @@ namespace AlmostFastDash.Designer
             box.KeyDown += (s, e) => { if (e.Key == Key.Enter) { Go(); e.Handled = true; } };
             var row = new StackPanel { Orientation = Orientation.Horizontal };
             row.Children.Add(box);
-            row.Children.Add(new TextBlock { Text = "%", Margin = new Thickness(6, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center, Foreground = (Brush)FindResource("Brush.TextSecondary") });
+            row.Children.Add(new TextBlock { Text = "%", Margin = new Thickness(6, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center,
+                Foreground = (Brush)FindResource("Brush.TextSecondary") });
             row.Children.Add(apply);
             Grid labeled = LabeledRow("Scale", row, "Resizes the selection about its middle, text and lines included.");
             return labeled;

@@ -25,7 +25,8 @@ namespace AlmostFastDash.UI
         private readonly DeviceSettings _existing;
         private readonly Func<bool> _dashboardRunning;
         private readonly Func<Task<bool>> _stopDashboard;
-        private readonly TextBlock _stepLabel = new TextBlock(), _title = new TextBlock(), _subtitle = new TextBlock(), _status = new TextBlock();
+        private readonly TextBlock _stepLabel = new TextBlock(), _title = new TextBlock(), _subtitle = new TextBlock(),
+            _status = new TextBlock();
         private readonly ContentControl _body = new ContentControl();
         private readonly Button _back = new Button { Content = "Back", MinWidth = 96 };
         private readonly Button _next = new Button { Content = "Continue", MinWidth = 120 };
@@ -51,7 +52,8 @@ namespace AlmostFastDash.UI
             Offline = true;
             if (step == "find") { _device = null; Show(Step.Find); return; }
             _device = new DeviceSettings { Kind = LedDeviceKinds.Arduino, Port = "COM4", DetectedName = "SSG DV 5", Name = "Wheel LEDs" };
-            _layout = step == "shape-empty" ? new LedLayout { Shape = "" } : new LedLayout { Shape = LedShapes.Screen, Left = 4, Top = 8, Right = 4 };
+            _layout = step == "shape-empty" ? new LedLayout { Shape = "" }
+                : new LedLayout { Shape = LedShapes.Screen, Left = 4, Top = 8, Right = 4 };
             if (step.StartsWith("map-") || step == "done")
             {
                 _mapper = new LayoutMapper(_layout, step != "map-hand");
@@ -157,7 +159,8 @@ namespace AlmostFastDash.UI
             _status.Text = "";
             int number = _ledsOnly ? (int)step - 1 : (int)step + 1, total = _ledsOnly ? 2 : 4;
             _stepLabel.Text = step == Step.Done ? "ALL SET" : "STEP " + number + " OF " + total;
-            _back.Visibility = step == Step.Find || (step == Step.Shape && _ledsOnly) || step == Step.Done ? Visibility.Collapsed : Visibility.Visible;
+            _back.Visibility = step == Step.Find || (step == Step.Shape && _ledsOnly) || step == Step.Done ? Visibility.Collapsed
+                : Visibility.Visible;
             _next.Content = step == Step.Done ? "Finish" : "Continue";
             _next.IsEnabled = true;
             switch (step)
@@ -183,7 +186,8 @@ namespace AlmostFastDash.UI
             {
                 case Step.Find: if (_device != null) Show(Step.Name); break;
                 case Step.Name:
-                    _device.Name = UniqueName(string.IsNullOrWhiteSpace(_nameBox?.Text) ? (_device.DetectedName ?? "LED device") : _nameBox.Text.Trim());
+                    _device.Name = UniqueName(string.IsNullOrWhiteSpace(_nameBox?.Text) ? (_device.DetectedName ?? "LED device")
+                    : _nameBox.Text.Trim());
                     Show(Step.Shape);
                     break;
                 case Step.Shape:
@@ -223,13 +227,15 @@ namespace AlmostFastDash.UI
             foreach (LayoutPiece piece in _layout.Pieces())
                 body.Children.Add(new TextBlock
                 {
-                    Text = piece.Name + " · " + piece.Slots.Length + (piece.Slots.Length == 1 ? " LED" : " LEDs") + " · " + _layout.RoleOf(piece),
+                    Text = piece.Name + " · " + piece.Slots.Length + (piece.Slots.Length == 1 ? " LED" : " LEDs") + " · " +
+                        _layout.RoleOf(piece),
                     Style = (Style)FindResource("T.Secondary"), Margin = new Thickness(0, 0, 0, 6)
                 });
             // Power is asked once here for a new device; a device's settings window changes it later.
             if (_device.Kind != LedDeviceKinds.Wled && !_ledsOnly)
             {
-                body.Children.Add(new TextBlock { Text = "POWER", Style = (Style)FindResource("T.Overline"), Margin = new Thickness(0, 22, 0, 8) });
+                body.Children.Add(new TextBlock { Text = "POWER", Style = (Style)FindResource("T.Overline"),
+                    Margin = new Thickness(0, 22, 0, 8) });
                 body.Children.Add(DeviceUi.PowerPicker(this, _device));
             }
             if (_ledsOnly) _title.Text = _device.Name + "'s LEDs are mapped";
@@ -239,7 +245,8 @@ namespace AlmostFastDash.UI
 
         private Border Card() => new Border
         {
-            Background = (Brush)FindResource("Brush.SurfaceRaised"), CornerRadius = new CornerRadius(12), Padding = new Thickness(16, 12, 16, 12),
+            Background = (Brush)FindResource("Brush.SurfaceRaised"), CornerRadius = new CornerRadius(12),
+                Padding = new Thickness(16, 12, 16, 12),
             Margin = new Thickness(0, 0, 0, 8), BorderBrush = (Brush)FindResource("Brush.Border"), BorderThickness = new Thickness(1)
         };
     }

@@ -30,7 +30,8 @@ namespace AlmostFastDash.Designer
                 return;
             }
             // Quick repeats of one edit (a slider dragged) are one step to undo; each widget added or drawn is its own.
-            bool merge = label == _lastCommitLabel && (DateTime.UtcNow - _lastCommitUtc).TotalMilliseconds < 1200 && label != "Add" && !label.StartsWith("Draw ") && _undo.Count > 0;
+            bool merge = label == _lastCommitLabel && (DateTime.UtcNow - _lastCommitUtc).TotalMilliseconds < 1200 && label != "Add" &&
+                !label.StartsWith("Draw ") && _undo.Count > 0;
             if (!merge)
             {
                 _undo.Add(_committed);
@@ -94,7 +95,8 @@ namespace AlmostFastDash.Designer
         {
             string screenId = _screen?.Id;
             var selected = new HashSet<string>(_selection.Select(w => w.Id));
-            _layout = new System.Web.Script.Serialization.JavaScriptSerializer { MaxJsonLength = int.MaxValue, RecursionLimit = 256 }.Deserialize<DashLayout>(json);
+            _layout = new System.Web.Script.Serialization.JavaScriptSerializer { MaxJsonLength = int.MaxValue,
+                RecursionLimit = 256 }.Deserialize<DashLayout>(json);
             _layout.Normalize();
             _screen = _layout.Screens.FirstOrDefault(s => s.Id == screenId) ?? _layout.Screens[0];
             _selection.Clear();

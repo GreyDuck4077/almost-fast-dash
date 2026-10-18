@@ -30,10 +30,12 @@ namespace AlmostFastDash.CommandLine
                 foreach (var state in states)
                 {
                     // A fresh renderer per state, so fades from the previous state don't show.
-                    LightFrame frame = new LightRenderer(profile, dashboard.AccentColor, new UnitSystem(settings.General), devices).Compose(state.Item2, 0);
+                    LightFrame frame = new LightRenderer(profile, dashboard.AccentColor, new UnitSystem(settings.General), devices)
+                        .Compose(state.Item2, 0);
                     report.AppendLine("  " + state.Item1);
                     for (int d = 0; d < devices.Count && d < frame.Leds.Length; d++)
-                        report.AppendLine("    " + devices[d].Name.PadRight(8) + string.Join(" ", frame.Leds[d].Select((c, i) => (i + 1) + ":" + Short(c, profile.Gamma))));
+                        report.AppendLine("    " + devices[d].Name.PadRight(8) +
+                            string.Join(" ", frame.Leds[d].Select((c, i) => (i + 1) + ":" + Short(c, profile.Gamma))));
                 }
             }
             File.WriteAllText(reportPath, report.ToString());
@@ -45,7 +47,8 @@ namespace AlmostFastDash.CommandLine
             // The preview car's shift lights run from 3800 to 7700 RPM.
             double rpm = 3800 + (7700 - 3800) * fraction;
             return IRacingTelemetrySource.WithPreviewExtras(new TelemetrySnapshot(
-                true, 4, 136, RacingFlag.None, BlindSpotZone.None, BlindSpotZone.None, fraction, SessionProgressMode.LapRace, 0, 0, 8, 18, 4, 2, 24.3, 58.104, 0.46,
+                true, 4, 136, RacingFlag.None, BlindSpotZone.None, BlindSpotZone.None, fraction, SessionProgressMode.LapRace, 0, 0, 8, 18,
+                4, 2, 24.3, 58.104, 0.46,
                 "J. MILLER", -0.46, "M. CARTER", 0.82, 22, false, 87.932, 87.521, 88.204, new bool[18], 0, 6, rpm));
         }
 

@@ -26,7 +26,8 @@ namespace AlmostFastDash.Rendering
         /// A brush for a fill over <paramref name="box"/>. A radial gradient reaches the box's corners, or, for a
         /// <paramref name="round"/> shape (an ellipse, polygon or star, all inside the box's ellipse), its edge.
         /// </summary>
-        public static Brush Brush(string style, Color a, Color b, float angle, string pattern, float scalePercent, float patternAngle, RectangleF box, bool round = false)
+        public static Brush Brush(string style, Color a, Color b, float angle, string pattern, float scalePercent, float patternAngle,
+            RectangleF box, bool round = false)
         {
             switch (style)
             {
@@ -114,13 +115,15 @@ namespace AlmostFastDash.Rendering
                         {
                             // Pointy-topped hexagons whose outlines meet across the tile's edges.
                             using (var pen = new Pen(a, 3f))
-                                foreach (PointF centre in new[] { new PointF(0, 0), new PointF(width, 0), new PointF(width / 2f, height / 2f), new PointF(0, height), new PointF(width, height) })
+                                foreach (PointF centre in new[] { new PointF(0, 0), new PointF(width, 0),
+                                    new PointF(width / 2f, height / 2f), new PointF(0, height), new PointF(width, height) })
                                 {
                                     var corners = new PointF[6];
                                     for (int i = 0; i < 6; i++)
                                     {
                                         double angle = Math.PI / 180 * (60 * i - 90);
-                                        corners[i] = new PointF(centre.X + hex * (float)Math.Cos(angle), centre.Y + hex * (float)Math.Sin(angle));
+                                        corners[i] = new PointF(centre.X + hex * (float)Math.Cos(angle),
+                                            centre.Y + hex * (float)Math.Sin(angle));
                                     }
                                     g.DrawPolygon(pen, corners);
                                 }
@@ -137,7 +140,8 @@ namespace AlmostFastDash.Rendering
                                 {
                                     var r = new Rectangle(cx * cell, cy * cell, cell, cell);
                                     bool across = (cx - cy + 4) % 4 < 2;
-                                    using (var shade = new LinearGradientBrush(new Rectangle(r.X - 1, r.Y - 1, r.Width + 2, r.Height + 2), b, a, across ? 90f : 0f))
+                                    using (var shade = new LinearGradientBrush(new Rectangle(r.X - 1, r.Y - 1, r.Width + 2, r.Height + 2),
+                                        b, a, across ? 90f : 0f))
                                     {
                                         shade.SetBlendTriangularShape(0.5f, 1f);
                                         g.FillRectangle(shade, r);
@@ -174,12 +178,15 @@ namespace AlmostFastDash.Rendering
         }
 
         /// <summary>A pen for a line: one color or a gradient across the box, dashed or not, with its ends and corners.</summary>
-        public static Pen LinePen(Color a, Color? gradientTo, float angle, float width, string dash, string ends, string corners, RectangleF box)
+        public static Pen LinePen(Color a, Color? gradientTo, float angle, float width, string dash, string ends, string corners,
+            RectangleF box)
         {
             Pen pen;
             if (gradientTo.HasValue)
                 // The pen keeps its own copy of the brush.
-                using (var brush = new LinearGradientBrush(RectangleF.Inflate(box, width + 1, width + 1), a, gradientTo.Value, angle)) pen = new Pen(brush, width);
+                using (var brush = new LinearGradientBrush(RectangleF.Inflate(box, width + 1, width + 1), a, gradientTo.Value,
+                    angle)) pen = new Pen(brush,
+                    width);
             else pen = new Pen(a, width);
             LineCap cap = ends == "Flat" ? LineCap.Flat : ends == "Square" ? LineCap.Square : LineCap.Round;
             pen.StartCap = pen.EndCap = cap;

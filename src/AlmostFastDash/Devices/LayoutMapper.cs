@@ -46,7 +46,8 @@ namespace AlmostFastDash.Devices
 
         public int SlotOf(int led) => led >= 0 && led < _ledSlot.Length ? _ledSlot[led] : -1;
 
-        /// <summary>The user says the LED being asked for is at this slot. Returns how many LEDs that placed (0 if the slot is taken).</summary>
+        /// <summary>The user says the LED being asked for is at this slot. Returns how many LEDs that placed (0 if the slot is
+        /// taken).</summary>
         public int Place(int slot)
         {
             int led = Next;

@@ -13,7 +13,8 @@ namespace AlmostFastDash.Formulas
             "Gap", "GapText", "Interval", "Delta", "IRating", "License", "LicenseColor", "InPits", "IsPlayer", "Exists"
         };
 
-        public static readonly string[] TyreFields = { "Temp", "TempInner", "TempMiddle", "TempOuter", "Wear", "WearInner", "WearMiddle", "WearOuter", "Pressure" };
+        public static readonly string[] TyreFields = { "Temp", "TempInner", "TempMiddle", "TempOuter", "Wear", "WearInner", "WearMiddle",
+            "WearOuter", "Pressure" };
 
         /// <summary>The car in an overall (or class) position, or null when there is none.</summary>
         public static StandingsEntry AtPosition(TelemetrySnapshot t, int position, bool myClass)
@@ -63,7 +64,8 @@ namespace AlmostFastDash.Formulas
             if (r == null) return "";
             if (r.Position == 1) return "LEADER";
             if (r.LapsBehind > 0) return "+" + r.LapsBehind + (r.LapsBehind == 1 ? " LAP" : " LAPS");
-            return r.GapToLeader > 0 ? "+" + r.GapToLeader.ToString(r.GapToLeader >= 100 ? "0.0" : "0.00", CultureInfo.InvariantCulture) : "";
+            return r.GapToLeader > 0 ? "+" + r.GapToLeader.ToString(r.GapToLeader >= 100 ? "0.0" : "0.00", CultureInfo.InvariantCulture)
+                : "";
         }
 
         public static object Sector(double[] times, object sector)
@@ -74,7 +76,8 @@ namespace AlmostFastDash.Formulas
 
         public static object Tyre(EvalScope s, string corner, string reading)
         {
-            TyreCorner tyre = (s.T.Tyres ?? new TyreCorner[0]).FirstOrDefault(c => string.Equals(c.Name, (corner ?? "").Trim(), StringComparison.OrdinalIgnoreCase));
+            TyreCorner tyre = (s.T.Tyres ?? new TyreCorner[0])
+                .FirstOrDefault(c => string.Equals(c.Name, (corner ?? "").Trim(), StringComparison.OrdinalIgnoreCase));
             if (tyre == null) return double.NaN;
             switch ((reading ?? "").ToLowerInvariant())
             {

@@ -47,9 +47,12 @@ namespace AlmostFastDash.Designer
                 DashWidget first = _selection[0];
                 Inspector.Children.Add(SectionTitle("Group"));
                 var groupName = new TextBox { Text = first.GroupName, MaxLength = 40 };
-                groupName.TextChanged += (s, e) => { foreach (DashWidget w in _selection) w.GroupName = groupName.Text.Trim(); CommitSoon("Rename group"); RefreshLayers(); };
+                groupName.TextChanged += (s,
+                    e) => { foreach (DashWidget w in _selection) w.GroupName = groupName.Text.Trim(); CommitSoon("Rename group"); RefreshLayers(); };
                 Inspector.Children.Add(LabeledRow("Name", groupName));
-                var slot = new TextBox { Text = first.Slot.ToString("0.##", CultureInfo.InvariantCulture), FontFamily = (FontFamily)FindResource("Font.Mono"), FontSize = 12, Width = 70, HorizontalAlignment = HorizontalAlignment.Left };
+                var slot = new TextBox { Text = first.Slot.ToString("0.##", CultureInfo.InvariantCulture),
+                    FontFamily = (FontFamily)FindResource("Font.Mono"), FontSize = 12, Width = 70,
+                    HorizontalAlignment = HorizontalAlignment.Left };
                 slot.TextChanged += (s, e) =>
                 {
                     if (!double.TryParse(slot.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double v)) return;
@@ -71,7 +74,9 @@ namespace AlmostFastDash.Designer
             List<WidgetType> types = _selection.Select(w => WidgetCatalog.Find(w.Type)).Where(t => t != null).Distinct().ToList();
             if (types.Count > 0 && types.Count == _selection.Select(w => w.Type).Distinct().Count())
             {
-                List<PropDef> common = types[0].Props.Where(p => p.Key != "visible" && !p.Hidden && types.All(t => t.Prop(p.Key) is PropDef other && other.Kind == p.Kind)).ToList();
+                List<PropDef> common = types[0].Props.Where(p => p.Key != "visible" && !p.Hidden &&
+                    types.All(t => t.Prop(p.Key) is PropDef other && other.Kind == p.Kind))
+                    .ToList();
                 if (common.Count > 0)
                 {
                     Inspector.Children.Add(SectionTitle(types.Count == 1 ? "Settings (all " + _selection.Count + ")" : "Shared settings"));
@@ -79,8 +84,10 @@ namespace AlmostFastDash.Designer
                     foreach (IGrouping<string, PropDef> group in common.GroupBy(p => p.Group))
                     {
                         var content = new StackPanel { Visibility = Visibility.Collapsed };
-                        var title = new TextBlock { Text = group.Key.ToUpperInvariant() + "  ›", Style = (Style)FindResource("T.Overline") };
-                        var header = new Border { Child = title, Background = Brushes.Transparent, Cursor = Cursors.Hand, Margin = new Thickness(0, 14, 0, 6) };
+                        var title = new TextBlock { Text = group.Key.ToUpperInvariant() + "  ›",
+                            Style = (Style)FindResource("T.Overline") };
+                        var header = new Border { Child = title, Background = Brushes.Transparent, Cursor = Cursors.Hand,
+                            Margin = new Thickness(0, 14, 0, 6) };
                         header.MouseLeftButtonUp += (s, e) =>
                         {
                             bool open = content.Visibility != Visibility.Visible;
@@ -115,8 +122,10 @@ namespace AlmostFastDash.Designer
         {
             var content = new StackPanel { Orientation = Orientation.Horizontal };
             content.Children.Add(Glyph(glyph, 12));
-            content.Children.Add(new TextBlock { Text = text, Margin = new Thickness(6, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center });
-            var button = new Button { Content = content, Margin = new Thickness(0, 0, 6, 6), Height = 32, Padding = new Thickness(10, 0, 10, 0) };
+            content.Children.Add(new TextBlock { Text = text, Margin = new Thickness(6, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center });
+            var button = new Button { Content = content, Margin = new Thickness(0, 0, 6, 6), Height = 32,
+                Padding = new Thickness(10, 0, 10, 0) };
             System.Windows.Automation.AutomationProperties.SetName(button, text);
             button.Click += (s, e) => action();
             return button;
@@ -150,7 +159,9 @@ namespace AlmostFastDash.Designer
         {
             var canvas = new Canvas { Width = 16, Height = 16 };
             Brush line = (Brush)FindResource("Brush.Accent"), block = (Brush)FindResource("Brush.TextSecondary");
-            void Rect(double x, double y, double w, double h, Brush b) { var r = new System.Windows.Shapes.Rectangle { Width = w, Height = h, Fill = b, RadiusX = 1, RadiusY = 1 }; Canvas.SetLeft(r, x); Canvas.SetTop(r, y); canvas.Children.Add(r); }
+            void Rect(double x, double y, double w, double h,
+                Brush b) { var r = new System.Windows.Shapes.Rectangle { Width = w, Height = h, Fill = b, RadiusX = 1,
+                RadiusY = 1 }; Canvas.SetLeft(r, x); Canvas.SetTop(r, y); canvas.Children.Add(r); }
             switch (how)
             {
                 case "left": Rect(1, 1, 1.5, 14, line); Rect(4, 3, 10, 4, block); Rect(4, 9, 6, 4, block); break;

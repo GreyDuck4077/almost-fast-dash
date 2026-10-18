@@ -42,7 +42,8 @@ namespace AlmostFastDash.Designer
                 if (angle != 0)
                 {
                     Rect r = RectOf(w);
-                    ((Rectangle)Overlay.Children[Overlay.Children.Count - 1]).RenderTransform = new RotateTransform(angle, r.Width / 2, r.Height / 2);
+                    ((Rectangle)Overlay.Children[Overlay.Children.Count - 1]).RenderTransform = new RotateTransform(angle, r.Width / 2,
+                        r.Height / 2);
                 }
             }
 
@@ -54,7 +55,8 @@ namespace AlmostFastDash.Designer
                     foreach (Point p in HandlePoints(around))
                     {
                         double size = 7 * Px;
-                        var handle = new Rectangle { Width = size, Height = size, Fill = accent, Stroke = Brushes.White, StrokeThickness = 1 * Px, IsHitTestVisible = false };
+                        var handle = new Rectangle { Width = size, Height = size, Fill = accent, Stroke = Brushes.White,
+                            StrokeThickness = 1 * Px, IsHitTestVisible = false };
                         Canvas.SetLeft(handle, p.X - size / 2);
                         Canvas.SetTop(handle, p.Y - size / 2);
                         Overlay.Children.Add(handle);
@@ -68,9 +70,11 @@ namespace AlmostFastDash.Designer
                 {
                     Point knob = RotateHandlePoint(_selection[0]);
                     Point stem = Turn(new Point(r.X + r.Width / 2, r.Y), Center(r), Angle(_selection[0]));
-                    Overlay.Children.Add(new Line { X1 = stem.X, Y1 = stem.Y, X2 = knob.X, Y2 = knob.Y, Stroke = accent, StrokeThickness = 1.2 * Px, IsHitTestVisible = false });
+                    Overlay.Children.Add(new Line { X1 = stem.X, Y1 = stem.Y, X2 = knob.X, Y2 = knob.Y, Stroke = accent,
+                        StrokeThickness = 1.2 * Px, IsHitTestVisible = false });
                     double d = 11 * Px;
-                    var dial = new Ellipse { Width = d, Height = d, Fill = Brushes.White, Stroke = accent, StrokeThickness = 1.5 * Px, ToolTip = "Drag to rotate · Shift snaps to 15°" };
+                    var dial = new Ellipse { Width = d, Height = d, Fill = Brushes.White, Stroke = accent, StrokeThickness = 1.5 * Px,
+                        ToolTip = "Drag to rotate · Shift snaps to 15°" };
                     Canvas.SetLeft(dial, knob.X - d / 2);
                     Canvas.SetTop(dial, knob.Y - d / 2);
                     Overlay.Children.Add(dial);
@@ -78,7 +82,8 @@ namespace AlmostFastDash.Designer
                 foreach (Point p in HandlePoints(_selection[0]))
                 {
                     double size = 8 * Px;
-                    var handle = new Rectangle { Width = size, Height = size, Fill = Brushes.White, Stroke = accent, StrokeThickness = 1.5 * Px };
+                    var handle = new Rectangle { Width = size, Height = size, Fill = Brushes.White, Stroke = accent,
+                        StrokeThickness = 1.5 * Px };
                     Canvas.SetLeft(handle, p.X - size / 2);
                     Canvas.SetTop(handle, p.Y - size / 2);
                     Overlay.Children.Add(handle);
@@ -86,7 +91,8 @@ namespace AlmostFastDash.Designer
                 var size2 = new Border
                 {
                     Background = accent, CornerRadius = new CornerRadius(4 * Px), Padding = new Thickness(5 * Px, 1 * Px, 5 * Px, 1 * Px),
-                    Child = new TextBlock { Text = Math.Round(r.Width) + " × " + Math.Round(r.Height), FontSize = 12 * Px, Foreground = (Brush)FindResource("Brush.OnAccent"), FontWeight = FontWeights.SemiBold }
+                    Child = new TextBlock { Text = Math.Round(r.Width) + " × " + Math.Round(r.Height), FontSize = 12 * Px,
+                    Foreground = (Brush)FindResource("Brush.OnAccent"), FontWeight = FontWeights.SemiBold }
                 };
                 size2.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
                 Canvas.SetLeft(size2, r.X + r.Width / 2 - size2.DesiredSize.Width / 2);
@@ -132,14 +138,16 @@ namespace AlmostFastDash.Designer
             _gridRect = new Rectangle
             {
                 Width = CanvasW, Height = CanvasH, IsHitTestVisible = false,
-                Fill = new DrawingBrush(drawing) { TileMode = TileMode.Tile, Viewport = new Rect(0, 0, GridDraw, GridDraw), ViewportUnits = BrushMappingMode.Absolute }
+                Fill = new DrawingBrush(drawing) { TileMode = TileMode.Tile, Viewport = new Rect(0, 0, GridDraw, GridDraw),
+                ViewportUnits = BrushMappingMode.Absolute }
             };
             return _gridRect;
         }
 
         private void AddRect(Rect r, Brush brush, double thickness, bool dashed)
         {
-            var rect = new Rectangle { Width = Math.Max(0, r.Width), Height = Math.Max(0, r.Height), Stroke = brush, StrokeThickness = thickness * Px, IsHitTestVisible = false };
+            var rect = new Rectangle { Width = Math.Max(0, r.Width), Height = Math.Max(0, r.Height), Stroke = brush,
+                StrokeThickness = thickness * Px, IsHitTestVisible = false };
             if (dashed) rect.StrokeDashArray = new DoubleCollection { 4, 3 };
             Canvas.SetLeft(rect, r.X);
             Canvas.SetTop(rect, r.Y);
@@ -157,12 +165,15 @@ namespace AlmostFastDash.Designer
 
         private static Point[] HandlePoints(Rect r) => new[]
         {
-            new Point(r.Left, r.Top), new Point(r.Left + r.Width / 2, r.Top), new Point(r.Right, r.Top), new Point(r.Right, r.Top + r.Height / 2),
-            new Point(r.Right, r.Bottom), new Point(r.Left + r.Width / 2, r.Bottom), new Point(r.Left, r.Bottom), new Point(r.Left, r.Top + r.Height / 2)
+            new Point(r.Left, r.Top), new Point(r.Left + r.Width / 2, r.Top), new Point(r.Right, r.Top),
+                new Point(r.Right, r.Top + r.Height / 2),
+            new Point(r.Right, r.Bottom), new Point(r.Left + r.Width / 2, r.Bottom), new Point(r.Left, r.Bottom),
+            new Point(r.Left, r.Top + r.Height / 2)
         };
 
         private static readonly Cursor[] HandleCursors =
-            { Cursors.SizeNWSE, Cursors.SizeNS, Cursors.SizeNESW, Cursors.SizeWE, Cursors.SizeNWSE, Cursors.SizeNS, Cursors.SizeNESW, Cursors.SizeWE };
+            { Cursors.SizeNWSE, Cursors.SizeNS, Cursors.SizeNESW, Cursors.SizeWE, Cursors.SizeNWSE, Cursors.SizeNS, Cursors.SizeNESW,
+            Cursors.SizeWE };
 
         /// <summary>A widget's fixed rotation in degrees; 0 when it isn't turned or a formula turns it.</summary>
         private static double Angle(DashWidget w)

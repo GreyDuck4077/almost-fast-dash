@@ -30,11 +30,13 @@ namespace AlmostFastDash.UI
             {
                 NavSettings.IsChecked = true;
                 if (scenario.Contains("bottom"))
-                    Dispatcher.BeginInvoke(new Action(() => SettingsPage.ScrollToEnd()), System.Windows.Threading.DispatcherPriority.Loaded);
+                    Dispatcher.BeginInvoke(new Action(() => SettingsPage.ScrollToEnd()),
+                        System.Windows.Threading.DispatcherPriority.Loaded);
             }
             else if (scenario.Contains("app")) NavApp.IsChecked = true;
             // The first gallery card as the pointer finds it: its picture playing the animated lap.
-            if (scenario.Contains("hover") && _galleryCards.Count > 0 && _galleryCards[0].Child is StackPanel stack && stack.Children[0] is Border picture)
+            if (scenario.Contains("hover") && _galleryCards.Count > 0 && _galleryCards[0].Child is StackPanel stack &&
+                stack.Children[0] is Border picture)
                 StartCardMotion(picture, _settings.Dashboards[0], new UnitSystem(_settings.General), true);
             // "…-scroll900": the page scrolled down that far, to see all of a long page.
             var scroll = System.Text.RegularExpressions.Regex.Match(scenario, @"scroll(\d+)");
@@ -52,7 +54,8 @@ namespace AlmostFastDash.UI
             var row = new Grid();
             row.ColumnDefinitions.Add(new ColumnDefinition());
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            row.Children.Add(new TextBlock { Text = name, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis });
+            row.Children.Add(new TextBlock { Text = name, VerticalAlignment = VerticalAlignment.Center,
+                TextTrimming = TextTrimming.CharacterEllipsis });
             if (marker != null)
             {
                 Grid.SetColumn(marker, 1);
@@ -106,14 +109,17 @@ namespace AlmostFastDash.UI
             {
                 DashboardSettings d = dashboard;
                 TextBlock marker = d.Id == _settings.DefaultDashboardId
-                    ? new TextBlock { Text = "Default", FontSize = 12, Foreground = (Brush)FindResource("Brush.TextTertiary"), VerticalAlignment = VerticalAlignment.Center }
+                    ? new TextBlock { Text = "Default", FontSize = 12, Foreground = (Brush)FindResource("Brush.TextTertiary"),
+                        VerticalAlignment = VerticalAlignment.Center }
                     : null;
                 var item = new RadioButton
                 {
                     Style = (Style)FindResource("Nav.SubItem"), GroupName = "DashboardSub", Content = SubNavRow(d.Name, marker),
                     IsChecked = onEditor && d == _dashboard
                 };
-                item.Checked += (s, e) => { if (!_buildingDashboardNav && !(EditorPage.Visibility == Visibility.Visible && d == _dashboard)) ShowEditor(d); };
+                item.Checked += (s,
+                    e) => { if (!_buildingDashboardNav &&
+                    !(EditorPage.Visibility == Visibility.Visible && d == _dashboard)) ShowEditor(d); };
                 item.ContextMenu = DashboardMenu(d);
                 System.Windows.Automation.AutomationProperties.SetName(item, d.Name);
                 DashboardSubNav.Children.Add(item);
@@ -128,7 +134,8 @@ namespace AlmostFastDash.UI
             DisarmConfirm();
             StopCardMotion();
             // Drilling into a dashboard comes in from the right, going back from the left; other pages rise into place.
-            ScrollViewer from = new[] { GalleryPage, EditorPage, SettingsPage, AppPage }.FirstOrDefault(p => p.Visibility == Visibility.Visible);
+            ScrollViewer from = new[] { GalleryPage, EditorPage, SettingsPage,
+                AppPage }.FirstOrDefault(p => p.Visibility == Visibility.Visible);
             int direction = page == EditorPage && from == GalleryPage ? 1 : page == GalleryPage && from == EditorPage ? -1 : 0;
             GalleryPage.Visibility = page == GalleryPage ? Visibility.Visible : Visibility.Collapsed;
             EditorPage.Visibility = page == EditorPage ? Visibility.Visible : Visibility.Collapsed;

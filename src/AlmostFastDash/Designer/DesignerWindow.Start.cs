@@ -38,25 +38,34 @@ namespace AlmostFastDash.Designer
             var body = new StackPanel();
             var badge = new Border
             {
-                Width = 44, Height = 44, CornerRadius = new CornerRadius(12), Background = (Brush)FindResource("Brush.AccentSubtle"), HorizontalAlignment = HorizontalAlignment.Center,
-                Child = new TextBlock { Text = "", Style = (Style)FindResource("T.Icon"), FontSize = 20, Foreground = (Brush)FindResource("Brush.Accent"), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center }
+                Width = 44, Height = 44, CornerRadius = new CornerRadius(12), Background = (Brush)FindResource("Brush.AccentSubtle"),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                Child = new TextBlock { Text = "", Style = (Style)FindResource("T.Icon"), FontSize = 20,
+                Foreground = (Brush)FindResource("Brush.Accent"), HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center }
             };
             body.Children.Add(badge);
-            body.Children.Add(new TextBlock { Text = "Start your screen", Style = (Style)FindResource("T.Title"), FontSize = 20, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 12, 0, 4) });
+            body.Children.Add(new TextBlock { Text = "Start your screen", Style = (Style)FindResource("T.Title"), FontSize = 20,
+                HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 12, 0, 4) });
             body.Children.Add(new TextBlock
             {
                 Text = "Pick a block to start, or drag from the Library.",
-                Style = (Style)FindResource("T.Secondary"), TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center, Margin = new Thickness(0, 0, 0, 14)
+                Style = (Style)FindResource("T.Secondary"), TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center,
+                Margin = new Thickness(0, 0, 0, 14)
             });
             var starters = new UniformGrid { Columns = 3 };
-            foreach ((string block, string glyph, string label) in new[] { ("Gear cluster", "", "Gear and revs"), ("LED strip", "", "Shift lights"), ("Lap times", "", "Lap times") })
+            foreach ((string block, string glyph, string label) in new[] { ("Gear cluster", "", "Gear and revs"),
+                ("LED strip", "", "Shift lights"), ("Lap times", "", "Lap times") })
             {
                 DesignBlock starter = DesignBlocks.BuiltIn().FirstOrDefault(b => b.Name == block);
                 if (starter == null) continue;
                 var tile = new StackPanel();
-                tile.Children.Add(new TextBlock { Text = glyph, Style = (Style)FindResource("T.Icon"), FontSize = 22, Foreground = (Brush)FindResource("Brush.Accent"), HorizontalAlignment = HorizontalAlignment.Center });
-                tile.Children.Add(new TextBlock { Text = label, FontSize = 12.5, FontWeight = FontWeights.SemiBold, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 8, 0, 0) });
-                var button = new Button { Content = tile, Height = 84, Margin = new Thickness(4), Padding = new Thickness(6), ToolTip = starter.Description };
+                tile.Children.Add(new TextBlock { Text = glyph, Style = (Style)FindResource("T.Icon"), FontSize = 22,
+                    Foreground = (Brush)FindResource("Brush.Accent"), HorizontalAlignment = HorizontalAlignment.Center });
+                tile.Children.Add(new TextBlock { Text = label, FontSize = 12.5, FontWeight = FontWeights.SemiBold,
+                    HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 8, 0, 0) });
+                var button = new Button { Content = tile, Height = 84, Margin = new Thickness(4), Padding = new Thickness(6),
+                    ToolTip = starter.Description };
                 button.Click += (s, e) =>
                 {
                     List<DashWidget> widgets = starter.Create();
@@ -78,10 +87,13 @@ namespace AlmostFastDash.Designer
             });
             _startCard = new Border
             {
-                Width = 440, Padding = new Thickness(26, 24, 26, 20), CornerRadius = new CornerRadius(16), HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center, Background = (Brush)FindResource("Brush.SurfaceRaised"), BorderBrush = (Brush)FindResource("Brush.BorderStrong"),
+                Width = 440, Padding = new Thickness(26, 24, 26, 20), CornerRadius = new CornerRadius(16),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center, Background = (Brush)FindResource("Brush.SurfaceRaised"),
+                BorderBrush = (Brush)FindResource("Brush.BorderStrong"),
                 BorderThickness = new Thickness(1), Child = body, AllowDrop = true, Visibility = Visibility.Collapsed,
-                Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 40, ShadowDepth = 8, Opacity = 0.55, Color = Colors.Black }
+                Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 40, ShadowDepth = 8, Opacity = 0.55,
+                Color = Colors.Black }
             };
             // Things dragged in from the Library land on the screen beneath it.
             _startCard.DragOver += Overlay_DragOver;

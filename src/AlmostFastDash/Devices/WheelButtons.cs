@@ -93,12 +93,16 @@ namespace AlmostFastDash.Devices
             try
             {
                 string slot = null;
-                foreach (Microsoft.Win32.RegistryKey root in new[] { Microsoft.Win32.Registry.CurrentUser, Microsoft.Win32.Registry.LocalMachine })
-                    using (Microsoft.Win32.RegistryKey settings = root.OpenSubKey(@"System\CurrentControlSet\Control\MediaResources\Joystick\" + regKey + @"\CurrentJoystickSettings"))
+                foreach (Microsoft.Win32.RegistryKey root in new[] { Microsoft.Win32.Registry.CurrentUser,
+                    Microsoft.Win32.Registry.LocalMachine })
+                    using (Microsoft.Win32.RegistryKey settings = root.OpenSubKey(@"System\CurrentControlSet\Control\MediaResources\Joystick\" +
+                        regKey + @"\CurrentJoystickSettings"))
                         if ((slot = settings?.GetValue("Joystick" + (id + 1) + "OEMName") as string) != null) break;
                 if (string.IsNullOrEmpty(slot)) return null;
-                foreach (Microsoft.Win32.RegistryKey root in new[] { Microsoft.Win32.Registry.CurrentUser, Microsoft.Win32.Registry.LocalMachine })
-                    using (Microsoft.Win32.RegistryKey oem = root.OpenSubKey(@"System\CurrentControlSet\Control\MediaProperties\PrivateProperties\Joystick\OEM\" + slot))
+                foreach (Microsoft.Win32.RegistryKey root in new[] { Microsoft.Win32.Registry.CurrentUser,
+                    Microsoft.Win32.Registry.LocalMachine })
+                    using (Microsoft.Win32.RegistryKey oem = root.OpenSubKey(@"System\CurrentControlSet\Control\MediaProperties\PrivateProperties\Joystick\OEM\" +
+                        slot))
                         if (oem?.GetValue("OEMName") is string friendly && friendly.Trim().Length > 0) return friendly.Trim();
                 return slot;
             }
@@ -120,7 +124,8 @@ namespace AlmostFastDash.Devices
         {
             public ushort Mid, Pid;
             [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string Name;
-            public int XMin, XMax, YMin, YMax, ZMin, ZMax, NumButtons, PeriodMin, PeriodMax, RMin, RMax, UMin, UMax, VMin, VMax, Caps, MaxAxes, NumAxes, MaxButtons;
+            public int XMin, XMax, YMin, YMax, ZMin, ZMax, NumButtons, PeriodMin, PeriodMax, RMin, RMax, UMin, UMax, VMin, VMax, Caps,
+                MaxAxes, NumAxes, MaxButtons;
             [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string RegKey;
             [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)] public string OemVxd;
         }

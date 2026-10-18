@@ -28,7 +28,8 @@ namespace AlmostFastDash.Output
         /// <summary>A frame's 32-bit pixels, as GDI+ keeps them, copied out row after row.</summary>
         public static void Copy(Bitmap frame, int[] pixels)
         {
-            BitmapData data = frame.LockBits(new Rectangle(0, 0, frame.Width, frame.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+            BitmapData data = frame.LockBits(new Rectangle(0, 0, frame.Width, frame.Height), ImageLockMode.ReadOnly,
+                PixelFormat.Format32bppArgb);
             try
             {
                 int row = frame.Width * 4;
@@ -47,7 +48,8 @@ namespace AlmostFastDash.Output
             }
         }
 
-        /// <summary>One area of a frame's pixels copied into the same place in <paramref name="pixels"/> (the whole frame's worth).</summary>
+        /// <summary>One area of a frame's pixels copied into the same place in <paramref name="pixels"/> (the whole frame's
+        /// worth).</summary>
         public static void CopyArea(Bitmap frame, int[] pixels, Rectangle area)
         {
             BitmapData data = frame.LockBits(area, ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
@@ -56,7 +58,8 @@ namespace AlmostFastDash.Output
                 long row = (long)area.Width * 4;
                 fixed (int* target = pixels)
                     for (int y = 0; y < area.Height; y++)
-                        Buffer.MemoryCopy((byte*)data.Scan0 + (long)y * data.Stride, target + (long)(area.Y + y) * frame.Width + area.X, row, row);
+                        Buffer.MemoryCopy((byte*)data.Scan0 + (long)y * data.Stride, target + (long)(area.Y + y) * frame.Width + area.X,
+                            row, row);
             }
             finally
             {
@@ -108,7 +111,8 @@ namespace AlmostFastDash.Output
                     int start = tx;
                     while (tx + 1 < columns && changed[ty * columns + tx + 1]) tx++;
                     long span = ((long)start << 32) | (uint)tx;
-                    var run = Rectangle.FromLTRB(start * Tile, ty * Tile, Math.Min(width, (tx + 1) * Tile), Math.Min(height, (ty + 1) * Tile));
+                    var run = Rectangle.FromLTRB(start * Tile, ty * Tile, Math.Min(width, (tx + 1) * Tile),
+                        Math.Min(height, (ty + 1) * Tile));
                     if (open.TryGetValue(span, out int index)) areas[index] = Rectangle.Union(areas[index], run);
                     else
                     {

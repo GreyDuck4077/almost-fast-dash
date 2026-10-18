@@ -72,7 +72,8 @@ namespace AlmostFastDash.Runner
             // Tap views stay put while the same dashboard is redrawn after a settings change, and start
             // again from the first view on another dashboard.
             if (_tapsFor != Dashboard.Id) { _taps.Clear(); _tapsFor = Dashboard.Id; }
-            return new LayoutRenderer(size.Width, size.Height, Dashboard, new UnitSystem(Settings.General)) { Taps = _taps, SharedOutput = true, ReuseFingerprints = true };
+            return new LayoutRenderer(size.Width, size.Height, Dashboard, new UnitSystem(Settings.General)) { Taps = _taps,
+                SharedOutput = true, ReuseFingerprints = true };
         }
 
         private readonly Dictionary<string, int> _taps = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);

@@ -74,7 +74,8 @@ namespace AlmostFastDash.UI
             _stripGlows.Clear();
             if (!devices.Any(d => d.Enabled))
             {
-                LedStripsHost.Children.Add(new TextBlock { Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap, Text = "No LED devices yet. Add them on the Devices page." });
+                LedStripsHost.Children.Add(new TextBlock { Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap,
+                    Text = "No LED devices yet. Add them on the Devices page." });
             }
             foreach (DeviceSettings device in devices)
             {
@@ -83,7 +84,8 @@ namespace AlmostFastDash.UI
                 _stripDots.Add(dots);
                 _stripGlows.Add(glows);
                 if (!device.Enabled) continue;
-                LedStripsHost.Children.Add(new TextBlock { Text = device.Name.ToUpperInvariant(), Style = (Style)FindResource("T.Overline"), Margin = new Thickness(0, 6, 0, 6) });
+                LedStripsHost.Children.Add(new TextBlock { Text = device.Name.ToUpperInvariant(),
+                    Style = (Style)FindResource("T.Overline"), Margin = new Thickness(0, 6, 0, 6) });
                 double size = LedDrawing.FitSize(device, 480, 12);
                 for (int i = 0; i < device.LedCount; i++)
                 {
@@ -91,7 +93,8 @@ namespace AlmostFastDash.UI
                     dots[i] = new Ellipse
                     {
                         Width = size, Height = size, Fill = (Brush)FindResource("Brush.LedOff"),
-                        Stroke = new SolidColorBrush(Color.FromArgb(40, 255, 255, 255)), StrokeThickness = 1, Effect = glows[i], ToolTip = "LED " + (i + 1)
+                        Stroke = new SolidColorBrush(Color.FromArgb(40, 255, 255, 255)), StrokeThickness = 1, Effect = glows[i],
+                        ToolTip = "LED " + (i + 1)
                     };
                 }
                 FrameworkElement drawing = LedDrawing.Arrange(device, dots, size);
@@ -109,7 +112,8 @@ namespace AlmostFastDash.UI
             if (_previewLights == null || _previewDashboard != _dashboard || _previewLightsProfile != profile
                 || _previewLights.Signature != LightRenderer.DeviceSignature(_settings.General.Devices))
             {
-                _previewLights = new LightRenderer(profile, _dashboard.AccentColor, new UnitSystem(_settings.General), _settings.General.Devices);
+                _previewLights = new LightRenderer(profile, _dashboard.AccentColor, new UnitSystem(_settings.General),
+                    _settings.General.Devices);
                 _previewLightsProfile = profile;
                 _previewDashboard = _dashboard;
             }
@@ -125,7 +129,8 @@ namespace AlmostFastDash.UI
             // The real devices show the preview too: directly while the dashboard is stopped, or through
             // the running dashboard (which owns them) while iRacing isn't connected.
             // Only while the dashboard page is on screen: not while the window is still opening, or on another page.
-            bool show = !Offline && IsLoaded && EditorPage.Visibility == Visibility.Visible && MirrorLeds.IsChecked == true && !_dashboardOperationInProgress && !_deviceBusy && WindowState != WindowState.Minimized;
+            bool show = !Offline && IsLoaded && EditorPage.Visibility == Visibility.Visible && MirrorLeds.IsChecked == true &&
+                !_dashboardOperationInProgress && !_deviceBusy && WindowState != WindowState.Minimized;
             if (show && !_dashboardRunning) { PreviewRequest.Clear(); _mirror.Show(frame, _settings.General.Devices); }
             else if (show)
             {
@@ -142,7 +147,8 @@ namespace AlmostFastDash.UI
                 : "Lights your devices while the dashboard is stopped.";
         }
 
-        /// <summary>Stops showing the preview on the devices, turning them off and freeing them for the dashboard or device setup.</summary>
+        /// <summary>Stops showing the preview on the devices, turning them off and freeing them for the dashboard or device
+        /// setup.</summary>
         private void ReleaseDevices()
         {
             if (_mirror.Active) _mirror.Release();

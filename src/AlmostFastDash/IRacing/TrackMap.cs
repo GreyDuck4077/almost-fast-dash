@@ -97,11 +97,14 @@ namespace AlmostFastDash.IRacing
                 y[p] = (float)(ys[k] + (ys[k + 1] - ys[k]) * t);
             }
             // Where the loop should meet itself: carry on from the last sample to the line.
-            double endX = xs[n - 1] + (xs[n - 1] - xs[n - 2]) * ((1 - fractions[n - 1]) / Math.Max(1e-6, fractions[n - 1] - fractions[n - 2]));
-            double endY = ys[n - 1] + (ys[n - 1] - ys[n - 2]) * ((1 - fractions[n - 1]) / Math.Max(1e-6, fractions[n - 1] - fractions[n - 2]));
+            double endX = xs[n - 1] +
+                (xs[n - 1] - xs[n - 2]) * ((1 - fractions[n - 1]) / Math.Max(1e-6, fractions[n - 1] - fractions[n - 2]));
+            double endY = ys[n - 1] +
+                (ys[n - 1] - ys[n - 2]) * ((1 - fractions[n - 1]) / Math.Max(1e-6, fractions[n - 1] - fractions[n - 2]));
             double gapX = endX - x[0], gapY = endY - y[0];
             double length = 0;
-            for (int p = 1; p < Points; p++) length += Math.Sqrt((x[p] - x[p - 1]) * (x[p] - x[p - 1]) + (y[p] - y[p - 1]) * (y[p] - y[p - 1]));
+            for (int p = 1; p < Points; p++) length += Math.Sqrt((x[p] - x[p - 1]) * (x[p] - x[p - 1]) +
+                (y[p] - y[p - 1]) * (y[p] - y[p - 1]));
             // More than a tenth of the lap adrift means the trace went wrong.
             if (length < 200 || Math.Sqrt(gapX * gapX + gapY * gapY) > length * 0.1) return null;
             for (int p = 0; p < Points; p++)
@@ -114,8 +117,15 @@ namespace AlmostFastDash.IRacing
         }
 
         // A real circuit for previews: Oulton Park, traced by the app from a lap of the user's own driving.
-        private static readonly short[] PreviewX = { 591, 598, 604, 610, 617, 625, 632, 641, 649, 654, 652, 638, 616, 593, 570, 547, 524, 501, 479, 456, 433, 409, 385, 360, 335, 309, 283, 258, 234, 213, 197, 184, 173, 160, 139, 111, 87, 68, 53, 37, 21, 9, 2, 0, 4, 13, 23, 33, 43, 53, 63, 71, 77, 82, 86, 88, 91, 92, 93, 93, 90, 85, 79, 71, 65, 61, 64, 74, 88, 106, 128, 154, 180, 206, 232, 258, 284, 310, 335, 361, 386, 411, 437, 463, 488, 514, 540, 565, 587, 595, 595, 591, 586, 581, 575, 573, 574, 577, 581, 586 };
-        private static readonly short[] PreviewY = { 607, 582, 556, 531, 505, 480, 454, 429, 404, 376, 349, 323, 305, 293, 279, 266, 253, 240, 226, 212, 200, 188, 177, 168, 160, 154, 149, 141, 129, 112, 90, 67, 43, 19, 2, 3, 17, 36, 58, 79, 100, 123, 149, 175, 201, 226, 250, 275, 299, 323, 348, 374, 400, 426, 452, 478, 505, 531, 557, 584, 610, 636, 662, 687, 713, 739, 765, 788, 810, 829, 842, 850, 855, 857, 859, 865, 872, 879, 886, 893, 900, 907, 914, 920, 927, 932, 936, 935, 920, 895, 869, 842, 816, 790, 765, 738, 712, 686, 659, 633 };
+        private static readonly short[] PreviewX = { 591, 598, 604, 610, 617, 625, 632, 641, 649, 654, 652, 638, 616, 593, 570, 547, 524,
+            501, 479, 456, 433, 409, 385, 360, 335, 309, 283, 258, 234, 213, 197, 184, 173, 160, 139, 111, 87, 68, 53, 37, 21, 9, 2, 0, 4,
+            13, 23, 33, 43, 53, 63, 71, 77, 82, 86, 88, 91, 92, 93, 93, 90, 85, 79, 71, 65, 61, 64, 74, 88, 106, 128, 154, 180, 206, 232,
+            258, 284, 310, 335, 361, 386, 411, 437, 463, 488, 514, 540, 565, 587, 595, 595, 591, 586, 581, 575, 573, 574, 577, 581, 586 };
+        private static readonly short[] PreviewY = { 607, 582, 556, 531, 505, 480, 454, 429, 404, 376, 349, 323, 305, 293, 279, 266, 253,
+            240, 226, 212, 200, 188, 177, 168, 160, 154, 149, 141, 129, 112, 90, 67, 43, 19, 2, 3, 17, 36, 58, 79, 100, 123, 149, 175, 201,
+            226, 250, 275, 299, 323, 348, 374, 400, 426, 452, 478, 505, 531, 557, 584, 610, 636, 662, 687, 713, 739, 765, 788, 810, 829,
+            842, 850, 855, 857, 859, 865, 872, 879, 886, 893, 900, 907, 914, 920, 927, 932, 936, 935, 920, 895, 869, 842, 816, 790, 765,
+            738, 712, 686, 659, 633 };
 
         /// <summary>The map the designer's previews show: a real circuit.</summary>
         public static TrackMap Preview()

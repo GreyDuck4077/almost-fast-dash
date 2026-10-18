@@ -43,7 +43,8 @@ namespace AlmostFastDash.Designer
             menu.Items.Add(MenuItem("Duplicate this screen", null, () => AddScreen(true)));
             menu.Items.Add(MenuItem("Add pit lane screen (shows on pit road)", null, () => AddScreen(true, "Pit lane", "OnPitRoad")));
             menu.Items.Add(new Separator());
-            menu.Items.Add(MenuItem("Edit name and show-when…", null, () => { _selection.Clear(); SelectionChanged(); InspectorScroller.ScrollToTop(); }));
+            menu.Items.Add(MenuItem("Edit name and show-when…", null,
+                () => { _selection.Clear(); SelectionChanged(); InspectorScroller.ScrollToTop(); }));
             var delete = MenuItem("Delete this screen", null, DeleteScreen);
             delete.IsEnabled = _layout.Screens.Count > 1;
             menu.Items.Add(delete);

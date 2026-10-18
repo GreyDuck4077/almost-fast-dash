@@ -70,7 +70,9 @@ namespace AlmostFastDash.Runner
                     {
                         _lights?.Dispose();
                         Directory.CreateDirectory(_directory);
-                        _lights = new StreamWriter(Path.Combine(_directory, "lights-" + DateTime.Now.ToString("yyyyMMdd-HHmmssfff") + ".csv"), false) { AutoFlush = true };
+                        _lights = new StreamWriter(Path.Combine(_directory, "lights-" + DateTime.Now.ToString("yyyyMMdd-HHmmssfff") +
+                            ".csv"),
+                            false) { AutoFlush = true };
                         _lights.WriteLine("started_local,seconds,device,group,layer,color,while");
                         PruneOldFiles("lights-*.csv");
                     }

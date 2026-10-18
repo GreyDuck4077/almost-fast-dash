@@ -25,7 +25,8 @@ namespace AlmostFastDash.Checks
             DarkTitleBar.ForEveryWindow();
             AppSettings settings = SettingsStore.Load();
             DashboardSettings dashboard = settings.AddDesignedDashboard(DesignTemplates.Road, "Self test");
-            var designer = new DesignerWindow(settings, dashboard, null) { Left = -4000, Top = 0, ShowActivated = false, WindowStartupLocation = WindowStartupLocation.Manual };
+            var designer = new DesignerWindow(settings, dashboard, null) { Left = -4000, Top = 0, ShowActivated = false,
+                WindowStartupLocation = WindowStartupLocation.Manual };
             int exit = 1;
             designer.Loaded += (s, e) => designer.Dispatcher.BeginInvoke(new Action(() =>
             {

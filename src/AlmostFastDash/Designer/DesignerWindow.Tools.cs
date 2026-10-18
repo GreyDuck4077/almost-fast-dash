@@ -119,7 +119,8 @@ namespace AlmostFastDash.Designer
             }
         }
 
-        /// <summary>The rail's keys, as in image editors: V, U (Shift+U for the next shape), T, H, Z, and Space held for the Hand.</summary>
+        /// <summary>The rail's keys, as in image editors: V, U (Shift+U for the next shape), T, H, Z, and Space held for the
+        /// Hand.</summary>
         private bool ToolKey(Key key, bool shift, KeyEventArgs e)
         {
             switch (key)
@@ -127,7 +128,8 @@ namespace AlmostFastDash.Designer
                 case Key.V: SetTool(Tool.Move); return true;
                 case Key.U:
                     SetTool(!shift ? (_tool == Tool.Ellipse || _tool == Tool.Polygon || _tool == Tool.Line ? _tool : Tool.Rectangle)
-                        : _tool == Tool.Rectangle ? Tool.Ellipse : _tool == Tool.Ellipse ? Tool.Polygon : _tool == Tool.Polygon ? Tool.Line : Tool.Rectangle);
+                        : _tool == Tool.Rectangle ? Tool.Ellipse : _tool == Tool.Ellipse ? Tool.Polygon : _tool == Tool.Polygon ? Tool.Line
+                            : Tool.Rectangle);
                     return true;
                 case Key.P: SetTool(Tool.Pen); return true;
                 case Key.Enter:
@@ -211,7 +213,8 @@ namespace AlmostFastDash.Designer
             {
                 _drawEnd = SnapPoint(e.GetPosition(Overlay));
                 Rect r = DrawnRect();
-                CursorText.Text = _tool == Tool.Line ? $"length {Math.Round((LineEnd() - _drawStart).Length)}" : $"w {Math.Round(r.Width)}   h {Math.Round(r.Height)}";
+                CursorText.Text = _tool == Tool.Line ? $"length {Math.Round((LineEnd() - _drawStart).Length)}"
+                    : $"w {Math.Round(r.Width)}   h {Math.Round(r.Height)}";
                 UpdateOverlay();
                 return true;
             }
@@ -291,14 +294,17 @@ namespace AlmostFastDash.Designer
             if (_tool == Tool.Line)
             {
                 Point end = LineEnd();
-                Overlay.Children.Add(new Line { X1 = _drawStart.X, Y1 = _drawStart.Y, X2 = end.X, Y2 = end.Y, Stroke = accent, StrokeThickness = thickness, StrokeDashArray = dashes });
+                Overlay.Children.Add(new Line { X1 = _drawStart.X, Y1 = _drawStart.Y, X2 = end.X, Y2 = end.Y, Stroke = accent,
+                    StrokeThickness = thickness, StrokeDashArray = dashes });
                 return;
             }
             Rect r = DrawnRect();
             if (_tool == Tool.Polygon)
             {
-                var polygon = new Polygon { Stroke = accent, StrokeThickness = thickness, StrokeDashArray = dashes, Fill = new SolidColorBrush(Color.FromArgb(24, accent.Color.R, accent.Color.G, accent.Color.B)) };
-                foreach (System.Drawing.PointF p in PathNodes.Polygon(6, 1)) polygon.Points.Add(new Point(r.X + p.X * r.Width, r.Y + p.Y * r.Height));
+                var polygon = new Polygon { Stroke = accent, StrokeThickness = thickness, StrokeDashArray = dashes,
+                    Fill = new SolidColorBrush(Color.FromArgb(24, accent.Color.R, accent.Color.G, accent.Color.B)) };
+                foreach (System.Drawing.PointF p in PathNodes.Polygon(6, 1)) polygon.Points.Add(new Point(r.X + p.X * r.Width,
+                    r.Y + p.Y * r.Height));
                 Overlay.Children.Add(polygon);
                 return;
             }
@@ -314,7 +320,8 @@ namespace AlmostFastDash.Designer
             Overlay.Children.Add(outline);
         }
 
-        /// <summary>Turns what was drawn into a widget: a shape (rectangle, ellipse or line) or a text, selected and ready to style.</summary>
+        /// <summary>Turns what was drawn into a widget: a shape (rectangle, ellipse or line) or a text, selected and ready to
+        /// style.</summary>
         private void FinishDrawing()
         {
             DashWidget widget;

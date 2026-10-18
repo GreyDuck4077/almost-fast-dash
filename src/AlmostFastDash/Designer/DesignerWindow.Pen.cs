@@ -50,12 +50,14 @@ namespace AlmostFastDash.Designer
                 FinishPen(true);
                 return true;
             }
-            if ((Keyboard.Modifiers & ModifierKeys.Shift) != 0 && _penNodes.Count > 0) p = Constrained(W(_penNodes[_penNodes.Count - 1].P), p);
+            if ((Keyboard.Modifiers & ModifierKeys.Shift) != 0 && _penNodes.Count > 0) p = Constrained(W(_penNodes[_penNodes.Count - 1].P),
+                p);
             _penNodes.Add(new PathNode { P = F(p) });
             _penPulling = true;
             _penHover = p;
             Overlay.CaptureMouse();
-            StatusText.Text = "Pen: click for corners, drag for curves. Click the first point to close, Enter to finish, Backspace to undo a point.";
+            StatusText.Text = "Pen: click for corners, drag for curves. Click the first point to close, Enter to finish, Backspace to " +
+                "undo a point.";
             UpdateOverlay();
             return true;
         }
@@ -74,7 +76,9 @@ namespace AlmostFastDash.Designer
                     node.In = new DrawingPoint(2 * node.P.X - (float)p.X, 2 * node.P.Y - (float)p.Y);
                 }
             }
-            else if ((Keyboard.Modifiers & ModifierKeys.Shift) != 0 && _penNodes.Count > 0) _penHover = Constrained(W(_penNodes[_penNodes.Count - 1].P), p);
+            else if ((Keyboard.Modifiers & ModifierKeys.Shift) != 0 &&
+                _penNodes.Count > 0) _penHover = Constrained(W(_penNodes[_penNodes.Count - 1].P),
+                p);
             UpdateOverlay();
         }
 
@@ -114,7 +118,8 @@ namespace AlmostFastDash.Designer
             _penNodes.Clear();
             AddWidgets(new[] { path }, "Draw path");
             SetTool(Tool.Move);
-            StatusText.Text = "Drew " + path.Name.ToLowerInvariant() + (closed ? " (closed)" : "") + ". Double-click it to edit its points.";
+            StatusText.Text = "Drew " + path.Name.ToLowerInvariant() + (closed ? " (closed)" : "") +
+                ". Double-click it to edit its points.";
         }
 
         private bool PenKey(Key key)
@@ -136,7 +141,8 @@ namespace AlmostFastDash.Designer
             }
         }
 
-        /// <summary>The path being drawn: its lines, its points (the first ringed when the pointer can close it), and the line to come.</summary>
+        /// <summary>The path being drawn: its lines, its points (the first ringed when the pointer can close it), and the line to
+        /// come.</summary>
         private void AddPenPreview(SolidColorBrush accent)
         {
             if (_tool != Tool.Pen || _penNodes.Count == 0) return;
@@ -147,10 +153,12 @@ namespace AlmostFastDash.Designer
             {
                 // What the next click would add, curving out of the last point's handle.
                 var next = new PathFigure { StartPoint = W(last.P) };
-                next.Segments.Add(last.Out.HasValue ? (PathSegment)new BezierSegment(W(last.Out.Value), _penHover, _penHover, true) : new LineSegment(_penHover, true));
+                next.Segments.Add(last.Out.HasValue ? (PathSegment)new BezierSegment(W(last.Out.Value), _penHover, _penHover, true)
+                    : new LineSegment(_penHover, true));
                 var geometry = new PathGeometry();
                 geometry.Figures.Add(next);
-                Overlay.Children.Add(new Path { Data = geometry, Stroke = accent, StrokeThickness = thin, StrokeDashArray = new DoubleCollection { 4, 3 }, Opacity = 0.8 });
+                Overlay.Children.Add(new Path { Data = geometry, Stroke = accent, StrokeThickness = thin,
+                    StrokeDashArray = new DoubleCollection { 4, 3 }, Opacity = 0.8 });
             }
             foreach (PathNode node in _penNodes) AddPoint(node, accent, node == last);
             if (_penNodes.Count >= 2 && Near(_penHover, W(_penNodes[0].P), 9))
@@ -171,13 +179,15 @@ namespace AlmostFastDash.Designer
                 foreach (DrawingPoint? handle in new[] { node.In, node.Out })
                 {
                     if (!handle.HasValue) continue;
-                    Overlay.Children.Add(new Line { X1 = node.P.X, Y1 = node.P.Y, X2 = handle.Value.X, Y2 = handle.Value.Y, Stroke = accent, StrokeThickness = 1 * Px, Opacity = 0.8 });
+                    Overlay.Children.Add(new Line { X1 = node.P.X, Y1 = node.P.Y, X2 = handle.Value.X, Y2 = handle.Value.Y,
+                        Stroke = accent, StrokeThickness = 1 * Px, Opacity = 0.8 });
                     var dot = new Ellipse { Width = s, Height = s, Fill = accent };
                     Canvas.SetLeft(dot, handle.Value.X - s / 2);
                     Canvas.SetTop(dot, handle.Value.Y - s / 2);
                     Overlay.Children.Add(dot);
                 }
-            var square = new Rectangle { Width = s, Height = s, Fill = selected ? accent : Brushes.White, Stroke = accent, StrokeThickness = 1.2 * Px };
+            var square = new Rectangle { Width = s, Height = s, Fill = selected ? accent : Brushes.White, Stroke = accent,
+                StrokeThickness = 1.2 * Px };
             Canvas.SetLeft(square, node.P.X - s / 2);
             Canvas.SetTop(square, node.P.Y - s / 2);
             Overlay.Children.Add(square);
@@ -208,13 +218,15 @@ namespace AlmostFastDash.Designer
             _editPath = widget;
             Select(widget);
             LoadEditNodes();
-            StatusText.Text = "Editing points: drag points and handles. Alt-click switches corner and curve, Delete removes a point, Enter when done.";
+            StatusText.Text = "Editing points: drag points and handles. Alt-click switches corner and curve, Delete removes a point, " +
+                "Enter when done.";
             UpdateOverlay();
         }
 
         private void LoadEditNodes()
         {
-            _editNodes = PathNodes.OnScreen(PathNodes.Parse(_editPath.Get("points", "")), RectOfF(_editPath)).Select(n => new PathNode { P = ToScreen(n.P), In = ToScreen(n.In), Out = ToScreen(n.Out) }).ToList();
+            _editNodes = PathNodes.OnScreen(PathNodes.Parse(_editPath.Get("points", "")), RectOfF(_editPath))
+                .Select(n => new PathNode { P = ToScreen(n.P), In = ToScreen(n.In), Out = ToScreen(n.Out) }).ToList();
             _editClosed = Expr.Bool(_editPath.Get("closed", "true"));
         }
 
@@ -354,8 +366,12 @@ namespace AlmostFastDash.Designer
         /// </summary>
         private void ApplyEdit(bool fitBox = true)
         {
-            List<PathNode> frame = _editNodes.Select(n => new PathNode { P = FromScreen(n.P), In = n.In.HasValue ? FromScreen(n.In.Value) : (DrawingPoint?)null, Out = n.Out.HasValue ? FromScreen(n.Out.Value) : (DrawingPoint?)null }).ToList();
-            bool straight = Math.Abs(Angle(_editPath)) < 0.01 && !Expr.Bool(_editPath.Get("flipX", "false")) && !Expr.Bool(_editPath.Get("flipY", "false"));
+            List<PathNode> frame = _editNodes.Select(n => new PathNode { P = FromScreen(n.P),
+                In = n.In.HasValue ? FromScreen(n.In.Value) : (DrawingPoint?)null,
+                Out = n.Out.HasValue ? FromScreen(n.Out.Value) : (DrawingPoint?)null })
+                .ToList();
+            bool straight = Math.Abs(Angle(_editPath)) < 0.01 && !Expr.Bool(_editPath.Get("flipX", "false")) &&
+                !Expr.Bool(_editPath.Get("flipY", "false"));
             List<PathNode> local;
             if (fitBox && straight)
             {
@@ -368,8 +384,11 @@ namespace AlmostFastDash.Designer
             else
             {
                 DrawingRect box = RectOfF(_editPath);
-                local = frame.Select(n => new PathNode { P = Local(n.P), In = n.In.HasValue ? Local(n.In.Value) : (DrawingPoint?)null, Out = n.Out.HasValue ? Local(n.Out.Value) : (DrawingPoint?)null }).ToList();
-                DrawingPoint Local(DrawingPoint p) => new DrawingPoint((p.X - box.X) / Math.Max(1, box.Width), (p.Y - box.Y) / Math.Max(1, box.Height));
+                local = frame.Select(n => new PathNode { P = Local(n.P), In = n.In.HasValue ? Local(n.In.Value) : (DrawingPoint?)null,
+                    Out = n.Out.HasValue ? Local(n.Out.Value) : (DrawingPoint?)null })
+                    .ToList();
+                DrawingPoint Local(DrawingPoint p) => new DrawingPoint((p.X - box.X) / Math.Max(1, box.Width),
+                    (p.Y - box.Y) / Math.Max(1, box.Height));
             }
             _editPath.Set("points", PathNodes.Format(local));
             if (fitBox) LoadEditNodes();
@@ -407,16 +426,19 @@ namespace AlmostFastDash.Designer
         {
             if (_editPath == null || _editNodes == null || _editNodes.Count < 2) return;
             if (!_screen.Widgets.Contains(_editPath)) { _editPath = null; return; }
-            Overlay.Children.Add(new Path { Data = Geometry(_editNodes, _editClosed), Stroke = accent, StrokeThickness = 1.2 * Px, Opacity = 0.9 });
+            Overlay.Children.Add(new Path { Data = Geometry(_editNodes, _editClosed), Stroke = accent, StrokeThickness = 1.2 * Px,
+                Opacity = 0.9 });
             for (int i = 0; i < _editNodes.Count; i++) AddPoint(_editNodes[i], accent, true, i == _editNode);
         }
 
         // ------------------------------------------------------------------ shapes into paths
 
-        /// <summary>A shape (rectangle, ellipse, polygon, star, triangle, line or chevron) turned into a path in its place, to reshape point by point.</summary>
+        /// <summary>A shape (rectangle, ellipse, polygon, star, triangle, line or chevron) turned into a path in its place, to reshape
+        /// point by point.</summary>
         private void ConvertToPath(DashWidget shape)
         {
-            List<PathNode> nodes = PathNodes.FromShape(shape.Get("shape", "Rectangle"), (int)Expr.Num(shape.Get("sides", "6")), (float)Expr.Num(shape.Get("inner", "50")) / 100f, out bool closed);
+            List<PathNode> nodes = PathNodes.FromShape(shape.Get("shape", "Rectangle"), (int)Expr.Num(shape.Get("sides", "6")),
+                (float)Expr.Num(shape.Get("inner", "50")) / 100f, out bool closed);
             if (nodes == null) { StatusText.Text = "That shape can't be turned into a path."; return; }
             DashWidget path = WidgetCatalog.Create("path", shape.X, shape.Y);
             path.W = shape.W;

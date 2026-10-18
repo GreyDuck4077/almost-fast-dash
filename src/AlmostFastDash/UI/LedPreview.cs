@@ -26,7 +26,8 @@ namespace AlmostFastDash.UI
         public LedPreview(DeviceSettings device, ILedOutput output = null)
         {
             var open = SettingsStore.Clone(device);
-            Limit = device.Kind == LedDeviceKinds.Wled ? Math.Max(device.LedCount, 1) : device.Kind == LedDeviceKinds.Adalight ? 300 : ArduinoLedController.MaxLeds;
+            Limit = device.Kind == LedDeviceKinds.Wled ? Math.Max(device.LedCount, 1) : device.Kind == LedDeviceKinds.Adalight ? 300
+                : ArduinoLedController.MaxLeds;
             open.LedCount = Limit;
             _output = output ?? LedDeviceLink.Open(open);
             _signature = device.Kind + "|" + device.Connection;

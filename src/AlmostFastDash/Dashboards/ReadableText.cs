@@ -17,7 +17,9 @@ namespace AlmostFastDash.Dashboards
 
         /// <summary>The floor for a design of this size.</summary>
         public static double FloorFor(DashLayout layout) =>
-            Math.Max(10, Math.Round(Floor * Math.Min(layout.Width / (double)ScreenSizes.DefaultWidth, layout.Height / (double)ScreenSizes.DefaultHeight)));
+            Math.Max(10,
+            Math.Round(Floor * Math.Min(layout.Width / (double)ScreenSizes.DefaultWidth,
+            layout.Height / (double)ScreenSizes.DefaultHeight)));
 
         /// <summary>Raises every text size in the design below the floor to it. Returns how many settings changed.</summary>
         public static int Apply(DashLayout layout)
@@ -63,10 +65,12 @@ namespace AlmostFastDash.Dashboards
                         Raise(widget, type, "labelSize", dense, ref changed);
                         break;
                     case "arc":
-                        if (Expr.Bool(widget.Get("numbers", type.Prop("numbers")?.Default))) Raise(widget, type, "numberSize", floor, ref changed);
+                        if (Expr.Bool(widget.Get("numbers", type.Prop("numbers")?.Default))) Raise(widget, type, "numberSize", floor,
+                        ref changed);
                         break;
                     case "gear":
-                        if (Expr.Bool(widget.Get("neighbors", type.Prop("neighbors")?.Default))) Raise(widget, type, "neighborSize", floor, ref changed);
+                        if (Expr.Bool(widget.Get("neighbors", type.Prop("neighbors")?.Default))) Raise(widget, type, "neighborSize", floor,
+                        ref changed);
                         break;
                 }
             }

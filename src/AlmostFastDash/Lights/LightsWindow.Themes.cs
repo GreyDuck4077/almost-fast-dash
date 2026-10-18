@@ -31,7 +31,8 @@ namespace AlmostFastDash.Lights
             header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             header.ColumnDefinitions.Add(new ColumnDefinition());
             header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            header.Children.Add(new Border { Width = 120, Height = 28, CornerRadius = new CornerRadius(7), Background = Ramp(current.Good, current.Warn, current.Bad), VerticalAlignment = VerticalAlignment.Center });
+            header.Children.Add(new Border { Width = 120, Height = 28, CornerRadius = new CornerRadius(7),
+                Background = Ramp(current.Good, current.Warn, current.Bad), VerticalAlignment = VerticalAlignment.Center });
             var titles = new StackPanel { Margin = new Thickness(16, 0, 12, 0), VerticalAlignment = VerticalAlignment.Center };
             titles.Children.Add(new TextBlock { Text = "COLOR THEME", Style = (Style)FindResource("T.Overline") });
             titles.Children.Add(new TextBlock { Text = name, Style = (Style)FindResource("T.Title"), Margin = new Thickness(0, 2, 0, 0) });
@@ -44,7 +45,8 @@ namespace AlmostFastDash.Lights
             ThemeHost.Children.Add(header);
             ThemeHost.Children.Add(new TextBlock
             {
-                Text = "The good, warn and bad colors of rev lights, meters, the shift flash and blind-spot warnings. Layers with their own colors keep them.",
+                Text = "The good, warn and bad colors of rev lights, meters, the shift flash and blind-spot warnings. Layers with their " +
+                    "own colors keep them.",
                 Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 12, 0, 0)
             });
             if (!_themesOpen) return;
@@ -66,15 +68,19 @@ namespace AlmostFastDash.Lights
 
         private Border Tile(string id, string name, string low, string mid, string high)
         {
-            bool selected = _profile.ThemeId == id || (id == LightThemes.DefaultId && LightThemes.Find(_profile.ThemeId) == null && _profile.ThemeId != LightThemes.CustomId);
+            bool selected = _profile.ThemeId == id ||
+                (id == LightThemes.DefaultId && LightThemes.Find(_profile.ThemeId) == null && _profile.ThemeId != LightThemes.CustomId);
             var stack = new StackPanel();
-            stack.Children.Add(new TextBlock { Text = name, FontWeight = FontWeights.SemiBold, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 8) });
+            stack.Children.Add(new TextBlock { Text = name, FontWeight = FontWeights.SemiBold,
+                HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 8) });
             stack.Children.Add(new Border { Height = 16, CornerRadius = new CornerRadius(4), Background = Ramp(low, mid, high) });
             var tile = new Border
             {
-                Width = 132, Margin = new Thickness(0, 0, 8, 8), Padding = new Thickness(10, 9, 10, 10), CornerRadius = new CornerRadius(8), Cursor = Cursors.Hand,
+                Width = 132, Margin = new Thickness(0, 0, 8, 8), Padding = new Thickness(10, 9, 10, 10),
+                    CornerRadius = new CornerRadius(8), Cursor = Cursors.Hand,
                 Background = (Brush)FindResource(selected ? "Brush.AccentSubtle" : "Brush.SurfaceRaised"),
-                BorderBrush = (Brush)FindResource(selected ? "Brush.Accent" : "Brush.Border"), BorderThickness = new Thickness(1), Child = stack, ToolTip = name
+                BorderBrush = (Brush)FindResource(selected ? "Brush.Accent" : "Brush.Border"), BorderThickness = new Thickness(1),
+                Child = stack, ToolTip = name
             };
             tile.MouseLeftButtonUp += (s, e) =>
             {

@@ -49,7 +49,8 @@ namespace AlmostFastDash.UI
             _livePreviewLog = null;
         }
 
-        private static BitmapSource RenderPreview(DashboardSettings dashboard, UnitSystem units, TelemetrySnapshot snapshot, bool shiftFlash = false)
+        private static BitmapSource RenderPreview(DashboardSettings dashboard, UnitSystem units, TelemetrySnapshot snapshot,
+            bool shiftFlash = false)
         {
             snapshot = snapshot ?? IRacingTelemetrySource.CreatePreviewSnapshot();
             System.Drawing.Size size = dashboard.ScreenSize();

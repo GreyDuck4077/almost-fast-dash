@@ -48,7 +48,8 @@ namespace AlmostFastDash.Devices
             try
             {
                 string name = (port ?? "").Replace("'", "");
-                using (var search = new System.Management.ManagementObjectSearcher("SELECT DeviceID FROM Win32_PnPEntity WHERE Name LIKE '%(" + name + ")%'"))
+                using (var search = new System.Management.ManagementObjectSearcher("SELECT DeviceID FROM Win32_PnPEntity WHERE Name LIKE '%(" +
+                    name + ")%'"))
                     foreach (System.Management.ManagementBaseObject device in search.Get())
                     {
                         string[] parts = ((device["DeviceID"] as string) ?? "").Split('\\');

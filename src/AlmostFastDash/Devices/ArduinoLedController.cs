@@ -60,7 +60,8 @@ namespace AlmostFastDash.Devices
             }
             if (!text.Contains(_expectedName))
             {
-                throw new InvalidOperationException(_port.PortName + " did not identify itself as " + _expectedName + ". Response: " + text);
+                throw new InvalidOperationException(_port.PortName + " did not identify itself as " + _expectedName + ". Response: " +
+                    text);
             }
 
             return text.Trim();
@@ -73,7 +74,8 @@ namespace AlmostFastDash.Devices
         public bool AcceptsBatches()
         {
             if (_ledCount < 2) return false;
-            var runs = new System.Collections.Generic.List<Tuple<int, int, Color>> { Tuple.Create(0, 1, Color.Black), Tuple.Create(1, 1, Color.Black) };
+            var runs = new System.Collections.Generic.List<Tuple<int, int,
+                Color>> { Tuple.Create(0, 1, Color.Black), Tuple.Create(1, 1, Color.Black) };
             SendPacket(Payloads(runs, MaxRunsPerPacket)[0], false);
             var reply = new System.Collections.Generic.List<byte>();
             var watch = System.Diagnostics.Stopwatch.StartNew();
@@ -113,7 +115,8 @@ namespace AlmostFastDash.Devices
             int count = Math.Min(frame.Length, _ledCount);
             if (count <= 0) return;
             _lastLength = count;
-            bool full = _shown == null || _shown.Length != count || unchecked(Environment.TickCount - _fullFrameTick) >= FullFrameMilliseconds;
+            bool full = _shown == null || _shown.Length != count ||
+                unchecked(Environment.TickCount - _fullFrameTick) >= FullFrameMilliseconds;
             if (full) _fullFrameTick = Environment.TickCount;
             foreach (byte[] payload in Payloads(Runs(frame, full ? null : _shown, count), Batched ? MaxRunsPerPacket : 1))
                 SendPacket(payload);
@@ -153,7 +156,8 @@ namespace AlmostFastDash.Devices
         /// The command payloads for some color runs: each "6" command carries up to <paramref name="runsPerPacket"/>
         /// mode-3 entries (start, count, color) and ends with mode 0.
         /// </summary>
-        internal static System.Collections.Generic.List<byte[]> Payloads(System.Collections.Generic.IList<Tuple<int, int, Color>> runs, int runsPerPacket)
+        internal static System.Collections.Generic.List<byte[]> Payloads(System.Collections.Generic.IList<Tuple<int, int, Color>> runs,
+            int runsPerPacket)
         {
             var payloads = new System.Collections.Generic.List<byte[]>();
             for (int first = 0; first < runs.Count; first += runsPerPacket)

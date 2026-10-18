@@ -17,7 +17,8 @@ namespace AlmostFastDash.Rendering
     internal sealed class LayerStyle
     {
         public static readonly string[] FillModes = { "None", "Color", "Gradient", "Pattern", "Image" };
-        public static readonly string[] FadeModes = { "None", "Left", "Right", "Top", "Bottom", "Sides", "Top and bottom", "Edges", "Radial" };
+        public static readonly string[] FadeModes = { "None", "Left", "Right", "Top", "Bottom", "Sides", "Top and bottom", "Edges",
+            "Radial" };
         public static readonly string[] BlendModes = { "Normal", "Multiply", "Screen", "Add", "Overlay" };
 
         public string Fill = "None";
@@ -41,7 +42,8 @@ namespace AlmostFastDash.Rendering
 
         /// <summary>Effects worked out on the widget's pixels.</summary>
         public bool NeedsCompose => Recolors || Outline > 0 || Shadow > 0 || Glow > 0 || FadeEdge != "None";
-        private bool Recolors => FillAmount > 0 && (Fill == "Color" || Fill == "Gradient" || Fill == "Pattern" || (Fill == "Image" && Texture != null));
+        private bool Recolors => FillAmount > 0 &&
+            (Fill == "Color" || Fill == "Gradient" || Fill == "Pattern" || (Fill == "Image" && Texture != null));
 
         /// <summary>How far the effects reach past what the widget itself draws.</summary>
         public float Extent => Math.Max(Math.Max(Glow * 2, Shadow * 2 + Math.Max(Math.Abs(ShadowX), Math.Abs(ShadowY))), Outline) + 2;
@@ -177,7 +179,8 @@ namespace AlmostFastDash.Rendering
         }
 
         private static uint ScaleAll(uint pixel, uint cover) =>
-            Scale(pixel >> 24, cover) << 24 | Scale((pixel >> 16) & 255, cover) << 16 | Scale((pixel >> 8) & 255, cover) << 8 | Scale(pixel & 255, cover);
+            Scale(pixel >> 24, cover) << 24 | Scale((pixel >> 16) & 255, cover) << 16 | Scale((pixel >> 8) & 255,
+            cover) << 8 | Scale(pixel & 255, cover);
 
         /// <summary>A premultiplied pixel over another.</summary>
         private static uint Over(uint top, uint bottom)
@@ -220,11 +223,14 @@ namespace AlmostFastDash.Rendering
                     switch (Fill)
                     {
                         case "Gradient":
-                            using (var brush = new LinearGradientBrush(area, FillColor, FillColor2, FillAngle)) og.FillRectangle(brush, area);
+                            using (var brush = new LinearGradientBrush(area, FillColor, FillColor2, FillAngle)) og.FillRectangle(brush,
+                            area);
                             break;
                         case "Pattern":
                             // Laid from the widget's corner, so it moves and turns with the widget.
-                            using (TextureBrush brush = Fills.PatternBrush(Pattern, FillColor, PatternBack, PatternScale, PatternAngle, box.Location)) og.FillRectangle(brush, area);
+                            using (TextureBrush brush = Fills.PatternBrush(Pattern, FillColor, PatternBack, PatternScale, PatternAngle,
+                                box.Location)) og.FillRectangle(brush,
+                                area);
                             break;
                         case "Image":
                             // Cover the box, cropping the texture rather than stretching it.
@@ -248,7 +254,8 @@ namespace AlmostFastDash.Rendering
                     int q = paint[i];
                     float mix = FillAmount * ((uint)q >> 24) / 255f;
                     if (mix <= 0) continue;
-                    int r = Blend((p >> 16) & 255, (q >> 16) & 255, mix), gr = Blend((p >> 8) & 255, (q >> 8) & 255, mix), b = Blend(p & 255, q & 255, mix);
+                    int r = Blend((p >> 16) & 255, (q >> 16) & 255, mix), gr = Blend((p >> 8) & 255, (q >> 8) & 255, mix),
+                        b = Blend(p & 255, q & 255, mix);
                     pixels[i] = (int)(a << 24) | (r << 16) | (gr << 8) | b;
                 }
             }
@@ -339,7 +346,8 @@ namespace AlmostFastDash.Rendering
                 }
         }
 
-        /// <summary>An outline: the silhouette grown by the outline width in every direction (a round brush), in the outline color, over <paramref name="under"/>.</summary>
+        /// <summary>An outline: the silhouette grown by the outline width in every direction (a round brush), in the outline color, over
+        /// <paramref name="under"/>.</summary>
         private void Stroke(uint[] under, byte[] alpha, int w, int h)
         {
             float radius = Outline;
@@ -372,7 +380,8 @@ namespace AlmostFastDash.Rendering
             }
         }
 
-        /// <summary>Each pixel becomes the largest value within <paramref name="half"/> pixels to its left or right (van Herk / Gil-Werman, linear time).</summary>
+        /// <summary>Each pixel becomes the largest value within <paramref name="half"/> pixels to its left or right (van Herk / Gil-Werman,
+        /// linear time).</summary>
         private static byte[] RowMax(byte[] source, int w, int h, int half)
         {
             if (half <= 0) return source;
@@ -415,7 +424,8 @@ namespace AlmostFastDash.Rendering
 
         private static int[] Read(Bitmap bitmap)
         {
-            BitmapData data = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+            BitmapData data = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.ReadOnly,
+                PixelFormat.Format32bppArgb);
             try
             {
                 var pixels = new int[bitmap.Width * bitmap.Height];
@@ -427,7 +437,8 @@ namespace AlmostFastDash.Rendering
 
         private static void Write(Bitmap bitmap, int[] pixels)
         {
-            BitmapData data = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
+            BitmapData data = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.WriteOnly,
+                PixelFormat.Format32bppArgb);
             try
             {
                 for (int y = 0; y < bitmap.Height; y++) Marshal.Copy(pixels, y * bitmap.Width, data.Scan0 + y * data.Stride, bitmap.Width);

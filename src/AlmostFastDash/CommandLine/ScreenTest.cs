@@ -57,14 +57,18 @@ namespace AlmostFastDash.CommandLine
                     }
                     void Caption(string text)
                     {
-                        using (var brush = new SolidBrush(background)) g.FillRectangle(brush, 0, size.Height * 0.86f, size.Width, size.Height * 0.14f);
-                        g.DrawString(text, label, Brushes.Gainsboro, new RectangleF(0, size.Height * 0.86f, size.Width, size.Height * 0.14f), centre);
+                        using (var brush = new SolidBrush(background)) g.FillRectangle(brush, 0, size.Height * 0.86f, size.Width,
+                            size.Height * 0.14f);
+                        g.DrawString(text, label, Brushes.Gainsboro,
+                            new RectangleF(0, size.Height * 0.86f, size.Width, size.Height * 0.14f), centre);
                     }
 
                     // 1. A whole frame: a frame round the edge and the title.
                     g.Clear(background);
-                    using (var edge = new Pen(Color.FromArgb(45, 212, 191), 6)) g.DrawRectangle(edge, 3, 3, size.Width - 6, size.Height - 6);
-                    g.DrawString("Almost Fast Dash · screen test", title, Brushes.White, new RectangleF(0, size.Height * 0.06f, size.Width, size.Height * 0.16f), centre);
+                    using (var edge = new Pen(Color.FromArgb(45, 212, 191), 6)) g.DrawRectangle(edge, 3, 3, size.Width - 6,
+                        size.Height - 6);
+                    g.DrawString("Almost Fast Dash · screen test", title, Brushes.White,
+                        new RectangleF(0, size.Height * 0.06f, size.Width, size.Height * 0.16f), centre);
                     Caption("A whole frame");
                     Show();
                     Thread.Sleep(1500);
@@ -75,10 +79,12 @@ namespace AlmostFastDash.CommandLine
                     PointF[] spots =
                     {
                         new PointF(size.Width * 0.04f, size.Height * 0.25f), new PointF(size.Width * 0.96f - side, size.Height * 0.25f),
-                        new PointF(size.Width * 0.96f - side, size.Height * 0.84f - side), new PointF(size.Width * 0.04f, size.Height * 0.84f - side),
+                        new PointF(size.Width * 0.96f - side, size.Height * 0.84f - side),
+                        new PointF(size.Width * 0.04f, size.Height * 0.84f - side),
                         new PointF((size.Width - side) / 2, (size.Height - side) / 2)
                     };
-                    Color[] colors = { Color.FromArgb(239, 68, 68), Color.FromArgb(34, 197, 94), Color.FromArgb(59, 130, 246), Color.FromArgb(234, 179, 8), Color.FromArgb(168, 85, 247) };
+                    Color[] colors = { Color.FromArgb(239, 68, 68), Color.FromArgb(34, 197, 94), Color.FromArgb(59, 130, 246),
+                        Color.FromArgb(234, 179, 8), Color.FromArgb(168, 85, 247) };
                     for (int i = 0; i < spots.Length; i++)
                     {
                         var square = new RectangleF(spots[i], new SizeF(side, side));
@@ -99,7 +105,8 @@ namespace AlmostFastDash.CommandLine
                     {
                         settings.SendChangesOnly = changesOnly;
                         g.Clear(background);
-                        g.DrawString(changesOnly ? "Sending only what changed" : "Sending whole frames", title, Brushes.White, new RectangleF(0, size.Height * 0.06f, size.Width, size.Height * 0.16f), centre);
+                        g.DrawString(changesOnly ? "Sending only what changed" : "Sending whole frames", title, Brushes.White,
+                            new RectangleF(0, size.Height * 0.06f, size.Width, size.Height * 0.16f), centre);
                         Caption("A bar sliding smoothly across and back");
                         int frames = 0;
                         var clock = Stopwatch.StartNew();

@@ -29,14 +29,16 @@ namespace AlmostFastDash.UI
             if (shift == null)
             {
                 // Leave any other transform alone; fading is enough then.
-                if (element.RenderTransform == null || element.RenderTransform == Transform.Identity) element.RenderTransform = shift = new TranslateTransform();
+                if (element.RenderTransform == null ||
+                    element.RenderTransform == Transform.Identity) element.RenderTransform = shift = new TranslateTransform();
             }
             TimeSpan delay = TimeSpan.FromMilliseconds(delayMs), length = TimeSpan.FromMilliseconds(durationMs);
             // Key frames hold the element hidden through its delay, so nothing flickers before it moves in.
             var fade = new DoubleAnimationUsingKeyFrames();
             fade.KeyFrames.Add(new DiscreteDoubleKeyFrame(0, KeyTime.FromTimeSpan(TimeSpan.Zero)));
             fade.KeyFrames.Add(new DiscreteDoubleKeyFrame(0, KeyTime.FromTimeSpan(delay)));
-            fade.KeyFrames.Add(new EasingDoubleKeyFrame(1, KeyTime.FromTimeSpan(delay + TimeSpan.FromMilliseconds(durationMs * 0.75)), Ease));
+            fade.KeyFrames.Add(new EasingDoubleKeyFrame(1, KeyTime.FromTimeSpan(delay + TimeSpan.FromMilliseconds(durationMs * 0.75)),
+                Ease));
             element.BeginAnimation(UIElement.OpacityProperty, fade);
             if (shift == null) return;
             shift.BeginAnimation(TranslateTransform.XProperty, Slide(fromX, delay, length));
@@ -65,7 +67,8 @@ namespace AlmostFastDash.UI
         public static void FadeIn(UIElement element, int durationMs = 180)
         {
             if (element == null || !On) return;
-            element.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(durationMs)) { EasingFunction = Ease });
+            element.BeginAnimation(UIElement.OpacityProperty,
+                new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(durationMs)) { EasingFunction = Ease });
         }
 
         /// <summary>Lifts a card a couple of pixels under the mouse and settles it back.</summary>
@@ -74,8 +77,12 @@ namespace AlmostFastDash.UI
             if (card == null) return;
             var shift = card.RenderTransform as TranslateTransform ?? new TranslateTransform();
             card.RenderTransform = shift;
-            card.MouseEnter += (s, e) => { if (On) shift.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(-3, TimeSpan.FromMilliseconds(160)) { EasingFunction = Ease }); };
-            card.MouseLeave += (s, e) => { if (On) shift.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(0, TimeSpan.FromMilliseconds(220)) { EasingFunction = Ease }); };
+            card.MouseEnter += (s,
+                e) => { if (On) shift.BeginAnimation(TranslateTransform.YProperty,
+                new DoubleAnimation(-3, TimeSpan.FromMilliseconds(160)) { EasingFunction = Ease }); };
+            card.MouseLeave += (s,
+                e) => { if (On) shift.BeginAnimation(TranslateTransform.YProperty,
+                new DoubleAnimation(0, TimeSpan.FromMilliseconds(220)) { EasingFunction = Ease }); };
         }
     }
 }

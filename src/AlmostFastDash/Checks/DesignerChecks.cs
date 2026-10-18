@@ -30,10 +30,12 @@ namespace AlmostFastDash.Designer
             _report = new List<string>();
             _failures = 0;
             _scratchFolder = scratchFolder;
-            _scope = new EvalScope { T = IRacingTelemetrySource.CreatePreviewSnapshot(), Units = _units, Theme = _layout.Theme, Accent = "#2DD4BF" };
+            _scope = new EvalScope { T = IRacingTelemetrySource.CreatePreviewSnapshot(), Units = _units, Theme = _layout.Theme,
+                Accent = "#2DD4BF" };
             _states = new[]
             {
-                IRacingTelemetrySource.CreatePreviewSnapshot(), IRacingTelemetrySource.CreatePitLanePreviewSnapshot(), IRacingTelemetrySource.CreateSpotterPreviewSnapshot(),
+                IRacingTelemetrySource.CreatePreviewSnapshot(), IRacingTelemetrySource.CreatePitLanePreviewSnapshot(),
+                    IRacingTelemetrySource.CreateSpotterPreviewSnapshot(),
                 TelemetrySnapshot.Disconnected, IRacingTelemetrySource.CreatePreviewSnapshot(RacingFlag.Checkered), ShiftSnapshot()
             };
             CheckFormulas();
@@ -93,7 +95,8 @@ namespace AlmostFastDash.Designer
 
         private static string Pixels(System.Drawing.Bitmap bitmap)
         {
-            var data = bitmap.LockBits(new System.Drawing.Rectangle(0, 0, bitmap.Width, bitmap.Height), System.Drawing.Imaging.ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            var data = bitmap.LockBits(new System.Drawing.Rectangle(0, 0, bitmap.Width, bitmap.Height),
+                System.Drawing.Imaging.ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
             try
             {
                 var bytes = new byte[data.Stride * bitmap.Height];
@@ -109,8 +112,10 @@ namespace AlmostFastDash.Designer
             layout.Theme.BackgroundStyle = "Solid";
             layout.Theme.Background = "#000000";
             layout.Screens[0].Widgets.Add(w);
-            using (var renderer = new LayoutRenderer(854, 480, new DashboardSettings { Layout = Layouts.Custom, Design = layout }, _units) { CacheStatic = cache })
-            using (System.Drawing.Bitmap frame = renderer.Render(IRacingTelemetrySource.CreatePreviewSnapshot(), false, 4, 1, layout.Screens[0]))
+            using (var renderer = new LayoutRenderer(854, 480, new DashboardSettings { Layout = Layouts.Custom, Design = layout },
+                _units) { CacheStatic = cache })
+            using (System.Drawing.Bitmap frame = renderer.Render(IRacingTelemetrySource.CreatePreviewSnapshot(), false, 4, 1,
+                layout.Screens[0]))
                 return frame.GetPixel(x, y);
         }
 
@@ -118,7 +123,8 @@ namespace AlmostFastDash.Designer
         {
             DashWidget w = WidgetCatalog.Create("bar", 100, 100);
             w.W = 400; w.H = 40;
-            w.Set("value", "0.3"); w.Set("color", "#FF0000"); w.Set("track", "#00000000"); w.Set("flipX", flip ? "true" : "false"); w.Set("rotate", rotate);
+            w.Set("value", "0.3"); w.Set("color", "#FF0000"); w.Set("track", "#00000000"); w.Set("flipX",
+                flip ? "true" : "false"); w.Set("rotate", rotate);
             return w;
         }
 

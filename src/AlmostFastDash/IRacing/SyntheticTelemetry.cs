@@ -79,7 +79,8 @@ namespace AlmostFastDash.IRacing
             }
 
             double delta = 0.35 * Math.Sin(t / 3.1) + 0.12 * Math.Sin(t * 1.7);
-            BlindSpotZone left = cycle > 5 && cycle < 8 ? (cycle < 6 ? BlindSpotZone.Rear : cycle < 7 ? BlindSpotZone.Beside : BlindSpotZone.Front) : BlindSpotZone.None;
+            BlindSpotZone left = cycle > 5 && cycle < 8
+                ? (cycle < 6 ? BlindSpotZone.Rear : cycle < 7 ? BlindSpotZone.Beside : BlindSpotZone.Front) : BlindSpotZone.None;
             BlindSpotZone right = cycle > 6.2 && cycle < 7.4 ? BlindSpotZone.Beside : BlindSpotZone.None;
             double rpm = 3800 + shift * 4200;
 

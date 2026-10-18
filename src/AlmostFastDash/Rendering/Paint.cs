@@ -29,10 +29,12 @@ namespace AlmostFastDash.Rendering
         public static StringAlignment Align(string align) =>
             align == "Center" ? StringAlignment.Center : align == "Right" ? StringAlignment.Far : StringAlignment.Near;
 
-        public static RectangleF Grow(RectangleF r, float x, float y) => new RectangleF(r.X - x, r.Y - y, r.Width + x * 2, r.Height + y * 2);
+        public static RectangleF Grow(RectangleF r, float x, float y) => new RectangleF(r.X - x, r.Y - y, r.Width + x * 2,
+            r.Height + y * 2);
         public static RectangleF Offset(RectangleF r, float x, float y) => new RectangleF(r.X + x, r.Y + y, r.Width, r.Height);
 
-        /// <summary>Pictures of widgets' still parts, by what they look like, for this thread (renderers on others keep their own).</summary>
+        /// <summary>Pictures of widgets' still parts, by what they look like, for this thread (renderers on others keep their
+        /// own).</summary>
         [ThreadStatic] private static Dictionary<string, Bitmap> _stills;
 
         /// <summary>
@@ -163,7 +165,8 @@ namespace AlmostFastDash.Rendering
             StringAlignment align, string valign, bool fit, float glow, Color glowColor, bool shadow, float tracking = 0)
         {
             if (string.IsNullOrEmpty(text) || size <= 0) return;
-            Runs(g, c, new List<Run> { new Run(text, c.Font(size, bold), color) }, box, align, valign, fit, glow, glowColor, shadow, tracking);
+            Runs(g, c, new List<Run> { new Run(text, c.Font(size, bold), color) }, box, align, valign, fit, glow, glowColor, shadow,
+                tracking);
         }
 
         /// <summary>
@@ -180,7 +183,8 @@ namespace AlmostFastDash.Rendering
             {
                 float scale = Math.Max(0.15f, box.Width / total);
                 for (int i = 0; i < runs.Count; i++)
-                    runs[i] = new Run(runs[i].Text, c.Renderer.Font(c.Text("font"), runs[i].Font.Size * scale, runs[i].Font.Bold), runs[i].Color);
+                    runs[i] = new Run(runs[i].Text, c.Renderer.Font(c.Text("font"), runs[i].Font.Size * scale, runs[i].Font.Bold),
+                        runs[i].Color);
                 tracking *= scale;
                 total = runs.Sum(r => Width(g, r, tracking));
             }
@@ -190,7 +194,8 @@ namespace AlmostFastDash.Rendering
                 valign == "Top" ? box.Y + cap + em * 0.08f :
                 valign == "Bottom" ? box.Bottom - em * 0.06f :
                 box.Y + box.Height / 2 + cap / 2;
-            float x = align == StringAlignment.Center ? box.X + (box.Width - total) / 2 : align == StringAlignment.Far ? box.Right - total : box.X;
+            float x = align == StringAlignment.Center ? box.X + (box.Width - total) / 2 : align == StringAlignment.Far ? box.Right - total
+                : box.X;
 
             // The dashboard audit notes every piece of text as drawn (after any shrinking), and can leave the text out
             // to see what's behind it.
@@ -203,7 +208,8 @@ namespace AlmostFastDash.Rendering
                     foreach (Run run in runs.Where(r => r.Text.Trim().Length > 0))
                         c.Renderer.TextLog.Add(new DrawnText
                         {
-                            Widget = c.Widget, Text = string.Concat(runs.Select(r => r.Text)), Size = run.Font.Size * Math.Abs(placed.Elements[3]), Color = run.Color, Ink = ink, Box = box
+                            Widget = c.Widget, Text = string.Concat(runs.Select(r => r.Text)),
+                                Size = run.Font.Size * Math.Abs(placed.Elements[3]), Color = run.Color, Ink = ink, Box = box
                         });
                 }
             if (c.Renderer?.SkipText == true) return;
@@ -235,12 +241,14 @@ namespace AlmostFastDash.Rendering
                         {
                             // A slight shadow: about a twelfth of the letter height, at least one pixel.
                             float offset = Math.Max(1, run.Font.Size * 0.08f);
-                            using (var brush = new SolidBrush(Color.FromArgb(190 * run.Color.A / 255, 0, 0, 0))) g.DrawString(piece, run.Font, brush, px + offset, top + offset, Typographic);
+                            using (var brush = new SolidBrush(Color.FromArgb(190 * run.Color.A / 255, 0, 0, 0))) g.DrawString(piece,
+                                run.Font, brush, px + offset, top + offset, Typographic);
                         }
                         if (glow > 0)
                             using (var path = new GraphicsPath())
                             {
-                                path.AddString(piece, run.Font.FontFamily, (int)run.Font.Style, run.Font.Size, new PointF(px, top), Typographic);
+                                path.AddString(piece, run.Font.FontFamily, (int)run.Font.Style, run.Font.Size, new PointF(px, top),
+                                    Typographic);
                                 Glow(g, path, i == 0 ? glowColor : run.Color, glow, 0.55f);
                             }
                         using (var brush = new SolidBrush(run.Color)) g.DrawString(piece, run.Font, brush, px, top, Typographic);
@@ -332,7 +340,9 @@ namespace AlmostFastDash.Rendering
                     area.AddLine(points[points.Length - 1], new PointF(b.Right, b.Bottom));
                     area.AddLine(new PointF(b.Right, b.Bottom), new PointF(b.X, b.Bottom));
                     area.CloseFigure();
-                    using (var brush = new LinearGradientBrush(Grow(b, 0, 1), Color.FromArgb(70, color), Color.FromArgb(4, color), 90f)) g.FillPath(brush, area);
+                    using (var brush = new LinearGradientBrush(Grow(b, 0, 1), Color.FromArgb(70, color), Color.FromArgb(4, color),
+                        90f)) g.FillPath(brush,
+                        area);
                 }
             using (var pen = new Pen(color, width) { LineJoin = LineJoin.Round }) g.DrawLines(pen, points);
         }

@@ -274,7 +274,8 @@ namespace AlmostFastDash.Lights
             {
                 double behind = forward ? head - i : i - head;
                 if (!bounce && behind < 0) behind += n;
-                double level = behind < -0.5 ? 0 : behind < width - 0.5 ? 1 : tail <= 0 ? 0 : Math.Max(0, 1 - (behind - width + 0.5) / (tail + 1));
+                double level = behind < -0.5 ? 0 : behind < width - 0.5 ? 1 : tail <= 0 ? 0
+                    : Math.Max(0, 1 - (behind - width + 0.5) / (tail + 1));
                 if (level > 0.01) result[i] = Scale(color, level);
             }
             return result;
@@ -304,11 +305,14 @@ namespace AlmostFastDash.Lights
                 case RacingFlag.Yellow: case RacingFlag.SafetyCar: return System.Drawing.Color.FromArgb(255, 190, 0);
                 case RacingFlag.White: return System.Drawing.Color.White;
                 case RacingFlag.Red: return System.Drawing.Color.Red;
-                case RacingFlag.BlueYellowStripe: return !pattern || blink ? System.Drawing.Color.FromArgb(0, 90, 255) : System.Drawing.Color.FromArgb(255, 190, 0);
+                case RacingFlag.BlueYellowStripe: return !pattern || blink ? System.Drawing.Color.FromArgb(0, 90, 255)
+                    : System.Drawing.Color.FromArgb(255, 190, 0);
                 case RacingFlag.Black: return !pattern || blink ? System.Drawing.Color.White : System.Drawing.Color.Black;
                 case RacingFlag.Meatball: return !pattern || blink ? System.Drawing.Color.FromArgb(255, 90, 0) : System.Drawing.Color.Black;
-                case RacingFlag.Surface: return (!pattern || (index % 2 == 0) == blink) ? System.Drawing.Color.FromArgb(255, 190, 0) : System.Drawing.Color.Red;
-                case RacingFlag.Checkered: return (!pattern || (index % 2 == 0) == blink) ? System.Drawing.Color.White : System.Drawing.Color.Black;
+                case RacingFlag.Surface: return (!pattern || (index % 2 == 0) == blink) ? System.Drawing.Color.FromArgb(255, 190, 0)
+                    : System.Drawing.Color.Red;
+                case RacingFlag.Checkered: return (!pattern || (index % 2 == 0) == blink) ? System.Drawing.Color.White
+                    : System.Drawing.Color.Black;
                 default: return System.Drawing.Color.Black;
             }
         }
@@ -364,7 +368,8 @@ namespace AlmostFastDash.Lights
                 int rank = FillOrder.Rank(direction, i, n);
                 double at = (rank + 0.5) / steps;
                 Color color = byLevel ? levelColor : gradient
-                    ? (at < midAt ? Functions.Mix(low, mid, at / Math.Max(0.001, midAt)) : Functions.Mix(mid, high, (at - midAt) / Math.Max(0.001, 1 - midAt)))
+                    ? (at < midAt ? Functions.Mix(low, mid, at / Math.Max(0.001, midAt))
+                        : Functions.Mix(mid, high, (at - midAt) / Math.Max(0.001, 1 - midAt)))
                     : at >= highAt ? high : at >= midAt ? mid : low;
                 result[i] = Level(color, lit - rank, smooth);
             }
@@ -399,8 +404,10 @@ namespace AlmostFastDash.Lights
 
         private static LightEffect Add(this LightEffect e, PropDef p) { e.Props.Add(p); return e; }
 
-        private static LightEffect Number(this LightEffect e, string key, string label, string def, string group, double min = double.NaN, double max = double.NaN, double step = 1) =>
-            e.Add(new PropDef { Key = key, Label = label, Default = def, Group = group, Kind = PropKind.Number, Min = min, Max = max, Step = step });
+        private static LightEffect Number(this LightEffect e, string key, string label, string def, string group, double min = double.NaN,
+            double max = double.NaN, double step = 1) =>
+            e.Add(new PropDef { Key = key, Label = label, Default = def, Group = group, Kind = PropKind.Number, Min = min, Max = max,
+            Step = step });
 
         private static LightEffect Color(this LightEffect e, string key, string label, string def, string group, string help = null) =>
             e.Add(new PropDef { Key = key, Label = label, Default = def, Group = group, Kind = PropKind.Color, Help = help });
@@ -408,7 +415,8 @@ namespace AlmostFastDash.Lights
         private static LightEffect Bool(this LightEffect e, string key, string label, string def, string group) =>
             e.Add(new PropDef { Key = key, Label = label, Default = def, Group = group, Kind = PropKind.Bool });
 
-        private static LightEffect Choice(this LightEffect e, string key, string label, string def, string group, params string[] choices) =>
+        private static LightEffect Choice(this LightEffect e, string key, string label, string def, string group,
+            params string[] choices) =>
             e.Add(new PropDef { Key = key, Label = label, Default = def, Group = group, Kind = PropKind.Choice, Choices = choices });
 
         private static LightEffect Formula(this LightEffect e, string key, string label, string def, string group, string help = null) =>

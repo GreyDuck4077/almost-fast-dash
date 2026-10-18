@@ -15,11 +15,13 @@ namespace AlmostFastDash.Runner
     {
         public const string AnimatedLap = "Animated lap", LiveIRacing = "Live iRacing";
 
-        /// <summary>Every preview state, in menu order. Each one is exactly the telemetry the dashboard and lights are shown with.</summary>
+        /// <summary>Every preview state, in menu order. Each one is exactly the telemetry the dashboard and lights are shown
+        /// with.</summary>
         public static readonly string[] States =
         {
             AnimatedLap, LiveIRacing, "Racing", "Shift point", "Car left", "Car right", "Three wide", "Pit limiter", "Over pit limit",
-            "Low fuel", "ABS working", "Green flag", "Yellow flag", "White flag", "Blue flag", "Black flag", "Checkered flag", "Not connected"
+            "Low fuel", "ABS working", "Green flag", "Yellow flag", "White flag", "Blue flag", "Black flag", "Checkered flag",
+            "Not connected"
         };
 
         private static readonly string FilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "preview.request");

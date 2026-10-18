@@ -3,7 +3,8 @@ using System.Collections.Generic;
 
 namespace AlmostFastDash.Rendering
 {
-    /// <summary>What the flag system shows at one moment: a flag over the screen, a frame round the dashboard, or both while one hands over to the other.</summary>
+    /// <summary>What the flag system shows at one moment: a flag over the screen, a frame round the dashboard, or both while one hands over
+    /// to the other.</summary>
     internal struct FlagView
     {
         /// <summary>The flag covering the screen, or None.</summary>
@@ -27,7 +28,8 @@ namespace AlmostFastDash.Rendering
     internal sealed class FlagTimeline
     {
         public const int FadeIn = 180, FadeOut = 280, TakeoverMilliseconds = 3000, StepAside = 450;
-        /// <summary>A flag that stays out and comes back within this long (a blue flag for each faster car) goes straight to its frame.</summary>
+        /// <summary>A flag that stays out and comes back within this long (a blue flag for each faster car) goes straight to its
+        /// frame.</summary>
         public const int Remember = 20000;
 
         private readonly int _grace;

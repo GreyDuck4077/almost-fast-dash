@@ -44,7 +44,8 @@ namespace AlmostFastDash.UI
                 var menu = new Forms.ContextMenuStrip();
                 menu.Items.Add("Open Almost Fast Dash", null, (s, e) => RestoreFromTray());
                 var dashboard = new Forms.ToolStripMenuItem();
-                dashboard.Click += async (s, e) => { if (IsDashboardRunning()) await StopDashboardAsync(); else await StartDashboardAsync(); };
+                dashboard.Click += async (s,
+                    e) => { if (IsDashboardRunning()) await StopDashboardAsync(); else await StartDashboardAsync(); };
                 menu.Items.Add(dashboard);
                 menu.Items.Add(new Forms.ToolStripSeparator());
                 menu.Items.Add("Quit", null, (s, e) => Close());

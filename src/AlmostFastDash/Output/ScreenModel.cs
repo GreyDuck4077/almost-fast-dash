@@ -33,14 +33,16 @@ namespace AlmostFastDash.Output
         public int FramePadding { get; private set; }
 
         /// <summary>The 5" LCD at 854×480, the screen this app was built on.</summary>
-        public static readonly ScreenModel FiveInch = new ScreenModel { Name = "5\" M-PRO", PanelWidth = 480, PanelHeight = 854, WholeFrameCommand = true, FramePadding = 320 };
+        public static readonly ScreenModel FiveInch = new ScreenModel { Name = "5\" M-PRO", PanelWidth = 480, PanelHeight = 854,
+            WholeFrameCommand = true, FramePadding = 320 };
 
         /// <summary>The model a screen reports (its screen and version answers).</summary>
         public static ScreenModel For(uint screen, uint version)
         {
             switch (screen)
             {
-                case 0x00000005: return new ScreenModel { Name = "5\" M-PRO", PanelWidth = 480, PanelHeight = 854, WholeFrameCommand = true, FramePadding = (version & 0xFF) == 3 ? 0 : 320 };
+                case 0x00000005: return new ScreenModel { Name = "5\" M-PRO", PanelWidth = 480, PanelHeight = 854,
+                    WholeFrameCommand = true, FramePadding = (version & 0xFF) == 3 ? 0 : 320 };
                 case 0x00001005: return new ScreenModel { Name = "5\" OLED M-PRO", PanelWidth = 720, PanelHeight = 1280 };
                 case 0x00000304: return new ScreenModel { Name = "4.3\" M-PRO", PanelWidth = 480, PanelHeight = 800 };
                 case 0x00000004:

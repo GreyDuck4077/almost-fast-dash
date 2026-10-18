@@ -26,7 +26,8 @@ namespace AlmostFastDash.Lights
             if (!Devices.Any(d => d.Enabled))
                 DeviceStages.Children.Add(new TextBlock
                 {
-                    Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap, HorizontalAlignment = HorizontalAlignment.Center,
+                    Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap,
+                        HorizontalAlignment = HorizontalAlignment.Center,
                     Text = "No LED devices yet. Add them on the Devices page."
                 });
             for (int d = 0; d < Devices.Count; d++)
@@ -46,12 +47,15 @@ namespace AlmostFastDash.Lights
                 }
                 FrameworkElement row = LedDrawing.Arrange(device, leds, size);
                 var panel = new StackPanel();
-                panel.Children.Add(new TextBlock { Text = device.Name.ToUpperInvariant(), Style = (Style)FindResource("T.Overline"), Margin = new Thickness(2, 0, 0, 8) });
+                panel.Children.Add(new TextBlock { Text = device.Name.ToUpperInvariant(), Style = (Style)FindResource("T.Overline"),
+                    Margin = new Thickness(2, 0, 0, 8) });
                 panel.Children.Add(row);
                 DeviceStages.Children.Add(new Border
                 {
-                    Background = new SolidColorBrush(Color.FromRgb(5, 7, 10)), BorderBrush = new SolidColorBrush(Color.FromRgb(29, 35, 45)), BorderThickness = new Thickness(1),
-                    CornerRadius = new CornerRadius(12), Padding = new Thickness(16, 12, 16, 12), Margin = new Thickness(0, 0, 0, 12), Child = panel
+                    Background = new SolidColorBrush(Color.FromRgb(5, 7, 10)),
+                        BorderBrush = new SolidColorBrush(Color.FromRgb(29, 35, 45)), BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(12), Padding = new Thickness(16, 12, 16, 12), Margin = new Thickness(0, 0, 0, 12),
+                    Child = panel
                 });
             }
         }
@@ -61,7 +65,8 @@ namespace AlmostFastDash.Lights
             var dot = new Ellipse
             {
                 Width = size, Height = size, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
-                Fill = (Brush)FindResource("Brush.LedOff"), Stroke = new SolidColorBrush(Color.FromArgb(40, 255, 255, 255)), StrokeThickness = 1,
+                Fill = (Brush)FindResource("Brush.LedOff"), Stroke = new SolidColorBrush(Color.FromArgb(40, 255, 255, 255)),
+                StrokeThickness = 1,
                 Effect = glow, Tag = led, Cursor = Cursors.Help
             };
             dot.MouseEnter += (s, e) => ExplainLed(led);
@@ -72,7 +77,8 @@ namespace AlmostFastDash.Lights
         private void ExplainLed(LedRef led)
         {
             DeviceSettings device = led.Device < Devices.Count ? Devices[led.Device] : null;
-            string groups = device == null ? "" : string.Join(", ", device.Groups.Where(g => g.Indexes().Contains(led.Index)).Select(g => g.Name));
+            string groups = device == null ? ""
+                : string.Join(", ", device.Groups.Where(g => g.Indexes().Contains(led.Index)).Select(g => g.Name));
             string where = (device?.Name ?? "Device") + " LED " + (led.Index + 1) + (groups.Length > 0 ? " · " + groups : "");
             bool known = _lastFrame != null && led.Device < _lastFrame.Leds.Length && led.Index < _lastFrame.Leds[led.Device].Length;
             string owner = known ? _lastFrame.Owners[led.Device][led.Index] : null;

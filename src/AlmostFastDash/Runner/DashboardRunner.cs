@@ -119,7 +119,8 @@ namespace AlmostFastDash.Runner
             // sends by itself, so this loop only decides what to draw and when, and draws the next frame while
             // the last one is still being sent. Their frame waits need Windows' 1 ms timer to keep 60 a second.
             using (new FineTimer())
-            using (new LightLoop(() => preview.Apply(telemetry.GetSnapshot()), () => runtime.Settings, () => runtime.Dashboard, diagnostics.RecordLight))
+            using (new LightLoop(() => preview.Apply(telemetry.GetSnapshot()), () => runtime.Settings, () => runtime.Dashboard,
+                diagnostics.RecordLight))
             using (var wheel = new ScreenSender(() => runtime.Settings.General, stats))
             {
                 try
@@ -156,7 +157,8 @@ namespace AlmostFastDash.Runner
                                 lastDrawn = null;
                                 Console.WriteLine("Dashboard: " + runtime.Dashboard.Name);
                             }
-                            monitor = MonitorOutput.Follow(monitor, runtime.Settings.General, runtime.Dashboard.Name, runtime.Dashboard.ScreenSize());
+                            monitor = MonitorOutput.Follow(monitor, runtime.Settings.General, runtime.Dashboard.Name,
+                                runtime.Dashboard.ScreenSize());
                         }
                         // Show when (at the top of the main window): the dashboard shows only at the chosen points in
                         // iRacing. Before iRacing is running, and for a preview, it shows as it always has.
@@ -168,7 +170,8 @@ namespace AlmostFastDash.Runner
                         if (monitor != null)
                         {
                             bool overlay = monitor.Mode == MonitorOutput.Overlay;
-                            monitor.Update(general.OverlayOpacity, shown && (!overlay || !general.OverlayOnlyWhileRacing || snapshot.Connected),
+                            monitor.Update(general.OverlayOpacity,
+                                shown && (!overlay || !general.OverlayOnlyWhileRacing || snapshot.Connected),
                                 overlay && OverlayUnlock.Requested());
                         }
                         wheel.SetBrightness(runtime.Settings.General.ScreenBrightness);
@@ -207,14 +210,16 @@ namespace AlmostFastDash.Runner
                         if (design != null && (!string.IsNullOrEmpty(design.PageButton) || !string.IsNullOrEmpty(design.PageBackButton)))
                         {
                             Dictionary<string, uint> buttons = WheelButtons.Read();
-                            bool next = WheelButtons.IsDown(buttons, design.PageButton), back = WheelButtons.IsDown(buttons, design.PageBackButton);
+                            bool next = WheelButtons.IsDown(buttons, design.PageButton),
+                                back = WheelButtons.IsDown(buttons, design.PageBackButton);
                             if (next && !pageButtonHeld) runtime.Renderer.StepPage(1);
                             if (back && !backButtonHeld) runtime.Renderer.StepPage(-1);
                             pageButtonHeld = next;
                             backButtonHeld = back;
                         }
 
-                        // Taps on a touch wheel screen, or clicks and touches on the dashboard on the PC, move tap zones on to their next view.
+                        // Taps on a touch wheel screen, or clicks and touches on the dashboard on the PC, move tap zones on to their next
+                        // view.
                         System.Drawing.Size built = runtime.Dashboard.ScreenSize();
                         void Tap(double x, double y)
                         {
@@ -225,7 +230,8 @@ namespace AlmostFastDash.Runner
                             // A dashboard of another size is fitted to the screen: undo that fit for the tap.
                             System.Drawing.Size screen = wheel.Size;
                             double scale = Math.Min(screen.Width / (double)built.Width, screen.Height / (double)built.Height);
-                            Tap((tap.X - (screen.Width - built.Width * scale) / 2) / scale, (tap.Y - (screen.Height - built.Height * scale) / 2) / scale);
+                            Tap((tap.X - (screen.Width - built.Width * scale) / 2) / scale,
+                                (tap.Y - (screen.Height - built.Height * scale) / 2) / scale);
                         }
                         if (monitor != null)
                             while (monitor.TryTakeTap(out System.Drawing.PointF share)) Tap(share.X * built.Width, share.Y * built.Height);
@@ -239,7 +245,8 @@ namespace AlmostFastDash.Runner
                             if (blank == null || blank.Size != size)
                             {
                                 blank?.Dispose();
-                                blank = new System.Drawing.Bitmap(size.Width, size.Height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+                                blank = new System.Drawing.Bitmap(size.Width, size.Height,
+                                    System.Drawing.Imaging.PixelFormat.Format32bppArgb);
                                 using (var g = System.Drawing.Graphics.FromImage(blank)) g.Clear(System.Drawing.Color.Black);
                             }
                             wheel.Submit(blank);
@@ -253,7 +260,8 @@ namespace AlmostFastDash.Runner
 
                         // A screen that has just connected, or a window just opened or shown again, needs a whole frame.
                         bool showing = monitor != null && monitor.Showing;
-                        if (wheel.Generation != wheelGeneration || monitor != lastMonitor || (monitor != null && monitor.Generation != monitorGeneration))
+                        if (wheel.Generation != wheelGeneration || monitor != lastMonitor ||
+                            (monitor != null && monitor.Generation != monitorGeneration))
                         {
                             wheelGeneration = wheel.Generation;
                             lastMonitor = monitor;
@@ -298,7 +306,8 @@ namespace AlmostFastDash.Runner
                             : snapshot.Flag != RacingFlag.None || snapshot.Connected ? frameTime : IdleRefreshMilliseconds;
                         if (!waiting)
                         {
-                            long now = System.Diagnostics.Stopwatch.GetTimestamp(), step = (long)(period * System.Diagnostics.Stopwatch.Frequency / 1000);
+                            long now = System.Diagnostics.Stopwatch.GetTimestamp(),
+                                step = (long)(period * System.Diagnostics.Stopwatch.Frequency / 1000);
                             due += step;
                             // More than a frame behind (a slow frame, or a longer idle wait just ended): start the beat
                             // again from now rather than rushing frames out to catch up.
@@ -352,7 +361,8 @@ namespace AlmostFastDash.Runner
             {
                 string folder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs");
                 Directory.CreateDirectory(folder);
-                File.AppendAllText(Path.Combine(folder, "crash.log"), DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "  " + exception + Environment.NewLine + Environment.NewLine);
+                File.AppendAllText(Path.Combine(folder, "crash.log"),
+                    DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "  " + exception + Environment.NewLine + Environment.NewLine);
             }
             catch { }
         }

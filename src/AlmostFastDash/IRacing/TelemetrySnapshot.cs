@@ -234,7 +234,8 @@ namespace AlmostFastDash.IRacing
         /// <summary>In the car, out of it, in the garage, or watching another driver.</summary>
         public CarState CarState { get; set; }
 
-        /// <summary>What the LEDs follow: nothing while out of the car or in a replay, so they go dark instead of replaying alerts.</summary>
+        /// <summary>What the LEDs follow: nothing while out of the car or in a replay, so they go dark instead of replaying
+        /// alerts.</summary>
         public TelemetrySnapshot ForLights() => Connected && OutOfCar ? Disconnected : this;
         /// <summary>The car's shift-light RPMs from iRacing; 0 when the car does not report them.</summary>
         public double ShiftFirstRpm { get; set; }
@@ -317,7 +318,8 @@ namespace AlmostFastDash.IRacing
 
         /// <summary>How far round the current lap the player is, 0 to 1.</summary>
         public double LapFraction =>
-            PlayerCarIdx >= 0 && CarLapDist != null && PlayerCarIdx < CarLapDist.Length && CarLapDist[PlayerCarIdx] >= 0 ? Math.Min(1, CarLapDist[PlayerCarIdx]) : 0;
+            PlayerCarIdx >= 0 && CarLapDist != null && PlayerCarIdx < CarLapDist.Length && CarLapDist[PlayerCarIdx] >= 0
+            ? Math.Min(1, CarLapDist[PlayerCarIdx]) : 0;
 
         /// <summary>
         /// Laps still to drive to the flag, counting only what's left of this one (3.4 is the last 0.4 of this
@@ -344,7 +346,8 @@ namespace AlmostFastDash.IRacing
         /// <summary>Fuel to add to reach the finish in liters, or -1 when unknown.</summary>
         public double FuelToFinish => FuelToFinishWith(0);
 
-        /// <summary>Fuel to add to reach the finish with a margin of <paramref name="reserveLaps"/> more laps, in liters; -1 when unknown.</summary>
+        /// <summary>Fuel to add to reach the finish with a margin of <paramref name="reserveLaps"/> more laps, in liters; -1 when
+        /// unknown.</summary>
         public double FuelToFinishWith(double reserveLaps)
         {
             double laps = LapsToGo;

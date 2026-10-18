@@ -59,7 +59,8 @@ namespace AlmostFastDash.Rendering
 
         public static string Bold => _bold ?? (_bold = Installed("Bahnschrift") ? "Bahnschrift" : "Segoe UI");
 
-        public static string Semi => _semi ?? (_semi = Installed("Bahnschrift SemiBold") ? "Bahnschrift SemiBold" : Installed("Segoe UI Semibold") ? "Segoe UI Semibold" : "Segoe UI");
+        public static string Semi => _semi ?? (_semi = Installed("Bahnschrift SemiBold") ? "Bahnschrift SemiBold"
+            : Installed("Segoe UI Semibold") ? "Segoe UI Semibold" : "Segoe UI");
 
         private static bool Installed(string family)
         {
@@ -95,7 +96,8 @@ namespace AlmostFastDash.Rendering
         }
 
         /// <summary>Fills text centred on a point by its ink, shrunk to <paramref name="maxWidth"/> if it is wider.</summary>
-        public static void Draw(Graphics g, string text, string family, FontStyle style, float size, float tracking, PointF center, Color color, float maxWidth = 0)
+        public static void Draw(Graphics g, string text, string family, FontStyle style, float size, float tracking, PointF center,
+            Color color, float maxWidth = 0)
         {
             if (string.IsNullOrEmpty(text)) return;
             using (GraphicsPath path = Path(g, text, family, style, size, tracking))

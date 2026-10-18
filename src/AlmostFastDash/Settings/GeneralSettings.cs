@@ -10,13 +10,15 @@ namespace AlmostFastDash.Settings
 
         public int ScreenBrightness { get; set; } = 100;
 
-        /// <summary>The wheel screen is sent only the parts of each frame that changed (much less to send). Off sends every frame whole.</summary>
+        /// <summary>The wheel screen is sent only the parts of each frame that changed (much less to send). Off sends every frame
+        /// whole.</summary>
         public bool SendChangesOnly { get; set; } = true;
 
         /// <summary>Frames a second while racing, at most (drawn only when something changed): 60, or 30 to use less of the PC.</summary>
         public int FrameRate { get; set; } = 60;
 
-        /// <summary>The display (Windows' name, such as \\.\DISPLAY2) the running dashboard is shown on full screen, when PcOutput is FullScreen.</summary>
+        /// <summary>The display (Windows' name, such as \\.\DISPLAY2) the running dashboard is shown on full screen, when PcOutput is
+        /// FullScreen.</summary>
         public string MonitorDevice { get; set; }
 
         /// <summary>
@@ -37,7 +39,8 @@ namespace AlmostFastDash.Settings
         /// <summary>Over the game, the dashboard shows only while iRacing is running (and while it's being placed or previewed).</summary>
         public bool OverlayOnlyWhileRacing { get; set; } = true;
 
-        /// <summary>Where in iRacing the dashboard shows (Show when, at the top). Hidden elsewhere: the wheel screen black, the PC window away.</summary>
+        /// <summary>Where in iRacing the dashboard shows (Show when, at the top). Hidden elsewhere: the wheel screen black, the PC window
+        /// away.</summary>
         public bool ShowInCar { get; set; } = true;
         public bool ShowOutOfCar { get; set; } = true;
         public bool ShowInGarage { get; set; } = true;

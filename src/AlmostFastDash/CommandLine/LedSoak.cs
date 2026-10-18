@@ -31,13 +31,17 @@ namespace AlmostFastDash.CommandLine
                     frames++;
                     System.Threading.Thread.Sleep(16);
                 }
-                Console.WriteLine(frames + " frames in " + watch.Elapsed.TotalSeconds.ToString("0") + " s (" + (frames / watch.Elapsed.TotalSeconds).ToString("0") + " a second); board still answers: " + controller.QueryDeviceName());
+                Console.WriteLine(frames + " frames in " + watch.Elapsed.TotalSeconds.ToString("0") + " s (" +
+                    (frames / watch.Elapsed.TotalSeconds)
+                    .ToString("0") + " a second); board still answers: " + controller.QueryDeviceName());
                 }
                 catch (Exception exception)
                 {
-                    Console.WriteLine("FAILED after " + watch.Elapsed.TotalSeconds.ToString("0.0") + " s and " + frames + " frames: " + exception.Message);
+                    Console.WriteLine("FAILED after " + watch.Elapsed.TotalSeconds.ToString("0.0") + " s and " + frames + " frames: " +
+                        exception.Message);
                 }
-                Console.WriteLine("Packets " + controller.Sent + ", unacknowledged " + controller.Unacknowledged + ", slowest acknowledgement " + controller.SlowestAckMilliseconds.ToString("0.0") + " ms");
+                Console.WriteLine("Packets " + controller.Sent + ", unacknowledged " + controller.Unacknowledged +
+                    ", slowest acknowledgement " + controller.SlowestAckMilliseconds.ToString("0.0") + " ms");
             }
             return 0;
         }

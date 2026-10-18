@@ -55,8 +55,10 @@ namespace AlmostFastDash.IRacing
             snapshot.RecentLapSeconds = new[] { 88.412, 87.932, 88.105, 87.521, 87.932 };
             // A stint wearing its tyres: up to speed on lap two, then a little slower each lap.
             snapshot.StintLapSeconds = new[] { 88.204, 87.521, 87.566, 87.618, 87.652, 87.711, 87.748, 87.802, 87.861, 87.932 };
-            snapshot.AheadDetail = new RelativeDriver { Name = snapshot.DriverAhead, CarNumber = "05", License = "B", LicenseColor = System.Drawing.Color.FromArgb(0, 164, 90), IRating = 2340 };
-            snapshot.BehindDetail = new RelativeDriver { Name = snapshot.DriverBehind, CarNumber = "31", License = "A", LicenseColor = System.Drawing.Color.FromArgb(0, 120, 220), IRating = 3120 };
+            snapshot.AheadDetail = new RelativeDriver { Name = snapshot.DriverAhead, CarNumber = "05", License = "B",
+                LicenseColor = System.Drawing.Color.FromArgb(0, 164, 90), IRating = 2340 };
+            snapshot.BehindDetail = new RelativeDriver { Name = snapshot.DriverBehind, CarNumber = "31", License = "A",
+                LicenseColor = System.Drawing.Color.FromArgb(0, 120, 220), IRating = 3120 };
             snapshot.PlayerIRating = 2815;
             snapshot.TractionControl = 4;
             snapshot.Abs = 3;
@@ -70,7 +72,8 @@ namespace AlmostFastDash.IRacing
                 // A representative braking zone and corner exit.
                 double x = i / 119.0;
                 brake[i] = (float)(x > 0.18 && x < 0.40 ? Math.Min(1, Math.Sin((x - 0.18) / 0.22 * Math.PI) * 1.15) * 0.92 : 0);
-                throttle[i] = (float)(x < 0.17 ? 1 : x < 0.46 ? 0.02 : x < 0.62 ? (x - 0.46) / 0.16 * 0.7 : x < 0.7 ? 0.7 : Math.Min(1, 0.7 + (x - 0.7) * 3));
+                throttle[i] = (float)(x < 0.17 ? 1 : x < 0.46 ? 0.02 : x < 0.62 ? (x - 0.46) / 0.16 * 0.7 : x < 0.7 ? 0.7
+                    : Math.Min(1, 0.7 + (x - 0.7) * 3));
             }
             snapshot.Throttle = 1;
             snapshot.ClassPosition = 4;
@@ -90,11 +93,16 @@ namespace AlmostFastDash.IRacing
             snapshot.DeltaTrace = delta;
             snapshot.Relatives = new[]
             {
-                new RelativeEntry { Position = 2, CarNumber = "12", Name = "S. OKAFOR", Gap = -3.12, License = "A", LicenseColor = System.Drawing.Color.FromArgb(0, 120, 220), IRating = 3890 },
-                new RelativeEntry { Position = 3, CarNumber = "05", Name = "J. MILLER", Gap = -0.46, License = "B", LicenseColor = System.Drawing.Color.FromArgb(0, 164, 90), IRating = 2340 },
-                new RelativeEntry { Position = 4, CarNumber = "22", Name = "YOU", Gap = 0, IsPlayer = true, License = "A", LicenseColor = System.Drawing.Color.FromArgb(0, 120, 220), IRating = 2815 },
-                new RelativeEntry { Position = 5, CarNumber = "31", Name = "M. CARTER", Gap = 0.82, License = "A", LicenseColor = System.Drawing.Color.FromArgb(0, 120, 220), IRating = 3120 },
-                new RelativeEntry { Position = 17, CarNumber = "88", Name = "R. ALVES", Gap = 2.40, LapRelation = -1, License = "D", LicenseColor = System.Drawing.Color.FromArgb(230, 120, 20), IRating = 1180 }
+                new RelativeEntry { Position = 2, CarNumber = "12", Name = "S. OKAFOR", Gap = -3.12, License = "A",
+                    LicenseColor = System.Drawing.Color.FromArgb(0, 120, 220), IRating = 3890 },
+                new RelativeEntry { Position = 3, CarNumber = "05", Name = "J. MILLER", Gap = -0.46, License = "B",
+                LicenseColor = System.Drawing.Color.FromArgb(0, 164, 90), IRating = 2340 },
+                new RelativeEntry { Position = 4, CarNumber = "22", Name = "YOU", Gap = 0, IsPlayer = true, License = "A",
+                LicenseColor = System.Drawing.Color.FromArgb(0, 120, 220), IRating = 2815 },
+                new RelativeEntry { Position = 5, CarNumber = "31", Name = "M. CARTER", Gap = 0.82, License = "A",
+                LicenseColor = System.Drawing.Color.FromArgb(0, 120, 220), IRating = 3120 },
+                new RelativeEntry { Position = 17, CarNumber = "88", Name = "R. ALVES", Gap = 2.40, LapRelation = -1, License = "D",
+                LicenseColor = System.Drawing.Color.FromArgb(230, 120, 20), IRating = 1180 }
             };
             snapshot.ThrottleTrace = throttle;
             snapshot.BrakeTrace = brake;

@@ -8,7 +8,8 @@ namespace AlmostFastDash.Devices
     /// <summary>How an LED device's connection is going, as its row on the Devices page shows it.</summary>
     internal static class LinkStates
     {
-        public const string Off = "off", Connecting = "connecting", Connected = "connected", Missing = "missing", Dropping = "dropping", Busy = "busy";
+        public const string Off = "off", Connecting = "connecting", Connected = "connected", Missing = "missing", Dropping = "dropping",
+            Busy = "busy";
     }
 
     /// <summary>

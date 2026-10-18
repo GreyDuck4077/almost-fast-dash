@@ -34,7 +34,8 @@ namespace AlmostFastDash.Devices
         {
             // The same settings object as last frame: nothing to check.
             if (ReferenceEquals(device, Device)) return;
-            string signature = device.Kind + "|" + device.Connection + "|" + device.UsbId + "|" + device.Baud + "|" + device.LedCount + "|" + device.Enabled + "|" + device.MaxMilliamps;
+            string signature = device.Kind + "|" + device.Connection + "|" + device.UsbId + "|" + device.Baud + "|" + device.LedCount +
+                "|" + device.Enabled + "|" + device.MaxMilliamps;
             Device = device;
             if (signature == _signature) return;
             _signature = signature;
@@ -45,14 +46,16 @@ namespace AlmostFastDash.Devices
 
         public void Send(Color[] frame)
         {
-            if (Device == null || !Device.Enabled || string.IsNullOrWhiteSpace(Device.Connection)) { State = LinkStates.Off; Detail = null; return; }
+            if (Device == null || !Device.Enabled ||
+                string.IsNullOrWhiteSpace(Device.Connection)) { State = LinkStates.Off; Detail = null; return; }
             if (_output == null)
             {
                 if (_opening != null)
                 {
                     if (!_opening.IsCompleted) return;
                     // Each device sends on its own thread, so a slow one never holds up the others.
-                    if (_opening.Status == System.Threading.Tasks.TaskStatus.RanToCompletion) _output = new BackgroundOutput(_opening.Result, Device.Name);
+                    if (_opening.Status == System.Threading.Tasks.TaskStatus.RanToCompletion) _output = new BackgroundOutput(_opening.Result,
+                        Device.Name);
                     else
                     {
                         Exception cause = _opening.Exception?.GetBaseException();
@@ -79,7 +82,8 @@ namespace AlmostFastDash.Devices
                     return;
                 }
             }
-            bool keepAlive = _output.KeepAliveMilliseconds > 0 && (DateTime.UtcNow - _lastSendUtc).TotalMilliseconds >= _output.KeepAliveMilliseconds;
+            bool keepAlive = _output.KeepAliveMilliseconds > 0 &&
+                (DateTime.UtcNow - _lastSendUtc).TotalMilliseconds >= _output.KeepAliveMilliseconds;
             if (!keepAlive && SameFrame(frame, _lastFrame)) return;
             try
             {

@@ -59,7 +59,8 @@ namespace AlmostFastDash.Dashboards
             {
                 if (text.Length > 0) text.Append(' ');
                 text.Append(Point(node.P));
-                if (node.In.HasValue || node.Out.HasValue) text.Append('|').Append(Point(node.In ?? node.P)).Append('|').Append(Point(node.Out ?? node.P));
+                if (node.In.HasValue || node.Out.HasValue) text.Append('|').Append(Point(node.In ?? node.P)).Append('|')
+                    .Append(Point(node.Out ?? node.P));
             }
             return text.ToString();
         }
@@ -97,7 +98,9 @@ namespace AlmostFastDash.Dashboards
             float w = Math.Max(2, right - left), h = Math.Max(2, bottom - top);
             var box = new RectangleF((float)Math.Floor(left), (float)Math.Floor(top), (float)Math.Ceiling(w), (float)Math.Ceiling(h));
             PointF Local(PointF p) => new PointF((p.X - box.X) / box.Width, (p.Y - box.Y) / box.Height);
-            normalised = screen.Select(n => new PathNode { P = Local(n.P), In = n.In.HasValue ? Local(n.In.Value) : (PointF?)null, Out = n.Out.HasValue ? Local(n.Out.Value) : (PointF?)null }).ToList();
+            normalised = screen.Select(n => new PathNode { P = Local(n.P), In = n.In.HasValue ? Local(n.In.Value) : (PointF?)null,
+                Out = n.Out.HasValue ? Local(n.Out.Value) : (PointF?)null })
+                .ToList();
             return box;
         }
 
@@ -105,7 +108,9 @@ namespace AlmostFastDash.Dashboards
         public static List<PathNode> OnScreen(List<PathNode> nodes, RectangleF box)
         {
             PointF At(PointF p) => new PointF(box.X + p.X * box.Width, box.Y + p.Y * box.Height);
-            return nodes.Select(n => new PathNode { P = At(n.P), In = n.In.HasValue ? At(n.In.Value) : (PointF?)null, Out = n.Out.HasValue ? At(n.Out.Value) : (PointF?)null }).ToList();
+            return nodes.Select(n => new PathNode { P = At(n.P), In = n.In.HasValue ? At(n.In.Value) : (PointF?)null,
+                Out = n.Out.HasValue ? At(n.Out.Value) : (PointF?)null })
+                .ToList();
         }
 
         /// <summary>

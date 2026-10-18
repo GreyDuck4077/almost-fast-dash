@@ -54,7 +54,8 @@ namespace AlmostFastDash.UI
                 _health.Tick += (s, e) =>
                 {
                     string error = _preview?.LastError;
-                    if (error != null) _status.Text = "Lost contact with " + _device.Name + ": " + error + " Check its cable and power; the LEDs come back when it does.";
+                    if (error != null) _status.Text = "Lost contact with " + _device.Name + ": " + error +
+                        " Check its cable and power; the LEDs come back when it does.";
                     else if (_status.Text.StartsWith("Lost contact")) _status.Text = "";
                 };
             }
@@ -99,8 +100,10 @@ namespace AlmostFastDash.UI
             catch (Exception exception)
             {
                 var body = new StackPanel();
-                body.Children.Add(new TextBlock { Text = "Couldn't reach " + _device.Name + " on " + _device.Connection + ".", Style = (Style)FindResource("T.Label") });
-                body.Children.Add(new TextBlock { Text = exception.Message, Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 12) });
+                body.Children.Add(new TextBlock { Text = "Couldn't reach " + _device.Name + " on " + _device.Connection + ".",
+                    Style = (Style)FindResource("T.Label") });
+                body.Children.Add(new TextBlock { Text = exception.Message, Style = (Style)FindResource("T.Caption"),
+                    TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 12) });
                 var again = new Button { Content = "Try again", HorizontalAlignment = HorizontalAlignment.Left };
                 again.Click += (s, e) => retry();
                 body.Children.Add(again);
@@ -125,8 +128,10 @@ namespace AlmostFastDash.UI
             }
 
             var body = new StackPanel();
-            _mapPrompt = new TextBlock { FontSize = 22, FontWeight = FontWeights.SemiBold, FontFamily = (FontFamily)FindResource("Font.Display"), TextWrapping = TextWrapping.Wrap };
-            _mapHint = new TextBlock { Style = (Style)FindResource("T.Secondary"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 16), MaxWidth = 680, HorizontalAlignment = HorizontalAlignment.Left };
+            _mapPrompt = new TextBlock { FontSize = 22, FontWeight = FontWeights.SemiBold,
+                FontFamily = (FontFamily)FindResource("Font.Display"), TextWrapping = TextWrapping.Wrap };
+            _mapHint = new TextBlock { Style = (Style)FindResource("T.Secondary"), TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 6, 0, 16), MaxWidth = 680, HorizontalAlignment = HorizontalAlignment.Left };
             body.Children.Add(_mapPrompt);
             body.Children.Add(_mapHint);
             // The check question and its answers sit right under the prompt, where they're seen.
@@ -135,7 +140,8 @@ namespace AlmostFastDash.UI
             _mapDrawing = new ContentControl { HorizontalAlignment = HorizontalAlignment.Center };
             body.Children.Add(new Border
             {
-                Background = new SolidColorBrush(Color.FromRgb(5, 7, 10)), BorderBrush = (Brush)FindResource("Brush.Border"), BorderThickness = new Thickness(1),
+                Background = new SolidColorBrush(Color.FromRgb(5, 7, 10)), BorderBrush = (Brush)FindResource("Brush.Border"),
+                    BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(12), Padding = new Thickness(24), Child = _mapDrawing
             });
             var actions = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 14, 0, 0) };
@@ -168,15 +174,18 @@ namespace AlmostFastDash.UI
                 var circle = new Ellipse
                 {
                     Width = size, Height = size, StrokeThickness = 1.5,
-                    Fill = chasing ? Brushes.White : led >= 0 ? (Brush)FindResource("Brush.AccentSubtle") : (Brush)FindResource("Brush.LedOff"),
+                    Fill = chasing ? Brushes.White : led >= 0 ? (Brush)FindResource("Brush.AccentSubtle")
+                    : (Brush)FindResource("Brush.LedOff"),
                     Stroke = led >= 0 ? (Brush)FindResource("Brush.Accent") : new SolidColorBrush(Color.FromArgb(90, 255, 255, 255))
                 };
                 var label = new TextBlock
                 {
                     Text = led >= 0 ? (led + 1).ToString() : "", FontSize = size * 0.38, FontWeight = FontWeights.SemiBold,
-                    Foreground = chasing ? Brushes.Black : (Brush)FindResource("Brush.Text"), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
+                    Foreground = chasing ? Brushes.Black : (Brush)FindResource("Brush.Text"),
+                    HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
                 };
-                var cell = new Grid { Width = size, Height = size, Background = Brushes.Transparent, ToolTip = led >= 0 ? "LED " + (led + 1) : "Click if LED " + (asking + 1) + " is here" };
+                var cell = new Grid { Width = size, Height = size, Background = Brushes.Transparent,
+                    ToolTip = led >= 0 ? "LED " + (led + 1) : "Click if LED " + (asking + 1) + " is here" };
                 cell.Children.Add(circle);
                 cell.Children.Add(label);
                 if (led < 0 && asking >= 0)
@@ -229,7 +238,8 @@ namespace AlmostFastDash.UI
                 if (_notLit == asking) { ShowNotLit(asking); return; }
                 _notLit = -1;
                 _mapPrompt.Text = "LED #" + (asking + 1) + " is lit on your device. Click where it is.";
-                _mapHint.Text = _mapper.ByHand ? "Placing every LED by hand: " + asking + " of " + _mapper.Total + " placed. Undo takes back the last one."
+                _mapHint.Text = _mapper.ByHand
+                    ? "Placing every LED by hand: " + asking + " of " + _mapper.Total + " placed. Undo takes back the last one."
                     : _mapper.Pending
                     ? "The one after LED #" + asking + ". That shows the app which way the chain runs."
                     : asking == 0 ? "It's the bright white LED."
@@ -237,7 +247,8 @@ namespace AlmostFastDash.UI
                 _next.IsEnabled = false;
                 var missing = new Button
                 {
-                    Content = "LED #" + (asking + 1) + " didn't light up ›", Style = (Style)FindResource("Btn.Ghost"), Foreground = (Brush)FindResource("Brush.Accent"),
+                    Content = "LED #" + (asking + 1) + " didn't light up ›", Style = (Style)FindResource("Btn.Ghost"),
+                        Foreground = (Brush)FindResource("Brush.Accent"),
                     HorizontalAlignment = HorizontalAlignment.Left, Padding = new Thickness(0, 2, 0, 2),
                     ToolTip = "Nothing lit on the device: the app works out why"
                 };
@@ -248,7 +259,8 @@ namespace AlmostFastDash.UI
             }
         }
 
-        /// <summary>An LED that didn't light: the device has fewer LEDs than the shape, or (for the first) isn't showing anything.</summary>
+        /// <summary>An LED that didn't light: the device has fewer LEDs than the shape, or (for the first) isn't showing
+        /// anything.</summary>
         private void ShowNotLit(int led)
         {
             _preview?.Show(new DrawingColor[Math.Max(1, led)]);
@@ -261,8 +273,10 @@ namespace AlmostFastDash.UI
             else
             {
                 _mapPrompt.Text = "Your device may have " + led + (led == 1 ? " LED" : " LEDs");
-                _mapHint.Text = "The shape adds up to " + _layout.Total + ", but LED #" + (led + 1) + " didn't light, so it's past the end of the device. Go back and correct the counts.";
-                var back = new Button { Content = "Back to the shape", Style = (Style)FindResource("Btn.Primary"), Margin = new Thickness(0, 0, 8, 0) };
+                _mapHint.Text = "The shape adds up to " + _layout.Total + ", but LED #" + (led + 1) +
+                    " didn't light, so it's past the end of the device. Go back and correct the counts.";
+                var back = new Button { Content = "Back to the shape", Style = (Style)FindResource("Btn.Primary"),
+                    Margin = new Thickness(0, 0, 8, 0) };
                 back.Click += (s, e) => { _notLit = -1; Show(Step.Shape); };
                 buttons.Children.Add(back);
             }
@@ -295,7 +309,8 @@ namespace AlmostFastDash.UI
             var buttons = new StackPanel { Orientation = Orientation.Horizontal };
             if (!_doubted)
             {
-                var yes = new Button { Content = "Yes, they all matched", Style = (Style)FindResource("Btn.Primary"), Margin = new Thickness(0, 0, 8, 0) };
+                var yes = new Button { Content = "Yes, they all matched", Style = (Style)FindResource("Btn.Primary"),
+                    Margin = new Thickness(0, 0, 8, 0) };
                 yes.Click += (s, e) => { _verified = true; _preview?.Show(new DrawingColor[_mapper.Total]); _testLed = -1; RenderMap(); };
                 var no = new Button { Content = "No, something was off" };
                 no.Click += (s, e) => { _doubted = true; RenderMap(); };
@@ -304,7 +319,8 @@ namespace AlmostFastDash.UI
             }
             else
             {
-                var byHand = new Button { Content = "Place every LED by hand", Style = (Style)FindResource("Btn.Primary"), Margin = new Thickness(0, 0, 8, 0) };
+                var byHand = new Button { Content = "Place every LED by hand", Style = (Style)FindResource("Btn.Primary"),
+                    Margin = new Thickness(0, 0, 8, 0) };
                 byHand.Click += (s, e) => { StopChase(); _mapper = new LayoutMapper(_layout, false); ResetChecks(); RenderMap(); };
                 var again = new Button { Content = "Try the two clicks again" };
                 again.Click += (s, e) => { StopChase(); _mapper = new LayoutMapper(_layout); ResetChecks(); RenderMap(); };

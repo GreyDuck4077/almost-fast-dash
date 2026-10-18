@@ -23,8 +23,10 @@ namespace AlmostFastDash.Designer
             _layerThumbs[widget.Id] = image;
             return new Border
             {
-                Width = ThumbW, Height = ThumbH, CornerRadius = new CornerRadius(3), Background = (Brush)FindResource("Brush.Bg"), ClipToBounds = true,
-                BorderBrush = (Brush)FindResource("Brush.Border"), BorderThickness = new Thickness(1), Child = image, VerticalAlignment = VerticalAlignment.Center,
+                Width = ThumbW, Height = ThumbH, CornerRadius = new CornerRadius(3), Background = (Brush)FindResource("Brush.Bg"),
+                    ClipToBounds = true,
+                BorderBrush = (Brush)FindResource("Brush.Border"), BorderThickness = new Thickness(1), Child = image,
+                VerticalAlignment = VerticalAlignment.Center,
                 Opacity = widget.Hidden ? 0.4 : 1
             };
         }

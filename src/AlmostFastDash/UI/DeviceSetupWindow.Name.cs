@@ -32,7 +32,8 @@ namespace AlmostFastDash.UI
         private string UniqueName(string name)
         {
             string candidate = name;
-            for (int n = 2; _settings.General.Devices.Any(d => d.Id != _device.Id && string.Equals(d.Name, candidate, StringComparison.OrdinalIgnoreCase)); n++)
+            for (int n = 2; _settings.General.Devices.Any(d => d.Id != _device.Id &&
+                string.Equals(d.Name, candidate, StringComparison.OrdinalIgnoreCase)); n++)
                 candidate = name + " " + n;
             return candidate;
         }

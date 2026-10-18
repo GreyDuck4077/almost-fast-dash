@@ -93,7 +93,8 @@ namespace AlmostFastDash.Lights
 
         private string ScenarioName => ScenarioCombo.SelectedItem as string ?? "Animated lap";
 
-        private static TelemetrySnapshot Snap(double speed = 136, int gear = 4, double shift = 0.62, double rpm = 6120, RacingFlag flag = RacingFlag.None,
+        private static TelemetrySnapshot Snap(double speed = 136, int gear = 4, double shift = 0.62, double rpm = 6120,
+            RacingFlag flag = RacingFlag.None,
             BlindSpotZone left = BlindSpotZone.None, BlindSpotZone right = BlindSpotZone.None) =>
             IRacingTelemetrySource.WithPreviewExtras(new TelemetrySnapshot(
                 true, gear, speed, flag, left, right, shift, SessionProgressMode.LapRace, 0, 0, 8, 18, 4, 2, 24.3, 58.104, 0.46,
@@ -131,7 +132,8 @@ namespace AlmostFastDash.Lights
                 case "Animated lap": return _synthetic.Next(out _, out _, out _);
                 case "Live iRacing":
                     TelemetrySnapshot live = _live?.GetSnapshot() ?? TelemetrySnapshot.Disconnected;
-                    StatusText.Text = live.Connected ? "Showing live iRacing data." : "Waiting for iRacing… start a session to see live lights.";
+                    StatusText.Text = live.Connected ? "Showing live iRacing data."
+                        : "Waiting for iRacing… start a session to see live lights.";
                     return live;
                 default: return Scenario(ScenarioName);
             }

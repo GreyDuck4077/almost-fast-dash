@@ -47,12 +47,15 @@ namespace AlmostFastDash.UI
             grid.ColumnDefinitions.Add(new ColumnDefinition());
             for (int i = 0; i < 3; i++) grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-            var dot = new Ellipse { Width = 9, Height = 9, Margin = new Thickness(0, 6, 12, 0), VerticalAlignment = VerticalAlignment.Top, Fill = (Brush)FindResource("Brush.TextTertiary") };
+            var dot = new Ellipse { Width = 9, Height = 9, Margin = new Thickness(0, 6, 12, 0), VerticalAlignment = VerticalAlignment.Top,
+                Fill = (Brush)FindResource("Brush.TextTertiary") };
             grid.Children.Add(dot);
 
             var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 16, 0) };
-            text.Children.Add(new TextBlock { Text = device.Name, Style = (Style)FindResource("T.Label"), TextTrimming = TextTrimming.CharacterEllipsis });
-            var status = new TextBlock { Style = (Style)FindResource("T.Caption"), Margin = new Thickness(0, 3, 0, 0), TextTrimming = TextTrimming.CharacterEllipsis };
+            text.Children.Add(new TextBlock { Text = device.Name, Style = (Style)FindResource("T.Label"),
+                TextTrimming = TextTrimming.CharacterEllipsis });
+            var status = new TextBlock { Style = (Style)FindResource("T.Caption"), Margin = new Thickness(0, 3, 0, 0),
+                TextTrimming = TextTrimming.CharacterEllipsis };
             text.Children.Add(status);
             text.Children.Add(new TextBlock
             {
@@ -64,18 +67,23 @@ namespace AlmostFastDash.UI
             grid.Children.Add(text);
             _deviceStatus[device.Id] = Tuple.Create(dot, status);
 
-            var test = new Button { Content = "Test", Margin = new Thickness(0, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center, ToolTip = "Lights each part in turn, the way it fills" };
+            var test = new Button { Content = "Test", Margin = new Thickness(0, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center,
+                ToolTip = "Lights each part in turn, the way it fills" };
             test.Click += (s, e) => TestDevice(device, test);
             Grid.SetColumn(test, 2);
             grid.Children.Add(test);
 
-            var settings = new Button { Content = "Settings", Margin = new Thickness(0, 0, 14, 0), VerticalAlignment = VerticalAlignment.Center, ToolTip = "Name, power, LED layout, or remove it" };
+            var settings = new Button { Content = "Settings", Margin = new Thickness(0, 0, 14, 0),
+                VerticalAlignment = VerticalAlignment.Center, ToolTip = "Name, power, LED layout, or remove it" };
             settings.Click += (s, e) => OpenDeviceSettings(device);
             Grid.SetColumn(settings, 3);
             grid.Children.Add(settings);
 
-            var enabled = new CheckBox { Style = (Style)FindResource("Switch"), IsChecked = device.Enabled, VerticalAlignment = VerticalAlignment.Center, ToolTip = "Use this device" };
-            enabled.Click += (s, e) => { device.Enabled = enabled.IsChecked == true; Save(device.Name + (device.Enabled ? " on" : " off")); RefreshDeviceStatus(); };
+            var enabled = new CheckBox { Style = (Style)FindResource("Switch"), IsChecked = device.Enabled,
+                VerticalAlignment = VerticalAlignment.Center, ToolTip = "Use this device" };
+            enabled.Click += (s,
+                e) => { device.Enabled = enabled.IsChecked == true; Save(device.Name +
+                (device.Enabled ? " on" : " off")); RefreshDeviceStatus(); };
             Grid.SetColumn(enabled, 4);
             grid.Children.Add(enabled);
 
@@ -84,7 +92,9 @@ namespace AlmostFastDash.UI
                 Background = (Brush)FindResource("Brush.SurfaceRaised"), CornerRadius = new CornerRadius(10), Cursor = Cursors.Hand,
                 Padding = new Thickness(16, 12, 16, 12), Margin = new Thickness(0, 0, 0, 8), Child = grid
             };
-            row.MouseLeftButtonUp += (s, e) => { if (!(e.OriginalSource is DependencyObject o && (FindParent<Button>(o) != null || FindParent<CheckBox>(o) != null))) OpenDeviceSettings(device); };
+            row.MouseLeftButtonUp += (s,
+                e) => { if (!(e.OriginalSource is DependencyObject o &&
+                (FindParent<Button>(o) != null || FindParent<CheckBox>(o) != null))) OpenDeviceSettings(device); };
             return row;
         }
 
@@ -111,14 +121,19 @@ namespace AlmostFastDash.UI
                 {
                     switch (entry.State)
                     {
-                        case LinkStates.Connected: text = "Connected · " + device.Connection + (string.IsNullOrEmpty(entry.Detail) ? "" : " · " + entry.Detail); tone = "Brush.Success"; break;
-                        case LinkStates.Missing: text = "Not found on " + device.Connection + ". Check it's plugged in and powered."; tone = "Brush.Danger"; break;
-                        case LinkStates.Busy: text = "In use by another program, such as SimHub. Close it to use " + device.Connection + " here."; tone = "Brush.Warning"; break;
-                        case LinkStates.Dropping: text = "Keeps disconnecting. Check its cable and power, or set Power to the PC's USB port."; tone = "Brush.Danger"; break;
+                        case LinkStates.Connected: text = "Connected · " + device.Connection +
+                            (string.IsNullOrEmpty(entry.Detail) ? "" : " · " + entry.Detail); tone = "Brush.Success"; break;
+                        case LinkStates.Missing: text = "Not found on " + device.Connection +
+                            ". Check it's plugged in and powered."; tone = "Brush.Danger"; break;
+                        case LinkStates.Busy: text = "In use by another program, such as SimHub. Close it to use " + device.Connection +
+                            " here."; tone = "Brush.Warning"; break;
+                        case LinkStates.Dropping: text = "Keeps disconnecting. Check its cable and power, or set Power to the PC's USB " +
+                            "port."; tone = "Brush.Danger"; break;
                         default: text = "Connecting…"; tone = "Brush.Warning"; break;
                     }
                 }
-                else if (device.Kind == LedDeviceKinds.Wled) { text = "WLED at " + device.Address + " · not in use right now"; tone = "Brush.TextTertiary"; }
+                else if (device.Kind == LedDeviceKinds.Wled) { text = "WLED at " + device.Address +
+                    " · not in use right now"; tone = "Brush.TextTertiary"; }
                 else
                 {
                     ports = ports ?? new HashSet<string>(SerialPort.GetPortNames(), StringComparer.OrdinalIgnoreCase);
@@ -237,7 +252,8 @@ namespace AlmostFastDash.UI
                     }
                     return null;
                 }
-                catch (UnauthorizedAccessException) { return "its port is in use by another program, such as SimHub. Close it and try again."; }
+                catch (UnauthorizedAccessException) { return "its port is in use by another program, such as SimHub. Close it and try " +
+                    "again."; }
                 catch (Exception exception) { return exception.Message; }
             });
             ShowDevicesStatus(error == null ? device.Name + " test finished." : device.Name + " didn't respond: " + error);

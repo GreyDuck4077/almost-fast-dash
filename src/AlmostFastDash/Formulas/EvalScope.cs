@@ -24,13 +24,15 @@ namespace AlmostFastDash.Formulas
         /// <summary>The same scope for a widget in a numbered group.</summary>
         public EvalScope WithSlot(double slot) => slot == Slot ? this : new EvalScope
         {
-            T = T, Units = Units, Theme = Theme, Accent = Accent, ShiftFlashOn = ShiftFlashOn, Now = Now, Page = Page, PageCount = PageCount, Slot = slot, Taps = Taps, Self = Self
+            T = T, Units = Units, Theme = Theme, Accent = Accent, ShiftFlashOn = ShiftFlashOn, Now = Now, Page = Page,
+                PageCount = PageCount, Slot = slot, Taps = Taps, Self = Self
         };
 
         /// <summary>The same scope for a widget in a group: its group's Slot, and its own module options.</summary>
         public EvalScope ForGroup(DashWidget widget) => widget == Self ? this : new EvalScope
         {
-            T = T, Units = Units, Theme = Theme, Accent = Accent, ShiftFlashOn = ShiftFlashOn, Now = Now, Page = Page, PageCount = PageCount, Slot = widget.Slot, Taps = Taps, Self = widget
+            T = T, Units = Units, Theme = Theme, Accent = Accent, ShiftFlashOn = ShiftFlashOn, Now = Now, Page = Page,
+                PageCount = PageCount, Slot = widget.Slot, Taps = Taps, Self = widget
         };
     }
 }

@@ -30,14 +30,17 @@ namespace AlmostFastDash.Designer
             return null;
         }
 
-        /// <summary>What sits on a panel: its group, plus anything above it that lies wholly inside it and isn't grouped elsewhere.</summary>
+        /// <summary>What sits on a panel: its group, plus anything above it that lies wholly inside it and isn't grouped
+        /// elsewhere.</summary>
         private List<DashWidget> PanelContents(DashWidget panel)
         {
             int at = _screen.Widgets.IndexOf(panel);
             Rect box = new Rect(panel.X - 1, panel.Y - 1, panel.W + 2, panel.H + 2);
             return _screen.Widgets.Where(w => w != panel && (
                 (!string.IsNullOrEmpty(panel.Group) && w.Group == panel.Group) ||
-                (string.IsNullOrEmpty(w.Group) && w.Type != "panel" && _screen.Widgets.IndexOf(w) > at && box.Contains(new Rect(w.X, w.Y, w.W, w.H))))).ToList();
+                (string.IsNullOrEmpty(w.Group) && w.Type != "panel" && _screen.Widgets.IndexOf(w) > at &&
+                box.Contains(new Rect(w.X, w.Y, w.W, w.H)))))
+                .ToList();
         }
 
         private enum PanelDrop { Place, Join, SameView, NewView }
@@ -77,9 +80,11 @@ namespace AlmostFastDash.Designer
                 Option("Add to " + panelName, "Grouped with the panel", PanelDrop.Join);
             else
             {
-                Option(hasViews ? "Add to view " + (showing + 1) + " (showing now)" : "Add to the panel as it is", hasViews ? null : "Shows with what's already on it", PanelDrop.SameView);
+                Option(hasViews ? "Add to view " + (showing + 1) + " (showing now)" : "Add to the panel as it is",
+                    hasViews ? null : "Shows with what's already on it", PanelDrop.SameView);
                 if (views < 9)
-                    Option(hasViews ? "Add as view " + (views + 1) : "Add as a new view", "A tap switches the panel between its views", PanelDrop.NewView);
+                    Option(hasViews ? "Add as view " + (views + 1) : "Add as a new view", "A tap switches the panel between its views",
+                        PanelDrop.NewView);
             }
             menu.Items.Add(new Separator());
             Option("Just place it here", "Not part of the panel", PanelDrop.Place);
@@ -136,7 +141,8 @@ namespace AlmostFastDash.Designer
                 foreach (DashWidget w in widgets) TouchViews.Only(w, "tap(\"" + tapName + "\") == " + showing);
                 status = "Added to view " + (showing + 1) + ".";
             }
-            else status = "Added to " + (string.IsNullOrWhiteSpace(panel.Name) ? "the panel" : panel.Name) + "; they move together. Drop another to add a second view.";
+            else status = "Added to " + (string.IsNullOrWhiteSpace(panel.Name) ? "the panel" : panel.Name) +
+                "; they move together. Drop another to add a second view.";
             AddWidgets(widgets, label, keepGroups: true);
             StatusText.Text = status;
         }
@@ -145,10 +151,13 @@ namespace AlmostFastDash.Designer
         private string UniqueTapName(string panelName)
         {
             var name = new StringBuilder();
-            foreach (string word in (panelName ?? "").ToLowerInvariant().Split(new[] { ' ', '-', '_' }, StringSplitOptions.RemoveEmptyEntries))
-                if (word != "panel" && word != "tile" && word != "card") name.Append(new string(word.Where(char.IsLetterOrDigit).ToArray()));
+            foreach (string word in (panelName ?? "").ToLowerInvariant()
+                .Split(new[] { ' ', '-', '_' }, StringSplitOptions.RemoveEmptyEntries))
+                if (word != "panel" && word != "tile" &&
+                    word != "card") name.Append(new string(word.Where(char.IsLetterOrDigit).ToArray()));
             string stem = name.Length > 0 ? name.ToString() : "panel";
-            var taken = new HashSet<string>(_layout.AllWidgets().Select(w => w.Get("tapName", "")?.Trim()).Where(n => !string.IsNullOrEmpty(n)), StringComparer.OrdinalIgnoreCase);
+            var taken = new HashSet<string>(_layout.AllWidgets().Select(w => w.Get("tapName", "")?.Trim())
+                .Where(n => !string.IsNullOrEmpty(n)), StringComparer.OrdinalIgnoreCase);
             string candidate = stem;
             for (int i = 2; taken.Contains(candidate); i++) candidate = stem + i;
             return candidate;

@@ -35,7 +35,8 @@ namespace AlmostFastDash.Designer
             var host = (Grid)CanvasScroller.Parent;
             Ruler Make(bool vertical) => new Ruler
             {
-                Vertical = vertical, Origin = r => vertical ? Overlay.TranslatePoint(new Point(0, 0), r).Y : Overlay.TranslatePoint(new Point(0, 0), r).X,
+                Vertical = vertical,
+                    Origin = r => vertical ? Overlay.TranslatePoint(new Point(0, 0), r).Y : Overlay.TranslatePoint(new Point(0, 0), r).X,
                 Scale = () => _zoom, Span = () => SelectionSpan(vertical), Cursor = vertical ? Cursors.SizeWE : Cursors.SizeNS,
                 Background = (Brush)FindResource("Brush.Sidebar"), Line = (Brush)FindResource("Brush.TextTertiary"),
                 Text = (Brush)FindResource("Brush.TextSecondary"), Mark = (Brush)FindResource("Brush.Accent"),
@@ -51,8 +52,10 @@ namespace AlmostFastDash.Designer
             _rulerLeft.Margin = new Thickness(0, RulerSize, 0, 0);
             _rulerCorner = new Border
             {
-                Width = RulerSize, Height = RulerSize, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top,
-                Background = (Brush)FindResource("Brush.Sidebar"), BorderBrush = (Brush)FindResource("Brush.Border"), BorderThickness = new Thickness(0, 0, 1, 1)
+                Width = RulerSize, Height = RulerSize, HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Top,
+                Background = (Brush)FindResource("Brush.Sidebar"), BorderBrush = (Brush)FindResource("Brush.Border"),
+                BorderThickness = new Thickness(0, 0, 1, 1)
             };
             foreach (FrameworkElement ruler in new FrameworkElement[] { _rulerTop, _rulerLeft, _rulerCorner }) host.Children.Add(ruler);
             foreach (Ruler ruler in new[] { _rulerTop, _rulerLeft })
@@ -90,7 +93,8 @@ namespace AlmostFastDash.Designer
                 if (_guideDragging || ActiveTool != Tool.Move || _drag != DragMode.None || HandleAt(p) >= 0) return;
                 if (GuideAt(p, out bool vertical, out _)) Overlay.Cursor = vertical ? Cursors.SizeWE : Cursors.SizeNS;
             }), true);
-            Overlay.MouseLeave += (s, e) => { if (_rulerTop == null) return; _rulerTop.Pointer = _rulerLeft.Pointer = null; InvalidateRulers(); };
+            Overlay.MouseLeave += (s,
+                e) => { if (_rulerTop == null) return; _rulerTop.Pointer = _rulerLeft.Pointer = null; InvalidateRulers(); };
             ShowRulers(_rulersOn);
         }
 
@@ -225,7 +229,8 @@ namespace AlmostFastDash.Designer
             {
                 var line = new Line
                 {
-                    X1 = vertical ? at : -4000, Y1 = vertical ? -4000 : at, X2 = vertical ? at : CanvasW + 4000, Y2 = vertical ? CanvasH + 4000 : at,
+                    X1 = vertical ? at : -4000, Y1 = vertical ? -4000 : at, X2 = vertical ? at : CanvasW + 4000,
+                        Y2 = vertical ? CanvasH + 4000 : at,
                     Stroke = GuideBrush, StrokeThickness = 1 * Px, IsHitTestVisible = false, Opacity = dragging ? 1 : 0.75
                 };
                 if (dragging) line.StrokeDashArray = new DoubleCollection { 4, 3 };
@@ -258,7 +263,8 @@ namespace AlmostFastDash.Designer
             if (length <= 0 || Origin == null || Scale == null) return;
             dc.DrawRectangle(Background, null, new Rect(0, 0, ActualWidth, ActualHeight));
             double origin = Origin(this), scale = Math.Max(0.01, Scale());
-            Rect Along(double from, double to) => Vertical ? new Rect(0, from, thick, Math.Max(0, to - from)) : new Rect(from, 0, Math.Max(0, to - from), thick);
+            Rect Along(double from, double to) => Vertical ? new Rect(0, from, thick, Math.Max(0, to - from))
+                : new Rect(from, 0, Math.Max(0, to - from), thick);
 
             Tuple<double, double> span = Span?.Invoke();
             if (span != null)
@@ -284,7 +290,8 @@ namespace AlmostFastDash.Designer
                 if (Vertical) dc.DrawLine(pen, new Point(thick - tick, at), new Point(thick, at));
                 else dc.DrawLine(pen, new Point(at, thick - tick), new Point(at, thick));
                 if (!isMajor) continue;
-                var label = new FormattedText(Math.Round(v).ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture, FlowDirection.LeftToRight, typeface, 9.5, Text, pixels);
+                var label = new FormattedText(Math.Round(v).ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture,
+                    FlowDirection.LeftToRight, typeface, 9.5, Text, pixels);
                 if (Vertical)
                 {
                     // Read from the bottom up, just above its tick.

@@ -78,7 +78,8 @@ namespace AlmostFastDash.Devices
             switch (Shape)
             {
                 case LedShapes.Bars:
-                    return Bars <= 1 ? "A light bar of " + PerBar + " LEDs" : Bars + " light bars of " + PerBar + " LEDs, " + (Connected ? "joined into one" : "separate");
+                    return Bars <= 1 ? "A light bar of " + PerBar + " LEDs"
+                    : Bars + " light bars of " + PerBar + " LEDs, " + (Connected ? "joined into one" : "separate");
                 case LedShapes.Strip: return "A strip of " + Length + " LEDs";
                 default:
                     var edges = new List<string>();
@@ -113,7 +114,8 @@ namespace AlmostFastDash.Devices
                     break;
                 default:
                     int w = Math.Max(1, Math.Max(Top, Bottom)), h = Math.Max(1, Math.Max(Left, Right));
-                    double offLeft = (h - Left) / 2.0, offRight = (h - Right) / 2.0, offTop = (w - Top) / 2.0, offBottom = (w - Bottom) / 2.0;
+                    double offLeft = (h - Left) / 2.0, offRight = (h - Right) / 2.0, offTop = (w - Top) / 2.0,
+                        offBottom = (w - Bottom) / 2.0;
                     for (int j = 0; j < Left; j++) Add("left", 0, h - j - offLeft);
                     for (int j = 0; j < Top; j++) Add("top", 1 + j + offTop, 0);
                     for (int j = 0; j < Right; j++) Add("right", w + 1, 1 + j + offRight);
@@ -142,19 +144,25 @@ namespace AlmostFastDash.Devices
             {
                 case LedShapes.Bars:
                     if (Bars <= 1 || Connected)
-                        pieces.Add(new LayoutPiece { Id = "bar", Name = "Light bar", DefaultRole = LedPurposes.Bar, Slots = slots.Select(s => s.Index).ToArray() });
+                        pieces.Add(new LayoutPiece { Id = "bar", Name = "Light bar", DefaultRole = LedPurposes.Bar,
+                            Slots = slots.Select(s => s.Index).ToArray() });
                     else
-                        for (int b = 1; b <= Bars; b++) pieces.Add(new LayoutPiece { Id = "bar" + b, Name = "Bar " + b, DefaultRole = LedPurposes.Bar, Slots = Of("bar" + b) });
+                        for (int b = 1; b <= Bars; b++) pieces.Add(new LayoutPiece { Id = "bar" + b, Name = "Bar " + b,
+                            DefaultRole = LedPurposes.Bar, Slots = Of("bar" + b) });
                     break;
                 case LedShapes.Strip:
                     pieces.Add(new LayoutPiece { Id = "strip", Name = "Strip", DefaultRole = LedPurposes.Bar, Slots = Of("strip") });
                     break;
                 default:
                     // Sides read bottom to top and rows left to right, the way a gauge fills.
-                    if (Left > 0) pieces.Add(new LayoutPiece { Id = "left", Name = "Left side", DefaultRole = LedPurposes.Left, Slots = Of("left") });
-                    if (Top > 0) pieces.Add(new LayoutPiece { Id = "top", Name = "Top row", DefaultRole = LedPurposes.Shift, Slots = Of("top") });
-                    if (Right > 0) pieces.Add(new LayoutPiece { Id = "right", Name = "Right side", DefaultRole = LedPurposes.Right, Slots = Of("right").Reverse().ToArray() });
-                    if (Bottom > 0) pieces.Add(new LayoutPiece { Id = "bottom", Name = "Bottom row", DefaultRole = LedPurposes.Other, Slots = Of("bottom").Reverse().ToArray() });
+                    if (Left > 0) pieces.Add(new LayoutPiece { Id = "left", Name = "Left side", DefaultRole = LedPurposes.Left,
+                        Slots = Of("left") });
+                    if (Top > 0) pieces.Add(new LayoutPiece { Id = "top", Name = "Top row", DefaultRole = LedPurposes.Shift,
+                        Slots = Of("top") });
+                    if (Right > 0) pieces.Add(new LayoutPiece { Id = "right", Name = "Right side", DefaultRole = LedPurposes.Right,
+                        Slots = Of("right").Reverse().ToArray() });
+                    if (Bottom > 0) pieces.Add(new LayoutPiece { Id = "bottom", Name = "Bottom row", DefaultRole = LedPurposes.Other,
+                        Slots = Of("bottom").Reverse().ToArray() });
                     break;
             }
             return pieces;
@@ -163,7 +171,8 @@ namespace AlmostFastDash.Devices
         public string RoleOf(LayoutPiece piece) =>
             Roles != null && Roles.TryGetValue(piece.Id, out string role) && LedPurposes.All.Contains(role) ? role : piece.DefaultRole;
 
-        /// <summary>One group per piece, its LEDs in fill order, from the mapping. Ids stay the same when set up again, so light layers aimed at a group keep working.</summary>
+        /// <summary>One group per piece, its LEDs in fill order, from the mapping. Ids stay the same when set up again, so light layers
+        /// aimed at a group keep working.</summary>
         public List<LedGroup> Groups()
         {
             var groups = new List<LedGroup>();
@@ -171,7 +180,8 @@ namespace AlmostFastDash.Devices
             foreach (LayoutPiece piece in Pieces())
             {
                 List<int> leds = piece.Slots.Select(s => Map[s] + 1).ToList();
-                groups.Add(new LedGroup { Id = "layout-" + piece.Id, Name = piece.Name, Purpose = RoleOf(piece), Leds = leds, From = leds.Min(), To = leds.Max() });
+                groups.Add(new LedGroup { Id = "layout-" + piece.Id, Name = piece.Name, Purpose = RoleOf(piece), Leds = leds,
+                    From = leds.Min(), To = leds.Max() });
             }
             return groups;
         }

@@ -39,7 +39,8 @@ namespace AlmostFastDash.Settings
 
         public static BrowLedSettings CreateDefault(string function) => new BrowLedSettings
         {
-            Function = function, Pattern = "Edges to center", Brightness = 60, ColorProfile = LedProfiles.GreenYellowRed, FlagOverride = true
+            Function = function, Pattern = "Edges to center", Brightness = 60, ColorProfile = LedProfiles.GreenYellowRed,
+                FlagOverride = true
         };
     }
 }

@@ -60,7 +60,8 @@ namespace AlmostFastDash.Dashboards
         /// the two scales, so they stay in proportion when the shape of the screen changes.
         /// </summary>
         private const double MinReadableText = 10;
-        private static readonly HashSet<string> TextSizes = new HashSet<string> { "size", "valueSize", "labelSize", "unitSize", "numberSize", "titleSize", "neighborSize" };
+        private static readonly HashSet<string> TextSizes = new HashSet<string> { "size", "valueSize", "labelSize",
+            "unitSize", "numberSize", "titleSize", "neighborSize" };
 
         public void ScaleTo(int width, int height)
         {
@@ -75,7 +76,8 @@ namespace AlmostFastDash.Dashboards
             Height = height;
         }
 
-        /// <summary>Scales widgets' places and boxes by <paramref name="sx"/> and <paramref name="sy"/>, and their text, lines and glows by the smaller.</summary>
+        /// <summary>Scales widgets' places and boxes by <paramref name="sx"/> and <paramref name="sy"/>, and their text, lines and glows by
+        /// the smaller.</summary>
         public static void ScaleWidgets(IEnumerable<DashWidget> widgets, double sx, double sy)
         {
             List<DashWidget> list = widgets.ToList();
@@ -86,7 +88,8 @@ namespace AlmostFastDash.Dashboards
             var sizedOptions = new Dictionary<string, bool>();
             foreach (DashWidget widget in list)
                 foreach (KeyValuePair<string, string> prop in widget.Props)
-                    if (prop.Value != null && prop.Value.StartsWith(linked) && prop.Value.EndsWith("\")") && WidgetCatalog.IsPixelSize(widget.Type, prop.Key))
+                    if (prop.Value != null && prop.Value.StartsWith(linked) && prop.Value.EndsWith("\")") &&
+                        WidgetCatalog.IsPixelSize(widget.Type, prop.Key))
                     {
                         string option = widget.Group + "|" + prop.Value.Substring(linked.Length, prop.Value.Length - linked.Length - 2);
                         sizedOptions[option] = TextSizes.Contains(prop.Key) || (sizedOptions.TryGetValue(option, out bool text) && text);
@@ -103,19 +106,22 @@ namespace AlmostFastDash.Dashboards
                     bool textSize;
                     if (key.StartsWith(ModuleOptions.Prefix))
                     {
-                        if (!sizedOptions.TryGetValue(widget.Group + "|" + key.Substring(ModuleOptions.Prefix.Length), out textSize)) continue;
+                        if (!sizedOptions.TryGetValue(widget.Group + "|" + key.Substring(ModuleOptions.Prefix.Length),
+                            out textSize)) continue;
                     }
                     else if (WidgetCatalog.IsPixelSize(widget.Type, key)) textSize = TextSizes.Contains(key);
                     else continue;
                     if (raw == null || raw.StartsWith("=")) continue;
-                    if (!double.TryParse(raw, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double value)) continue;
+                    if (!double.TryParse(raw, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture,
+                        out double value)) continue;
                     // Negative values are settings such as "round" corners, not sizes.
                     if (value <= 0) continue;
                     double scaled = value * s;
                     // Text stays readable on a small screen: it doesn't shrink below 10 px (smaller text that was
                     // designed that way stays as it was). Shrink to fit still keeps it inside its box.
                     if (textSize) scaled = Math.Max(scaled, Math.Min(value, MinReadableText));
-                    widget.Props[key] = (scaled >= 10 ? Math.Round(scaled) : Math.Round(scaled, 1)).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    widget.Props[key] = (scaled >= 10 ? Math.Round(scaled) : Math.Round(scaled, 1))
+                        .ToString(System.Globalization.CultureInfo.InvariantCulture);
                 }
             }
         }
@@ -172,7 +178,8 @@ namespace AlmostFastDash.Dashboards
         public static readonly string[] BackgroundStyles = { "Aurora", "Bloom", "Solid", "Gradient", "Vignette", "None" };
 
         /// <summary>Theme colors widgets can reference by name, so restyling a design is one change.</summary>
-        public static readonly string[] Tokens = { "accent", "text", "muted", "dim", "panel", "paneltop", "border", "track", "good", "bad", "warn", "info", "purple", "background" };
+        public static readonly string[] Tokens = { "accent", "text", "muted", "dim", "panel", "paneltop", "border", "track", "good", "bad",
+            "warn", "info", "purple", "background" };
 
         public string Token(string name, string accent)
         {
@@ -269,13 +276,15 @@ namespace AlmostFastDash.Dashboards
             {
                 Props.Remove("reverse");
                 if (!Props.ContainsKey("fill") && reverse != null)
-                    Props["fill"] = reverse.StartsWith("=") ? "=(" + reverse.Substring(1) + ") ? \"" + FillOrder.EndToStart + "\" : \"" + FillOrder.StartToEnd + "\""
+                    Props["fill"] = reverse.StartsWith("=")
+                        ? "=(" + reverse.Substring(1) + ") ? \"" + FillOrder.EndToStart + "\" : \"" + FillOrder.StartToEnd + "\""
                         : Expr.Bool(reverse) ? FillOrder.EndToStart : FillOrder.StartToEnd;
             }
             if (Props.TryGetValue("pattern", out string pattern) && Type == "shiftlights")
             {
                 Props.Remove("pattern");
-                if (!Props.ContainsKey("fill") && pattern != null) Props["fill"] = pattern.StartsWith("=") ? pattern : FillOrder.Normalize(pattern);
+                if (!Props.ContainsKey("fill") && pattern != null) Props["fill"] = pattern.StartsWith("=") ? pattern
+                    : FillOrder.Normalize(pattern);
             }
             W = Math.Max(2, W);
             H = Math.Max(2, H);

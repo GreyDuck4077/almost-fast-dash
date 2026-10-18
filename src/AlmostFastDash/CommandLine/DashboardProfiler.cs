@@ -40,7 +40,8 @@ namespace AlmostFastDash.CommandLine
                 report.Append(line);
                 totals.Add(average);
             }
-            report.AppendLine(string.Format(CultureInfo.InvariantCulture, "Over all: {0:0.00} ms a drawn frame (the average of each dashboard's median)", totals.Average()));
+            report.AppendLine(string.Format(CultureInfo.InvariantCulture,
+                "Over all: {0:0.00} ms a drawn frame (the average of each dashboard's median)", totals.Average()));
             File.WriteAllText(reportPath, report.ToString());
             return 0;
         }
@@ -56,7 +57,8 @@ namespace AlmostFastDash.CommandLine
             double hashing = 0, share = 0;
             int? last = null;
             double toMs = 1000.0 / Stopwatch.Frequency;
-            using (var renderer = new LayoutRenderer(size.Width, size.Height, dashboard, units) { SharedOutput = true, ReuseFingerprints = true })
+            using (var renderer = new LayoutRenderer(size.Width, size.Height, dashboard, units) { SharedOutput = true,
+                ReuseFingerprints = true })
             {
                 for (int frame = -Warmup; frame < Frames; frame++)
                 {
@@ -80,11 +82,15 @@ namespace AlmostFastDash.CommandLine
             int count = Math.Max(1, drawn.Count);
             average = drawn.Count == 0 ? 0 : drawn[drawn.Count / 2];
             text.AppendLine(string.Format(CultureInfo.InvariantCulture,
-                "{0}: {1} of {2} ticks drawn; {3:0.00} ms a frame (median; mean {4:0.00}, 95% under {5:0.00}, most {6:0.00}); fingerprint {7:0.00} ms a tick; {8:0}% of the screen redrawn",
-                name, drawn.Count, Frames, average, drawn.Count == 0 ? 0 : drawn.Average(), drawn.Count == 0 ? 0 : drawn[(int)(drawn.Count * 0.95)],
+                "{0}: {1} of {2} ticks drawn; {3:0.00} ms a frame (median; mean {4:0.00}, 95% under {5:0.00}, most {6:0.00}); " +
+                    "fingerprint {7:0.00} ms a tick; {8:0}% of the screen redrawn",
+                name, drawn.Count, Frames, average, drawn.Count == 0 ? 0 : drawn.Average(),
+                drawn.Count == 0 ? 0 : drawn[(int)(drawn.Count * 0.95)],
                 drawn.Count == 0 ? 0 : drawn.Last(), hashing / Frames, 100 * share / count));
-            foreach (KeyValuePair<string, double> part in timings.Where(p => !p.Key.StartsWith("changed: ")).OrderByDescending(p => p.Value).Take(8))
-                text.AppendLine(string.Format(CultureInfo.InvariantCulture, "    {0,-28} {1,6:0.00} ms a frame", part.Key, part.Value / count));
+            foreach (KeyValuePair<string, double> part in timings.Where(p => !p.Key.StartsWith("changed: ")).OrderByDescending(p => p.Value)
+                .Take(8))
+                text.AppendLine(string.Format(CultureInfo.InvariantCulture, "    {0,-28} {1,6:0.00} ms a frame", part.Key,
+                    part.Value / count));
             text.AppendLine();
             return text.ToString();
         }

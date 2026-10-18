@@ -42,13 +42,15 @@ namespace AlmostFastDash.Designer
             return icon;
         }
 
-        private TextBlock SectionTitle(string text) => new TextBlock { Text = text.ToUpperInvariant(), Style = (Style)FindResource("T.Overline"), Margin = new Thickness(2, 16, 0, 8) };
+        private TextBlock SectionTitle(string text) => new TextBlock { Text = text.ToUpperInvariant(),
+            Style = (Style)FindResource("T.Overline"), Margin = new Thickness(2, 16, 0, 8) };
 
         /// <summary>A small themed text prompt.</summary>
         private string Prompt(string title, string message, string initial)
         {
             var box = new TextBox { Text = initial ?? "", Margin = new Thickness(0, 12, 0, 16) };
-            var ok = new Button { Content = "Save", Style = (Style)FindResource("Btn.Primary"), IsDefault = true, MinWidth = 90, Margin = new Thickness(8, 0, 0, 0) };
+            var ok = new Button { Content = "Save", Style = (Style)FindResource("Btn.Primary"), IsDefault = true, MinWidth = 90,
+                Margin = new Thickness(8, 0, 0, 0) };
             var cancel = new Button { Content = "Cancel", IsCancel = true, MinWidth = 90 };
             var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
             buttons.Children.Add(cancel);

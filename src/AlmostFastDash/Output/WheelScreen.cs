@@ -120,7 +120,8 @@ namespace AlmostFastDash.Output
             Write(pixels, length);
         }
 
-        /// <summary>A whole picture at this screen's size, encoded and sent (for blanking and tests; the dashboard uses ScreenSender).</summary>
+        /// <summary>A whole picture at this screen's size, encoded and sent (for blanking and tests; the dashboard uses
+        /// ScreenSender).</summary>
         public void Draw(Bitmap bitmap)
         {
             if (bitmap.Width != Width || bitmap.Height != Height)
@@ -205,7 +206,8 @@ namespace AlmostFastDash.Output
             byte touchIn = 0;
             if (Native.WinUsb_QueryInterfaceSettings(_usb, 0, out Native.UsbInterfaceDescriptor descriptor))
                 for (byte i = 0; i < descriptor.NumEndpoints; i++)
-                    if (Native.WinUsb_QueryPipe(_usb, 0, i, out Native.WinUsbPipeInformation pipe) && pipe.PipeType == Native.UsbdPipeTypeInterrupt && (pipe.PipeId & 0x80) != 0)
+                    if (Native.WinUsb_QueryPipe(_usb, 0, i, out Native.WinUsbPipeInformation pipe) &&
+                        pipe.PipeType == Native.UsbdPipeTypeInterrupt && (pipe.PipeId & 0x80) != 0)
                         touchIn = pipe.PipeId;
             if (touchIn == 0) return;
             HasTouch = true;
@@ -214,7 +216,8 @@ namespace AlmostFastDash.Output
             _touchRunning = true;
             IntPtr usb = _usb;
             ScreenModel model = Model;
-            _touchThread = new System.Threading.Thread(() => ReadTouches(usb, touchIn, model)) { IsBackground = true, Name = "Touch", Priority = System.Threading.ThreadPriority.BelowNormal };
+            _touchThread = new System.Threading.Thread(() => ReadTouches(usb, touchIn, model)) { IsBackground = true, Name = "Touch",
+                Priority = System.Threading.ThreadPriority.BelowNormal };
             _touchThread.Start();
         }
 
@@ -407,13 +410,16 @@ namespace AlmostFastDash.Output
             public static extern bool WinUsb_Free(IntPtr interfaceHandle);
 
             [DllImport("winusb.dll", SetLastError = true)]
-            public static extern bool WinUsb_QueryInterfaceSettings(IntPtr interfaceHandle, byte alternateSetting, out UsbInterfaceDescriptor descriptor);
+            public static extern bool WinUsb_QueryInterfaceSettings(IntPtr interfaceHandle, byte alternateSetting,
+                out UsbInterfaceDescriptor descriptor);
 
             [DllImport("winusb.dll", SetLastError = true)]
-            public static extern bool WinUsb_QueryPipe(IntPtr interfaceHandle, byte alternateSetting, byte pipeIndex, out WinUsbPipeInformation pipe);
+            public static extern bool WinUsb_QueryPipe(IntPtr interfaceHandle, byte alternateSetting, byte pipeIndex,
+                out WinUsbPipeInformation pipe);
 
             [DllImport("winusb.dll", SetLastError = true)]
-            public static extern bool WinUsb_SetPipePolicy(IntPtr interfaceHandle, byte pipeId, uint policyType, uint valueLength, ref uint value);
+            public static extern bool WinUsb_SetPipePolicy(IntPtr interfaceHandle, byte pipeId, uint policyType, uint valueLength,
+                ref uint value);
 
             [DllImport("winusb.dll", SetLastError = true)]
             public static extern bool WinUsb_ControlTransfer(IntPtr interfaceHandle, WinUsbSetupPacket setupPacket,

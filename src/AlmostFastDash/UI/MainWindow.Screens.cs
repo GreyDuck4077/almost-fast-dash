@@ -260,9 +260,12 @@ namespace AlmostFastDash.UI
             string chosen = _settings.General.MonitorDevice ?? "";
             List<MonitorChoice> displays = MonitorChoice.All();
             MonitorPicker.Items.Clear();
-            foreach (MonitorChoice display in displays) MonitorPicker.Items.Add(new ComboBoxItem { Content = display.Label, Tag = display.Device });
+            foreach (MonitorChoice display in displays) MonitorPicker.Items.Add(new ComboBoxItem { Content = display.Label,
+                Tag = display.Device });
             if (chosen.Length > 0 && displays.All(d => d.Device != chosen))
-                MonitorPicker.Items.Add(new ComboBoxItem { Content = "Display " + new string(chosen.Where(char.IsDigit).ToArray()) + " (not plugged in)", Tag = chosen });
+                MonitorPicker.Items.Add(new ComboBoxItem { Content = "Display " + new string(chosen.Where(char.IsDigit).ToArray()) +
+                    " (not plugged in)",
+                    Tag = chosen });
             MonitorPicker.SelectedItem = MonitorPicker.Items.Cast<ComboBoxItem>().FirstOrDefault(i => (string)i.Tag == chosen);
             MonitorPicker.IsEnabled = MonitorPicker.Items.Count > 0;
             MonitorNote.Text = displays.Count == 0 ? "Plug in a second display to use this." : "";

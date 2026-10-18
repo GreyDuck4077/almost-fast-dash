@@ -9,7 +9,8 @@ namespace AlmostFastDash.Devices
     /// </summary>
     internal static class FillOrder
     {
-        public const string StartToEnd = "Start to end", EndToStart = "End to start", EdgesToCenter = "Edges to center", CenterOut = "Center out";
+        public const string StartToEnd = "Start to end", EndToStart = "End to start", EdgesToCenter = "Edges to center",
+            CenterOut = "Center out";
         public static readonly string[] All = { StartToEnd, EndToStart, EdgesToCenter, CenterOut };
 
         /// <summary>Today's name for a direction, including the names older versions saved.</summary>

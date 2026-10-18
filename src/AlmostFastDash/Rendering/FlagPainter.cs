@@ -57,7 +57,8 @@ namespace AlmostFastDash.Rendering
             switch (flag)
             {
                 case RacingFlag.Green: Solid(g, Color.FromArgb(34, 196, 84), FlagStyle.Ink, "GREEN", "GO  ·  GO  ·  GO"); break;
-                case RacingFlag.Yellow: Solid(g, Color.FromArgb(255, 212, 0), FlagStyle.Ink, "CAUTION", "SLOW DOWN  ·  NO OVERTAKING"); break;
+                case RacingFlag.Yellow: Solid(g, Color.FromArgb(255, 212, 0), FlagStyle.Ink, "CAUTION",
+                    "SLOW DOWN  ·  NO OVERTAKING"); break;
                 case RacingFlag.White: Solid(g, Color.FromArgb(244, 244, 240), FlagStyle.Ink, "FINAL LAP", "WHITE FLAG"); break;
                 case RacingFlag.Red: Solid(g, Color.FromArgb(222, 30, 38), Color.White, "RED FLAG", "SESSION STOPPED"); break;
                 case RacingFlag.SafetyCar: Solid(g, Color.FromArgb(255, 212, 0), FlagStyle.Ink, "SAFETY CAR", "HOLD YOUR POSITION"); break;
@@ -122,7 +123,8 @@ namespace AlmostFastDash.Rendering
             g.TranslateTransform(_cx, _cy);
             g.RotateTransform((float)(-Math.Atan2(_h, _w) * 180 / Math.PI));
             float length = (float)Math.Sqrt(_w * _w + _h * _h) + 40, half = 64 * s;
-            using (var stripe = new LinearGradientBrush(new RectangleF(-length / 2, -half - 1, length, half * 2 + 2), Color.FromArgb(255, 222, 40), Color.FromArgb(240, 186, 0), 90f))
+            using (var stripe = new LinearGradientBrush(new RectangleF(-length / 2, -half - 1, length, half * 2 + 2),
+                Color.FromArgb(255, 222, 40), Color.FromArgb(240, 186, 0), 90f))
                 g.FillRectangle(stripe, -length / 2, -half, length, half * 2);
             g.Restore(state);
             Vignette(g, 90);
@@ -151,7 +153,8 @@ namespace AlmostFastDash.Rendering
             using (var dark = new SolidBrush(Color.FromArgb(14, 15, 18)))
                 for (int line = 0; line < 6; line++)
                     for (int column = 0; column < columns; column++)
-                        g.FillRectangle(((line + column) & 1) == 0 ? light : dark, left + column * square, line * square, square + 0.5f, square + 0.5f);
+                        g.FillRectangle(((line + column) & 1) == 0 ? light : dark, left + column * square, line * square, square + 0.5f,
+                            square + 0.5f);
             Shading(g);
             Vignette(g, 170);
 
@@ -175,7 +178,8 @@ namespace AlmostFastDash.Rendering
             if (placed)
             {
                 FlagType.Draw(g, "FINISH", FlagType.Semi, FontStyle.Regular, 19 * s, 7 * s, new PointF(_cx, box.Top + 40 * s), label);
-                FlagType.Draw(g, "P" + t.Position, FlagType.Bold, FontStyle.Bold, 112 * s, 3 * s, new PointF(_cx, box.Top + 118 * s), Color.White);
+                FlagType.Draw(g, "P" + t.Position, FlagType.Bold, FontStyle.Bold, 112 * s, 3 * s, new PointF(_cx, box.Top + 118 * s),
+                    Color.White);
             }
             else
                 FlagType.Draw(g, "FINISH", FlagType.Bold, FontStyle.Bold, 88 * s, 8 * s, new PointF(_cx, box.Top + 100 * s), Color.White);
@@ -196,7 +200,8 @@ namespace AlmostFastDash.Rendering
             {
                 float x = box.Left + box.Width * (i + 0.5f) / stats.Count;
                 FlagType.Draw(g, stats[i].Item1, FlagType.Semi, FontStyle.Regular, 14 * s, 2.5f * s, new PointF(x, row - 19 * s), label);
-                FlagType.Draw(g, stats[i].Item2, FlagType.Bold, FontStyle.Bold, 32 * s, 0.5f * s, new PointF(x, row + 15 * s), stats[i].Item3, box.Width / stats.Count - 20 * s);
+                FlagType.Draw(g, stats[i].Item2, FlagType.Bold, FontStyle.Bold, 32 * s, 0.5f * s, new PointF(x, row + 15 * s),
+                    stats[i].Item3, box.Width / stats.Count - 20 * s);
             }
         }
 
@@ -213,7 +218,8 @@ namespace AlmostFastDash.Rendering
         /// <summary>Light from above on a patterned flag.</summary>
         private void Shading(Graphics g)
         {
-            using (var brush = new LinearGradientBrush(new RectangleF(0, -1, _w, _h + 2), Color.FromArgb(34, 255, 255, 255), Color.FromArgb(44, 0, 0, 0), 90f))
+            using (var brush = new LinearGradientBrush(new RectangleF(0, -1, _w, _h + 2), Color.FromArgb(34, 255, 255, 255),
+                Color.FromArgb(44, 0, 0, 0), 90f))
                 g.FillRectangle(brush, 0, 0, _w, _h);
         }
 
@@ -244,7 +250,8 @@ namespace AlmostFastDash.Rendering
             float ruleY = top + titleCap + gap1;
             using (var brush = new SolidBrush(Color.FromArgb(140, ink)))
                 g.FillRoundedRectangle(brush, new RectangleF(_cx - 28 * s, ruleY, 56 * s, rule), rule / 2);
-            FlagType.Draw(g, subtitle, FlagType.Semi, FontStyle.Regular, u, u * 0.16f, new PointF(_cx, ruleY + rule + gap2 + subtitleCap / 2), Color.FromArgb(210, ink), maxWidth);
+            FlagType.Draw(g, subtitle, FlagType.Semi, FontStyle.Regular, u, u * 0.16f,
+                new PointF(_cx, ruleY + rule + gap2 + subtitleCap / 2), Color.FromArgb(210, ink), maxWidth);
         }
 
         /// <summary>A glass panel sized to its words, centred on the flag.</summary>
@@ -283,7 +290,9 @@ namespace AlmostFastDash.Rendering
             {
                 float spread = i * 4 * s;
                 using (var shadow = new SolidBrush(Color.FromArgb(22, 0, 0, 0)))
-                    g.FillRoundedRectangle(shadow, new RectangleF(box.X - spread, box.Y - spread + 8 * s, box.Width + spread * 2, box.Height + spread * 2), r + spread);
+                    g.FillRoundedRectangle(shadow,
+                        new RectangleF(box.X - spread, box.Y - spread + 8 * s, box.Width + spread * 2, box.Height + spread * 2),
+                        r + spread);
             }
             if (frost != null)
                 using (frost)
@@ -297,10 +306,13 @@ namespace AlmostFastDash.Rendering
                     g.DrawImage(frost, area, 0, 0, frost.Width, frost.Height, GraphicsUnit.Pixel, edges);
                     g.Restore(state);
                 }
-            using (var fill = new LinearGradientBrush(new RectangleF(box.X, box.Y - 1, box.Width, box.Height + 2), Color.FromArgb(frost == null ? 228 : dense ? 214 : 176, 26, 29, 35), Color.FromArgb(frost == null ? 240 : dense ? 232 : 208, 9, 10, 13), 90f))
+            using (var fill = new LinearGradientBrush(new RectangleF(box.X, box.Y - 1, box.Width, box.Height + 2),
+                Color.FromArgb(frost == null ? 228 : dense ? 214 : 176, 26, 29, 35),
+                Color.FromArgb(frost == null ? 240 : dense ? 232 : 208, 9, 10, 13), 90f))
                 g.FillRoundedRectangle(fill, box, r);
             using (GraphicsPath path = DashKit.Rounded(box, r))
-            using (var rim = new LinearGradientBrush(new RectangleF(box.X, box.Y - 1, box.Width, box.Height + 2), Color.FromArgb(120, 255, 255, 255), Color.FromArgb(16, 255, 255, 255), 90f))
+            using (var rim = new LinearGradientBrush(new RectangleF(box.X, box.Y - 1, box.Width, box.Height + 2),
+                Color.FromArgb(120, 255, 255, 255), Color.FromArgb(16, 255, 255, 255), 90f))
             using (var pen = new Pen(rim, Math.Max(1, 1.5f * s)))
                 g.DrawPath(pen, path);
         }

@@ -36,8 +36,10 @@ namespace AlmostFastDash.Dashboards
             public override string ToString() => Screen + " / " + Widget + " \"" + Text + "\": " + Problem;
         }
 
-        /// <summary>The widgets whose own rows of text may sit a little under the floor (see <see cref="WidgetContext.MinDenseText"/>).</summary>
-        private static readonly HashSet<string> Dense = new HashSet<string> { "relative", "standings", "tyres", "trackmap", "traffic", "radar", "laphistory", "arc" };
+        /// <summary>The widgets whose own rows of text may sit a little under the floor (see <see
+        /// cref="WidgetContext.MinDenseText"/>).</summary>
+        private static readonly HashSet<string> Dense = new HashSet<string> { "relative", "standings", "tyres", "trackmap",
+            "traffic", "radar", "laphistory", "arc" };
 
         public static List<Finding> Run(DashboardSettings dashboard, UnitSystem units, TelemetrySnapshot snapshot = null)
         {
@@ -51,7 +53,8 @@ namespace AlmostFastDash.Dashboards
                 // Each tap view of the screen, one at a time (the default views first).
                 var views = new List<KeyValuePair<string, int>> { new KeyValuePair<string, int>("", 0) };
                 foreach (DashWidget w in screen.Widgets.Where(w => !string.IsNullOrWhiteSpace(w.Get("tapName", ""))))
-                    for (int v = 1; v < LayoutRenderer.TapViews(w); v++) views.Add(new KeyValuePair<string, int>(w.Get("tapName", "").Trim(), v));
+                    for (int v = 1; v < LayoutRenderer.TapViews(w); v++) views.Add(new KeyValuePair<string,
+                        int>(w.Get("tapName", "").Trim(), v));
                 foreach (KeyValuePair<string, int> view in views)
                 {
                     string where = screen.Name + (view.Key.Length > 0 ? " (" + view.Key + " view " + (view.Value + 1) + ")" : "");
@@ -75,26 +78,35 @@ namespace AlmostFastDash.Dashboards
                             bool isDense = text.Widget != null && Dense.Contains(text.Widget.Type);
                             double least = isDense ? dense : floor;
                             if (text.Size < least - 0.25)
-                                findings.Add(new Finding { Screen = where, Widget = name, Text = text.Text, Problem = "drawn at " + text.Size.ToString("0.#") + " px, under " + least + " px" });
+                                findings.Add(new Finding { Screen = where, Widget = name, Text = text.Text,
+                                    Problem = "drawn at " + text.Size.ToString("0.#") + " px, under " + least + " px" });
                             Color back = Behind(pixels, behind.Width, behind.Height, text.Ink);
                             double ratio = Ratio(Over(text.Color, back), back), needed = text.Size >= LargeText ? LargeContrast : Contrast;
                             if (ratio < needed)
-                                findings.Add(new Finding { Screen = where, Widget = name, Text = text.Text, Problem = "contrast " + ratio.ToString("0.0") + ":1, needs " + needed + ":1" });
+                                findings.Add(new Finding { Screen = where, Widget = name, Text = text.Text,
+                                    Problem = "contrast " + ratio.ToString("0.0") + ":1, needs " + needed + ":1" });
                             // Letters past the widget's own box are cut off or drawn under its neighbors (a turned widget's
                             // text is placed before turning, so it can't be judged this way).
-                            if (text.Widget != null && (!double.TryParse(text.Widget.Get("rotate", "0"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double turn) || Math.Abs(turn) < 0.01) &&
+                            if (text.Widget != null &&
+                                (!double.TryParse(text.Widget.Get("rotate", "0"), System.Globalization.NumberStyles.Float,
+                                System.Globalization.CultureInfo.InvariantCulture, out double turn) ||
+                                Math.Abs(turn) < 0.01) &&
                                 !RectangleF.Inflate(text.Widget.Bounds, 2, 2).Contains(text.Ink))
-                                findings.Add(new Finding { Screen = where, Widget = name, Text = text.Text, Problem = "reaches past the widget's edge" });
+                                findings.Add(new Finding { Screen = where, Widget = name, Text = text.Text,
+                                    Problem = "reaches past the widget's edge" });
                             // Letters below or above the box they were laid out in: cut off, or covered by what's next to them.
                             else if (!text.Box.IsEmpty && (text.Ink.Bottom > text.Box.Bottom + 2 || text.Ink.Top < text.Box.Top - 2))
-                                findings.Add(new Finding { Screen = where, Widget = name, Text = text.Text, Problem = "taller than the space it was given" });
+                                findings.Add(new Finding { Screen = where, Widget = name, Text = text.Text,
+                                    Problem = "taller than the space it was given" });
                         }
                         // Two pieces of text whose letters run into each other (a few pixels' grace for the space round letters).
-                        var pieces = drawn.Where(d => d.Color.A >= 40).GroupBy(d => d.Ink.ToString() + d.Text).Select(g => g.First()).ToList();
+                        var pieces = drawn.Where(d => d.Color.A >= 40).GroupBy(d => d.Ink.ToString() + d.Text).Select(g => g.First())
+                            .ToList();
                         for (int i = 0; i < pieces.Count; i++)
                             for (int j = i + 1; j < pieces.Count; j++)
                             {
-                                RectangleF a = RectangleF.Inflate(pieces[i].Ink, -1.5f, -1.5f), b = RectangleF.Inflate(pieces[j].Ink, -1.5f, -1.5f);
+                                RectangleF a = RectangleF.Inflate(pieces[i].Ink, -1.5f, -1.5f),
+                                    b = RectangleF.Inflate(pieces[j].Ink, -1.5f, -1.5f);
                                 if (!a.IntersectsWith(b)) continue;
                                 findings.Add(new Finding
                                 {
@@ -121,7 +133,8 @@ namespace AlmostFastDash.Dashboards
 
         private static int[] Pixels(Bitmap bitmap)
         {
-            var data = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+            var data = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.ReadOnly,
+                PixelFormat.Format32bppArgb);
             try
             {
                 var pixels = new int[bitmap.Width * bitmap.Height];
@@ -174,7 +187,8 @@ namespace AlmostFastDash.Dashboards
             for (int step = 1; step <= 20; step++)
             {
                 float t = step / 20f;
-                Color tried = Color.FromArgb(Math.Max(color.A, (int)(255 * t)), (int)(color.R + (toward.R - color.R) * t), (int)(color.G + (toward.G - color.G) * t), (int)(color.B + (toward.B - color.B) * t));
+                Color tried = Color.FromArgb(Math.Max(color.A, (int)(255 * t)), (int)(color.R + (toward.R - color.R) * t),
+                    (int)(color.G + (toward.G - color.G) * t), (int)(color.B + (toward.B - color.B) * t));
                 if (Ratio(Over(tried, background), background) >= ratio) return tried;
             }
             return toward;
@@ -193,7 +207,8 @@ namespace AlmostFastDash.Dashboards
             color = Readable(color, background, ratio);
             for (float t = share; t > 0; t -= 0.05f)
             {
-                Color tried = Color.FromArgb(color.A, (int)(color.R + (background.R - color.R) * t), (int)(color.G + (background.G - color.G) * t), (int)(color.B + (background.B - color.B) * t));
+                Color tried = Color.FromArgb(color.A, (int)(color.R + (background.R - color.R) * t),
+                    (int)(color.G + (background.G - color.G) * t), (int)(color.B + (background.B - color.B) * t));
                 if (Ratio(Over(tried, background), background) >= ratio) return tried;
             }
             return color;
@@ -211,7 +226,8 @@ namespace AlmostFastDash.Dashboards
         internal static Color Over(Color fore, Color back)
         {
             double a = fore.A / 255.0;
-            return Color.FromArgb(255, (int)(fore.R * a + back.R * (1 - a)), (int)(fore.G * a + back.G * (1 - a)), (int)(fore.B * a + back.B * (1 - a)));
+            return Color.FromArgb(255, (int)(fore.R * a + back.R * (1 - a)), (int)(fore.G * a + back.G * (1 - a)),
+                (int)(fore.B * a + back.B * (1 - a)));
         }
 
         /// <summary>The WCAG contrast ratio of two colors, 1 to 21.</summary>

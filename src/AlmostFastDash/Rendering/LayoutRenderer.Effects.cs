@@ -53,8 +53,10 @@ namespace AlmostFastDash.Rendering
         {
             StyledPicture mask = MaskOf(clipBase, scope);
             Rectangle at = picture.At, m = mask.At;
-            BitmapData p = picture.Bitmap.LockBits(new Rectangle(0, 0, at.Width, at.Height), ImageLockMode.ReadWrite, PixelFormat.Format32bppPArgb);
-            BitmapData q = mask.Bitmap.LockBits(new Rectangle(0, 0, m.Width, m.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppPArgb);
+            BitmapData p = picture.Bitmap.LockBits(new Rectangle(0, 0, at.Width, at.Height), ImageLockMode.ReadWrite,
+                PixelFormat.Format32bppPArgb);
+            BitmapData q = mask.Bitmap.LockBits(new Rectangle(0, 0, m.Width, m.Height), ImageLockMode.ReadOnly,
+                PixelFormat.Format32bppPArgb);
             try
             {
                 for (int y = 0; y < at.Height; y++)
@@ -88,7 +90,8 @@ namespace AlmostFastDash.Rendering
             WidgetType type = WidgetCatalog.Find(clipBase.Type);
             EvalScope own = ForWidget(scope, clipBase);
             var read = new WidgetContext(this, null, own, clipBase, type);
-            mask = Compose(clipBase, type, own, 0, 1, new LayerStyle(), read.B, read.Bool("flipX"), read.Bool("flipY"), (float)(read.Num("rotate") % 360));
+            mask = Compose(clipBase, type, own, 0, 1, new LayerStyle(), read.B, read.Bool("flipX"), read.Bool("flipY"),
+                (float)(read.Num("rotate") % 360));
             mask.Hash = hash;
             _masks[clipBase.Id] = mask;
             return mask;
@@ -130,12 +133,14 @@ namespace AlmostFastDash.Rendering
             foreach (Rectangle r in areas.Where(a => a.Width > 0 && a.Height > 0))
             {
                 BitmapData dst = _target.LockBits(r, ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
-                BitmapData src = picture.Bitmap.LockBits(new Rectangle(r.X - picture.At.X, r.Y - picture.At.Y, r.Width, r.Height), ImageLockMode.ReadOnly, PixelFormat.Format32bppPArgb);
+                BitmapData src = picture.Bitmap.LockBits(new Rectangle(r.X - picture.At.X, r.Y - picture.At.Y, r.Width, r.Height),
+                    ImageLockMode.ReadOnly, PixelFormat.Format32bppPArgb);
                 try
                 {
                     for (int y = 0; y < r.Height; y++)
                     {
-                        uint* under = (uint*)((byte*)dst.Scan0 + (long)y * dst.Stride), top = (uint*)((byte*)src.Scan0 + (long)y * src.Stride);
+                        uint* under = (uint*)((byte*)dst.Scan0 + (long)y * dst.Stride),
+                            top = (uint*)((byte*)src.Scan0 + (long)y * src.Stride);
                         for (int x = 0; x < r.Width; x++)
                         {
                             uint t = top[x];
@@ -178,7 +183,9 @@ namespace AlmostFastDash.Rendering
                 blended = blended * under01 + c * (1 - under01);
                 return u + (blended - u) * a;
             }
-            uint r = (uint)Math.Max(0, Math.Min(255, Math.Round(Mix(ur, tr)))), gg = (uint)Math.Max(0, Math.Min(255, Math.Round(Mix(ug, tg)))), b = (uint)Math.Max(0, Math.Min(255, Math.Round(Mix(ub, tb))));
+            uint r = (uint)Math.Max(0, Math.Min(255, Math.Round(Mix(ur, tr)))),
+                gg = (uint)Math.Max(0, Math.Min(255, Math.Round(Mix(ug, tg)))),
+                b = (uint)Math.Max(0, Math.Min(255, Math.Round(Mix(ub, tb))));
             uint outA = ua + (ta * (255 - ua) + 127) / 255;
             if (ua == 0)
             {

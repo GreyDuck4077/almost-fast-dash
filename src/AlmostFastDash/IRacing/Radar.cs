@@ -12,7 +12,8 @@ namespace AlmostFastDash.IRacing
         public int CarIdx = -1;
         /// <summary>Metres ahead (positive) or behind (negative) along the track, middle to middle.</summary>
         public double Meters;
-        /// <summary>Which lane to draw it in: 0 in line with you, -1 the lane to your left, 1 to your right (-2 and 2 one further).</summary>
+        /// <summary>Which lane to draw it in: 0 in line with you, -1 the lane to your left, 1 to your right (-2 and 2 one
+        /// further).</summary>
         public float Lane;
         /// <summary>The spotter has it alongside.</summary>
         public bool Alongside;
@@ -86,10 +87,12 @@ namespace AlmostFastDash.IRacing
 
         /// <param name="lapDist">Every car's position round the lap, 0 to 1 (negative when not on track).</param>
         /// <param name="onPitRoad">Which cars are on pit road (left off the radar); may be null.</param>
-        /// <param name="carLeftRight">iRacing's spotter: 1 clear, 2 car left, 3 car right, 4 both, 5 two cars left, 6 two cars right.</param>
+        /// <param name="carLeftRight">iRacing's spotter: 1 clear, 2 car left, 3 car right, 4 both, 5 two cars left, 6 two cars
+        /// right.</param>
         /// <param name="time">The session clock in seconds.</param>
         /// <param name="describe">Fills in a car's number, class color and whether it's the pace car; may be null.</param>
-        public void Update(float[] lapDist, bool[] onPitRoad, int player, double trackMeters, int carLeftRight, double time, Action<RadarCar> describe = null)
+        public void Update(float[] lapDist, bool[] onPitRoad, int player, double trackMeters, int carLeftRight, double time,
+            Action<RadarCar> describe = null)
         {
             if (lapDist == null || player < 0 || player >= lapDist.Length || lapDist[player] < 0 || trackMeters <= 0 || double.IsNaN(time))
             {
@@ -135,7 +138,8 @@ namespace AlmostFastDash.IRacing
                 _otherLineTime = time;
             }
             else if (time - _otherLineTime > LineMemory) _otherLine = 0;
-            var candidates = near.Where(p => Math.Abs(p.Value) <= AlongsideWindow).OrderBy(p => Math.Abs(p.Value)).Select(p => p.Key).ToList();
+            var candidates = near.Where(p => Math.Abs(p.Value) <= AlongsideWindow).OrderBy(p => Math.Abs(p.Value)).Select(p => p.Key)
+                .ToList();
             var left = new List<int>();
             var right = new List<int>();
             // Your bubble: a car within three car lengths keeps its lane far longer than one further off.
@@ -189,7 +193,9 @@ namespace AlmostFastDash.IRacing
             var drawn = lanes.ToDictionary(p => p.Key, p => (float)p.Value);
             foreach (int car in lanes.Keys.Where(k => lanes[k] != 0 && !alongside.ContainsKey(k)).ToList())
             {
-                List<int> partners = lanes.Keys.Where(k => lanes[k] == 0 && !alongside.ContainsKey(k) && Math.Abs(along[k] - along[car]) < Overlap).ToList();
+                List<int> partners = lanes.Keys.Where(k => lanes[k] == 0 && !alongside.ContainsKey(k) &&
+                    Math.Abs(along[k] - along[car]) < Overlap)
+                    .ToList();
                 if (partners.Count > 0 || Math.Abs(along[car]) < Overlap) _seen[car].LaneTime = time;
                 if (_otherLine != 0 || Math.Abs(lanes[car]) != 1) continue;
                 foreach (int partner in partners)
@@ -258,8 +264,10 @@ namespace AlmostFastDash.IRacing
                 new RadarCar { CarIdx = 0, Meters = 21.5, Number = "7", Closing = -0.6 }
             };
             double Beside(BlindSpotZone zone) => zone == BlindSpotZone.Front ? 2.6 : zone == BlindSpotZone.Rear ? -2.8 : -0.8;
-            if (s.LeftBlindSpot != BlindSpotZone.None) cars.Add(new RadarCar { CarIdx = 6, Meters = Beside(s.LeftBlindSpot), Lane = -1, Alongside = true, Number = "9" });
-            if (s.RightBlindSpot != BlindSpotZone.None) cars.Add(new RadarCar { CarIdx = 7, Meters = Beside(s.RightBlindSpot), Lane = 1, Alongside = true, Number = "88" });
+            if (s.LeftBlindSpot != BlindSpotZone.None) cars.Add(new RadarCar { CarIdx = 6, Meters = Beside(s.LeftBlindSpot), Lane = -1,
+                Alongside = true, Number = "9" });
+            if (s.RightBlindSpot != BlindSpotZone.None) cars.Add(new RadarCar { CarIdx = 7, Meters = Beside(s.RightBlindSpot), Lane = 1,
+                Alongside = true, Number = "88" });
             s.Radar = cars.OrderBy(c => c.Meters).ToArray();
             s.AheadMeters = 7.2;
             s.BehindMeters = 6.8;
@@ -283,7 +291,8 @@ namespace AlmostFastDash.IRacing
             if (cycle > 2 && cycle < 11)
             {
                 double m = cycle < 5 ? -20 + (cycle - 2) * 5 : cycle < 8 ? -5 + (cycle - 5) * 10 / 3 : 5 + (cycle - 8) * 20 / 3;
-                cars.Add(new RadarCar { CarIdx = 6, Meters = m, Lane = -1, Alongside = cycle >= 5 && cycle < 8, Number = "9", Closing = 4 });
+                cars.Add(new RadarCar { CarIdx = 6, Meters = m, Lane = -1, Alongside = cycle >= 5 && cycle < 8, Number = "9",
+                    Closing = 4 });
             }
             if (cycle > 5.5 && cycle < 8)
             {

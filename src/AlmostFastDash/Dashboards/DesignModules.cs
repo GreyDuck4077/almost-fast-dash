@@ -179,7 +179,8 @@ namespace AlmostFastDash.Dashboards
             DesignModule module;
             try
             {
-                module = new JavaScriptSerializer { MaxJsonLength = int.MaxValue, RecursionLimit = 64 }.Deserialize<DesignModule>(File.ReadAllText(path));
+                module = new JavaScriptSerializer { MaxJsonLength = int.MaxValue,
+                    RecursionLimit = 64 }.Deserialize<DesignModule>(File.ReadAllText(path));
             }
             catch (Exception exception) when (!(exception is IOException))
             {
@@ -222,7 +223,8 @@ namespace AlmostFastDash.Dashboards
             if (Directory.Exists(OldBlocksFolder))
                 foreach (string path in Directory.GetFiles(OldBlocksFolder, "*.afoblock"))
                     try { DesignModule old = ReadOldBlock(path); if (old != null) modules.Add(old); } catch { }
-            return modules.OrderBy(m => m.Category ?? "", StringComparer.OrdinalIgnoreCase).ThenBy(m => m.Name, StringComparer.OrdinalIgnoreCase).ToList();
+            return modules.OrderBy(m => m.Category ?? "", StringComparer.OrdinalIgnoreCase)
+                .ThenBy(m => m.Name, StringComparer.OrdinalIgnoreCase).ToList();
         }
 
         /// <summary>The library file for a module of this name.</summary>

@@ -27,7 +27,8 @@ namespace AlmostFastDash.Lights
         /// <param name="context">What was going on (flag, in or out of the car), kept with stretches that start now.</param>
         /// <param name="gamma">Whether the frame went through gamma, so colors are named as they were designed.</param>
         /// <returns>Stretches that have ended.</returns>
-        public List<LightSpan> Observe(LightFrame frame, IReadOnlyList<DeviceSettings> devices, double now, string context, bool gamma = true)
+        public List<LightSpan> Observe(LightFrame frame, IReadOnlyList<DeviceSettings> devices, double now, string context,
+            bool gamma = true)
         {
             var seen = new HashSet<string>();
             for (int d = 0; d < devices.Count && d < frame.Owners.Length; d++)
@@ -44,7 +45,8 @@ namespace AlmostFastDash.Lights
                         string key = device.Id + "|" + group.Id + "|" + layer;
                         if (!seen.Add(key)) continue;
                         if (_open.TryGetValue(key, out LightSpan span)) span.To = now;
-                        else _open[key] = new LightSpan { Device = device.Name, Group = group.Name, Layer = layer, Color = ColorName(gamma ? Ungamma(c) : c), Context = context, Started = DateTime.Now, From = now, To = now };
+                        else _open[key] = new LightSpan { Device = device.Name, Group = group.Name, Layer = layer,
+                            Color = ColorName(gamma ? Ungamma(c) : c), Context = context, Started = DateTime.Now, From = now, To = now };
                     }
             }
             List<string> ended = _open.Where(kv => !seen.Contains(kv.Key) && now - kv.Value.To >= GapSeconds).Select(kv => kv.Key).ToList();

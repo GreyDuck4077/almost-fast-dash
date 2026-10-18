@@ -17,7 +17,8 @@ namespace AlmostFastDash.Rendering
         public static Bitmap RenderPreview(DashboardSettings settings, UnitSystem units, TelemetrySnapshot snapshot = null)
         {
             snapshot = snapshot ?? IRacingTelemetrySource.CreatePreviewSnapshot();
-            System.Drawing.Size size = settings?.ScreenSize() ?? new System.Drawing.Size(ScreenSizes.DefaultWidth, ScreenSizes.DefaultHeight);
+            System.Drawing.Size size = settings?.ScreenSize() ?? new System.Drawing.Size(ScreenSizes.DefaultWidth,
+                ScreenSizes.DefaultHeight);
             using (IDashboardRenderer renderer = Create(size.Width, size.Height, settings, units))
                 return renderer.Render(snapshot, false, snapshot.Gear, 1f);
         }

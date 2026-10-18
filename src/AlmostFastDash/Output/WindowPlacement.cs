@@ -53,8 +53,10 @@ namespace AlmostFastDash.Output
         /// <summary>The file's text with one mode's place set, the other modes' kept.</summary>
         internal static string Merge(string text, string mode, Rectangle place)
         {
-            IEnumerable<string> others = (text ?? "").Split('\n').Select(l => l.Trim()).Where(l => l.Length > 0 && !l.StartsWith(mode + " "));
-            string mine = string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3} {4}", mode, place.X, place.Y, place.Width, place.Height);
+            IEnumerable<string> others = (text ?? "").Split('\n').Select(l => l.Trim())
+                .Where(l => l.Length > 0 && !l.StartsWith(mode + " "));
+            string mine = string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3} {4}", mode, place.X, place.Y, place.Width,
+                place.Height);
             return string.Join("\n", others.Concat(new[] { mine })) + "\n";
         }
 

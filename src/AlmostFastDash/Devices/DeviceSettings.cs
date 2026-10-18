@@ -52,7 +52,8 @@ namespace AlmostFastDash.Devices
         public int From { get; set; } = 1;
         public int To { get; set; } = 1;
         public bool Reverse { get; set; }
-        /// <summary>The LEDs (counting from 1) in fill order, when the group comes from a mapped layout; From, To and Reverse are then only for display.</summary>
+        /// <summary>The LEDs (counting from 1) in fill order, when the group comes from a mapped layout; From, To and Reverse are then only
+        /// for display.</summary>
         public List<int> Leds { get; set; }
 
         /// <summary>The LED indexes (from 0) in fill order.</summary>
@@ -80,7 +81,8 @@ namespace AlmostFastDash.Devices
         }
 
         public static LedGroup Of(string name, string purpose, int from, int to, bool reverse = false) =>
-            new LedGroup { Id = "group-" + name.ToLowerInvariant().Replace(" ", "-"), Name = name, Purpose = purpose, From = from, To = to, Reverse = reverse };
+            new LedGroup { Id = "group-" + name.ToLowerInvariant().Replace(" ", "-"), Name = name, Purpose = purpose, From = from, To = to,
+            Reverse = reverse };
     }
 
     /// <summary>One LED device, as stored in settings and set up in the device wizard.</summary>
@@ -94,7 +96,8 @@ namespace AlmostFastDash.Devices
         public string Kind { get; set; } = LedDeviceKinds.Arduino;
         /// <summary>COM port, for Arduino and Adalight devices.</summary>
         public string Port { get; set; }
-        /// <summary>USB hardware ID (such as VID_9999&amp;PID_09C7&amp;MI_00), so the device is found again when Windows renumbers ports.</summary>
+        /// <summary>USB hardware ID (such as VID_9999&amp;PID_09C7&amp;MI_00), so the device is found again when Windows renumbers
+        /// ports.</summary>
         public string UsbId { get; set; }
         /// <summary>IP address or host name, for WLED.</summary>
         public string Address { get; set; }

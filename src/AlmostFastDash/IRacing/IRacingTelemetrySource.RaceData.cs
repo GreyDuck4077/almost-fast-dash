@@ -229,7 +229,8 @@ namespace AlmostFastDash.IRacing
                 int[] positions = t.CarIdxPosition;
                 if (positions == null) return new StandingsEntry[0];
                 int[] classPositions = t["CarIdxClassPosition"] as int[];
-                float[] last = t["CarIdxLastLapTime"] as float[], best = t["CarIdxBestLapTime"] as float[], f2 = t["CarIdxF2Time"] as float[];
+                float[] last = t["CarIdxLastLapTime"] as float[], best = t["CarIdxBestLapTime"] as float[],
+                    f2 = t["CarIdxF2Time"] as float[];
                 int[] laps = t["CarIdxLapCompleted"] as int[];
                 float[] distances = t.CarIdxLapDistPct;
                 bool[] pits = t.CarIdxOnPitRoad;
@@ -251,15 +252,18 @@ namespace AlmostFastDash.IRacing
                     if (carBest > 0)
                     {
                         if (sessionBest <= 0 || carBest < sessionBest) sessionBest = carBest;
-                        if (me != null && driver.CarClassId == me.CarClassId && (classBest <= 0 || carBest < classBest)) classBest = carBest;
+                        if (me != null && driver.CarClassId == me.CarClassId &&
+                            (classBest <= 0 || carBest < classBest)) classBest = carBest;
                     }
                     // Early in a session iRacing gives no position until a car sets a time; list every car
                     // that is in the session anyway (ranked below).
-                    if (positions[i] <= 0 && carBest <= 0 && (distances == null || i >= distances.Length || distances[i] < 0) && i != player) continue;
+                    if (positions[i] <= 0 && carBest <= 0 && (distances == null || i >= distances.Length || distances[i] < 0) &&
+                        i != player) continue;
                     RelativeDriver info = BuildRelative(details, i, GetDriverName(details, i));
                     rows.Add(new StandingsEntry
                     {
-                        Position = positions[i], ClassPosition = classPositions != null && i < classPositions.Length ? classPositions[i] : 0, CarIdx = i,
+                        Position = positions[i],
+                            ClassPosition = classPositions != null && i < classPositions.Length ? classPositions[i] : 0, CarIdx = i,
                         Name = info?.Name ?? driver.UserName, CarNumber = driver.CarNumber, IRating = (int)driver.IRating,
                         CarName = string.IsNullOrWhiteSpace(driver.CarScreenNameShort) ? driver.CarScreenName : driver.CarScreenNameShort,
                         ClassName = driver.CarClassShortName ?? "", ClassColor = ParseClassColor(driver.CarClassColor),
@@ -353,7 +357,9 @@ namespace AlmostFastDash.IRacing
                 _noticeKind = kind;
                 _noticeUntilUtc = UtcNow.AddSeconds(seconds);
             }
-            if ((raised & (SessionFlags.black | SessionFlags.disqualify)) != 0 && !blackSuppressed) Show("BLACK FLAG · SERVE YOUR PENALTY", "Danger", 8);
+            if ((raised & (SessionFlags.black | SessionFlags.disqualify)) != 0 &&
+                !blackSuppressed) Show("BLACK FLAG · SERVE YOUR PENALTY",
+                "Danger", 8);
             else if ((raised & SessionFlags.repair) != 0) Show("MEATBALL · PIT FOR REPAIRS", "Danger", 8);
             else if ((raised & SessionFlags.checkered) != 0) Show("CHECKERED FLAG", "Info");
             else if ((raised & SessionFlags.white) != 0) Show("WHITE FLAG · FINAL LAP", "Info");
@@ -366,12 +372,14 @@ namespace AlmostFastDash.IRacing
             if (s.LapsCompleted != _noticeLaps)
             {
                 _noticeLaps = s.LapsCompleted;
-                if (s.BestLapSeconds > 0 && (_noticeBest <= 0 || s.BestLapSeconds < _noticeBest - 0.0005) && s.LastLapSeconds > 0 && Math.Abs(s.LastLapSeconds - s.BestLapSeconds) < 0.002)
+                if (s.BestLapSeconds > 0 && (_noticeBest <= 0 || s.BestLapSeconds < _noticeBest - 0.0005) && s.LastLapSeconds > 0 &&
+                    Math.Abs(s.LastLapSeconds - s.BestLapSeconds) < 0.002)
                     Show("PERSONAL BEST " + Fmt.LapTime(s.BestLapSeconds), "Good");
                 _noticeBest = s.BestLapSeconds;
             }
             if (s.OnPitRoad) _fuelNoticeShown = false;
-            else if (!_fuelNoticeShown && s.FuelLapsLeft >= 0 && s.FuelLapsLeft < 2 && (s.LapsRemaining < 0 || s.FuelLapsLeft < s.LapsRemaining))
+            else if (!_fuelNoticeShown && s.FuelLapsLeft >= 0 && s.FuelLapsLeft < 2 &&
+                (s.LapsRemaining < 0 || s.FuelLapsLeft < s.LapsRemaining))
             {
                 _fuelNoticeShown = true;
                 Show("LOW FUEL · " + s.FuelLapsLeft.ToString("0.0") + " LAPS LEFT", "Warning", 6);
@@ -399,22 +407,31 @@ namespace AlmostFastDash.IRacing
             s.BestSectorTimes = new[] { 29.904, 30.871, 26.598 };
             s.Tyres = new[]
             {
-                new TyreCorner { Name = "LF", TempOuter = 84, TempMiddle = 89, TempInner = 93, WearOuter = 0.91, WearMiddle = 0.93, WearInner = 0.9, PressureKpa = 165 },
-                new TyreCorner { Name = "RF", TempOuter = 91, TempMiddle = 95, TempInner = 99, WearOuter = 0.86, WearMiddle = 0.9, WearInner = 0.88, PressureKpa = 166 },
-                new TyreCorner { Name = "LR", TempOuter = 80, TempMiddle = 84, TempInner = 87, WearOuter = 0.94, WearMiddle = 0.95, WearInner = 0.93, PressureKpa = 158 },
-                new TyreCorner { Name = "RR", TempOuter = 86, TempMiddle = 90, TempInner = 92, WearOuter = 0.9, WearMiddle = 0.92, WearInner = 0.91, PressureKpa = 159 }
+                new TyreCorner { Name = "LF", TempOuter = 84, TempMiddle = 89, TempInner = 93, WearOuter = 0.91, WearMiddle = 0.93,
+                    WearInner = 0.9, PressureKpa = 165 },
+                new TyreCorner { Name = "RF", TempOuter = 91, TempMiddle = 95, TempInner = 99, WearOuter = 0.86, WearMiddle = 0.9,
+                WearInner = 0.88, PressureKpa = 166 },
+                new TyreCorner { Name = "LR", TempOuter = 80, TempMiddle = 84, TempInner = 87, WearOuter = 0.94, WearMiddle = 0.95,
+                WearInner = 0.93, PressureKpa = 158 },
+                new TyreCorner { Name = "RR", TempOuter = 86, TempMiddle = 90, TempInner = 92, WearOuter = 0.9, WearMiddle = 0.92,
+                WearInner = 0.91, PressureKpa = 159 }
             };
             // A full 22-car field in race order. The first seven keep car slots 0-6 and R. Alves (lapped, P17) keeps
             // slot 7, matching the radar and relative previews; the rest of the field takes slots 8-21.
-            string[] names = { "L. HARTMANN", "S. OKAFOR", "J. MILLER", "YOU", "M. CARTER", "A. DUBOIS", "K. TANAKA", "D. ROSSI", "T. NGUYEN",
+            string[] names = { "L. HARTMANN", "S. OKAFOR", "J. MILLER", "YOU", "M. CARTER", "A. DUBOIS", "K. TANAKA", "D. ROSSI",
+                "T. NGUYEN",
                 "P. SILVA", "E. LINDQVIST", "H. SATO", "C. BAUER", "F. MORENO", "B. KOVAC", "G. WALSH", "R. ALVES", "O. HAYES", "V. PETROV",
                 "I. CASTRO", "W. ZHANG", "N. BRANDT" };
             int[] slots = { 0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 7, 17, 18, 19, 20, 21 };
-            string[] numbers = { "7", "12", "05", "22", "31", "44", "9", "27", "3", "18", "61", "14", "21", "50", "73", "11", "88", "2", "66", "19", "8", "95" };
-            int[] ratings = { 4410, 3890, 2340, 2815, 3120, 2650, 1980, 3350, 2910, 2480, 2205, 3015, 1890, 2120, 1760, 1645, 1180, 1530, 1395, 1310, 1240, 1050 };
-            double[] gaps = { 0, 3.12, 5.48, 5.94, 6.76, 11.2, 14.9, 16.35, 18.02, 21.47, 24.81, 27.36, 30.12, 33.95, 38.4, 44.73, 91.6, 96.2, 101.8,
+            string[] numbers = { "7", "12", "05", "22", "31", "44", "9", "27", "3", "18", "61", "14", "21", "50", "73", "11", "88", "2",
+                "66", "19", "8", "95" };
+            int[] ratings = { 4410, 3890, 2340, 2815, 3120, 2650, 1980, 3350, 2910, 2480, 2205, 3015, 1890, 2120, 1760, 1645, 1180, 1530,
+                1395, 1310, 1240, 1050 };
+            double[] gaps = { 0, 3.12, 5.48, 5.94, 6.76, 11.2, 14.9, 16.35, 18.02, 21.47, 24.81, 27.36, 30.12, 33.95, 38.4, 44.73, 91.6,
+                96.2, 101.8,
                 108.3, 117.5, 186.9 };
-            double[] bests = { 87.118, 87.402, 87.655, 87.521, 87.733, 88.012, 88.24, 88.183, 88.317, 88.402, 88.561, 88.498, 88.702, 88.815, 88.934,
+            double[] bests = { 87.118, 87.402, 87.655, 87.521, 87.733, 88.012, 88.24, 88.183, 88.317, 88.402, 88.561, 88.498, 88.702,
+                88.815, 88.934,
                 89.067, 89.105, 89.288, 89.41, 89.623, 89.87, 90.214 };
             int[] lapsDown = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2 };
             var rows = new StandingsEntry[names.Length];
@@ -423,11 +440,15 @@ namespace AlmostFastDash.IRacing
                 int rating = ratings[i];
                 rows[i] = new StandingsEntry
                 {
-                    Position = i + 1, ClassPosition = i + 1, CarIdx = slots[i], Name = names[i], CarNumber = numbers[i], IRating = rating, CarName = "911 GT3 R",
-                    ClassName = "GT3", ClassColor = Color.FromArgb(255, 218, 89), License = rating > 3000 ? "A" : rating > 2000 ? "B" : rating > 1500 ? "C" : "D",
-                    LicenseColor = rating > 3000 ? Color.FromArgb(0, 120, 220) : rating > 2000 ? Color.FromArgb(0, 164, 90) : rating > 1500 ? Color.FromArgb(235, 190, 0) : Color.FromArgb(230, 120, 20),
+                    Position = i + 1, ClassPosition = i + 1, CarIdx = slots[i], Name = names[i], CarNumber = numbers[i], IRating = rating,
+                        CarName = "911 GT3 R",
+                    ClassName = "GT3", ClassColor = Color.FromArgb(255, 218, 89),
+                    License = rating > 3000 ? "A" : rating > 2000 ? "B" : rating > 1500 ? "C" : "D",
+                    LicenseColor = rating > 3000 ? Color.FromArgb(0, 120, 220) : rating > 2000 ? Color.FromArgb(0, 164, 90) : rating > 1500
+                    ? Color.FromArgb(235, 190, 0) : Color.FromArgb(230, 120, 20),
                     LastLap = bests[i] + 0.31, BestLap = bests[i], Laps = 9 - lapsDown[i], LapsBehind = lapsDown[i],
-                    GapToLeader = gaps[i], Interval = i == 0 ? 0 : gaps[i] - gaps[i - 1], DeltaToPlayer = gaps[i] - gaps[3], IsPlayer = i == 3, InPits = i == 5
+                    GapToLeader = gaps[i], Interval = i == 0 ? 0 : gaps[i] - gaps[i - 1], DeltaToPlayer = gaps[i] - gaps[3],
+                    IsPlayer = i == 3, InPits = i == 5
                 };
             }
             s.Standings = rows;
@@ -436,7 +457,8 @@ namespace AlmostFastDash.IRacing
             s.PlayerCarIdx = 3;
             // By car slot. Only the cars around you (slots 1, 2 and 4) sit inside the traffic widgets' windows; the
             // rest of the field is spread around the lap, clear of them.
-            s.CarLapDist = new[] { 0.62f, 0.55f, 0.47f, 0.455f, 0.43f, 0.0f, 0.21f, 0.83f, 0.665f, 0.70f, 0.735f, 0.775f, 0.865f, 0.90f, 0.94f,
+            s.CarLapDist = new[] { 0.62f, 0.55f, 0.47f, 0.455f, 0.43f, 0.0f, 0.21f, 0.83f, 0.665f, 0.70f, 0.735f, 0.775f, 0.865f, 0.90f,
+                0.94f,
                 0.975f, 0.04f, 0.085f, 0.13f, 0.17f, 0.25f, 0.285f };
         }
     }

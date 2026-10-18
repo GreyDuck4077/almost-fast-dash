@@ -21,7 +21,8 @@ namespace AlmostFastDash.Runner
         private static extern IntPtr GetCurrentProcess();
 
         [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern bool SetProcessInformation(IntPtr process, int informationClass, ref PowerThrottlingState information, int size);
+        private static extern bool SetProcessInformation(IntPtr process, int informationClass, ref PowerThrottlingState information,
+            int size);
 
         [StructLayout(LayoutKind.Sequential)]
         private struct PowerThrottlingState

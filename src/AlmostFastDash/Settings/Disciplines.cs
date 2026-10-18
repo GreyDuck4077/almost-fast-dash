@@ -25,7 +25,8 @@ namespace AlmostFastDash.Settings
 
     internal static class Layouts
     {
-        /// <summary>Every dashboard is a design stored in <see cref="DashboardSettings.Design"/> and drawn by <see cref="LayoutRenderer"/>.</summary>
+        /// <summary>Every dashboard is a design stored in <see cref="DashboardSettings.Design"/> and drawn by <see
+        /// cref="LayoutRenderer"/>.</summary>
         public const string Custom = "Custom";
 
         /// <summary>Code-drawn layouts from earlier versions; schema 5 replaces them with the Liquid Glass designs.</summary>

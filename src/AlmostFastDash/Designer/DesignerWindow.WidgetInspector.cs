@@ -28,21 +28,25 @@ namespace AlmostFastDash.Designer
             header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(34) });
             header.ColumnDefinitions.Add(new ColumnDefinition());
             header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            var badge = new Border { Width = 28, Height = 28, CornerRadius = new CornerRadius(7), Background = (Brush)FindResource("Brush.AccentSubtle"), Child = Glyph(type.Icon, 14, "Brush.Accent") };
+            var badge = new Border { Width = 28, Height = 28, CornerRadius = new CornerRadius(7),
+                Background = (Brush)FindResource("Brush.AccentSubtle"), Child = Glyph(type.Icon, 14, "Brush.Accent") };
             ((TextBlock)badge.Child).HorizontalAlignment = HorizontalAlignment.Center;
             header.Children.Add(badge);
-            var name = new TextBox { Text = widget.Name ?? type.Name, FontWeight = FontWeights.SemiBold, VerticalContentAlignment = VerticalAlignment.Center, ToolTip = "Layer name" };
+            var name = new TextBox { Text = widget.Name ?? type.Name, FontWeight = FontWeights.SemiBold,
+                VerticalContentAlignment = VerticalAlignment.Center, ToolTip = "Layer name" };
             name.TextChanged += (s, e) => { widget.Name = name.Text; CommitSoon("Rename"); };
             name.LostKeyboardFocus += (s, e) => RefreshLayers();
             Grid.SetColumn(name, 1);
             header.Children.Add(name);
-            var more = new Button { Style = (Style)FindResource("Btn.Ghost"), Width = 30, Height = 30, Padding = new Thickness(0), Margin = new Thickness(6, 0, 0, 0), Content = Glyph("", 13), ToolTip = "More" };
+            var more = new Button { Style = (Style)FindResource("Btn.Ghost"), Width = 30, Height = 30, Padding = new Thickness(0),
+                Margin = new Thickness(6, 0, 0, 0), Content = Glyph("", 13), ToolTip = "More" };
             more.Click += (s, e) =>
             {
                 var menu = new ContextMenu { PlacementTarget = more, Placement = PlacementMode.Bottom };
                 menu.Items.Add(MenuItem("Duplicate", "Ctrl+D", () => DuplicateSelection()));
                 menu.Items.Add(MenuItem("Repeat…", "Ctrl+Shift+D", RepeatSelection));
-                menu.Items.Add(MenuItem("Reset to defaults", null, () => { widget.Props.Clear(); Commit("Reset widget"); RefreshInspector(); RequestRender(); }));
+                menu.Items.Add(MenuItem("Reset to defaults", null,
+                    () => { widget.Props.Clear(); Commit("Reset widget"); RefreshInspector(); RequestRender(); }));
                 menu.Items.Add(MenuItem("Save as module…", "Ctrl+M", SaveSelectionAsModule));
                 menu.Items.Add(MenuItem(widget.Locked ? "Unlock" : "Lock", "Ctrl+L", ToggleLock));
                 menu.Items.Add(MenuItem("Delete", "Del", DeleteSelection));
@@ -53,7 +57,8 @@ namespace AlmostFastDash.Designer
             Inspector.Children.Add(header);
             Inspector.Children.Add(Caption(type.Description, 8));
             if (!string.IsNullOrEmpty(widget.Group))
-                Inspector.Children.Add(Caption("In " + widget.GroupName + (widget.Slot != 0 ? " (Slot " + widget.Slot.ToString("0.##", CultureInfo.InvariantCulture) + ")" : "") +
+                Inspector.Children.Add(Caption("In " + widget.GroupName +
+                    (widget.Slot != 0 ? " (Slot " + widget.Slot.ToString("0.##", CultureInfo.InvariantCulture) + ")" : "") +
                     ". Click the group on the canvas to select all of it.", 6));
             AddGhostNotice(new[] { widget });
             AddModuleOptions(widget);
@@ -67,15 +72,19 @@ namespace AlmostFastDash.Designer
             }
             if (!string.IsNullOrEmpty(tapName))
             {
-                DashWidget zone = _layout.AllWidgets().FirstOrDefault(w => string.Equals(w.Get("tapName", "")?.Trim(), tapName, StringComparison.OrdinalIgnoreCase));
+                DashWidget zone = _layout.AllWidgets()
+                    .FirstOrDefault(w => string.Equals(w.Get("tapName", "")?.Trim(), tapName, StringComparison.OrdinalIgnoreCase));
                 int views = zone != null ? LayoutRenderer.TapViews(zone) : 2;
                 _designTaps.TryGetValue(tapName, out int view);
-                var next = new Button { Content = "Tap \"" + tapName + "\": showing view " + (view % views + 1) + " of " + views + "  ·  Next ›", Margin = new Thickness(0, 10, 0, 0), HorizontalAlignment = HorizontalAlignment.Left };
+                var next = new Button { Content = "Tap \"" + tapName + "\": showing view " + (view % views + 1) + " of " + views +
+                    "  ·  Next ›",
+                    Margin = new Thickness(0, 10, 0, 0), HorizontalAlignment = HorizontalAlignment.Left };
                 next.Click += (s, e) => { _designTaps[tapName] = (view + 1) % views; RequestRender(); RefreshInspector(); };
                 Inspector.Children.Add(next);
             }
             if (_renderer != null && _renderer.Errors.TryGetValue(widget.Id, out string error))
-                Inspector.Children.Add(new TextBlock { Text = "⚠ " + error, Foreground = (Brush)FindResource("Brush.Danger"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0) });
+                Inspector.Children.Add(new TextBlock { Text = "⚠ " + error, Foreground = (Brush)FindResource("Brush.Danger"),
+                    TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 8, 0, 0) });
 
             // Position and size
             Inspector.Children.Add(SectionTitle("Position and size"));
@@ -83,8 +92,10 @@ namespace AlmostFastDash.Designer
             foreach (string axis in new[] { "X", "Y", "W", "H" })
             {
                 var cell = new StackPanel { Margin = new Thickness(0, 0, 6, 0) };
-                cell.Children.Add(new TextBlock { Text = axis, Style = (Style)FindResource("T.Caption"), Margin = new Thickness(2, 0, 0, 2) });
-                var box = new TextBox { Text = Axis(widget, axis).ToString("0.##", CultureInfo.InvariantCulture), FontFamily = (FontFamily)FindResource("Font.Mono"), FontSize = 12 };
+                cell.Children.Add(new TextBlock { Text = axis, Style = (Style)FindResource("T.Caption"),
+                    Margin = new Thickness(2, 0, 0, 2) });
+                var box = new TextBox { Text = Axis(widget, axis).ToString("0.##", CultureInfo.InvariantCulture),
+                    FontFamily = (FontFamily)FindResource("Font.Mono"), FontSize = 12 };
                 string a = axis;
                 box.TextChanged += (s, e) =>
                 {
@@ -99,7 +110,8 @@ namespace AlmostFastDash.Designer
                 position.Children.Add(cell);
             }
             Inspector.Children.Add(position);
-            Inspector.Children.Add(new TextBlock { Text = "Align on screen", Style = (Style)FindResource("T.Caption"), Margin = new Thickness(0, 10, 0, 4) });
+            Inspector.Children.Add(new TextBlock { Text = "Align on screen", Style = (Style)FindResource("T.Caption"),
+                Margin = new Thickness(0, 10, 0, 4) });
             Inspector.Children.Add(AlignBar(false));
             // Paths are reshaped on the canvas; shapes can become paths to reshape.
             if (widget.Type == "path")
@@ -121,8 +133,10 @@ namespace AlmostFastDash.Designer
                 title.Children.Add(chevron);
                 int formulas = group.Count(p => LayoutRenderer.IsFormula(widget.Get(p.Key, p.Default), p) && p.Kind != PropKind.Formula);
                 if (formulas > 0)
-                    title.Children.Add(new TextBlock { Text = "  ƒ" + formulas, FontStyle = FontStyles.Italic, FontSize = 12, Foreground = (Brush)FindResource("Brush.Accent"), VerticalAlignment = VerticalAlignment.Center });
-                var headerButton = new Border { Child = title, Background = Brushes.Transparent, Cursor = Cursors.Hand, Margin = new Thickness(0, 18, 0, 8) };
+                    title.Children.Add(new TextBlock { Text = "  ƒ" + formulas, FontStyle = FontStyles.Italic, FontSize = 12,
+                        Foreground = (Brush)FindResource("Brush.Accent"), VerticalAlignment = VerticalAlignment.Center });
+                var headerButton = new Border { Child = title, Background = Brushes.Transparent, Cursor = Cursors.Hand,
+                    Margin = new Thickness(0, 18, 0, 8) };
                 headerButton.MouseLeftButtonUp += (s, e) =>
                 {
                     bool nowCollapsed = content.Visibility == Visibility.Visible;
@@ -148,7 +162,8 @@ namespace AlmostFastDash.Designer
 
         private readonly Dictionary<string, FrameworkElement> _groupHeaders = new Dictionary<string, FrameworkElement>();
 
-        /// <summary>Hides settings that don't matter as the widget is set up (and groups left empty), without rebuilding the panel.</summary>
+        /// <summary>Hides settings that don't matter as the widget is set up (and groups left empty), without rebuilding the
+        /// panel.</summary>
         private void UpdateApplicableRows(DashWidget widget, WidgetType type)
         {
             foreach (PropDef def in type.Props)

@@ -95,8 +95,10 @@ namespace AlmostFastDash.Designer
                 {
                     int handle = HandleAt(p);
                     // Handles keep pointing the way they face on a turned widget.
-                    int turned = handle < 0 || handle == RotateHandle ? -1 : ((handle + (int)Math.Round(Angle(_selection[0]) / 45)) % 8 + 8) % 8;
-                    Overlay.Cursor = handle == RotateHandle ? Cursors.Hand : handle >= 0 ? HandleCursors[turned] : WidgetAt(p) != null ? Cursors.SizeAll : Cursors.Arrow;
+                    int turned = handle < 0 || handle == RotateHandle ? -1
+                        : ((handle + (int)Math.Round(Angle(_selection[0]) / 45)) % 8 + 8) % 8;
+                    Overlay.Cursor = handle == RotateHandle ? Cursors.Hand : handle >= 0 ? HandleCursors[turned] : WidgetAt(p) != null
+                        ? Cursors.SizeAll : Cursors.Arrow;
                     DashWidget hover = WidgetAt(p);
                     if (hover != _hover) { _hover = hover; UpdateOverlay(); }
                     return;
@@ -123,7 +125,8 @@ namespace AlmostFastDash.Designer
                 case DragMode.Marquee:
                     _marquee = new Rect(_dragStart, p);
                     _selection.Clear();
-                    _selection.AddRange(_screen.Widgets.Where(w => !w.Hidden && !w.Locked && ShownNow(w) && _marquee.IntersectsWith(RectOf(w))));
+                    _selection.AddRange(_screen.Widgets.Where(w => !w.Hidden && !w.Locked && ShownNow(w) &&
+                        _marquee.IntersectsWith(RectOf(w))));
                     UpdateOverlay();
                     return;
             }
@@ -162,14 +165,16 @@ namespace AlmostFastDash.Designer
                     menu.Items.Add(MenuItem("Edit points", "Enter", () => BeginEditPath(path)));
                     menu.Items.Add(new Separator());
                 }
-                else if (_selection.Count == 1 && _selection[0].Type == "shape" && PathNodes.FromShape(_selection[0].Get("shape", "Rectangle"), 6, 0.5f, out _) != null)
+                else if (_selection.Count == 1 && _selection[0].Type == "shape" &&
+                    PathNodes.FromShape(_selection[0].Get("shape", "Rectangle"), 6, 0.5f, out _) != null)
                 {
                     DashWidget shape = _selection[0];
                     menu.Items.Add(MenuItem("Convert to path", null, () => ConvertToPath(shape)));
                     menu.Items.Add(new Separator());
                 }
                 bool allClipped = _selection.All(w => Expr.Bool(w.Get("clip", "false")));
-                menu.Items.Add(MenuItem(allClipped ? "Release clipping mask" : "Clip to layer below", "Ctrl+Alt+G", () => ToggleClip(_selection.ToList())));
+                menu.Items.Add(MenuItem(allClipped ? "Release clipping mask" : "Clip to layer below", "Ctrl+Alt+G",
+                    () => ToggleClip(_selection.ToList())));
                 menu.Items.Add(MenuItem("Duplicate", "Ctrl+D", () => DuplicateSelection()));
                 menu.Items.Add(MenuItem("Repeat…", "Ctrl+Shift+D", RepeatSelection));
                 menu.Items.Add(MenuItem("Zoom to selection", "Shift+2", ZoomToSelection));
@@ -182,7 +187,8 @@ namespace AlmostFastDash.Designer
                 menu.Items.Add(MenuItem("Send to back", null, () => Reorder(int.MinValue)));
                 menu.Items.Add(new Separator());
                 menu.Items.Add(MenuItem(_selection.All(w => w.Locked) ? "Unlock" : "Lock", "Ctrl+L", ToggleLock));
-                menu.Items.Add(MenuItem("Hide", null, () => { foreach (DashWidget w in _selection) w.Hidden = true; _selection.Clear(); Commit("Hide"); SelectionChanged(); }));
+                menu.Items.Add(MenuItem("Hide", null,
+                    () => { foreach (DashWidget w in _selection) w.Hidden = true; _selection.Clear(); Commit("Hide"); SelectionChanged(); }));
                 if (_layout.Screens.Count > 1)
                 {
                     var move = new MenuItem { Header = "Move to screen" };
@@ -225,7 +231,8 @@ namespace AlmostFastDash.Designer
             if (!free)
             {
                 dx += SnapAxis(new[] { moved.Left, moved.Left + moved.Width / 2, moved.Right }, true, moved);
-                dy += SnapAxis(new[] { moved.Top, moved.Top + moved.Height / 2, moved.Bottom }, false, new Rect(union.X + dx, moved.Y, moved.Width, moved.Height));
+                dy += SnapAxis(new[] { moved.Top, moved.Top + moved.Height / 2, moved.Bottom }, false,
+                    new Rect(union.X + dx, moved.Y, moved.Width, moved.Height));
             }
             foreach (KeyValuePair<DashWidget, Rect> pair in _originals)
             {
@@ -358,8 +365,10 @@ namespace AlmostFastDash.Designer
                 }
             if (best != double.MaxValue)
             {
-                if (horizontal) _guides.Add(Tuple.Create(new Point(bestTarget, Math.Min(0, moving.Top) - 2000), new Point(bestTarget, Math.Max(CanvasH, moving.Bottom) + 2000)));
-                else _guides.Add(Tuple.Create(new Point(Math.Min(0, moving.Left) - 2000, bestTarget), new Point(Math.Max(CanvasW, moving.Right) + 2000, bestTarget)));
+                if (horizontal) _guides.Add(Tuple.Create(new Point(bestTarget, Math.Min(0, moving.Top) - 2000),
+                    new Point(bestTarget, Math.Max(CanvasH, moving.Bottom) + 2000)));
+                else _guides.Add(Tuple.Create(new Point(Math.Min(0, moving.Left) - 2000, bestTarget),
+                    new Point(Math.Max(CanvasW, moving.Right) + 2000, bestTarget)));
                 return best;
             }
             double first = edges[0];
@@ -370,7 +379,8 @@ namespace AlmostFastDash.Designer
 
         private void Overlay_DragOver(object sender, DragEventArgs e)
         {
-            e.Effects = e.Data.GetDataPresent("afo-widget") || e.Data.GetDataPresent("afo-block") || e.Data.GetDataPresent("afo-module") || ModuleFiles(e.Data).Count > 0
+            e.Effects = e.Data.GetDataPresent("afo-widget") || e.Data.GetDataPresent("afo-block") || e.Data.GetDataPresent("afo-module") ||
+                ModuleFiles(e.Data).Count > 0
                 ? DragDropEffects.Copy : DragDropEffects.None;
             e.Handled = true;
         }

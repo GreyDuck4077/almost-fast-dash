@@ -75,7 +75,8 @@ namespace AlmostFastDash.UI
             AboutVersion.Text = $"Almost Fast Dash {version.Major}.{version.Minor}";
             SettingsPathText.Text = SettingsStore.FilePath;
             Loaded += (s, e) => CheckForUpdate();
-            Closing += (s, e) => { FlushSave(); _ledTimer.Stop(); _statusTimer.Stop(); _mirror.Dispose(); PreviewRequest.Clear(); StopLivePreview(); };
+            Closing += (s,
+                e) => { FlushSave(); _ledTimer.Stop(); _statusTimer.Stop(); _mirror.Dispose(); PreviewRequest.Clear(); StopLivePreview(); };
         }
 
         // ------------------------------------------------------------------
@@ -128,7 +129,8 @@ namespace AlmostFastDash.UI
             Style = (Style)FindResource("Pill"),
             Background = (Brush)FindResource(backgroundKey),
             Margin = margin,
-            Child = new TextBlock { Text = text, FontSize = 12, FontWeight = FontWeights.SemiBold, Foreground = (Brush)FindResource(foregroundKey) }
+            Child = new TextBlock { Text = text, FontSize = 12, FontWeight = FontWeights.SemiBold,
+            Foreground = (Brush)FindResource(foregroundKey) }
         };
 
         private TextBlock GlyphIcon(string glyph) => new TextBlock { Text = glyph, Style = (Style)FindResource("T.Icon"), FontSize = 13 };

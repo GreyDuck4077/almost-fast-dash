@@ -81,7 +81,8 @@ namespace AlmostFastDash.Rendering
                     if (fy < 0) fy = 0; else if (fy > h - 1.001f) fy = h - 1.001f;
                     int sx = (int)fx, sy = (int)fy;
                     int at = sy * w + sx;
-                    int color = Blend(source[at], source[at + 1], source[at + w], source[at + w + 1], (int)((fx - sx) * 256), (int)((fy - sy) * 256));
+                    int color = Blend(source[at], source[at + 1], source[at + w], source[at + w + 1], (int)((fx - sx) * 256),
+                        (int)((fy - sy) * 256));
                     // Light falls on the slopes facing up-left; folds facing away go into soft shadow.
                     float shade = 0.016f * a * (c1 + 0.35f * c2) + _weave[at] * 0.004f;
                     output[rowStart + x] = Shade(color, shade);

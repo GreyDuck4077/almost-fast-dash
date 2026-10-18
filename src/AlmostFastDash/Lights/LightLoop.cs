@@ -22,7 +22,8 @@ namespace AlmostFastDash.Lights
         private readonly Thread _thread;
 
         /// <param name="log">Given each stretch of a layer lighting a group, for the light log; may be null.</param>
-        public LightLoop(Func<TelemetrySnapshot> telemetry, Func<AppSettings> settings, Func<DashboardSettings> dashboard, Action<LightSpan> log = null)
+        public LightLoop(Func<TelemetrySnapshot> telemetry, Func<AppSettings> settings, Func<DashboardSettings> dashboard,
+            Action<LightSpan> log = null)
         {
             _log = log;
             _telemetry = telemetry;
@@ -65,15 +66,18 @@ namespace AlmostFastDash.Lights
                         if (profile != null)
                         {
                             // Devices only change with a settings reload (a new list), so that's when to check them.
-                            if (renderer == null || (devices != lastDevices && renderer.Signature != LightRenderer.DeviceSignature(devices)))
+                            if (renderer == null ||
+                                (devices != lastDevices && renderer.Signature != LightRenderer.DeviceSignature(devices)))
                                 renderer = new LightRenderer(profile, dashboard.AccentColor, new UnitSystem(general), devices);
                             lastDevices = devices;
                             LightFrame frame = renderer.Compose(snapshot, Environment.TickCount);
                             Send(links, devices, frame);
                             if (_log != null)
-                                foreach (LightSpan span in activity.Observe(frame, devices, Environment.TickCount / 1000.0, Context(live), profile.Gamma))
+                                foreach (LightSpan span in activity.Observe(frame, devices, Environment.TickCount / 1000.0, Context(live),
+                                    profile.Gamma))
                                     // Rev lights come and go all lap; the log is for everything else.
-                                    if (span.Seconds >= 1 && !profile.Layers.Any(l => l.Name == span.Layer && l.Effect == "revs")) _log(span);
+                                    if (span.Seconds >= 1 &&
+                                        !profile.Layers.Any(l => l.Name == span.Layer && l.Effect == "revs")) _log(span);
                         }
                     }
                     catch (Exception exception)
@@ -93,7 +97,8 @@ namespace AlmostFastDash.Lights
         }
 
         private static string Context(TelemetrySnapshot t) =>
-            !t.Connected ? "not connected" : t.OutOfCar ? "out of car" : t.Flag != RacingFlag.None ? "flag " + t.Flag : t.OnPitRoad ? "pit road" : "driving";
+            !t.Connected ? "not connected" : t.OutOfCar ? "out of car" : t.Flag != RacingFlag.None ? "flag " + t.Flag : t.OnPitRoad
+            ? "pit road" : "driving";
 
         private static int _statusTick;
 

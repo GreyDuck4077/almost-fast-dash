@@ -14,7 +14,8 @@ namespace AlmostFastDash.Rendering
             bool vertical = c.Choice("orientation") == "Vertical", reverse = order == FillOrder.EndToStart;
             var warp = new BarWarp(b, vertical, c.Num("bend") / 100, c.Num("peak") / 100, c.Num("taper") / 100, c.Num("bulge") / 100,
                 c.Num("skew"), c.Num("thickness") / 100, c.Choice("grow"));
-            if (!warp.IsStraight || c.Choice("colorMode") != "Solid" || !string.IsNullOrWhiteSpace(c.Raw("flash")) || FillOrder.Symmetric(order))
+            if (!warp.IsStraight || c.Choice("colorMode") != "Solid" || !string.IsNullOrWhiteSpace(c.Raw("flash")) ||
+                FillOrder.Symmetric(order))
             {
                 ShapedBar(c, warp);
                 return;
@@ -40,7 +41,9 @@ namespace AlmostFastDash.Rendering
                         ? new RectangleF(b.X, b.Bottom - (slot + 1) * len - slot * gap, b.Width, len)
                         : new RectangleF(b.X + slot * (len + gap), b.Y, len, b.Height);
                     bool on = i < lit;
-                    if (on && glow > 0) using (GraphicsPath p = Paint.Rounded(seg, Math.Min(radius, Math.Min(seg.Width, seg.Height) / 2))) Paint.Glow(g, p, color, glow);
+                    if (on && glow > 0) using (GraphicsPath p = Paint.Rounded(seg,
+                        Math.Min(radius, Math.Min(seg.Width, seg.Height) / 2))) Paint.Glow(g,
+                        p, color, glow);
                     DashKit.Fill(g, seg, on ? color : track, Math.Min(radius, Math.Min(seg.Width, seg.Height) / 2));
                 }
             }
@@ -137,7 +140,8 @@ namespace AlmostFastDash.Rendering
 
             // The warped shapes of the track and segments stay the same while only the value moves, so they
             // are kept by geometry; a growing fill is warped afresh.
-            string geometry = c.B + "|" + c.Raw("bend") + "|" + c.Raw("peak") + "|" + c.Raw("taper") + "|" + c.Raw("bulge") + "|" + c.Raw("skew") + "|" +
+            string geometry = c.B + "|" + c.Raw("bend") + "|" + c.Raw("peak") + "|" + c.Raw("taper") + "|" + c.Raw("bulge") + "|" +
+                c.Raw("skew") + "|" +
                 c.Raw("thickness") + "|" + c.Raw("grow") + "|" + c.Raw("orientation") + "|" + radius + "|";
             void Draw(RectangleF r, Color fill, bool lit, Brush brush = null, bool keep = false)
             {
@@ -154,7 +158,8 @@ namespace AlmostFastDash.Rendering
 
             GraphicsPath Warped(RectangleF r)
             {
-                using (GraphicsPath flatPath = Paint.Rounded(r, Math.Min(radius, Math.Min(r.Width, r.Height) / 2))) return warp.Map(flatPath);
+                using (GraphicsPath flatPath = Paint.Rounded(r,
+                    Math.Min(radius, Math.Min(r.Width, r.Height) / 2))) return warp.Map(flatPath);
             }
 
             void Line(float x, float overhang, Color lineColor)
@@ -177,7 +182,8 @@ namespace AlmostFastDash.Rendering
                 {
                     int rank = FillOrder.Rank(order, i, n);
                     bool on = flash || rank < lit;
-                    Draw(new RectangleF(i * (len + gap), 0, len, thick), on ? (flash ? flashColor : ToneAt((rank + 0.5) / steps)) : track, on, null, true);
+                    Draw(new RectangleF(i * (len + gap), 0, len, thick), on ? (flash ? flashColor : ToneAt((rank + 0.5) / steps)) : track,
+                        on, null, true);
                 }
             }
             else if (mode == "Center")
@@ -187,7 +193,8 @@ namespace AlmostFastDash.Rendering
                 double f = scale <= 0 ? 0 : Math.Max(-1, Math.Min(1, value / scale));
                 if (reverse) f = -f;
                 float half = length / 2, len = (float)(Math.Abs(f) * half);
-                Draw(f >= 0 ? new RectangleF(half, 0, len, thick) : new RectangleF(half - len, 0, len, thick), value >= 0 ? color : c.Color("negColor"), true);
+                Draw(f >= 0 ? new RectangleF(half, 0, len, thick) : new RectangleF(half - len, 0, len, thick),
+                    value >= 0 ? color : c.Color("negColor"), true);
                 Line(half, 3, c.Theme("text"));
             }
             else
@@ -214,10 +221,12 @@ namespace AlmostFastDash.Rendering
                             if (Math.Abs(a.X - z.X) + Math.Abs(a.Y - z.Y) < 1) Draw(fill, ToneAt(f), true);
                             else
                             {
-                                float w = (float)Math.Max(0.01, Math.Min(0.98, warnAt)), d = (float)Math.Max(w + 0.01, Math.Min(0.99, dangerAt));
+                                float w = (float)Math.Max(0.01, Math.Min(0.98, warnAt)),
+                                    d = (float)Math.Max(w + 0.01, Math.Min(0.99, dangerAt));
                                 using (var brush = new LinearGradientBrush(a, z, color, danger)
                                 {
-                                    InterpolationColors = new ColorBlend { Positions = new[] { 0f, w, d, 1f }, Colors = new[] { color, warn, danger, danger } },
+                                    InterpolationColors = new ColorBlend { Positions = new[] { 0f, w, d, 1f },
+                                        Colors = new[] { color, warn, danger, danger } },
                                     WrapMode = WrapMode.TileFlipX
                                 })
                                     Draw(fill, ToneAt(f), true, brush);
@@ -244,7 +253,8 @@ namespace AlmostFastDash.Rendering
             double f = Math.Max(0, Math.Min(1, c.Num("value")));
             bool flash = c.Bool("flash");
             string order = FillOrder.Normalize(c.Choice("fill")), shape = c.Choice("shape");
-            Color low = c.Color("lowColor"), mid = c.Color("midColor"), high = c.Color("highColor"), off = c.Color("offColor"), flashColor = c.Color("flashColor");
+            Color low = c.Color("lowColor"), mid = c.Color("midColor"), high = c.Color("highColor"), off = c.Color("offColor"),
+                flashColor = c.Color("flashColor");
             float glow = (float)c.Num("glow");
             float cell = b.Width / n, gap = Math.Min(cell * 0.25f, 8);
             var tool = new ShapeTool(c);
@@ -274,7 +284,9 @@ namespace AlmostFastDash.Rendering
                 if (on && glow > 0) using (GraphicsPath p = tool.Rect(r, radius)) Paint.Glow(g, p, color, glow);
                 tool.Fill(g, r, on ? color : off, radius);
                 if (on)
-                    using (GraphicsPath p = tool.Rect(new RectangleF(r.X + r.Width * 0.2f, r.Y + r.Height * 0.12f, r.Width * 0.6f, r.Height * 0.3f), radius * 0.5f))
+                    using (GraphicsPath p = tool.Rect(new RectangleF(r.X + r.Width * 0.2f, r.Y + r.Height * 0.12f, r.Width * 0.6f,
+                        r.Height * 0.3f),
+                        radius * 0.5f))
                     using (var shine = new SolidBrush(Color.FromArgb(50, 255, 255, 255))) g.FillPath(shine, p);
             }
         }

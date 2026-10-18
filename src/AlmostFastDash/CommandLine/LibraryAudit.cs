@@ -27,7 +27,8 @@ namespace AlmostFastDash.CommandLine
             foreach (string category in WidgetCatalog.Categories)
             {
                 var items = WidgetCatalog.All.Where(t => t.Category == category)
-                    .Select(t => (t.Name, (Func<List<DashWidget>>)(() => new List<DashWidget> { WidgetCatalog.Create(t.Id, 0, 0) }))).ToList();
+                    .Select(t => (t.Name, (Func<List<DashWidget>>)(() => new List<DashWidget> { WidgetCatalog.Create(t.Id, 0, 0) })))
+                        .ToList();
                 Sheet(Path.Combine(directory, "Widgets - " + category + ".png"), category, items, theme, units);
             }
             foreach (IGrouping<string, DesignBlock> folder in QuickValues.All().GroupBy(b => b.Folder))
@@ -40,7 +41,8 @@ namespace AlmostFastDash.CommandLine
             return 0;
         }
 
-        private static void Sheet(string path, string title, List<(string Name, Func<List<DashWidget>> Create)> items, LayoutTheme theme, UnitSystem units)
+        private static void Sheet(string path, string title, List<(string Name, Func<List<DashWidget>> Create)> items, LayoutTheme theme,
+            UnitSystem units)
         {
             int rows = (items.Count + Columns - 1) / Columns;
             using (var sheet = new Bitmap(Columns * Cell, 40 + rows * CellH, PixelFormat.Format32bppArgb))
@@ -61,8 +63,10 @@ namespace AlmostFastDash.CommandLine
                         List<DashWidget> widgets = items[i].Create();
                         double left = widgets.Min(w => w.X), top = widgets.Min(w => w.Y);
                         foreach (DashWidget w in widgets) { w.X -= left - 12; w.Y -= top - 12; }
-                        int width = (int)Math.Ceiling(widgets.Max(w => w.X + w.W)) + 12, height = (int)Math.Ceiling(widgets.Max(w => w.Y + w.H)) + 12;
-                        var design = new DashLayout { Width = width, Height = height, Theme = SettingsStore.Clone(theme), FlagFrame = false, FullScreenFlags = false };
+                        int width = (int)Math.Ceiling(widgets.Max(w => w.X + w.W)) + 12,
+                            height = (int)Math.Ceiling(widgets.Max(w => w.Y + w.H)) + 12;
+                        var design = new DashLayout { Width = width, Height = height, Theme = SettingsStore.Clone(theme),
+                            FlagFrame = false, FullScreenFlags = false };
                         design.Screens.Add(new DashScreen { Name = "Audit", Widgets = widgets });
                         var settings = new DashboardSettings { Layout = Layouts.Custom, Design = design };
                         using (var renderer = new LayoutRenderer(width, height, settings, units))
@@ -90,14 +94,17 @@ namespace AlmostFastDash.CommandLine
             var text = new StringBuilder();
             foreach (WidgetType type in WidgetCatalog.All.OrderBy(t => Array.IndexOf(WidgetCatalog.Categories, t.Category)))
             {
-                text.AppendLine("== " + type.Category + " › " + type.Name + "  [" + type.Id + "]  " + type.DefaultW + "×" + type.DefaultH);
+                text.AppendLine("== " + type.Category + " › " + type.Name + "  [" + type.Id + "]  " + type.DefaultW + "×" +
+                    type.DefaultH);
                 text.AppendLine("   " + type.Description);
                 foreach (IGrouping<string, PropDef> group in type.Props.Where(p => !p.Hidden).GroupBy(p => p.Group))
                 {
                     text.AppendLine("   -- " + group.Key);
                     foreach (PropDef p in group)
-                        text.AppendLine("      " + p.Label.PadRight(28) + p.Kind.ToString().PadRight(8) + " = " + (p.Default ?? "").PadRight(14) +
-                            (p.Choices != null ? " {" + string.Join("|", p.Choices) + "}" : "") + (p.DependsOn != null ? "  when " + p.DependsOn : "") +
+                        text.AppendLine("      " + p.Label.PadRight(28) + p.Kind.ToString().PadRight(8) + " = " + (p.Default ?? "")
+                            .PadRight(14) +
+                            (p.Choices != null ? " {" + string.Join("|", p.Choices) + "}" : "") +
+                            (p.DependsOn != null ? "  when " + p.DependsOn : "") +
                             (string.IsNullOrWhiteSpace(p.Help) ? "" : "  ✓help") + "   [" + p.Key + "]");
                 }
             }

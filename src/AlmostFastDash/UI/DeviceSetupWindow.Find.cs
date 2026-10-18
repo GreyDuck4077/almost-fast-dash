@@ -32,13 +32,15 @@ namespace AlmostFastDash.UI
             actions.Children.Add(scan);
             body.Children.Add(actions);
 
-            body.Children.Add(new TextBlock { Text = "WLED ON YOUR NETWORK", Style = (Style)FindResource("T.Overline"), Margin = new Thickness(0, 26, 0, 8) });
+            body.Children.Add(new TextBlock { Text = "WLED ON YOUR NETWORK", Style = (Style)FindResource("T.Overline"),
+                Margin = new Thickness(0, 26, 0, 8) });
             var wled = new StackPanel { Orientation = Orientation.Horizontal };
             var address = new TextBox { Width = 240, ToolTip = "The controller's IP address or name" };
             // What to type, until something's typed.
             var addressHint = new TextBlock
             {
-                Text = "192.168.1.40 or wled.local", IsHitTestVisible = false, Margin = new Thickness(12, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center,
+                Text = "192.168.1.40 or wled.local", IsHitTestVisible = false, Margin = new Thickness(12, 0, 0, 0),
+                    VerticalAlignment = VerticalAlignment.Center,
                 Foreground = (Brush)FindResource("Brush.TextTertiary")
             };
             address.TextChanged += (s, e) => addressHint.Visibility = address.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -47,14 +49,17 @@ namespace AlmostFastDash.UI
             {
                 string text = address.Text.Trim();
                 if (text.Length == 0 || !lookUp.IsEnabled) return;
-                DeviceSettings known = _found.FirstOrDefault(d => d.Kind == LedDeviceKinds.Wled && string.Equals(d.Address, text, StringComparison.OrdinalIgnoreCase));
+                DeviceSettings known = _found.FirstOrDefault(d => d.Kind == LedDeviceKinds.Wled &&
+                    string.Equals(d.Address, text, StringComparison.OrdinalIgnoreCase));
                 if (known != null) { Select(known); return; }
                 _status.Text = "Asking " + text + "…";
                 lookUp.IsEnabled = false;
                 Tuple<string, int> info = await Task.Run(() => WledOutput.Info(text));
                 lookUp.IsEnabled = true;
-                if (info == null) { _status.Text = "No WLED controller answered at " + text + ". Check the address in the WLED app, and that this PC is on the same network."; return; }
-                var found = new DeviceSettings { Kind = LedDeviceKinds.Wled, Address = text, DetectedName = info.Item1, Name = info.Item1, LedCount = info.Item2 > 0 ? info.Item2 : 30 };
+                if (info == null) { _status.Text = "No WLED controller answered at " + text +
+                    ". Check the address in the WLED app, and that this PC is on the same network."; return; }
+                var found = new DeviceSettings { Kind = LedDeviceKinds.Wled, Address = text, DetectedName = info.Item1, Name = info.Item1,
+                    LedCount = info.Item2 > 0 ? info.Item2 : 30 };
                 _found.Add(found);
                 _status.Text = "";
                 RenderFound();
@@ -72,8 +77,10 @@ namespace AlmostFastDash.UI
             _next.IsEnabled = _device != null;
             if (Offline && _found.Count == 0)
             {
-                _found.Add(new DeviceSettings { Kind = LedDeviceKinds.Arduino, Port = "COM4", DetectedName = "SSG DV 5", Name = "SSG DV 5" });
-                _found.Add(new DeviceSettings { Kind = LedDeviceKinds.Arduino, Port = "COM9", DetectedName = "Arduino LED board", Name = "Arduino LED board" });
+                _found.Add(new DeviceSettings { Kind = LedDeviceKinds.Arduino, Port = "COM4", DetectedName = "SSG DV 5",
+                    Name = "SSG DV 5" });
+                _found.Add(new DeviceSettings { Kind = LedDeviceKinds.Arduino, Port = "COM9", DetectedName = "Arduino LED board",
+                    Name = "Arduino LED board" });
             }
             RenderFound();
             if (_found.Count == 0) Dispatcher.BeginInvoke(new Func<Task>(Scan), DispatcherPriority.Background);
@@ -101,7 +108,9 @@ namespace AlmostFastDash.UI
             {
                 found = await Task.Run(() =>
                 {
-                    List<DeviceSettings> result = LedDeviceScanner.Scan(skip, port => Dispatcher.BeginInvoke(new Action(() => _status.Text = "Looking for LED devices… " + port)), out List<string> inUse);
+                    List<DeviceSettings> result = LedDeviceScanner.Scan(skip,
+                        port => Dispatcher.BeginInvoke(new Action(() => _status.Text = "Looking for LED devices… " + port)),
+                        out List<string> inUse);
                     busy = inUse;
                     return result;
                 });
@@ -112,8 +121,11 @@ namespace AlmostFastDash.UI
             foreach (DeviceSettings device in found.Where(f => _found.All(x => x.Port != f.Port))) _found.Add(device);
             if (_step != Step.Find) return;
             _status.Text = busy.Count > 0
-                ? string.Join(", ", busy) + (busy.Count == 1 ? " is" : " are") + " in use by another program, such as SimHub, so " + (busy.Count == 1 ? "it" : "they") + " can't be asked. Close it, then look again."
-                : _found.Count == 0 ? "Nothing answered. Check the cable, then look again. Boards need the common sim-racing LED firmware or Adalight." : "";
+                ? string.Join(", ", busy) + (busy.Count == 1 ? " is" : " are") + " in use by another program, such as SimHub, so " +
+                    (busy.Count == 1 ? "it" : "they") + " can't be asked. Close it, then look again."
+                : _found.Count == 0
+                    ? "Nothing answered. Check the cable, then look again. Boards need the common sim-racing LED firmware or Adalight."
+                    : "";
             RenderFound();
             if (_device == null && _found.Count == 1) Select(_found[0]);
         }
@@ -130,7 +142,8 @@ namespace AlmostFastDash.UI
                 Text = "The dashboard pauses during setup and starts again when you're done.",
                 Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 12)
             });
-            var stop = new Button { Content = "Pause the dashboard", Style = (Style)FindResource("Btn.Primary"), HorizontalAlignment = HorizontalAlignment.Left };
+            var stop = new Button { Content = "Pause the dashboard", Style = (Style)FindResource("Btn.Primary"),
+                HorizontalAlignment = HorizontalAlignment.Left };
             stop.Click += async (s, e) =>
             {
                 stop.IsEnabled = false;
@@ -157,10 +170,12 @@ namespace AlmostFastDash.UI
                 var card = Card();
                 card.Cursor = Cursors.Hand;
                 card.BorderThickness = new Thickness(1.5);
-                card.BorderBrush = (Brush)FindResource(_device != null && f.Connection == _device.Connection && f.Kind == _device.Kind ? "Brush.Accent" : "Brush.Border");
+                card.BorderBrush = (Brush)FindResource(_device != null && f.Connection == _device.Connection && f.Kind == _device.Kind
+                    ? "Brush.Accent" : "Brush.Border");
                 var text = new StackPanel();
                 text.Children.Add(new TextBlock { Text = f.DetectedName, Style = (Style)FindResource("T.Label") });
-                text.Children.Add(new TextBlock { Text = f.Kind + " · " + f.Connection, Style = (Style)FindResource("T.Caption"), Margin = new Thickness(0, 3, 0, 0) });
+                text.Children.Add(new TextBlock { Text = f.Kind + " · " + f.Connection, Style = (Style)FindResource("T.Caption"),
+                    Margin = new Thickness(0, 3, 0, 0) });
                 card.Child = text;
                 card.MouseLeftButtonUp += (s, e) => Select(f);
                 _foundList.Children.Add(card);
@@ -170,7 +185,8 @@ namespace AlmostFastDash.UI
         private void Select(DeviceSettings found)
         {
             _device = SettingsStore.Clone(found);
-            // Nothing is assumed from a recognized board: its shape is described from scratch, and fast updates are detected when it connects.
+            // Nothing is assumed from a recognized board: its shape is described from scratch, and fast updates are detected when it
+            // connects.
             _layout = new LedLayout { Shape = "" };
             _mapper = null;
             _next.IsEnabled = true;

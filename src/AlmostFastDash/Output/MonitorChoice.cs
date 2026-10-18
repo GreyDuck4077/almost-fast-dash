@@ -19,7 +19,8 @@ namespace AlmostFastDash.Output
             .Select(s => new MonitorChoice
             {
                 Device = s.DeviceName,
-                Label = "Display " + new string(s.DeviceName.Where(char.IsDigit).ToArray()) + " · " + s.Bounds.Width + " × " + s.Bounds.Height,
+                Label = "Display " + new string(s.DeviceName.Where(char.IsDigit).ToArray()) + " · " + s.Bounds.Width + " × " +
+                s.Bounds.Height,
                 Bounds = s.Bounds
             })
             .OrderBy(c => c.Label, StringComparer.OrdinalIgnoreCase)

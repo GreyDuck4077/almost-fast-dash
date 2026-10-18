@@ -42,7 +42,8 @@ namespace AlmostFastDash.Designer
         {
             group = _selection.Count > 0 ? _selection[0].Group : null;
             string id = group;
-            return !string.IsNullOrEmpty(id) && _selection.All(w => w.Group == id) && _screen.Widgets.Count(w => w.Group == id) == _selection.Count;
+            return !string.IsNullOrEmpty(id) && _selection.All(w => w.Group == id) &&
+                _screen.Widgets.Count(w => w.Group == id) == _selection.Count;
         }
 
         private void GroupSelection()
@@ -64,7 +65,8 @@ namespace AlmostFastDash.Designer
             SelectionChanged();
         }
 
-        /// <summary>New widgets coming onto the screen (pasted, from a block) get groups of their own, not the ones they were copied from.</summary>
+        /// <summary>New widgets coming onto the screen (pasted, from a block) get groups of their own, not the ones they were copied
+        /// from.</summary>
         private void FreshGroups(IEnumerable<DashWidget> widgets)
         {
             var renamed = new Dictionary<string, string>();
@@ -76,10 +78,12 @@ namespace AlmostFastDash.Designer
             }
         }
 
-        /// <param name="keepGroups">Joining a group already on the screen (a panel's), rather than coming in as new groups of their own.</param>
+        /// <param name="keepGroups">Joining a group already on the screen (a panel's), rather than coming in as new groups of their
+        /// own.</param>
         internal void AddWidgets(IList<DashWidget> widgets, string label, bool keepGroups = false)
         {
-            if (!keepGroups && widgets.Any(w => !string.IsNullOrEmpty(w.Group) && _screen.Widgets.Any(s => s.Group == w.Group))) FreshGroups(widgets);
+            if (!keepGroups &&
+                widgets.Any(w => !string.IsNullOrEmpty(w.Group) && _screen.Widgets.Any(s => s.Group == w.Group))) FreshGroups(widgets);
             foreach (DashWidget w in widgets)
             {
                 w.X = Math.Round(Math.Max(-w.W + 10, Math.Min(CanvasW - 10, w.X)));
@@ -98,7 +102,9 @@ namespace AlmostFastDash.Designer
         {
             WidgetType info = WidgetCatalog.Find(type);
             int cascade = _screen.Widgets.Count(w => w.Type == type) % 6 * 12;
-            AddWidgets(new[] { WidgetCatalog.Create(type, (CanvasW - info.DefaultW) / 2 + cascade, (CanvasH - info.DefaultH) / 2 + cascade) }, "Add " + info.Name);
+            AddWidgets(new[] { WidgetCatalog.Create(type, (CanvasW - info.DefaultW) / 2 + cascade,
+                (CanvasH - info.DefaultH) / 2 + cascade) },
+                "Add " + info.Name);
         }
 
         private void DeleteSelection()
@@ -197,7 +203,8 @@ namespace AlmostFastDash.Designer
             List<DashWidget> list = _screen.Widgets;
             List<DashWidget> moving = list.Where(_selection.Contains).ToList();
             if (step == int.MaxValue) { foreach (DashWidget w in moving) { list.Remove(w); list.Add(w); } }
-            else if (step == int.MinValue) { for (int i = moving.Count - 1; i >= 0; i--) { list.Remove(moving[i]); list.Insert(0, moving[i]); } }
+            else if (step == int.MinValue) { for (int i = moving.Count - 1; i >= 0; i--) { list.Remove(moving[i]); list.Insert(0,
+                moving[i]); } }
             else
             {
                 IEnumerable<DashWidget> order = step > 0 ? Enumerable.Reverse(moving) : moving;

@@ -25,7 +25,8 @@ namespace AlmostFastDash.Dashboards
 
         public static DesignPackage Read(string path)
         {
-            var serializer = new System.Web.Script.Serialization.JavaScriptSerializer { MaxJsonLength = int.MaxValue, RecursionLimit = 256 };
+            var serializer = new System.Web.Script.Serialization.JavaScriptSerializer { MaxJsonLength = int.MaxValue,
+                RecursionLimit = 256 };
             DesignPackage package = serializer.Deserialize<DesignPackage>(File.ReadAllText(path));
             if (package?.Design == null || package.Format != "AlmostFastOverlays.Dashboard")
                 throw new InvalidDataException("This is not an Almost Fast Dash dashboard file.");

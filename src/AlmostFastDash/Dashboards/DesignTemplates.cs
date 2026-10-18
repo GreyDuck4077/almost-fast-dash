@@ -96,23 +96,28 @@ namespace AlmostFastDash.Dashboards
                 return widget;
             }
 
-            public DashWidget Panel(string name, double x, double y, double w, double h, params string[] props) => Add("panel", name, x, y, w, h, props);
+            public DashWidget Panel(string name, double x, double y, double w, double h, params string[] props) => Add("panel", name, x, y,
+                w, h, props);
 
-            public DashWidget Metric(string name, double x, double y, double w, double h, string label, string value, params string[] props) =>
+            public DashWidget Metric(string name, double x, double y, double w, double h, string label, string value,
+                params string[] props) =>
                 Add("metric", name, x, y, w, h, new[] { "label", label, "value", value }.Concat(props).ToArray());
 
             public DashWidget Text(string name, double x, double y, double w, double h, string text, params string[] props) =>
                 Add("text", name, x, y, w, h, new[] { "text", text }.Concat(props).ToArray());
 
             /// <summary>A small spaced-out caption.</summary>
-            public DashWidget Label(string name, double x, double y, double w, string text, string align = "Left", string color = "muted") =>
+            public DashWidget Label(string name, double x, double y, double w, string text, string align = "Left",
+                string color = "muted") =>
                 Text(name, x, y, w, 20, text, "size", "16", "tracking", "1.4", "weight", "Regular", "color", color, "align", align);
 
             /// <summary>A panel with a labelled value on it.</summary>
-            public DashWidget Tile(string name, double x, double y, double w, double h, string label, string value, string panelStyle, params string[] metric)
+            public DashWidget Tile(string name, double x, double y, double w, double h, string label, string value, string panelStyle,
+                params string[] metric)
             {
                 Panel(name + " tile", x, y, w, h, "style", panelStyle, "radius", "16");
-                return Metric(name, x, y + 4, w, h - 8, label, value, new[] { "inset", "16", "labelSize", "11", "labelTracking", "2", "valueSize", "30" }.Concat(metric).ToArray());
+                return Metric(name, x, y + 4, w, h - 8, label, value,
+                    new[] { "inset", "16", "labelSize", "11", "labelTracking", "2", "valueSize", "30" }.Concat(metric).ToArray());
             }
 
             /// <summary>Puts widgets into one numbered group (see <see cref="DashWidget.Slot"/>).</summary>
@@ -129,7 +134,8 @@ namespace AlmostFastDash.Dashboards
         }
 
         private const string PositionText = "=Position > 0 ? \"P\" + Position : \"P--\"";
-        /// <summary>Fuel to add to reach the flag: the amount with its unit, ENOUGH, or -- until it's known; EST while it rests on fewer than three laps.</summary>
+        /// <summary>Fuel to add to reach the flag: the amount with its unit, ENOUGH, or -- until it's known; EST while it rests on fewer
+        /// than three laps.</summary>
         internal const string FuelToAdd = "=FuelToFinish < 0 ? \"--\" : FuelToFinish <= 0.05 ? \"ENOUGH\" : fuel(FuelToFinish)";
         internal const string FuelToAddUnit = "=FuelToFinish > 0.05 ? FuelUnit : \"\"";
         internal const string FuelToAddLabel = "=FuelEstimate && FuelToFinish >= 0 ? \"FUEL TO ADD · EST\" : \"FUEL TO ADD\"";
@@ -170,32 +176,43 @@ namespace AlmostFastDash.Dashboards
             const string tone = "=OverPitLimit ? $bad : PitLimiter ? $good : $warn";
             b.Screen("Pit lane", "OnPitRoad");
             b.Panel("Limiter banner", 227, 16, 400, 52, "style", "Tinted", "tint", tone, "radius", "26");
-            b.Text("Limiter", 227, 16, 400, 52, "=OverPitLimit ? \"SLOW DOWN\" : PitLimiter ? \"PIT LIMITER ON\" : \"PIT LIMITER OFF\"", "size", "24", "tracking", "2", "color", tone);
-            b.Add("arc", "Pit speed ring", 287, 84, 280, 280, "value", "=PitSpeedLimit > 0 ? Speed / (PitSpeedLimit * 1.25) : 0", "style", "Smooth",
-                "start", "135", "sweep", "270", "thickness", "12", "colorMode", "Shift colors", "color", "good", "warnColor", "bad", "dangerColor", "bad",
+            b.Text("Limiter", 227, 16, 400, 52, "=OverPitLimit ? \"SLOW DOWN\" : PitLimiter ? \"PIT LIMITER ON\" : \"PIT LIMITER OFF\"",
+                "size", "24", "tracking", "2", "color", tone);
+            b.Add("arc", "Pit speed ring", 287, 84, 280, 280, "value", "=PitSpeedLimit > 0 ? Speed / (PitSpeedLimit * 1.25) : 0", "style",
+                "Smooth",
+                "start", "135", "sweep", "270", "thickness", "12", "colorMode", "Shift colors", "color", "good", "warnColor", "bad",
+                "dangerColor", "bad",
                 // The red stripe on the rim marks the limit itself (the scale runs to 1.25 times it).
                 "warnAt", "0.8", "dangerAt", "0.8", "zones", "true", "rim", "border", "rimWidth", "1",
-                "needle", "Marker", "needleColor", "#FFFFFF", "needleLength", "130", "needleWidth", "3", "flash", "=OverPitLimit", "glow", "10");
-            b.Text("Pit speed", 307, 150, 240, 120, "=format(Speed, \"0\")", "size", "104", "color", "=OverPitLimit ? $bad : $text", "fxShadow", "8");
-            b.Text("Pit limit", 307, 270, 240, 18, "=PitSpeedLimit > 0 ? \"LIMIT \" + format(PitSpeedLimit, \"0\") + \" \" + SpeedUnit : \"PIT LANE\"",
+                "needle", "Marker", "needleColor", "#FFFFFF", "needleLength", "130", "needleWidth", "3", "flash", "=OverPitLimit",
+                "glow", "10");
+            b.Text("Pit speed", 307, 150, 240, 120, "=format(Speed, \"0\")", "size", "104", "color", "=OverPitLimit ? $bad : $text",
+                "fxShadow", "8");
+            b.Text("Pit limit", 307, 270, 240, 18,
+                "=PitSpeedLimit > 0 ? \"LIMIT \" + format(PitSpeedLimit, \"0\") + \" \" + SpeedUnit : \"PIT LANE\"",
                 "size", "12", "tracking", "3", "weight", "Regular", "color", "muted");
-            b.Tile("Refuel", 20, 96, 240, 110, FuelToAddLabel, FuelToAdd, panelStyle, "unit", FuelToAddUnit, "valueColor", FuelToAddTone, "valueSize", "40");
+            b.Tile("Refuel", 20, 96, 240, 110, FuelToAddLabel, FuelToAdd, panelStyle, "unit", FuelToAddUnit, "valueColor", FuelToAddTone,
+                "valueSize", "40");
             b.Tile("In tank", 20, 216, 240, 90, "IN THE TANK", "=fuel(Fuel)", panelStyle, "unit", "=FuelUnit");
             b.Tile("Stint", 20, 316, 240, 90, "STINT", "=StintLaps + \" LAPS\"", panelStyle);
             b.Panel("Tires panel", 594, 96, 240, 310, "style", panelStyle, "radius", "16");
             b.Label("Tires label", 610, 108, 200, "TIRES · LAST STOP");
             b.Add("tyres", "Tires", 606, 128, 216, 266, "size", "22");
-            b.Metric("Pit position", 307, 384, 240, 80, "POSITION", PositionText, "align", "Center", "valueSize", "40", "labelSize", "11", "labelTracking", "2",
+            b.Metric("Pit position", 307, 384, 240, 80, "POSITION", PositionText, "align", "Center", "valueSize", "40", "labelSize", "11",
+                "labelTracking", "2",
                 "unit", "=Starters > 0 ? \"/\" + Starters : \"\"", "unitColor", "muted");
         }
 
         /// <summary>A short race-notice banner (flags, penalties, a personal best), colored by urgency.</summary>
         private static void Notice(Builder b, double x, double y, double w, double h)
         {
-            const string tone = "=NoticeKind == \"Danger\" ? $bad : NoticeKind == \"Warning\" ? $warn : NoticeKind == \"Good\" ? $good : $accent";
+            const string tone = "=NoticeKind == \"Danger\" ? $bad : NoticeKind == \"Warning\" ? $warn : NoticeKind == \"Good\" ? $good : " +
+                "$accent";
             b.Visible("Notice != \"\"",
-                b.Panel("Notice", x, y, w, h, "style", "Tinted", "tint", tone, "radius", (h / 2).ToString(System.Globalization.CultureInfo.InvariantCulture)),
-                b.Text("Notice text", x, y, w, h, "=Notice", "size", (h * 0.42).ToString("0", System.Globalization.CultureInfo.InvariantCulture), "tracking", "1", "color", tone));
+                b.Panel("Notice", x, y, w, h, "style", "Tinted", "tint", tone, "radius", (h / 2)
+                .ToString(System.Globalization.CultureInfo.InvariantCulture)),
+                b.Text("Notice text", x, y, w, h, "=Notice", "size", (h * 0.42)
+                .ToString("0", System.Globalization.CultureInfo.InvariantCulture), "tracking", "1", "color", tone));
         }
     }
 }

@@ -19,7 +19,8 @@ namespace AlmostFastDash.Lights
         public bool Gamma { get; set; } = true;
         /// <summary>How long an LED takes to fade out after it turns off, in milliseconds; 0 snaps off.</summary>
         public int FadeMs { get; set; } = 90;
-        /// <summary>The color theme (<see cref="LightThemes"/>) its good, warn and bad colors come from; "custom" uses the three below.</summary>
+        /// <summary>The color theme (<see cref="LightThemes"/>) its good, warn and bad colors come from; "custom" uses the three
+        /// below.</summary>
         public string ThemeId { get; set; } = LightThemes.DefaultId;
         public string CustomLow { get; set; } = "#008000";
         public string CustomMid { get; set; } = "#FFBE2E";
@@ -29,7 +30,8 @@ namespace AlmostFastDash.Lights
         public LayoutTheme LedTheme()
         {
             LayoutTheme theme = LayoutTheme.ForLights();
-            LightTheme chosen = ThemeId == LightThemes.CustomId ? null : LightThemes.Find(ThemeId) ?? LightThemes.Find(LightThemes.DefaultId);
+            LightTheme chosen = ThemeId == LightThemes.CustomId ? null
+                : LightThemes.Find(ThemeId) ?? LightThemes.Find(LightThemes.DefaultId);
             theme.Good = chosen?.Low ?? CustomLow ?? theme.Good;
             theme.Warn = chosen?.Mid ?? CustomMid ?? theme.Warn;
             theme.Bad = chosen?.High ?? CustomHigh ?? theme.Bad;
@@ -132,20 +134,32 @@ namespace AlmostFastDash.Lights
 
         private static readonly List<Purpose> Purposes = new List<Purpose>
         {
-            new Purpose { Id = "shift", Name = "Shift lights", Description = "Every group set up as shift lights, in its fill order.", Strips = d => Groups(d, LedPurposes.Shift) },
-            new Purpose { Id = "left", Name = "Left side", Description = "Every group set up as a left side, usually bottom to top.", Strips = d => Groups(d, LedPurposes.Left) },
-            new Purpose { Id = "right", Name = "Right side", Description = "Every group set up as a right side, usually bottom to top.", Strips = d => Groups(d, LedPurposes.Right) },
-            new Purpose { Id = "sides", Name = "Left and right sides", Description = "The left and right side groups, filled alike.", Strips = d => Groups(d, LedPurposes.Left).Concat(Groups(d, LedPurposes.Right)) },
-            new Purpose { Id = "dv5", Name = "Every LED on shift-light devices", Description = "Every LED on each device that has shift lights, in the device's own wiring order.",
-                Strips = d => Devices(d).Where(x => x.Item2.Groups.Any(g => g.Purpose == LedPurposes.Shift)).Select(x => new Part(All(x.Item1, x.Item2), false)) },
-            new Purpose { Id = "brow", Name = "Light bar", Description = "Every light bar, left to right. Joined bars work as one long bar.", Strips = d => Groups(d, LedPurposes.Bar) },
-            new Purpose { Id = "brow-mirror", Name = "Light bar, split down the middle", Description = "Both halves of every light bar, from the middle outward: a car on the left lights the left half.", FrontAtEnd = false,
+            new Purpose { Id = "shift", Name = "Shift lights", Description = "Every group set up as shift lights, in its fill order.",
+                Strips = d => Groups(d, LedPurposes.Shift) },
+            new Purpose { Id = "left", Name = "Left side", Description = "Every group set up as a left side, usually bottom to top.",
+            Strips = d => Groups(d, LedPurposes.Left) },
+            new Purpose { Id = "right", Name = "Right side", Description = "Every group set up as a right side, usually bottom to top.",
+            Strips = d => Groups(d, LedPurposes.Right) },
+            new Purpose { Id = "sides", Name = "Left and right sides", Description = "The left and right side groups, filled alike.",
+            Strips = d => Groups(d, LedPurposes.Left).Concat(Groups(d, LedPurposes.Right)) },
+            new Purpose { Id = "dv5", Name = "Every LED on shift-light devices",
+            Description = "Every LED on each device that has shift lights, in the device's own wiring order.",
+                Strips = d => Devices(d).Where(x => x.Item2.Groups.Any(g => g.Purpose == LedPurposes.Shift))
+                .Select(x => new Part(All(x.Item1, x.Item2), false)) },
+            new Purpose { Id = "brow", Name = "Light bar",
+            Description = "Every light bar, left to right. Joined bars work as one long bar.", Strips = d => Groups(d, LedPurposes.Bar) },
+            new Purpose { Id = "brow-mirror", Name = "Light bar, split down the middle",
+            Description = "Both halves of every light bar, from the middle outward: a car on the left lights the left half.",
+            FrontAtEnd = false,
                 Strips = d => BarHalves(d).SelectMany(h => new[] { new Part(h.Item1, false), new Part(h.Item2, true) }) },
-            new Purpose { Id = "brow-left", Name = "Light bar, left half", Description = "The left half of every light bar, from the middle outward.", FrontAtEnd = false,
+            new Purpose { Id = "brow-left", Name = "Light bar, left half",
+            Description = "The left half of every light bar, from the middle outward.", FrontAtEnd = false,
                 Strips = d => BarHalves(d).Select(h => new Part(h.Item1, false)) },
-            new Purpose { Id = "brow-right", Name = "Light bar, right half", Description = "The right half of every light bar, from the middle outward.", FrontAtEnd = false,
+            new Purpose { Id = "brow-right", Name = "Light bar, right half",
+            Description = "The right half of every light bar, from the middle outward.", FrontAtEnd = false,
                 Strips = d => BarHalves(d).Select(h => new Part(h.Item2, true)) },
-            new Purpose { Id = "all", Name = "Every LED", Description = "Every LED on every device.", Strips = d => Devices(d).Select(x => new Part(All(x.Item1, x.Item2), false)) },
+            new Purpose { Id = "all", Name = "Every LED", Description = "Every LED on every device.", Strips = d => Devices(d)
+            .Select(x => new Part(All(x.Item1, x.Item2), false)) },
         };
 
         /// <summary>Every target for these devices: the purpose targets, then each device and each of its groups.</summary>
@@ -156,9 +170,11 @@ namespace AlmostFastDash.Lights
             foreach (Tuple<int, DeviceSettings> device in Devices(devices))
             {
                 DeviceSettings d = device.Item2;
-                targets.Add(Target("device:" + d.Id, d.Name + " · all LEDs", "Every LED on " + d.Name + ", in its own order.", true, new[] { new Part(All(device.Item1, d), false) }));
+                targets.Add(Target("device:" + d.Id, d.Name + " · all LEDs", "Every LED on " + d.Name + ", in its own order.", true,
+                    new[] { new Part(All(device.Item1, d), false) }));
                 foreach (LedGroup group in d.Groups)
-                    targets.Add(Target("group:" + d.Id + "/" + group.Id, d.Name + " · " + group.Name, "LEDs " + group.From + "-" + group.To + " on " + d.Name + ".", true,
+                    targets.Add(Target("group:" + d.Id + "/" + group.Id, d.Name + " · " + group.Name,
+                        "LEDs " + group.From + "-" + group.To + " on " + d.Name + ".", true,
                         new[] { new Part(Strip(device.Item1, group), group.Purpose == LedPurposes.Right) }));
             }
             return targets;
@@ -187,11 +203,14 @@ namespace AlmostFastDash.Lights
             devices.Select((d, i) => Tuple.Create(i, d)).Where(x => x.Item2 != null && x.Item2.Enabled);
 
         private static IEnumerable<Part> Groups(IReadOnlyList<DeviceSettings> devices, string purpose) =>
-            Devices(devices).SelectMany(x => x.Item2.Groups.Where(g => g.Purpose == purpose).Select(g => new Part(Strip(x.Item1, g), purpose == LedPurposes.Right)));
+            Devices(devices)
+            .SelectMany(x => x.Item2.Groups.Where(g => g.Purpose == purpose)
+            .Select(g => new Part(Strip(x.Item1, g), purpose == LedPurposes.Right)));
 
         private static LedRef[] Strip(int device, LedGroup group) => group.Indexes().Select(i => new LedRef(device, i)).ToArray();
 
-        private static LedRef[] All(int device, DeviceSettings d) => Enumerable.Range(0, d.LedCount).Select(i => new LedRef(device, i)).ToArray();
+        private static LedRef[] All(int device, DeviceSettings d) => Enumerable.Range(0, d.LedCount).Select(i => new LedRef(device, i))
+            .ToArray();
 
         /// <summary>
         /// The left and right halves of each device's light bar, each from the middle outward. One
@@ -202,7 +221,8 @@ namespace AlmostFastDash.Lights
         {
             foreach (Tuple<int, DeviceSettings> device in Devices(devices))
             {
-                List<LedGroup> bars = device.Item2.Groups.Where(g => g.Purpose == LedPurposes.Bar).OrderBy(g => Math.Min(g.From, g.To)).ToList();
+                List<LedGroup> bars = device.Item2.Groups.Where(g => g.Purpose == LedPurposes.Bar).OrderBy(g => Math.Min(g.From, g.To))
+                    .ToList();
                 if (bars.Count == 0) continue;
                 if (bars.Count == 1)
                 {

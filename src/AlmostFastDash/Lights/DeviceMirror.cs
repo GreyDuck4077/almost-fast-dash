@@ -29,7 +29,8 @@ namespace AlmostFastDash.Lights
         {
             // The sending thread gets its own copy of the devices, made again only when they change.
             List<DeviceSettings> list = devices.ToList();
-            string signature = LightRenderer.DeviceSignature(list) + "|" + string.Join("|", list.Select(d => d.Connection + d.MaxMilliamps));
+            string signature = LightRenderer.DeviceSignature(list) + "|" +
+                string.Join("|", list.Select(d => d.Connection + d.MaxMilliamps));
             lock (_gate)
             {
                 _frame = frame;

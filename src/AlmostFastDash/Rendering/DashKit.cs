@@ -102,7 +102,8 @@ namespace AlmostFastDash.Rendering
                 if (fill.HasValue)
                     using (var brush = new SolidBrush(fill.Value)) g.FillPath(brush, p);
                 else
-                    using (var brush = new LinearGradientBrush(new RectangleF(b.X, b.Y - 1, b.Width, b.Height + 2), PanelTop, PanelFill, 90f))
+                    using (var brush = new LinearGradientBrush(new RectangleF(b.X, b.Y - 1, b.Width, b.Height + 2), PanelTop, PanelFill,
+                        90f))
                         g.FillPath(brush, p);
                 using (var pen = new Pen(border ?? PanelBorder, 1.5f)) g.DrawPath(pen, p);
             }
@@ -122,8 +123,11 @@ namespace AlmostFastDash.Rendering
         {
             using (var pen = new Pen(color, width) { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round })
             {
-                g.DrawLines(pen, new[] { new PointF(b.X + arm, b.Y), new PointF(b.X, b.Y), new PointF(b.X, b.Bottom), new PointF(b.X + arm, b.Bottom) });
-                g.DrawLines(pen, new[] { new PointF(b.Right - arm, b.Y), new PointF(b.Right, b.Y), new PointF(b.Right, b.Bottom), new PointF(b.Right - arm, b.Bottom) });
+                g.DrawLines(pen,
+                    new[] { new PointF(b.X + arm, b.Y), new PointF(b.X, b.Y), new PointF(b.X, b.Bottom), new PointF(b.X + arm, b.Bottom) });
+                g.DrawLines(pen,
+                    new[] { new PointF(b.Right - arm, b.Y), new PointF(b.Right, b.Y), new PointF(b.Right, b.Bottom),
+                    new PointF(b.Right - arm, b.Bottom) });
             }
         }
 
@@ -134,12 +138,14 @@ namespace AlmostFastDash.Rendering
         }
 
         /// <summary>A labelled metric: small label on top, large value below.</summary>
-        public void Metric(Graphics g, RectangleF b, string label, string value, Color color, float valueSize, StringAlignment align = StringAlignment.Center, float labelSize = 13)
+        public void Metric(Graphics g, RectangleF b, string label, string value, Color color, float valueSize,
+            StringAlignment align = StringAlignment.Center, float labelSize = 13)
         {
             float inset = align == StringAlignment.Center ? 0 : 14;
             var labelBox = new RectangleF(b.X + inset, b.Y + 6, b.Width - inset * 2, labelSize + 8);
             Label(g, label, labelBox, align, labelSize);
-            Draw(g, value, Value(valueSize), color, new RectangleF(b.X + inset, labelBox.Bottom - 2, b.Width - inset * 2, b.Bottom - labelBox.Bottom), align);
+            Draw(g, value, Value(valueSize), color,
+                new RectangleF(b.X + inset, labelBox.Bottom - 2, b.Width - inset * 2, b.Bottom - labelBox.Bottom), align);
         }
 
         public static void Bar(Graphics g, RectangleF b, double fraction, Color color, Color? track = null)
@@ -152,11 +158,13 @@ namespace AlmostFastDash.Rendering
 
         // ---------------------------------------------------------------- helpers
 
-        public static GraphicsPath Rounded(RectangleF b, float r) => Fmt.Rounded(b, Math.Max(0.5f, Math.Min(r, Math.Min(b.Width, b.Height) / 2)));
+        public static GraphicsPath Rounded(RectangleF b, float r) => Fmt.Rounded(b,
+            Math.Max(0.5f, Math.Min(r, Math.Min(b.Width, b.Height) / 2)));
 
         public static string Setting(double value) => value < 0 ? "--" : value.ToString(value % 1 == 0 ? "0" : "0.0");
 
-        public static string IRating(int rating) => rating <= 0 ? "" : rating >= 1000 ? (rating / 1000.0).ToString("0.0") + "k" : rating.ToString();
+        public static string IRating(int rating) => rating <= 0 ? "" : rating >= 1000 ? (rating / 1000.0)
+            .ToString("0.0") + "k" : rating.ToString();
 
         public static string Temperature(double celsius, bool metric) =>
             double.IsNaN(celsius) ? "--°" : (metric ? celsius : celsius * 9 / 5 + 32).ToString("0") + "°";

@@ -23,7 +23,8 @@ namespace AlmostFastDash.Designer
             LayerCount.Text = count == 0 ? "" : count + (count == 1 ? " layer" : " layers");
             if (count == 0)
             {
-                LayersList.Children.Add(new TextBlock { Text = "This screen is empty. Drag in from the Library or draw with the tools.", Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(8, 8, 8, 0) });
+                LayersList.Children.Add(new TextBlock { Text = "This screen is empty. Drag in from the Library or draw with the tools.",
+                    Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(8, 8, 8, 0) });
                 return;
             }
             for (int i = _screen.Widgets.Count - 1; i >= 0; i--) LayersList.Children.Add(LayerRow(_screen.Widgets[i]));
@@ -61,7 +62,8 @@ namespace AlmostFastDash.Designer
                 // Grouped widgets carry their group's name (and Slot) in a quiet second color.
                 name.Inlines.Clear();
                 name.Inlines.Add(new System.Windows.Documents.Run(string.IsNullOrWhiteSpace(widget.Name) ? type?.Name : widget.Name));
-                name.Inlines.Add(new System.Windows.Documents.Run("  " + widget.GroupName + (widget.Slot != 0 ? " · " + widget.Slot.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) : ""))
+                name.Inlines.Add(new System.Windows.Documents.Run("  " + widget.GroupName +
+                    (widget.Slot != 0 ? " · " + widget.Slot.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) : ""))
                     { Foreground = (Brush)FindResource("Brush.TextTertiary"), FontSize = 12 });
             }
             Grid.SetColumn(name, 2);
@@ -76,12 +78,15 @@ namespace AlmostFastDash.Designer
                 typeIcon.FontSize = 17;
                 typeIcon.Foreground = (Brush)FindResource("Brush.Accent");
                 name.ToolTip = clipBase == null ? "Set to clip, but there's no layer below to clip to"
-                    : "Clipped to " + (string.IsNullOrWhiteSpace(clipBase.Name) ? clipBase.Type : clipBase.Name) + ": shows only where it's drawn. Alt-click to release.";
+                    : "Clipped to " + (string.IsNullOrWhiteSpace(clipBase.Name) ? clipBase.Type : clipBase.Name) +
+                        ": shows only where it's drawn. Alt-click to release.";
             }
 
             var toggles = new StackPanel { Orientation = Orientation.Horizontal };
             if (!string.IsNullOrWhiteSpace(widget.Get("visible")))
-                toggles.Children.Add(new TextBlock { Text = "ƒ", FontStyle = FontStyles.Italic, Foreground = (Brush)FindResource("Brush.Accent"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 6, 0), ToolTip = "Conditional: shows when " + widget.Get("visible") });
+                toggles.Children.Add(new TextBlock { Text = "ƒ", FontStyle = FontStyles.Italic,
+                    Foreground = (Brush)FindResource("Brush.Accent"), VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(0, 0, 6, 0), ToolTip = "Conditional: shows when " + widget.Get("visible") });
             toggles.Children.Add(SmallToggle(widget.Locked ? "" : "", widget.Locked ? "Unlock" : "Lock", widget.Locked, () =>
             {
                 widget.Locked = !widget.Locked;
@@ -103,10 +108,13 @@ namespace AlmostFastDash.Designer
             var row = new Border
             {
                 Child = grid, CornerRadius = new CornerRadius(7), Padding = new Thickness(2, 0, 4, 0), Margin = new Thickness(0, 1, 0, 1),
-                Background = selected ? (Brush)FindResource("Brush.AccentSubtle") : Brushes.Transparent, AllowDrop = true, Cursor = Cursors.Hand
+                Background = selected ? (Brush)FindResource("Brush.AccentSubtle") : Brushes.Transparent, AllowDrop = true,
+                Cursor = Cursors.Hand
             };
-            row.MouseEnter += (s, e) => { if (!_selection.Contains(widget)) row.Background = (Brush)FindResource("Brush.SurfaceHover"); _hover = widget; UpdateOverlay(); };
-            row.MouseLeave += (s, e) => { if (!_selection.Contains(widget)) row.Background = Brushes.Transparent; if (_hover == widget) { _hover = null; UpdateOverlay(); } };
+            row.MouseEnter += (s,
+                e) => { if (!_selection.Contains(widget)) row.Background = (Brush)FindResource("Brush.SurfaceHover"); _hover = widget; UpdateOverlay(); };
+            row.MouseLeave += (s,
+                e) => { if (!_selection.Contains(widget)) row.Background = Brushes.Transparent; if (_hover == widget) { _hover = null; UpdateOverlay(); } };
 
             Point? down = null;
             row.MouseLeftButtonDown += (s, e) =>
@@ -138,7 +146,8 @@ namespace AlmostFastDash.Designer
                 }
                 else if (!widget.Locked) Select(widget);
             };
-            row.DragOver += (s, e) => { e.Effects = e.Data.GetDataPresent("afo-layer") ? DragDropEffects.Move : DragDropEffects.None; e.Handled = true; };
+            row.DragOver += (s,
+                e) => { e.Effects = e.Data.GetDataPresent("afo-layer") ? DragDropEffects.Move : DragDropEffects.None; e.Handled = true; };
             row.Drop += (s, e) =>
             {
                 if (!(e.Data.GetData("afo-layer") is string id) || id == widget.Id) return;

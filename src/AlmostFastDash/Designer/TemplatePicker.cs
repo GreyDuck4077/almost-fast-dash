@@ -33,7 +33,8 @@ namespace AlmostFastDash.Designer
         }
 
         /// <summary>The picker window, not yet shown. <paramref name="picked"/> hears the template and size chosen.</summary>
-        internal static Window Build(Window owner, UnitSystem units, GeneralSettings general, DrawingSize? detected, Action<DesignTemplate, DrawingSize> picked)
+        internal static Window Build(Window owner, UnitSystem units, GeneralSettings general, DrawingSize? detected, Action<DesignTemplate,
+            DrawingSize> picked)
         {
             object R(string key) => owner != null ? owner.FindResource(key) : Application.Current.FindResource(key);
             DrawingSize? remembered = general.LastScreenWidth > 0 && general.LastScreenHeight > 0
@@ -43,7 +44,8 @@ namespace AlmostFastDash.Designer
             var window = new Window
             {
                 Title = "Start a new design", Owner = owner, Width = 1080, Height = 780, MinWidth = 820, MinHeight = 560,
-                WindowStartupLocation = owner != null ? WindowStartupLocation.CenterOwner : WindowStartupLocation.CenterScreen, Background = (Brush)R("Brush.Bg"),
+                WindowStartupLocation = owner != null ? WindowStartupLocation.CenterOwner : WindowStartupLocation.CenterScreen,
+                Background = (Brush)R("Brush.Bg"),
                 Foreground = (Brush)R("Brush.Text"), FontFamily = (FontFamily)R("Font.Ui")
             };
 
@@ -59,12 +61,16 @@ namespace AlmostFastDash.Designer
                 RenderOptions.SetBitmapScalingMode(thumbnail, BitmapScalingMode.HighQuality);
                 var body = new StackPanel { Margin = new Thickness(16, 12, 16, 16) };
                 var title = new StackPanel { Orientation = Orientation.Horizontal };
-                title.Children.Add(new Border { Width = 9, Height = 9, CornerRadius = new CornerRadius(4.5), Background = new SolidColorBrush(DesignerWindow.ToMedia(t.Accent)), Margin = new Thickness(0, 0, 9, 0), VerticalAlignment = VerticalAlignment.Center });
+                title.Children.Add(new Border { Width = 9, Height = 9, CornerRadius = new CornerRadius(4.5),
+                    Background = new SolidColorBrush(DesignerWindow.ToMedia(t.Accent)), Margin = new Thickness(0, 0, 9, 0),
+                    VerticalAlignment = VerticalAlignment.Center });
                 title.Children.Add(new TextBlock { Text = t.Name, Style = (Style)R("T.Title") });
                 body.Children.Add(title);
-                body.Children.Add(new TextBlock { Text = t.Description, Style = (Style)R("T.Caption"), Margin = new Thickness(0, 6, 0, 0) });
+                body.Children.Add(new TextBlock { Text = t.Description, Style = (Style)R("T.Caption"),
+                    Margin = new Thickness(0, 6, 0, 0) });
                 var stack = new StackPanel();
-                stack.Children.Add(new Border { Child = thumbnail, CornerRadius = new CornerRadius(11, 11, 0, 0), ClipToBounds = true, BorderBrush = (Brush)R("Brush.Border"), BorderThickness = new Thickness(0, 0, 0, 1) });
+                stack.Children.Add(new Border { Child = thumbnail, CornerRadius = new CornerRadius(11, 11, 0, 0), ClipToBounds = true,
+                    BorderBrush = (Brush)R("Brush.Border"), BorderThickness = new Thickness(0, 0, 0, 1) });
                 stack.Children.Add(body);
                 var card = new Border
                 {
@@ -98,12 +104,16 @@ namespace AlmostFastDash.Designer
 
             // The screen the dashboard is for.
             var sizeRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 18, 0, 0) };
-            sizeRow.Children.Add(new TextBlock { Text = "SCREEN", Style = (Style)R("T.Caption"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 14, 0) });
-            var note = new TextBlock { Style = (Style)R("T.Caption"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(14, 0, 0, 0) };
+            sizeRow.Children.Add(new TextBlock { Text = "SCREEN", Style = (Style)R("T.Caption"),
+                VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 14, 0) });
+            var note = new TextBlock { Style = (Style)R("T.Caption"), VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(14, 0, 0, 0) };
             if (detected != null)
             {
-                var found = new TextBlock { Text = detected.Value.Width + " × " + detected.Value.Height, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center };
-                var change = new TextBlock { Text = "Use another size", Foreground = (Brush)R("Brush.Accent"), Cursor = Cursors.Hand, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(14, 0, 0, 0) };
+                var found = new TextBlock { Text = detected.Value.Width + " × " + detected.Value.Height,
+                    FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center };
+                var change = new TextBlock { Text = "Use another size", Foreground = (Brush)R("Brush.Accent"), Cursor = Cursors.Hand,
+                    VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(14, 0, 0, 0) };
                 note.Text = "found on your wheel screen";
                 sizeRow.Children.Add(found);
                 sizeRow.Children.Add(note);

@@ -68,7 +68,9 @@ namespace AlmostFastDash.Settings
         /// <summary>Puts a dashboard's lights and flag alerts back to their defaults.</summary>
         public void ResetDashboard(DashboardSettings dashboard)
         {
-            DashboardSettings factory = dashboard.RaceTypes != null && (dashboard.RaceTypes.Contains(Disciplines.Oval) || dashboard.RaceTypes.Contains(Disciplines.DirtOval)) ? DashboardSettings.CreateOval() : DashboardSettings.CreateRoad();
+            DashboardSettings factory = dashboard.RaceTypes != null &&
+                (dashboard.RaceTypes.Contains(Disciplines.Oval) || dashboard.RaceTypes.Contains(Disciplines.DirtOval))
+                ? DashboardSettings.CreateOval() : DashboardSettings.CreateRoad();
             dashboard.Lights = factory.Lights;
             dashboard.Alerts = factory.Alerts;
         }

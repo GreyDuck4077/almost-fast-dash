@@ -27,19 +27,25 @@ namespace AlmostFastDash.Dashboards
             // The car's settings, or its temperatures.
             View(race, "Car panel", "car", new[] { "Bias", "TC", "ABS" }, (add, p, s) =>
             {
-                add(Metric("Water", p.X + 8 * s, p.Y + 8 * s, p.W / 2 - 8 * s, 82 * s, "WATER", "=format(WaterTemp, \"0\") + \"°\"", s, "align", "Center"));
-                add(Metric("Oil", p.X + p.W / 2, p.Y + 8 * s, p.W / 2 - 8 * s, 82 * s, "OIL", "=format(OilTemp, \"0\") + \"°\"", s, "align", "Center"));
+                add(Metric("Water", p.X + 8 * s, p.Y + 8 * s, p.W / 2 - 8 * s, 82 * s, "WATER", "=format(WaterTemp, \"0\") + \"°\"", s,
+                    "align", "Center"));
+                add(Metric("Oil", p.X + p.W / 2, p.Y + 8 * s, p.W / 2 - 8 * s, 82 * s, "OIL", "=format(OilTemp, \"0\") + \"°\"", s,
+                    "align", "Center"));
             });
 
             // Fuel and laps left, or the car ahead and its driver.
             View(race, "Fuel panel", "fuel", new[] { "Fuel", "Fuel laps", "Fuel level" }, (add, p, s) =>
             {
-                add(Text("Ahead label", p.X + 16 * s, p.Y + 10 * s, 200 * s, 14 * s, "CAR AHEAD", 10 * s, "tracking", Num(2.5 * s), "weight", "Regular", "color", "muted", "align", "Left"));
-                add(Text("Ahead driver", p.X + 16 * s, p.Y + 28 * s, p.W - 150 * s, 36 * s, "=AheadName == \"---\" ? \"Nobody ahead\" : AheadName", 22 * s, "align", "Left"));
-                add(Text("Ahead gap", p.X + p.W - 130 * s, p.Y + 28 * s, 114 * s, 36 * s, "=AheadName == \"---\" ? \"--\" : \"-\" + format(AheadGap, \"0.0\")", 26 * s,
+                add(Text("Ahead label", p.X + 16 * s, p.Y + 10 * s, 200 * s, 14 * s, "CAR AHEAD", 10 * s, "tracking", Num(2.5 * s),
+                    "weight", "Regular", "color", "muted", "align", "Left"));
+                add(Text("Ahead driver", p.X + 16 * s, p.Y + 28 * s, p.W - 150 * s, 36 * s,
+                    "=AheadName == \"---\" ? \"Nobody ahead\" : AheadName", 22 * s, "align", "Left"));
+                add(Text("Ahead gap", p.X + p.W - 130 * s, p.Y + 28 * s, 114 * s, 36 * s,
+                    "=AheadName == \"---\" ? \"--\" : \"-\" + format(AheadGap, \"0.0\")", 26 * s,
                     "align", "Right", "color", "good"));
                 add(Text("Ahead detail", p.X + 16 * s, p.Y + 66 * s, p.W - 32 * s, 18 * s,
-                    "=AheadName == \"---\" ? \"\" : \"#\" + AheadNumber + (AheadIRating > 0 ? \"  ·  \" + format(AheadIRating / 1000, \"0.0\") + \"k iRATING\" : \"\")",
+                    "=AheadName == \"---\" ? \"\" : \"#\" + AheadNumber + (AheadIRating > 0 ? \"  ·  \" + format(AheadIRating / 1000, " +
+                        "\"0.0\") + \"k iRATING\" : \"\")",
                     12 * s, "weight", "Regular", "tracking", "1", "align", "Left", "color", "muted"));
             });
         }
@@ -54,12 +60,15 @@ namespace AlmostFastDash.Dashboards
             View(race, "Strip", "strip", new[] { "SessionType", "LAST LAP", "FUEL TO END", "TO THE LEADER" }, (add, p, s) =>
             {
                 string[] labels = { "INCIDENTS", "BEST LAP", "LAPS IN TANK", "TIME" };
-                string[] values = { "=Incidents + \"x\"", "=laptime(BestLap)", "=FuelLapsLeft < 0 ? \"--.-\" : format(FuelLapsLeft, \"0.0\")", "=Clock" };
-                string[] tones = { "=Incidents > 0 ? $warn : $text", "purple", "=steps(FuelLapsLeft, $text, 0, $bad, 2, $warn, 5, $text)", "text" };
+                string[] values = { "=Incidents + \"x\"", "=laptime(BestLap)",
+                    "=FuelLapsLeft < 0 ? \"--.-\" : format(FuelLapsLeft, \"0.0\")", "=Clock" };
+                string[] tones = { "=Incidents > 0 ? $warn : $text", "purple", "=steps(FuelLapsLeft, $text, 0, $bad, 2, $warn, 5, $text)",
+                    "text" };
                 double w = p.W / 4;
                 for (int i = 0; i < 4; i++)
                     add(Metric(labels[i] == "TIME" ? "Strip time" : labels[i], p.X + i * w, p.Y + 8 * s, w, 76 * s, labels[i], values[i], s,
-                        "align", "Center", "valueSize", Num(26 * s), "labelSize", Num(11 * s), "labelTracking", Num(2.5 * s), "valueColor", tones[i]));
+                        "align", "Center", "valueSize", Num(26 * s), "labelSize", Num(11 * s), "labelTracking", Num(2.5 * s),
+                        "valueColor", tones[i]));
             });
             // Room under the lap blocks for the view dots.
             if (progress != null) progress.Y = Math.Round(progress.Y - 6 * progress.H / 5);
@@ -115,15 +124,21 @@ namespace AlmostFastDash.Dashboards
 
         private static DashWidget Make(string type, string name, double x, double y, double w, double h, string[] props)
         {
-            var widget = new DashWidget { Type = type, Name = name, X = Math.Round(x), Y = Math.Round(y), W = Math.Round(w), H = Math.Round(h) };
+            var widget = new DashWidget { Type = type, Name = name, X = Math.Round(x), Y = Math.Round(y), W = Math.Round(w),
+                H = Math.Round(h) };
             for (int i = 0; i + 1 < props.Length; i += 2) widget.Set(props[i], props[i + 1]);
             return widget;
         }
 
-        private static DashWidget Metric(string name, double x, double y, double w, double h, string label, string value, double s, params string[] props) =>
-            Make("metric", name, x, y, w, h, new[] { "label", label, "value", value, "valueSize", Num(28 * s), "labelSize", Num(10 * s), "labelTracking", Num(2.5 * s) }.Concat(props).ToArray());
+        private static DashWidget Metric(string name, double x, double y, double w, double h, string label, string value, double s,
+            params string[] props) =>
+            Make("metric", name, x, y, w, h,
+            new[] { "label", label, "value", value, "valueSize", Num(28 * s), "labelSize", Num(10 * s),
+            "labelTracking", Num(2.5 * s) }.Concat(props)
+            .ToArray());
 
-        private static DashWidget Text(string name, double x, double y, double w, double h, string text, double size, params string[] props) =>
+        private static DashWidget Text(string name, double x, double y, double w, double h, string text, double size,
+            params string[] props) =>
             Make("text", name, x, y, w, h, new[] { "text", text, "size", Num(size) }.Concat(props).ToArray());
     }
 }

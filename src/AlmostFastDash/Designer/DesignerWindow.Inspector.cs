@@ -53,8 +53,10 @@ namespace AlmostFastDash.Designer
             else BuildWidgetInspector(_selection[0]);
         }
 
-        private TextBlock Heading(string text) => new TextBlock { Text = text, Style = (Style)FindResource("T.Title"), Margin = new Thickness(0, 0, 0, 4) };
-        private TextBlock Caption(string text, double top = 0) => new TextBlock { Text = text, Style = (Style)FindResource("T.Caption"), Margin = new Thickness(0, top, 0, 0) };
+        private TextBlock Heading(string text) => new TextBlock { Text = text, Style = (Style)FindResource("T.Title"),
+            Margin = new Thickness(0, 0, 0, 4) };
+        private TextBlock Caption(string text, double top = 0) => new TextBlock { Text = text, Style = (Style)FindResource("T.Caption"),
+            Margin = new Thickness(0, top, 0, 0) };
 
         private Grid Tip(string glyph, string title, string text)
         {
@@ -87,18 +89,22 @@ namespace AlmostFastDash.Designer
                 : condition.Contains("Flag") ? "Yellow flag" : null;
             Grid tip = sample
                 ? Tip("", "A sample", (ghost.Type == "flag" ? "No flag is out in this preview" : "No car is alongside in this preview") +
-                    ", so it's drawn faintly. On the screen it " + (ghost.Type == "flag" ? "shows the flag that's out." : "lights while a car is alongside."))
-                : Tip("", "Hidden right now", "It shows when " + (condition.Length > 80 ? condition.Substring(0, 78) + "…" : condition) +
+                    ", so it's drawn faintly. On the screen it " +
+                    (ghost.Type == "flag" ? "shows the flag that's out." : "lights while a car is alongside."))
+                : Tip("", "Hidden right now", "It shows when " +
+                    (condition.Length > 80 ? condition.Substring(0, 78) + "…" : condition) +
                     ". It's drawn faintly here; Show when is under Visibility.");
             if (moment != null)
             {
-                var see = new Button { Content = "Preview " + moment.ToLowerInvariant() + " ›", Style = (Style)FindResource("Btn.Ghost"), HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(-8, 2, 0, 0) };
+                var see = new Button { Content = "Preview " + moment.ToLowerInvariant() + " ›", Style = (Style)FindResource("Btn.Ghost"),
+                    HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(-8, 2, 0, 0) };
                 see.Click += (s, e) => PreviewCombo.SelectedItem = moment;
                 ((StackPanel)tip.Children[1]).Children.Add(see);
             }
             Inspector.Children.Add(new Border
             {
-                Background = (Brush)FindResource("Brush.AccentSubtle"), CornerRadius = new CornerRadius(8), Padding = new Thickness(10, 8, 10, 4), Margin = new Thickness(0, 10, 0, 0), Child = tip
+                Background = (Brush)FindResource("Brush.AccentSubtle"), CornerRadius = new CornerRadius(8),
+                    Padding = new Thickness(10, 8, 10, 4), Margin = new Thickness(0, 10, 0, 0), Child = tip
             });
         }
     }

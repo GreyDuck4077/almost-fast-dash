@@ -14,7 +14,8 @@ namespace AlmostFastDash.IRacing
                 // Reported as text such as "2.50 km".
                 string text = telemetry.SessionData?.WeekendInfo?.TrackLength ?? "";
                 string[] parts = text.Trim().Split(' ');
-                if (double.TryParse(parts[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double value))
+                if (double.TryParse(parts[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture,
+                    out double value))
                     _trackLengthMiles = text.ToLowerInvariant().Contains("km") ? value / 1.609344 : value;
             }
             catch { }
@@ -31,7 +32,8 @@ namespace AlmostFastDash.IRacing
                 // Reported as text such as "72.42 kph".
                 string text = telemetry.SessionData?.WeekendInfo?.TrackPitSpeedLimit ?? "";
                 string[] parts = text.Trim().Split(' ');
-                if (double.TryParse(parts[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double value))
+                if (double.TryParse(parts[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture,
+                    out double value))
                     _pitLimitMph = text.ToLowerInvariant().Contains("kph") ? value / 1.609344 : value;
             }
             catch { }

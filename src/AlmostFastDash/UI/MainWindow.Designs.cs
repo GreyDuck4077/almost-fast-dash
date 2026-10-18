@@ -36,7 +36,8 @@ namespace AlmostFastDash.UI
 
         private void ImportDesign()
         {
-            var dialog = new Microsoft.Win32.OpenFileDialog { Title = "Import dashboard design", Filter = "Almost Fast Dash dashboard (*.afodash)|*.afodash|All files|*.*" };
+            var dialog = new Microsoft.Win32.OpenFileDialog { Title = "Import dashboard design",
+                Filter = "Almost Fast Dash dashboard (*.afodash)|*.afodash|All files|*.*" };
             if (dialog.ShowDialog(this) != true) return;
             DesignPackage package;
             try { package = DesignPackage.Read(dialog.FileName); }

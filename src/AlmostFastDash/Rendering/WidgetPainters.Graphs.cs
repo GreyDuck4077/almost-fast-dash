@@ -80,10 +80,13 @@ namespace AlmostFastDash.Rendering
                                 area.AddLine(run[run.Count - 1], new PointF(run[run.Count - 1].X, b.Bottom));
                                 area.AddLine(new PointF(run[run.Count - 1].X, b.Bottom), new PointF(run[0].X, b.Bottom));
                                 area.CloseFigure();
-                                using (var brush = new LinearGradientBrush(Paint.Grow(b, 0, 1), Color.FromArgb(90 * color.A / 255, color), Color.FromArgb(6 * color.A / 255, color), 90f))
+                                using (var brush = new LinearGradientBrush(Paint.Grow(b, 0, 1), Color.FromArgb(90 * color.A / 255, color),
+                                    Color.FromArgb(6 * color.A / 255, color), 90f))
                                     g.FillPath(brush, area);
                             }
-                        using (var pen = new Pen(color, lw) { LineJoin = LineJoin.Round, StartCap = LineCap.Round, EndCap = LineCap.Round }) g.DrawLines(pen, run.ToArray());
+                        using (var pen = new Pen(color, lw) { LineJoin = LineJoin.Round, StartCap = LineCap.Round,
+                            EndCap = LineCap.Round }) g.DrawLines(pen,
+                            run.ToArray());
                     }
                     run.Clear();
                 }
@@ -125,7 +128,8 @@ namespace AlmostFastDash.Rendering
             if (!string.IsNullOrEmpty(label))
             {
                 float size = (float)c.Num("labelSize");
-                Paint.Text(g, c, label, size, true, c.Color("labelColor"), new RectangleF(b.X + 6, b.Y + 4, b.Width - 12, size * 1.3f), StringAlignment.Near, "Top", true, 0, Color.Empty, false);
+                Paint.Text(g, c, label, size, true, c.Color("labelColor"), new RectangleF(b.X + 6, b.Y + 4, b.Width - 12, size * 1.3f),
+                    StringAlignment.Near, "Top", true, 0, Color.Empty, false);
             }
         }
 
@@ -149,7 +153,9 @@ namespace AlmostFastDash.Rendering
             foreach (bool upper in new[] { true, false })
             {
                 GraphicsState state = g.Save();
-                g.SetClip(upper ? new RectangleF(b.X, b.Y - lw, b.Width, b.Height / 2 + lw) : new RectangleF(b.X, mid, b.Width, b.Height / 2 + lw), CombineMode.Intersect);
+                g.SetClip(upper ? new RectangleF(b.X, b.Y - lw, b.Width, b.Height / 2 + lw) : new RectangleF(b.X, mid, b.Width,
+                    b.Height / 2 + lw),
+                    CombineMode.Intersect);
                 Color tone = upper ? good : bad;
                 if (c.Bool("fill"))
                     using (var area = new GraphicsPath())
@@ -175,7 +181,8 @@ namespace AlmostFastDash.Rendering
             if (laps.Length > count) laps = laps.Skip(laps.Length - count).ToArray();
             if (laps.Length == 0)
             {
-                Paint.Text(g, c, stint ? "No green laps yet" : "No laps yet", 13, false, c.Theme("muted"), b, StringAlignment.Center, "Middle", true, 0, Color.Empty, false);
+                Paint.Text(g, c, stint ? "No green laps yet" : "No laps yet", 13, false, c.Theme("muted"), b, StringAlignment.Center,
+                    "Middle", true, 0, Color.Empty, false);
                 return;
             }
             if (c.Choice("style") == "Columns")
@@ -193,7 +200,8 @@ namespace AlmostFastDash.Rendering
                 bool best = c.T.BestLapSeconds > 0 && Math.Abs(laps[i] - c.T.BestLapSeconds) < 0.0015;
                 Color color = best ? c.Color("bestColor") : c.Color("color");
                 if (times)
-                    Paint.Text(g, c, Fmt.LapTime(laps[i]), rowH * 0.55f, true, best ? color : c.Color("textColor"), new RectangleF(row.X, row.Y, textW - 8, row.Height), StringAlignment.Near, "Middle", true, 0, Color.Empty, false);
+                    Paint.Text(g, c, Fmt.LapTime(laps[i]), rowH * 0.55f, true, best ? color : c.Color("textColor"),
+                        new RectangleF(row.X, row.Y, textW - 8, row.Height), StringAlignment.Near, "Middle", true, 0, Color.Empty, false);
                 double share = slowest - fastest < 0.001 ? 1 : 1 - (laps[i] - fastest) / (slowest - fastest) * 0.6;
                 float barH = Math.Max(3, rowH * 0.32f);
                 var track = new RectangleF(row.X + textW, row.Y + (rowH - barH) / 2, row.Width - textW, barH);
@@ -237,8 +245,13 @@ namespace AlmostFastDash.Rendering
                 Color tone = isBest ? bestColor : stint && i < bestAt ? warmUp : Mix(color, slow, share);
                 Paint.FillTop(g, new RectangleF(x, b.Bottom - h, barW, h), tone, radius);
                 if (labels && (everyLabel || i == laps.Length - 1))
-                    Paint.Text(g, c, isBest ? (stint ? "BEST" : Fmt.LapTime(laps[i])) : "+" + over.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture), size, true,
-                        isBest ? bestColor : c.Color("textColor"), new RectangleF(x + barW / 2 - slot, b.Bottom - h - labelH, slot * 2, labelH), StringAlignment.Center, "Middle", true, 0, Color.Empty, false);
+                    Paint.Text(g, c,
+                        isBest ? (stint ? "BEST" : Fmt.LapTime(laps[i])) : "+" + over.ToString("0.00",
+                        System.Globalization.CultureInfo.InvariantCulture),
+                        size, true,
+                        isBest ? bestColor : c.Color("textColor"),
+                        new RectangleF(x + barW / 2 - slot, b.Bottom - h - labelH, slot * 2, labelH), StringAlignment.Center, "Middle",
+                        true, 0, Color.Empty, false);
             }
         }
     }

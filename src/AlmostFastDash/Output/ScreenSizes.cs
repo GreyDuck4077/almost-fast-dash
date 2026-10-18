@@ -61,7 +61,8 @@ namespace AlmostFastDash.Output
             {
                 string[] lines = System.IO.File.ReadAllLines(ScreenSender.InfoPath);
                 string[] parts = lines.Length > 1 ? lines[1].Split('x') : new string[0];
-                if (parts.Length == 2 && int.TryParse(parts[0], out int width) && int.TryParse(parts[1], out int height) && width > 0 && height > 0)
+                if (parts.Length == 2 && int.TryParse(parts[0], out int width) && int.TryParse(parts[1], out int height) && width > 0 &&
+                    height > 0)
                 {
                     model = lines[0];
                     size = new Size(width, height);
@@ -89,7 +90,9 @@ namespace AlmostFastDash.Output
                 using (var edges = new ImageAttributes())
                 {
                     edges.SetWrapMode(WrapMode.TileFlipXY);
-                    g.DrawImage(frame, new Rectangle((int)Math.Round((width - w) / 2), (int)Math.Round((height - h) / 2), (int)Math.Round(w), (int)Math.Round(h)),
+                    g.DrawImage(frame,
+                        new Rectangle((int)Math.Round((width - w) / 2), (int)Math.Round((height - h) / 2), (int)Math.Round(w),
+                        (int)Math.Round(h)),
                         0, 0, frame.Width, frame.Height, GraphicsUnit.Pixel, edges);
                 }
             }

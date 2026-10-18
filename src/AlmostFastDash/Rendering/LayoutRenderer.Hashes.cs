@@ -35,7 +35,8 @@ namespace AlmostFastDash.Rendering
             }
         }
 
-        /// <summary>A fingerprint of what the flags add to a frame: the flag and how far it has faded, the cloth's movement, the frame's breath.</summary>
+        /// <summary>A fingerprint of what the flags add to a frame: the flag and how far it has faded, the cloth's movement, the frame's
+        /// breath.</summary>
         private int FlagHash(FlagView flags, TelemetrySnapshot t, int now)
         {
             unchecked
@@ -74,7 +75,8 @@ namespace AlmostFastDash.Rendering
                     if (!IsFormula(raw, prop)) continue;
                     object value = Expr.Evaluate(Strip(raw), scope);
                     // Exact values: even a tiny change moves an anti-aliased edge.
-                    hash = hash * 31 + (value is double d ? d.GetHashCode() : value is Color c ? c.ToArgb() : Expr.Text(value).GetHashCode());
+                    hash = hash * 31 +
+                        (value is double d ? d.GetHashCode() : value is Color c ? c.ToArgb() : Expr.Text(value).GetHashCode());
                 }
                 TelemetrySnapshot t = scope.T;
                 // Several widgets look different while iRacing isn't connected.
@@ -91,18 +93,22 @@ namespace AlmostFastDash.Rendering
                 {
                     case "gear": hash = hash * 31 + t.Gear * 7 + previousGear * 13 + (int)(progress * 1000) + t.MaxForwardGear * 3; break;
                     case "relative": hash = hash * 31 + RelativeHash(t); break;
-                    case "laphistory": hash = hash * 31 + (t.RecentLapSeconds?.Length ?? 0) * 17 + (int)(t.BestLapSeconds * 1000) + ArrayHash(t.RecentLapSeconds) * 7 + ArrayHash(t.StintLapSeconds); break;
+                    case "laphistory": hash = hash * 31 + (t.RecentLapSeconds?.Length ?? 0) * 17 + (int)(t.BestLapSeconds * 1000) +
+                        ArrayHash(t.RecentLapSeconds) * 7 + ArrayHash(t.StintLapSeconds); break;
                     case "progress":
-                        hash = hash * 31 + t.LapsCompleted * 13 + t.LapColorVersion + (int)t.SessionSecondsRemaining + t.TotalLaps * 7 + (int)t.ProgressMode;
+                        hash = hash * 31 + t.LapsCompleted * 13 + t.LapColorVersion + (int)t.SessionSecondsRemaining + t.TotalLaps * 7 +
+                        (int)t.ProgressMode;
                         // Which laps ran under yellow colors their blocks.
-                        if (t.YellowCompletedLaps != null) for (int i = 0; i < t.YellowCompletedLaps.Length; i++) if (t.YellowCompletedLaps[i]) hash = hash * 31 + i + 1;
+                        if (t.YellowCompletedLaps != null) for (int i = 0; i < t.YellowCompletedLaps.Length; i++) if (t.YellowCompletedLaps[i]) hash = hash * 31 +
+                            i + 1;
                         break;
                     case "blindspot": hash = hash * 31 + (int)t.LeftBlindSpot * 5 + (int)t.RightBlindSpot; break;
                     case "flag": hash = hash * 31 + (int)t.Flag; break;
                     case "standings": hash = hash * 31 + StandingsHash(t) + (int)(t.SessionBestLapSeconds * 1000); break;
                     case "tyres": hash = hash * 31 + TyresHash(t); break;
                     case "trace": hash = hash * 31 + t.TraceVersion; break;
-                    case "deltatrace": hash = hash * 31 + System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(t.DeltaTrace ?? new float[0]); break;
+                    case "deltatrace": hash = hash * 31 +
+                        System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(t.DeltaTrace ?? new float[0]); break;
                     case "graph": hash = hash * 31 + SampleGraph(widget, type, scope).Version; break;
                     case "trackmap": hash = hash * 31 + MapHash(t); break;
                     case "radar": hash = hash * 31 + RadarHash(t); break;
@@ -125,7 +131,8 @@ namespace AlmostFastDash.Rendering
                 int hash = t.AheadMeters.GetHashCode() * 31 + t.BehindMeters.GetHashCode();
                 hash = hash * 31 + (t.LapFraction * t.TrackLengthMiles).GetHashCode();
                 foreach (RadarCar car in t.Radar ?? new RadarCar[0])
-                    hash = hash * 31 + car.CarIdx * 7 + car.Meters.GetHashCode() * 13 + car.Lane.GetHashCode() * 17 + (car.Alongside ? 1 : 0) + (car.PaceCar ? 2 : 0)
+                    hash = hash * 31 + car.CarIdx * 7 + car.Meters.GetHashCode() * 13 + car.Lane.GetHashCode() * 17 +
+                        (car.Alongside ? 1 : 0) + (car.PaceCar ? 2 : 0)
                         + (car.Number?.GetHashCode() ?? 0) + car.ClassColor.ToArgb();
                 return hash;
             }
@@ -159,7 +166,8 @@ namespace AlmostFastDash.Rendering
             {
                 int hash = 0;
                 foreach (StandingsEntry r in t.Standings ?? new StandingsEntry[0])
-                    hash = hash * 31 + r.CarIdx * 7 + r.Position + (int)Math.Round(r.GapToLeader * 10) * 13 + (int)(r.LastLap * 1000) + (int)(r.BestLap * 1000) + (r.InPits ? 1 : 0);
+                    hash = hash * 31 + r.CarIdx * 7 + r.Position + (int)Math.Round(r.GapToLeader * 10) * 13 + (int)(r.LastLap * 1000) +
+                        (int)(r.BestLap * 1000) + (r.InPits ? 1 : 0);
                 return hash;
             }
         }

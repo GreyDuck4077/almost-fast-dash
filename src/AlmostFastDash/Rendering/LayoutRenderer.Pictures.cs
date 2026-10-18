@@ -19,11 +19,13 @@ namespace AlmostFastDash.Rendering
         private readonly Dictionary<string, StyledPicture> _styled = new Dictionary<string, StyledPicture>();
 
         /// <summary>Draws a widget into a layer exactly as big as it can reach, then lays its Style effects beneath it.</summary>
-        private StyledPicture Compose(DashWidget widget, WidgetType type, EvalScope scope, int previousGear, float progress, LayerStyle style,
+        private StyledPicture Compose(DashWidget widget, WidgetType type, EvalScope scope, int previousGear, float progress,
+            LayerStyle style,
             RectangleF b, bool flipX, bool flipY, float rotate, bool sample = false)
         {
             Rectangle at = Outward(Reach(widget));
-            if (at.Width < 1 || at.Height < 1) at = new Rectangle((int)b.X, (int)b.Y, Math.Max(1, (int)b.Width), Math.Max(1, (int)b.Height));
+            if (at.Width < 1 || at.Height < 1) at = new Rectangle((int)b.X, (int)b.Y, Math.Max(1, (int)b.Width),
+                Math.Max(1, (int)b.Height));
             // Premultiplied pictures blend back exactly; see-through panels would lose precision otherwise.
             var layer = new Bitmap(at.Width, at.Height, PixelFormat.Format32bppPArgb);
             Matrix place;
@@ -33,7 +35,8 @@ namespace AlmostFastDash.Rendering
                 lg.TranslateTransform(-at.X, -at.Y);
                 Turn(lg, b, flipX, flipY, rotate);
                 place = lg.Transform;
-                var inner = new WidgetContext(this, lg, scope, widget, type) { PreviousGear = previousGear, GearProgress = progress, FlipX = flipX, FlipY = flipY, Sample = sample };
+                var inner = new WidgetContext(this, lg, scope, widget, type) { PreviousGear = previousGear, GearProgress = progress,
+                    FlipX = flipX, FlipY = flipY, Sample = sample };
                 type.Draw(inner);
             }
             // No effects to lay beneath it: the layer is the finished picture.
@@ -60,7 +63,8 @@ namespace AlmostFastDash.Rendering
             Bitmap background = Background();
             int margin = LiquidGlass.Margin(settings);
             Rectangle area = Rectangle.Intersect(Rectangle.Inflate(at, margin, margin), new Rectangle(0, 0, _width, _height));
-            if (area.Width < 1 || area.Height < 1) area = new Rectangle(Math.Max(0, Math.Min(_width - 1, at.X)), Math.Max(0, Math.Min(_height - 1, at.Y)), 1, 1);
+            if (area.Width < 1 || area.Height < 1) area = new Rectangle(Math.Max(0, Math.Min(_width - 1, at.X)),
+                Math.Max(0, Math.Min(_height - 1, at.Y)), 1, 1);
             var beneath = new List<DashWidget>();
             DashScreen screen = _layout.Screens.FirstOrDefault(s => s.Widgets.Contains(pane));
             if (screen != null)

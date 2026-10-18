@@ -33,7 +33,8 @@ namespace AlmostFastDash.Rendering
         private int Fingerprint(DashWidget widget, EvalScope scope, int previousGear, float progress)
         {
             // The gear's fingerprint follows its change animation, which StateHash doesn't have.
-            if (ReuseFingerprints && widget.Type != "gear" && ReferenceEquals(scope.T, _fingerprintsFor) && scope.ShiftFlashOn == _fingerprintsFlash &&
+            if (ReuseFingerprints && widget.Type != "gear" && ReferenceEquals(scope.T, _fingerprintsFor) &&
+                scope.ShiftFlashOn == _fingerprintsFlash &&
                 _fingerprints.TryGetValue(widget.Id, out int known))
                 return known;
             return WidgetHash(widget, scope, previousGear, progress);
@@ -57,7 +58,8 @@ namespace AlmostFastDash.Rendering
         /// </summary>
         public Rectangle LastChanged { get; private set; }
 
-        /// <summary>The shared output still holds the last frame exactly (no flag drawn over it since), so only what changed needs copying into it.</summary>
+        /// <summary>The shared output still holds the last frame exactly (no flag drawn over it since), so only what changed needs copying
+        /// into it.</summary>
         private bool _outputHoldsFrame;
 
         private void ForgetFrame() => _frameScreen = null;
@@ -195,7 +197,8 @@ namespace AlmostFastDash.Rendering
 
         private Bitmap Output() => _output ?? (_output = new Bitmap(_width, _height, PixelFormat.Format32bppArgb));
 
-        /// <summary>Copies the base image's pixels into the frame over each area (the same as drawing it there 1:1, much cheaper).</summary>
+        /// <summary>Copies the base image's pixels into the frame over each area (the same as drawing it there 1:1, much
+        /// cheaper).</summary>
         private void Restore(Bitmap from, List<Rectangle> areas)
         {
             foreach (Rectangle area in areas)
@@ -209,7 +212,8 @@ namespace AlmostFastDash.Rendering
                     unsafe
                     {
                         for (int y = 0; y < area.Height; y++)
-                            Buffer.MemoryCopy((byte*)source.Scan0 + (long)y * source.Stride, (byte*)target.Scan0 + (long)y * target.Stride, row, row);
+                            Buffer.MemoryCopy((byte*)source.Scan0 + (long)y * source.Stride, (byte*)target.Scan0 + (long)y * target.Stride,
+                                row, row);
                     }
                 }
                 finally
@@ -264,7 +268,8 @@ namespace AlmostFastDash.Rendering
         private string _backgroundKey;
 
         /// <summary>Widget types that read telemetry directly, whatever their properties say.</summary>
-        private static readonly HashSet<string> LiveTypes = new HashSet<string> { "gear", "relative", "blindspot", "flag", "progress", "trace", "deltatrace", "laphistory", "standings", "tyres", "graph", "trackmap", "radar", "traffic" };
+        private static readonly HashSet<string> LiveTypes = new HashSet<string> { "gear", "relative", "blindspot", "flag",
+            "progress", "trace", "deltatrace", "laphistory", "standings", "tyres", "graph", "trackmap", "radar", "traffic" };
 
         private static bool IsStatic(DashWidget widget)
         {
@@ -288,8 +293,10 @@ namespace AlmostFastDash.Rendering
         {
             // Everything a widget can paint must fall inside this, or redrawing only what changed would leave stale pixels.
             float Num(string key, float fallback, float formula) =>
-                widget.Get(key) is string raw && raw.StartsWith("=") ? formula : (float)Math.Max(0, Expr.Num(widget.Get(key, fallback.ToString(System.Globalization.CultureInfo.InvariantCulture))));
-            float margin = 6 + 2 * Num("glow", widget.Type == "arc" ? 9 : widget.Type == "shiftlights" ? 10 : widget.Type == "blindspot" ? 14 : 0, 40);
+                widget.Get(key) is string raw && raw.StartsWith("=") ? formula
+                : (float)Math.Max(0, Expr.Num(widget.Get(key, fallback.ToString(System.Globalization.CultureInfo.InvariantCulture))));
+            float margin = 6 +
+                2 * Num("glow", widget.Type == "arc" ? 9 : widget.Type == "shiftlights" ? 10 : widget.Type == "blindspot" ? 14 : 0, 40);
             RectangleF b = widget.Bounds;
             switch (widget.Type)
             {
@@ -308,8 +315,11 @@ namespace AlmostFastDash.Rendering
             }
             // The Style effects reach past the drawing: a shadow by its blur and offset, a glow, an outline.
             float offset = Math.Max(Math.Abs(SignedNum(widget, "fxShadowX", 0, 60)), Math.Abs(SignedNum(widget, "fxShadowY", 4, 60)));
-            margin += Math.Max(Math.Max(2 * Num("fxGlow", 0, 60), Num("fxShadow", 0, 60) > 0 ? 2 * Num("fxShadow", 0, 60) + offset : 0), Num("fxOutline", 0, 30)) + 2;
-            if (Math.Abs(Expr.Num(widget.Get("rotate", "0")) % 360) > 0.01 || IsFormula(widget.Get("rotate", "0"), new PropDef { Kind = PropKind.Number }))
+            margin += Math.Max(Math.Max(2 * Num("fxGlow", 0, 60), Num("fxShadow", 0, 60) > 0 ? 2 * Num("fxShadow", 0, 60) + offset : 0),
+                Num("fxOutline", 0, 30)) +
+                2;
+            if (Math.Abs(Expr.Num(widget.Get("rotate", "0")) % 360) > 0.01 ||
+                IsFormula(widget.Get("rotate", "0"), new PropDef { Kind = PropKind.Number }))
             {
                 // A turned widget can reach anywhere within the circle around its box.
                 float half = (float)Math.Sqrt(b.Width * b.Width + b.Height * b.Height) / 2;
@@ -348,11 +358,13 @@ namespace AlmostFastDash.Rendering
             string Raw(string key) => widget.Get(key, type.Prop(key)?.Default) ?? "";
             bool Fixed(params string[] keys) => keys.All(k => !Raw(k).StartsWith("="));
             // Anything that can move the drawing about, or that draws across the face, needs the whole box.
-            if (!Fixed("start", "sweep", "thickness", "glow", "oval", "needle", "needleLength", "tickLength", "numberSize", "rimWidth", "flipX", "flipY", "rotate")) return null;
+            if (!Fixed("start", "sweep", "thickness", "glow", "oval", "needle", "needleLength", "tickLength", "numberSize",
+                "rimWidth", "flipX", "flipY", "rotate")) return null;
             string needle = Raw("needle");
             if (needle == "Needle" || needle == "Line") return null;
             if (Math.Abs(Expr.Num(Raw("rotate"))) > 0.01) return null;
-            if (new[] { "fxFill", "fxOutline", "fxShadow", "fxGlow" }.Any(k => { string v = widget.Get(k); return v != null && v != "0" && v != "None"; })) return null;
+            if (new[] { "fxFill", "fxOutline", "fxShadow",
+                "fxGlow" }.Any(k => { string v = widget.Get(k); return v != null && v != "0" && v != "None"; })) return null;
             float N(string key) => (float)Expr.Num(Raw(key));
             float thickness = N("thickness"), glow = Math.Max(0, N("glow")), start = N("start"), sweep = N("sweep");
             if (Math.Abs(sweep) < 1) return null;
@@ -373,7 +385,9 @@ namespace AlmostFastDash.Rendering
             // Bezel lines sit just outside both edges of the band, and push the marks further in.
             float bezel = Raw("rim").Trim().Length > 0 ? WidgetPainters.BezelGap + Math.Max(0.5f, N("rimWidth")) + 1.5f : 0;
             float outward = Math.Max(thickness / 2 + marker + glow, thickness / 2 + bezel + 1) + 3;
-            float inward = Math.Max(thickness / 2 + glow, thickness / 2 + 4 + bezel + (ticks ? N("tickLength") : 0) + (numbers ? N("numberSize") * 1.9f : 0)) + 3;
+            float inward = Math.Max(thickness / 2 + glow, thickness / 2 + 4 + bezel + (ticks ? N("tickLength") : 0) +
+                (numbers ? N("numberSize") * 1.9f : 0)) +
+                3;
             const float pad = 3;
             float cap = thickness / 2 + glow;
             int pieces = Math.Max(1, (int)Math.Ceiling(Math.Abs(sweep) / 10));

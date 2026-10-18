@@ -17,7 +17,8 @@ namespace AlmostFastDash.UI
         {
             if (_registered) return;
             _registered = true;
-            EventManager.RegisterClassHandler(typeof(Window), FrameworkElement.LoadedEvent, new RoutedEventHandler((s, e) => Apply(s as Window)));
+            EventManager.RegisterClassHandler(typeof(Window), FrameworkElement.LoadedEvent,
+                new RoutedEventHandler((s, e) => Apply(s as Window)));
         }
 
         public static void Apply(Window window)

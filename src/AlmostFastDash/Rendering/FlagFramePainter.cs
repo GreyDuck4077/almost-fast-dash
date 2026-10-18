@@ -110,7 +110,9 @@ namespace AlmostFastDash.Rendering
                         int a = (int)(165 * Math.Exp(-3.4 * f) * (1 - f));
                         if (a <= 0) continue;
                         using (var pen = new Pen(Color.FromArgb(a, color), 1.6f))
-                        using (GraphicsPath ring = DashKit.Rounded(new RectangleF(ringInset, ringInset, _w - ringInset * 2, _h - ringInset * 2), Math.Max(2, radius - i * 0.6f)))
+                        using (GraphicsPath ring = DashKit.Rounded(new RectangleF(ringInset, ringInset, _w - ringInset * 2,
+                            _h - ringInset * 2),
+                            Math.Max(2, radius - i * 0.6f)))
                             g.DrawPath(pen, ring);
                     }
                     // The edge itself, with the corners outside its curve filled so the frame meets the screen's edge.
@@ -146,7 +148,8 @@ namespace AlmostFastDash.Rendering
                 ink = FlagType.Measure(g, text, FlagType.Semi, FontStyle.Regular, size, tracking);
             float width = ink.Width + 44 * s;
             at = new Point((int)Math.Floor(_w / 2f - width / 2 - margin), 0);
-            var tab = new Bitmap((int)Math.Ceiling(width + margin * 2) + 1, (int)Math.Ceiling(height + margin) + 1, PixelFormat.Format32bppArgb);
+            var tab = new Bitmap((int)Math.Ceiling(width + margin * 2) + 1, (int)Math.Ceiling(height + margin) + 1,
+                PixelFormat.Format32bppArgb);
             using (Graphics g = Graphics.FromImage(tab))
             {
                 DashKit.Prepare(g);
@@ -161,7 +164,8 @@ namespace AlmostFastDash.Rendering
                     using (GraphicsPath outline = DashKit.Rounded(box, r))
                     using (var pen = new Pen(Color.FromArgb(242, 242, 242), Math.Max(1, 1.5f * s)))
                         g.DrawPath(pen, outline);
-                FlagType.Draw(g, text, FlagType.Semi, FontStyle.Regular, size, tracking, new PointF(left + width / 2, height / 2 + 0.5f * s), FlagStyle.TabInk(flag));
+                FlagType.Draw(g, text, FlagType.Semi, FontStyle.Regular, size, tracking,
+                    new PointF(left + width / 2, height / 2 + 0.5f * s), FlagStyle.TabInk(flag));
             }
             return tab;
         }

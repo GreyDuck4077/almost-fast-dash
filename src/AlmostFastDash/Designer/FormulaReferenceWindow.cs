@@ -65,7 +65,8 @@ namespace AlmostFastDash.Designer
         private static readonly (string Group, string[] Names)[] FunctionGroups =
         {
             ("Logic and numbers", new[] { "if", "round", "floor", "ceil", "abs", "min", "max", "clamp", "norm", "nz", "blink" }),
-            ("Formatting", new[] { "format", "laptime", "clock", "seconds", "signed", "fuel", "gear", "temp", "time", "upper", "lower", "left", "pad" }),
+            ("Formatting",
+            new[] { "format", "laptime", "clock", "seconds", "signed", "fuel", "gear", "temp", "time", "upper", "lower", "left", "pad" }),
             ("Color", new[] { "rgb", "rgba", "alpha", "mix", "steps", "deltacolor" }),
             ("Race data", new[] { "standing", "classstanding", "sectortime", "lastsectortime", "bestsectortime", "tire", "tyre", "tap" })
         };
@@ -113,7 +114,8 @@ namespace AlmostFastDash.Designer
         private Func<EvalScope> _scope;
         private readonly TextBox _search = new TextBox();
         private readonly StackPanel _nav = new StackPanel { Margin = new Thickness(12, 8, 12, 12) };
-        private readonly StackPanel _content = new StackPanel { Margin = new Thickness(28, 20, 28, 40), MaxWidth = 860, HorizontalAlignment = HorizontalAlignment.Left };
+        private readonly StackPanel _content = new StackPanel { Margin = new Thickness(28, 20, 28, 40), MaxWidth = 860,
+            HorizontalAlignment = HorizontalAlignment.Left };
         private readonly ScrollViewer _scroller;
         private readonly TextBlock _status = new TextBlock();
         private readonly List<Section> _sections = new List<Section>();
@@ -144,13 +146,15 @@ namespace AlmostFastDash.Designer
             var side = new DockPanel { Background = Res<Brush>("Brush.Sidebar") };
             var heading = new StackPanel { Margin = new Thickness(16, 18, 16, 6) };
             heading.Children.Add(new TextBlock { Text = "Formula reference", Style = Res<Style>("T.Title") });
-            heading.Children.Add(new TextBlock { Text = "Everything ƒx can use. Keep it open while you build.", Style = Res<Style>("T.Caption"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 10) });
+            heading.Children.Add(new TextBlock { Text = "Everything ƒx can use. Keep it open while you build.",
+                Style = Res<Style>("T.Caption"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 10) });
             _search.ToolTip = "Search every field, function and example";
             _search.TextChanged += (s, e) => Filter();
             // What to search for, until something's typed (Ctrl+F comes back here).
             var hint = new TextBlock
             {
-                Text = "Search: fuel, gap, color…  (Ctrl+F)", IsHitTestVisible = false, Margin = new Thickness(12, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center,
+                Text = "Search: fuel, gap, color…  (Ctrl+F)", IsHitTestVisible = false, Margin = new Thickness(12, 0, 0, 0),
+                    VerticalAlignment = VerticalAlignment.Center,
                 Foreground = (Brush)FindResource("Brush.TextTertiary")
             };
             _search.TextChanged += (s, e) => hint.Visibility = _search.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -169,7 +173,8 @@ namespace AlmostFastDash.Designer
             Grid.SetColumn(_scroller, 1);
             root.Children.Add(_scroller);
 
-            var footer = new Border { BorderBrush = Res<Brush>("Brush.Border"), BorderThickness = new Thickness(0, 1, 0, 0), Padding = new Thickness(28, 8, 28, 8), Child = _status };
+            var footer = new Border { BorderBrush = Res<Brush>("Brush.Border"), BorderThickness = new Thickness(0, 1, 0, 0),
+                Padding = new Thickness(28, 8, 28, 8), Child = _status };
             _status.Style = Res<Style>("T.Caption");
             _status.Text = "Insert puts an entry into the formula you last clicked in the designer. Copy puts it on the clipboard.";
             Grid.SetColumn(footer, 1);
@@ -184,7 +189,8 @@ namespace AlmostFastDash.Designer
             Closed += (s, e) => _timer.Stop();
             PreviewKeyDown += (s, e) =>
             {
-                if (e.Key == Key.F && (Keyboard.Modifiers & ModifierKeys.Control) != 0) { _search.Focus(); _search.SelectAll(); e.Handled = true; }
+                if (e.Key == Key.F &&
+                    (Keyboard.Modifiers & ModifierKeys.Control) != 0) { _search.Focus(); _search.SelectAll(); e.Handled = true; }
                 else if (e.Key == Key.Escape && _search.Text.Length > 0) { _search.Text = ""; e.Handled = true; }
             };
             Loaded += (s, e) => _search.Focus();
@@ -203,7 +209,8 @@ namespace AlmostFastDash.Designer
                   "and true or false for switches. Text and numbers convert to each other where it makes sense.");
             Prose("Formulas also decide when things show:");
             Bullet("A widget's Show when shows it only while its formula is true, such as OnPitRoad.");
-            Bullet("A screen's Show when makes that screen take over while it's true; the others are pages that a wheel button steps through.");
+            Bullet("A screen's Show when makes that screen take over while it's true; the others are pages that a wheel button steps " +
+                "through.");
             Bullet("A group's widgets read the group's number as Slot, so one driver row becomes a whole leaderboard.");
             Prose("While you type, the line under the formula shows its answer from the preview, or what's wrong. A formula with a mistake never " +
                   "breaks the dashboard: the widget keeps its normal value until it's fixed.");
@@ -211,14 +218,22 @@ namespace AlmostFastDash.Designer
             NewSection("The language");
             Prose("Formulas read like a spreadsheet formula. Names don't care about capitals: Speed and speed are the same.");
             Item("1.5   -3   0.25", "Numbers. A dot for decimals.", null);
-            Item("\"PIT\"   'PIT'", "Text, in double or single quotes. A backslash puts a quote inside: \"6\\\" screen\".", "\"P\" + Position");
-            Item("true   false", "Yes and no. 0, empty text, \"0\" and \"false\" also count as false; anything else counts as true.", "OnPitRoad == false");
-            Item("#FF3040   #F30   #80FF3040", "Colors: #RRGGBB, the short #RGB, or #AARRGGBB with transparency first (00 clear, FF solid).", "#FF3040");
-            Item("$accent   $good   $bad ...", "Theme colors, which follow the dashboard's theme. All of them are under Colors.", "$accent");
-            Item("+  -  *  /  %", "Add, subtract, multiply, divide and remainder. Dividing by 0 gives 0 rather than an error. + joins text when either side is text.", "\"Lap \" + Lap + \" of \" + TotalLaps");
+            Item("\"PIT\"   'PIT'", "Text, in double or single quotes. A backslash puts a quote inside: \"6\\\" screen\".",
+                "\"P\" + Position");
+            Item("true   false", "Yes and no. 0, empty text, \"0\" and \"false\" also count as false; anything else counts as true.",
+                "OnPitRoad == false");
+            Item("#FF3040   #F30   #80FF3040",
+                "Colors: #RRGGBB, the short #RGB, or #AARRGGBB with transparency first (00 clear, FF solid).", "#FF3040");
+            Item("$accent   $good   $bad ...", "Theme colors, which follow the dashboard's theme. All of them are under Colors.",
+                "$accent");
+            Item("+  -  *  /  %",
+                "Add, subtract, multiply, divide and remainder. Dividing by 0 gives 0 rather than an error. + joins text when either " +
+                    "side is text.",
+                "\"Lap \" + Lap + \" of \" + TotalLaps");
             Item("==  !=  <  >  <=  >=", "Compare. Text compares without caring about capitals. A single = works like ==.", "Gear == 1");
             Item("and  or  not", "Combine conditions; && || and ! work too.", "OnPitRoad and not PitLimiter");
-            Item("condition ? a : b", "Chooses a or b. Chain them for more than two choices.", "Delta < 0 ? $good : Delta > 0 ? $bad : $text");
+            Item("condition ? a : b", "Chooses a or b. Chain them for more than two choices.",
+                "Delta < 0 ? $good : Delta > 0 ? $bad : $text");
             Item("( )", "Parentheses work first.", "(LapsRemaining + 1) * FuelPerLap");
             Prose("Order, first to last: not and minus signs, then * / %, then + -, then < > <= >=, then == !=, then and, then or, then ? :. " +
                   "Use brackets whenever it isn't obvious.");
@@ -226,7 +241,8 @@ namespace AlmostFastDash.Designer
                   "a name that isn't a data field says Unknown data field, with the name, under the formula.");
 
             NewSection("Colors");
-            Prose("Theme colors follow the dashboard's theme, so changing the theme recolors every formula that uses them. Each shows its color in this dashboard.");
+            Prose("Theme colors follow the dashboard's theme, so changing the theme recolors every formula that uses them. Each shows " +
+                "its color in this dashboard.");
             foreach (string token in LayoutTheme.Tokens)
             {
                 string name = "$" + token;
@@ -270,24 +286,36 @@ namespace AlmostFastDash.Designer
             }
 
             NewSection("Leaderboard, tires and sectors");
-            Prose("standing(position, \"field\") reads any car in the race order; classstanding() counts only your class. The field is one of:");
+            Prose("standing(position, \"field\") reads any car in the race order; classstanding() counts only your class. The field is " +
+                "one of:");
             foreach (string field in RaceFields.StandingFields)
             {
                 string example = "standing(1, \"" + field + "\")";
-                Item("\"" + field + "\"", StandingDescription(field), example, s => Show(Expr.Evaluate(example, s)), insertName: "\"" + field + "\"");
+                Item("\"" + field + "\"", StandingDescription(field), example, s => Show(Expr.Evaluate(example, s)),
+                    insertName: "\"" + field + "\"");
             }
-            Prose("tire(\"corner\", \"reading\") reads a tire (tyre() works too). Corners: LF, RF, LR, RR. iRacing updates tire readings while you're in the pits. The reading is one of:");
+            Prose("tire(\"corner\", \"reading\") reads a tire (tyre() works too). Corners: LF, RF, LR, RR. iRacing updates tire readings " +
+                "while you're in the pits. The reading is one of:");
             foreach (string reading in RaceFields.TyreFields)
             {
                 string example = "tyre(\"LF\", \"" + reading + "\")";
-                Item("\"" + reading + "\"", TyreDescription(reading), example, s => Show(Expr.Evaluate(example, s)), insertName: "\"" + reading + "\"");
+                Item("\"" + reading + "\"", TyreDescription(reading), example, s => Show(Expr.Evaluate(example, s)),
+                    insertName: "\"" + reading + "\"");
             }
-            Prose("Sectors are numbered from 1: sectortime(1) is your time in the first sector of this lap, lastsectortime(1) on your last lap, bestsectortime(1) your best.");
+            Prose("Sectors are numbered from 1: sectortime(1) is your time in the first sector of this lap, lastsectortime(1) on your " +
+                "last lap, bestsectortime(1) your best.");
 
             NewSection("Groups, pages and taps");
-            Item("Slot", "In a group, the group's number. Build one driver row with standing(Slot, \"Name\"), group it (Ctrl+G), then Ctrl+D copies it for the next place.", "standing(Slot, \"Name\")");
-            Item("Page   PageCount", "Which page is showing (from 1) and how many there are. A wheel button steps through the pages.", "Page + \" / \" + PageCount");
-            Item("tap(\"name\")", "Which view a tap zone is on: 0 at first, then 1, 2... each time it's tapped on a touch screen (or clicked in a window). Use it in Show when.", "tap(\"fuel\") == 1");
+            Item("Slot",
+                "In a group, the group's number. Build one driver row with standing(Slot, \"Name\"), group it (Ctrl+G), then Ctrl+D " +
+                    "copies it for the next place.",
+                "standing(Slot, \"Name\")");
+            Item("Page   PageCount", "Which page is showing (from 1) and how many there are. A wheel button steps through the pages.",
+                "Page + \" / \" + PageCount");
+            Item("tap(\"name\")",
+                "Which view a tap zone is on: 0 at first, then 1, 2... each time it's tapped on a touch screen (or clicked in a window). " +
+                    "Use it in Show when.",
+                "tap(\"fuel\") == 1");
 
             NewSection("Recipes");
             Prose("Ready-made formulas for common jobs. Insert one and change it to suit.");
@@ -300,12 +328,14 @@ namespace AlmostFastDash.Designer
 
         private void NewSection(string title)
         {
-            var header = new TextBlock { Text = title, Style = Res<Style>("T.Title"), FontSize = 20, Margin = new Thickness(0, _sections.Count == 0 ? 0 : 30, 0, 10) };
+            var header = new TextBlock { Text = title, Style = Res<Style>("T.Title"), FontSize = 20,
+                Margin = new Thickness(0, _sections.Count == 0 ? 0 : 30, 0, 10) };
             _content.Children.Add(header);
             var section = new Section { Title = title, Header = header };
             var nav = new Button
             {
-                Content = title, Style = Res<Style>("Btn.Ghost"), HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Left,
+                Content = title, Style = Res<Style>("Btn.Ghost"), HorizontalAlignment = HorizontalAlignment.Stretch,
+                    HorizontalContentAlignment = HorizontalAlignment.Left,
                 Padding = new Thickness(10, 5, 10, 5), Margin = new Thickness(0, 0, 0, 1), FontSize = 13
             };
             nav.Click += (s, e) => Jump(section);
@@ -325,7 +355,8 @@ namespace AlmostFastDash.Designer
 
         private void Prose(string text)
         {
-            var block = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, Foreground = Res<Brush>("Brush.TextSecondary"), FontSize = 13, LineHeight = 20, Margin = new Thickness(0, 0, 0, 10) };
+            var block = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, Foreground = Res<Brush>("Brush.TextSecondary"),
+                FontSize = 13, LineHeight = 20, Margin = new Thickness(0, 0, 0, 10) };
             _content.Children.Add(block);
             _current.Prose.Add(block);
         }
@@ -336,7 +367,8 @@ namespace AlmostFastDash.Designer
             var dot = new TextBlock { Text = "•", Foreground = Res<Brush>("Brush.Accent"), Margin = new Thickness(0, 0, 8, 0) };
             DockPanel.SetDock(dot, Dock.Left);
             row.Children.Add(dot);
-            row.Children.Add(new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, Foreground = Res<Brush>("Brush.TextSecondary"), FontSize = 13, LineHeight = 20 });
+            row.Children.Add(new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, Foreground = Res<Brush>("Brush.TextSecondary"),
+                FontSize = 13, LineHeight = 20 });
             _content.Children.Add(row);
             _current.Prose.Add(row);
         }
@@ -351,15 +383,19 @@ namespace AlmostFastDash.Designer
 
         private void ColorItem(string name, string description)
         {
-            var swatch = new Border { Width = 22, Height = 22, CornerRadius = new CornerRadius(5), BorderBrush = Res<Brush>("Brush.BorderStrong"), BorderThickness = new Thickness(1), Margin = new Thickness(0, 0, 12, 0), VerticalAlignment = VerticalAlignment.Top };
-            Item(name, description, null, s => Show(Expr.Evaluate(name, s)), insertName: name, leading: swatch, color: s => Expr.Color(Expr.Evaluate(name, s), s));
+            var swatch = new Border { Width = 22, Height = 22, CornerRadius = new CornerRadius(5),
+                BorderBrush = Res<Brush>("Brush.BorderStrong"), BorderThickness = new Thickness(1), Margin = new Thickness(0, 0, 12, 0),
+                VerticalAlignment = VerticalAlignment.Top };
+            Item(name, description, null, s => Show(Expr.Evaluate(name, s)), insertName: name, leading: swatch,
+                color: s => Expr.Color(Expr.Evaluate(name, s), s));
         }
 
         /// <summary>
         /// One entry: its name, what it is, an example with its answer, a live value, and Copy and Insert. Live parts
         /// are updated four times a second from the designer's preview.
         /// </summary>
-        private void Item(string name, string description, string example, Func<EvalScope, string> live = null, string insertName = null, bool mono = true,
+        private void Item(string name, string description, string example, Func<EvalScope, string> live = null, string insertName = null,
+            bool mono = true,
             FrameworkElement leading = null, Func<EvalScope, System.Drawing.Color?> color = null)
         {
             var grid = new Grid();
@@ -373,7 +409,8 @@ namespace AlmostFastDash.Designer
                     _live.Add((new TextBlock(), s =>
                     {
                         System.Drawing.Color? c = color(s);
-                        swatch.Background = c.HasValue ? new SolidColorBrush(Color.FromArgb(c.Value.A, c.Value.R, c.Value.G, c.Value.B)) : null;
+                        swatch.Background = c.HasValue ? new SolidColorBrush(Color.FromArgb(c.Value.A, c.Value.R, c.Value.G, c.Value.B))
+                            : null;
                         return "";
                     }));
             }
@@ -382,9 +419,11 @@ namespace AlmostFastDash.Designer
             Grid.SetColumn(text, 1);
             text.Children.Add(new TextBlock
             {
-                Text = name, FontFamily = mono ? Res<FontFamily>("Font.Mono") : FontFamily, FontSize = 13, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap
+                Text = name, FontFamily = mono ? Res<FontFamily>("Font.Mono") : FontFamily, FontSize = 13,
+                    FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap
             });
-            text.Children.Add(new TextBlock { Text = description, Foreground = Res<Brush>("Brush.TextSecondary"), FontSize = 12.5, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 0) });
+            text.Children.Add(new TextBlock { Text = description, Foreground = Res<Brush>("Brush.TextSecondary"), FontSize = 12.5,
+                TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 0) });
             if (!string.IsNullOrEmpty(example))
             {
                 var code = new Grid { Margin = new Thickness(0, 7, 0, 0) };
@@ -392,12 +431,16 @@ namespace AlmostFastDash.Designer
                 code.ColumnDefinitions.Add(new ColumnDefinition());
                 var box = new Border
                 {
-                    Background = Res<Brush>("Brush.SurfaceRaised"), BorderBrush = Res<Brush>("Brush.Border"), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(6),
+                    Background = Res<Brush>("Brush.SurfaceRaised"), BorderBrush = Res<Brush>("Brush.Border"),
+                        BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(6),
                     Padding = new Thickness(9, 4, 9, 5), HorizontalAlignment = HorizontalAlignment.Left,
-                    Child = new TextBlock { Text = example, FontFamily = Res<FontFamily>("Font.Mono"), FontSize = 12.5, TextWrapping = TextWrapping.Wrap }
+                    Child = new TextBlock { Text = example, FontFamily = Res<FontFamily>("Font.Mono"), FontSize = 12.5,
+                    TextWrapping = TextWrapping.Wrap }
                 };
                 code.Children.Add(box);
-                var answer = new TextBlock { FontFamily = Res<FontFamily>("Font.Mono"), FontSize = 12.5, Foreground = Res<Brush>("Brush.TextTertiary"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 0, 0), TextTrimming = TextTrimming.CharacterEllipsis };
+                var answer = new TextBlock { FontFamily = Res<FontFamily>("Font.Mono"), FontSize = 12.5,
+                    Foreground = Res<Brush>("Brush.TextTertiary"), VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(10, 0, 0, 0), TextTrimming = TextTrimming.CharacterEllipsis };
                 Grid.SetColumn(answer, 1);
                 code.Children.Add(answer);
                 text.Children.Add(code);
@@ -410,14 +453,17 @@ namespace AlmostFastDash.Designer
             }
             grid.Children.Add(text);
 
-            var side = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(16, 0, 0, 0) };
+            var side = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(16, 0, 0, 0) };
             Grid.SetColumn(side, 2);
             if (live != null)
             {
                 var value = new TextBlock
                 {
-                    FontFamily = Res<FontFamily>("Font.Mono"), FontSize = 12.5, Foreground = Res<Brush>("Brush.Accent"), MinWidth = 90, MaxWidth = 170,
-                    TextAlignment = TextAlignment.Right, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 0),
+                    FontFamily = Res<FontFamily>("Font.Mono"), FontSize = 12.5, Foreground = Res<Brush>("Brush.Accent"), MinWidth = 90,
+                        MaxWidth = 170,
+                    TextAlignment = TextAlignment.Right, TextTrimming = TextTrimming.CharacterEllipsis,
+                    VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 10, 0),
                     ToolTip = "Live, from the designer's preview"
                 };
                 side.Children.Add(value);
@@ -430,10 +476,12 @@ namespace AlmostFastDash.Designer
                 try { Clipboard.SetText(copyText); _status.Text = "Copied " + copyText; }
                 catch { _status.Text = "Couldn't reach the clipboard; try again."; }
             }));
-            side.Children.Add(SmallButton("Insert", "Insert " + snippet + " into the formula you last clicked in the designer", () => Insert(snippet)));
+            side.Children.Add(SmallButton("Insert", "Insert " + snippet + " into the formula you last clicked in the designer",
+                () => Insert(snippet)));
             grid.Children.Add(side);
 
-            var row = new Border { Child = grid, Padding = new Thickness(12, 10, 12, 10), CornerRadius = new CornerRadius(8), Margin = new Thickness(0, 0, 0, 4), Background = Brushes.Transparent };
+            var row = new Border { Child = grid, Padding = new Thickness(12, 10, 12, 10), CornerRadius = new CornerRadius(8),
+                Margin = new Thickness(0, 0, 0, 4), Background = Brushes.Transparent };
             row.MouseEnter += (s, e) => row.Background = Res<Brush>("Brush.SurfaceHover");
             row.MouseLeave += (s, e) => row.Background = Brushes.Transparent;
             _content.Children.Add(row);
@@ -442,7 +490,8 @@ namespace AlmostFastDash.Designer
 
         private Button SmallButton(string text, string tooltip, Action click)
         {
-            var button = new Button { Content = text, ToolTip = tooltip, Padding = new Thickness(10, 3, 10, 3), Margin = new Thickness(4, 0, 0, 0), FontSize = 12, MinHeight = 0, VerticalAlignment = VerticalAlignment.Top };
+            var button = new Button { Content = text, ToolTip = tooltip, Padding = new Thickness(10, 3, 10, 3),
+                Margin = new Thickness(4, 0, 0, 0), FontSize = 12, MinHeight = 0, VerticalAlignment = VerticalAlignment.Top };
             button.Click += (s, e) => click();
             return button;
         }
@@ -482,7 +531,8 @@ namespace AlmostFastDash.Designer
                 section.Header.Margin = new Thickness(0, first ? 0 : 30, 0, 10);
                 first = false;
             }
-            if (searching) _status.Text = found == 0 ? "Nothing matches \"" + _search.Text.Trim() + "\"." : found + (found == 1 ? " match." : " matches.");
+            if (searching) _status.Text = found == 0 ? "Nothing matches \"" + _search.Text.Trim() + "\"."
+                : found + (found == 1 ? " match." : " matches.");
             _scroller.ScrollToTop();
             RefreshLive();
         }
@@ -514,7 +564,9 @@ namespace AlmostFastDash.Designer
         private static string Show(object value)
         {
             if (value is System.Drawing.Color c) return SettingsStore.ToHex(c) + (c.A < 255 ? " @" + Math.Round(c.A / 2.55) + "%" : "");
-            if (value is double d) return Math.Abs(d - Math.Round(d)) < 1e-9 ? Math.Round(d).ToString(System.Globalization.CultureInfo.InvariantCulture) : d.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+            if (value is double d) return Math.Abs(d - Math.Round(d)) < 1e-9 ? Math.Round(d)
+                .ToString(System.Globalization.CultureInfo.InvariantCulture) : d.ToString("0.###",
+                System.Globalization.CultureInfo.InvariantCulture);
             string text = Expr.Text(value);
             return text.Length == 0 ? "(empty)" : text;
         }

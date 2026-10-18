@@ -99,7 +99,8 @@ namespace AlmostFastDash.Settings
             try
             {
                 Directory.CreateDirectory(BackupFolder);
-                string[] dated = Directory.GetFiles(BackupFolder, "settings-*.json").OrderByDescending(f => f, StringComparer.Ordinal).ToArray();
+                string[] dated = Directory.GetFiles(BackupFolder, "settings-*.json").OrderByDescending(f => f, StringComparer.Ordinal)
+                    .ToArray();
                 if (dated.Length > 0 && DateTime.UtcNow - File.GetLastWriteTimeUtc(dated[0]) < BackupEvery) return;
                 File.Copy(FilePath, Path.Combine(BackupFolder, "settings-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + ".json"), true);
                 foreach (string old in dated.Skip(BackupsKept - 1)) File.Delete(old);

@@ -35,8 +35,11 @@ namespace AlmostFastDash.Designer
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(32) });
             var label = new TextBlock
             {
-                Text = mixed ? def.Label + " (mixed)" : def.Label, VerticalAlignment = isFormula ? VerticalAlignment.Top : VerticalAlignment.Center, Margin = new Thickness(0, isFormula ? 7 : 0, 8, 0),
-                Foreground = (Brush)FindResource(raw == def.Default ? "Brush.TextSecondary" : "Brush.Text"), TextWrapping = TextWrapping.Wrap,
+                Text = mixed ? def.Label + " (mixed)" : def.Label,
+                    VerticalAlignment = isFormula ? VerticalAlignment.Top : VerticalAlignment.Center,
+                    Margin = new Thickness(0, isFormula ? 7 : 0, 8, 0),
+                Foreground = (Brush)FindResource(raw == def.Default ? "Brush.TextSecondary" : "Brush.Text"),
+                TextWrapping = TextWrapping.Wrap,
                 ToolTip = def.Help
             };
             // Right-click a setting's name to make it a module option, or to link it to one.
@@ -86,7 +89,9 @@ namespace AlmostFastDash.Designer
             {
                 var fx = new ToggleButton
                 {
-                    Content = new TextBlock { Text = "ƒx", FontStyle = FontStyles.Italic, FontSize = 12, FontWeight = FontWeights.SemiBold }, IsChecked = isFormula, Width = 28, Height = 26,
+                    Content = new TextBlock { Text = "ƒx", FontStyle = FontStyles.Italic, FontSize = 12,
+                        FontWeight = FontWeights.SemiBold },
+                        IsChecked = isFormula, Width = 28, Height = 26,
                     Margin = new Thickness(4, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center, Style = (Style)FindResource("Fx"),
                     ToolTip = isFormula ? "Back to a fixed value" : "Drive this with live data (a formula)"
                 };
@@ -126,7 +131,10 @@ namespace AlmostFastDash.Designer
             {
                 case PropKind.Color:
                     System.Drawing.Color? c = Expr.Color(value, CurrentScope());
-                    return c.HasValue ? (c.Value.A < 255 ? "#" + c.Value.A.ToString("X2") + SettingsStore.ToHex(c.Value).Substring(1) : SettingsStore.ToHex(c.Value)) : def.Default;
+                    return c.HasValue
+                        ? (c.Value.A < 255 ? "#" + c.Value.A.ToString("X2") + SettingsStore.ToHex(c.Value).Substring(1)
+                        : SettingsStore.ToHex(c.Value))
+                        : def.Default;
                 case PropKind.Choice:
                     string choice = Expr.Text(value);
                     return def.Choices.Contains(choice) ? choice : def.Default;
@@ -143,7 +151,8 @@ namespace AlmostFastDash.Designer
             {
                 case PropKind.Number:
                 {
-                    var box = new TextBox { Text = raw, FontFamily = (FontFamily)FindResource("Font.Mono"), FontSize = 12, Width = 70, HorizontalAlignment = HorizontalAlignment.Left };
+                    var box = new TextBox { Text = raw, FontFamily = (FontFamily)FindResource("Font.Mono"), FontSize = 12, Width = 70,
+                        HorizontalAlignment = HorizontalAlignment.Left };
                     double step = def.Step > 0 ? def.Step : 1;
                     bool ranged = !double.IsNaN(def.Min) && !double.IsNaN(def.Max) && def.Max > def.Min;
                     Slider slider = null;
@@ -151,7 +160,8 @@ namespace AlmostFastDash.Designer
                     box.TextChanged += (s, e) =>
                     {
                         if (!double.TryParse(box.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double v)) return;
-                        if (slider != null && !syncing) { syncing = true; slider.Value = Math.Max(def.Min, Math.Min(def.Max, v)); syncing = false; }
+                        if (slider != null &&
+                            !syncing) { syncing = true; slider.Value = Math.Max(def.Min, Math.Min(def.Max, v)); syncing = false; }
                         apply(box.Text.Trim(), false);
                     };
                     AttachWheel(box, step, v =>
@@ -161,7 +171,9 @@ namespace AlmostFastDash.Designer
                     });
                     if (!ranged) return box;
                     double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out double initial);
-                    slider = new Slider { Minimum = def.Min, Maximum = def.Max, Value = Math.Max(def.Min, Math.Min(def.Max, initial)), SmallChange = step, LargeChange = step * 10, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 0, 0) };
+                    slider = new Slider { Minimum = def.Min, Maximum = def.Max, Value = Math.Max(def.Min, Math.Min(def.Max, initial)),
+                        SmallChange = step, LargeChange = step * 10, VerticalAlignment = VerticalAlignment.Center,
+                        Margin = new Thickness(10, 0, 0, 0) };
                     slider.ValueChanged += (s, e) =>
                     {
                         if (syncing) return;
@@ -187,8 +199,11 @@ namespace AlmostFastDash.Designer
                 }
                 case PropKind.Bool:
                 {
-                    var toggle = new CheckBox { Style = (Style)FindResource("Switch"), IsChecked = Expr.Bool(raw), VerticalAlignment = VerticalAlignment.Center };
-                    toggle.Click += (s, e) => { apply(toggle.IsChecked == true ? "true" : "false", false); Commit("Edit " + def.Label.ToLowerInvariant()); };
+                    var toggle = new CheckBox { Style = (Style)FindResource("Switch"), IsChecked = Expr.Bool(raw),
+                        VerticalAlignment = VerticalAlignment.Center };
+                    toggle.Click += (s,
+                        e) => { apply(toggle.IsChecked == true ? "true" : "false", false); Commit("Edit " +
+                        def.Label.ToLowerInvariant()); };
                     return toggle;
                 }
                 case PropKind.Choice:
@@ -234,17 +249,20 @@ namespace AlmostFastDash.Designer
                     image.EndInit();
                     panel.Children.Add(new Border
                     {
-                        Background = ColorField.Checker(Colors.Transparent), CornerRadius = new CornerRadius(8), Padding = new Thickness(6), Margin = new Thickness(0, 0, 0, 6),
+                        Background = ColorField.Checker(Colors.Transparent), CornerRadius = new CornerRadius(8),
+                            Padding = new Thickness(6), Margin = new Thickness(0, 0, 0, 6),
                         Child = new Image { Source = image, MaxHeight = 110, Stretch = Stretch.Uniform }
                     });
                 }
                 catch { }
             }
             var buttons = new StackPanel { Orientation = Orientation.Horizontal };
-            var choose = new Button { Content = string.IsNullOrEmpty(raw) ? "Choose image…" : "Replace…", Margin = new Thickness(0, 0, 6, 0) };
+            var choose = new Button { Content = string.IsNullOrEmpty(raw) ? "Choose image…" : "Replace…",
+                Margin = new Thickness(0, 0, 6, 0) };
             choose.Click += (s, e) =>
             {
-                var dialog = new Microsoft.Win32.OpenFileDialog { Title = "Choose an image", Filter = "Images (*.png;*.jpg;*.jpeg;*.bmp;*.gif)|*.png;*.jpg;*.jpeg;*.bmp;*.gif" };
+                var dialog = new Microsoft.Win32.OpenFileDialog { Title = "Choose an image",
+                    Filter = "Images (*.png;*.jpg;*.jpeg;*.bmp;*.gif)|*.png;*.jpg;*.jpeg;*.bmp;*.gif" };
                 if (dialog.ShowDialog(this) != true) return;
                 try
                 {

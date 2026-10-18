@@ -33,7 +33,8 @@ namespace AlmostFastDash.Designer
 
         public event Action<string> Changed;
 
-        public ColorField(FrameworkElement owner, string value, DashLayout layout, Func<string> accent, bool allowTokens = true, bool allowEmpty = false)
+        public ColorField(FrameworkElement owner, string value, DashLayout layout, Func<string> accent, bool allowTokens = true,
+            bool allowEmpty = false)
         {
             _owner = owner;
             _layout = layout;
@@ -45,13 +46,15 @@ namespace AlmostFastDash.Designer
 
             _swatch = new Border
             {
-                Width = 28, Height = 28, CornerRadius = new CornerRadius(7), Cursor = Cursors.Hand, HorizontalAlignment = HorizontalAlignment.Left,
+                Width = 28, Height = 28, CornerRadius = new CornerRadius(7), Cursor = Cursors.Hand,
+                    HorizontalAlignment = HorizontalAlignment.Left,
                 BorderBrush = (Brush)owner.FindResource("Brush.BorderStrong"), BorderThickness = new Thickness(1), ToolTip = "Pick a color"
             };
             _swatch.MouseLeftButtonUp += (s, e) => OpenPopup();
             Children.Add(_swatch);
 
-            _text = new TextBox { Text = value ?? "", FontFamily = (FontFamily)owner.FindResource("Font.Mono"), FontSize = 12, VerticalContentAlignment = VerticalAlignment.Center };
+            _text = new TextBox { Text = value ?? "", FontFamily = (FontFamily)owner.FindResource("Font.Mono"), FontSize = 12,
+                VerticalContentAlignment = VerticalAlignment.Center };
             _text.TextChanged += (s, e) =>
             {
                 if (_updating) return;
@@ -86,7 +89,8 @@ namespace AlmostFastDash.Designer
         private void UpdateSwatch()
         {
             System.Drawing.Color? c = Resolve(_text.Text.Trim());
-            _swatch.Background = c.HasValue ? Checker(Color.FromArgb(c.Value.A, c.Value.R, c.Value.G, c.Value.B)) : (Brush)new SolidColorBrush(Color.FromArgb(0, 0, 0, 0));
+            _swatch.Background = c.HasValue ? Checker(Color.FromArgb(c.Value.A, c.Value.R, c.Value.G, c.Value.B))
+                : (Brush)new SolidColorBrush(Color.FromArgb(0, 0, 0, 0));
             if (!c.HasValue && _text.Text.Trim().Length > 0) _text.Foreground = (Brush)_owner.FindResource("Brush.Danger");
             else _text.Foreground = (Brush)_owner.FindResource("Brush.Text");
         }
@@ -95,11 +99,15 @@ namespace AlmostFastDash.Designer
         internal static Brush Checker(Color color)
         {
             var group = new DrawingGroup();
-            group.Children.Add(new GeometryDrawing(new SolidColorBrush(Color.FromRgb(70, 70, 76)), null, new RectangleGeometry(new Rect(0, 0, 8, 8))));
-            group.Children.Add(new GeometryDrawing(new SolidColorBrush(Color.FromRgb(110, 110, 118)), null, new RectangleGeometry(new Rect(0, 0, 4, 4))));
-            group.Children.Add(new GeometryDrawing(new SolidColorBrush(Color.FromRgb(110, 110, 118)), null, new RectangleGeometry(new Rect(4, 4, 4, 4))));
+            group.Children.Add(new GeometryDrawing(new SolidColorBrush(Color.FromRgb(70, 70, 76)), null,
+                new RectangleGeometry(new Rect(0, 0, 8, 8))));
+            group.Children.Add(new GeometryDrawing(new SolidColorBrush(Color.FromRgb(110, 110, 118)), null,
+                new RectangleGeometry(new Rect(0, 0, 4, 4))));
+            group.Children.Add(new GeometryDrawing(new SolidColorBrush(Color.FromRgb(110, 110, 118)), null,
+                new RectangleGeometry(new Rect(4, 4, 4, 4))));
             group.Children.Add(new GeometryDrawing(new SolidColorBrush(color), null, new RectangleGeometry(new Rect(0, 0, 8, 8))));
-            return new DrawingBrush(group) { TileMode = TileMode.Tile, Viewport = new Rect(0, 0, 8, 8), ViewportUnits = BrushMappingMode.Absolute };
+            return new DrawingBrush(group) { TileMode = TileMode.Tile, Viewport = new Rect(0, 0, 8, 8),
+                ViewportUnits = BrushMappingMode.Absolute };
         }
 
         private static void Remember(string value)
@@ -118,13 +126,15 @@ namespace AlmostFastDash.Designer
                 PlacementTarget = _swatch, Placement = PlacementMode.Bottom, StaysOpen = false, AllowsTransparency = true,
                 Child = new Border
                 {
-                    Width = 300, Background = (Brush)_owner.FindResource("Brush.Popup"), BorderBrush = (Brush)_owner.FindResource("Brush.BorderStrong"),
+                    Width = 300, Background = (Brush)_owner.FindResource("Brush.Popup"),
+                        BorderBrush = (Brush)_owner.FindResource("Brush.BorderStrong"),
                     BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(12), Child = body,
                     Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 24, ShadowDepth = 4, Opacity = 0.5 }
                 }
             };
 
-            void Section(string title) => body.Children.Add(new TextBlock { Text = title, Style = (Style)_owner.FindResource("T.Overline"), Margin = new Thickness(0, body.Children.Count == 0 ? 0 : 12, 0, 6) });
+            void Section(string title) => body.Children.Add(new TextBlock { Text = title, Style = (Style)_owner.FindResource("T.Overline"),
+                Margin = new Thickness(0, body.Children.Count == 0 ? 0 : 12, 0, 6) });
             WrapPanel Swatches(IEnumerable<string> values, bool tokens)
             {
                 var wrap = new WrapPanel();
@@ -134,7 +144,8 @@ namespace AlmostFastDash.Designer
                     if (!c.HasValue) continue;
                     var swatch = new Border
                     {
-                        Width = 30, Height = 30, Margin = new Thickness(0, 0, 6, 6), CornerRadius = new CornerRadius(7), Cursor = Cursors.Hand,
+                        Width = 30, Height = 30, Margin = new Thickness(0, 0, 6, 6), CornerRadius = new CornerRadius(7),
+                            Cursor = Cursors.Hand,
                         BorderBrush = (Brush)_owner.FindResource("Brush.Border"), BorderThickness = new Thickness(1),
                         Background = Checker(Color.FromArgb(c.Value.A, c.Value.R, c.Value.G, c.Value.B)),
                         ToolTip = tokens ? "$" + v + " (follows the theme)" : v
@@ -148,14 +159,16 @@ namespace AlmostFastDash.Designer
 
             var pick = new Button
             {
-                Content = "Pick from the screen", Style = (Style)_owner.FindResource("Btn.Ghost"), HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 0, 0, 6),
+                Content = "Pick from the screen", Style = (Style)_owner.FindResource("Btn.Ghost"),
+                    HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 0, 0, 6),
                 ToolTip = "Eyedropper: click any color in this window. Esc cancels."
             };
             pick.Click += (s, e) => { popup.IsOpen = false; ScreenColorPicker.Pick(_owner, v => SetValue(v, true)); };
             body.Children.Add(pick);
             if (_allowEmpty)
             {
-                var none = new Button { Content = "No color", Style = (Style)_owner.FindResource("Btn.Ghost"), HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 0, 0, 6) };
+                var none = new Button { Content = "No color", Style = (Style)_owner.FindResource("Btn.Ghost"),
+                    HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 0, 0, 6) };
                 none.Click += (s, e) => { SetValue("", true); popup.IsOpen = false; };
                 body.Children.Add(none);
             }
@@ -174,15 +187,19 @@ namespace AlmostFastDash.Designer
 
             Section("CUSTOM");
             System.Drawing.Color current = Resolve(Value) ?? System.Drawing.Color.White;
-            var hex = new TextBox { Text = SettingsStore.ToHex(current), FontFamily = (FontFamily)_owner.FindResource("Font.Mono"), Width = 96 };
-            var opacity = new Slider { Minimum = 0, Maximum = 100, Value = Math.Round(current.A / 2.55), Width = 120, Margin = new Thickness(10, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center };
-            var opacityText = new TextBlock { Text = (int)opacity.Value + "%", Width = 36, VerticalAlignment = VerticalAlignment.Center, Foreground = (Brush)_owner.FindResource("Brush.TextSecondary") };
+            var hex = new TextBox { Text = SettingsStore.ToHex(current), FontFamily = (FontFamily)_owner.FindResource("Font.Mono"),
+                Width = 96 };
+            var opacity = new Slider { Minimum = 0, Maximum = 100, Value = Math.Round(current.A / 2.55), Width = 120,
+                Margin = new Thickness(10, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center };
+            var opacityText = new TextBlock { Text = (int)opacity.Value + "%", Width = 36, VerticalAlignment = VerticalAlignment.Center,
+                Foreground = (Brush)_owner.FindResource("Brush.TextSecondary") };
             void ApplyCustom()
             {
                 System.Drawing.Color? c = Expr.ParseHex(hex.Text.Trim().StartsWith("#") ? hex.Text.Trim() : "#" + hex.Text.Trim());
                 if (!c.HasValue) return;
                 int a = (int)Math.Round(opacity.Value * 2.55);
-                SetValue(a >= 255 ? SettingsStore.ToHex(c.Value) : "#" + a.ToString("X2") + SettingsStore.ToHex(c.Value).Substring(1), true);
+                SetValue(a >= 255 ? SettingsStore.ToHex(c.Value) : "#" + a.ToString("X2") + SettingsStore.ToHex(c.Value).Substring(1),
+                    true);
             }
             hex.KeyDown += (s, e) => { if (e.Key == Key.Enter) ApplyCustom(); };
             hex.LostKeyboardFocus += (s, e) => ApplyCustom();
@@ -193,7 +210,8 @@ namespace AlmostFastDash.Designer
             custom.Children.Add(opacityText);
             body.Children.Add(custom);
 
-            var more = new Button { Content = "More colors…", Style = (Style)_owner.FindResource("Btn.Ghost"), HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(-6, 10, 0, 0) };
+            var more = new Button { Content = "More colors…", Style = (Style)_owner.FindResource("Btn.Ghost"),
+                HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(-6, 10, 0, 0) };
             more.Click += (s, e) =>
             {
                 popup.IsOpen = false;

@@ -34,7 +34,8 @@ namespace AlmostFastDash.Rendering
         public bool FlipX { get; set; }
         public bool FlipY { get; set; }
 
-        /// <summary>The smallest text this design can show readably (see <see cref="ReadableText"/>); dense rows may go a little under it.</summary>
+        /// <summary>The smallest text this design can show readably (see <see cref="ReadableText"/>); dense rows may go a little under
+        /// it.</summary>
         public float MinText => (float)ReadableText.FloorFor(Renderer?.Layout ?? new DashLayout());
         public float MinDenseText => (float)Math.Round(MinText * 0.86);
 

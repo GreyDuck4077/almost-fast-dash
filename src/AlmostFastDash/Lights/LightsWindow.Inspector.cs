@@ -10,16 +10,20 @@ namespace AlmostFastDash.Lights
 {
     public partial class LightsWindow : Window
     {
-        private TextBlock Section(string text) => new TextBlock { Text = text.ToUpperInvariant(), Style = (Style)FindResource("T.Overline"), Margin = new Thickness(0, 18, 0, 8) };
+        private TextBlock Section(string text) => new TextBlock { Text = text.ToUpperInvariant(),
+            Style = (Style)FindResource("T.Overline"), Margin = new Thickness(0, 18, 0, 8) };
 
-        private TextBlock Caption(string text, double top = 4) => new TextBlock { Text = text, Style = (Style)FindResource("T.Caption"), Margin = new Thickness(0, top, 0, 0) };
+        private TextBlock Caption(string text, double top = 4) => new TextBlock { Text = text, Style = (Style)FindResource("T.Caption"),
+            Margin = new Thickness(0, top, 0, 0) };
 
         private Grid Row(string label, FrameworkElement editor, string help = null)
         {
             var row = new Grid { Margin = new Thickness(0, 3, 0, 3) };
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(122) });
             row.ColumnDefinitions.Add(new ColumnDefinition());
-            row.Children.Add(new TextBlock { Text = label, VerticalAlignment = VerticalAlignment.Center, Foreground = (Brush)FindResource("Brush.TextSecondary"), ToolTip = help, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 8, 0) });
+            row.Children.Add(new TextBlock { Text = label, VerticalAlignment = VerticalAlignment.Center,
+                Foreground = (Brush)FindResource("Brush.TextSecondary"), ToolTip = help, TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 0, 8, 0) });
             Grid.SetColumn(editor, 1);
             row.Children.Add(editor);
             return row;
@@ -29,7 +33,8 @@ namespace AlmostFastDash.Lights
         private StackPanel Stacked(string label, FrameworkElement editor, double top = 3)
         {
             var row = new StackPanel { Margin = new Thickness(0, top, 0, 3) };
-            row.Children.Add(new TextBlock { Text = label, Foreground = (Brush)FindResource("Brush.TextSecondary"), Margin = new Thickness(0, 0, 0, 4) });
+            row.Children.Add(new TextBlock { Text = label, Foreground = (Brush)FindResource("Brush.TextSecondary"),
+                Margin = new Thickness(0, 0, 0, 4) });
             row.Children.Add(editor);
             return row;
         }
@@ -41,9 +46,11 @@ namespace AlmostFastDash.Lights
             if (_selected == null)
             {
                 Inspector.Children.Add(new TextBlock { Text = "Light layers", Style = (Style)FindResource("T.Title") });
-                Inspector.Children.Add(Caption("Each layer lights LEDs with an effect while its condition is true. Higher layers win, so put warnings on top."));
+                Inspector.Children.Add(Caption("Each layer lights LEDs with an effect while its condition is true. Higher layers win, so " +
+                    "put warnings on top."));
                 Inspector.Children.Add(Section("Good to know"));
-                Inspector.Children.Add(Caption("• Rev lights use the car's own shift points from iRacing.\n• Replace takes over a layer's whole target: right for flags and pit lights.\n• Hover any LED to see which layer lit it."));
+                Inspector.Children.Add(Caption("• Rev lights use the car's own shift points from iRacing.\n• Replace takes over a " +
+                    "layer's whole target: right for flags and pit lights.\n• Hover any LED to see which layer lit it."));
                 return;
             }
 
@@ -81,21 +88,26 @@ namespace AlmostFastDash.Lights
                 RefreshInspector();
             };
             Inspector.Children.Add(Stacked("LEDs", targetCombo, 12));
-            Inspector.Children.Add(Caption(targets.FirstOrDefault(x => x.Id == layer.Target)?.Description ?? "Aimed at a device or group that isn't set up right now.", 0));
+            Inspector.Children.Add(Caption(targets.FirstOrDefault(x => x.Id == layer.Target)?.Description ?? "Aimed at a device or group that isn't set up right now.",
+                0));
 
             Inspector.Children.Add(Section("When and how"));
-            Inspector.Children.Add(new TextBlock { Text = "Show when", Foreground = (Brush)FindResource("Brush.TextSecondary"), Margin = new Thickness(0, 0, 0, 4) });
-            var condition = new FormulaBox(this, LayoutRenderer.Strip(layer.Condition), CurrentScope, "Empty means always, e.g. OnPitRoad && PitLimiter");
+            Inspector.Children.Add(new TextBlock { Text = "Show when", Foreground = (Brush)FindResource("Brush.TextSecondary"),
+                Margin = new Thickness(0, 0, 0, 4) });
+            var condition = new FormulaBox(this, LayoutRenderer.Strip(layer.Condition), CurrentScope,
+                "Empty means always, e.g. OnPitRoad && PitLimiter");
             condition.Changed += text => { layer.Condition = text.Trim(); CommitSoon("Condition"); };
             _formulas.Add(condition);
             Inspector.Children.Add(condition);
             Inspector.Children.Add(Caption("Empty means always. Try OnPitRoad or AbsActive.", 4));
             var blend = new ComboBox { ItemsSource = LightLayer.Blends, SelectedItem = layer.Blend };
             blend.SelectionChanged += (s, e) => { layer.Blend = (string)blend.SelectedItem; Commit("Blend"); RefreshLayers(); };
-            Inspector.Children.Add(Row("Blend", blend, "Over: only lit LEDs cover the layers below. Replace: the whole target is taken over and unlit LEDs go dark."));
+            Inspector.Children.Add(Row("Blend", blend,
+                "Over: only lit LEDs cover the layers below. Replace: the whole target is taken over and unlit LEDs go dark."));
             Inspector.Children.Add(Row("Brightness", NumberEditor(layer.Brightness.ToString(CultureInfo.InvariantCulture), 0, 100, 1, v =>
             {
-                if (int.TryParse(v, NumberStyles.Integer, CultureInfo.InvariantCulture, out int b)) { layer.Brightness = Math.Max(0, Math.Min(100, b)); CommitSoon("Brightness"); }
+                if (int.TryParse(v, NumberStyles.Integer, CultureInfo.InvariantCulture, out int b)) { layer.Brightness = Math.Max(0,
+                    Math.Min(100, b)); CommitSoon("Brightness"); }
             })));
 
             string source = layer.Get("source", effect.Prop("source")?.Default);
@@ -126,7 +138,8 @@ namespace AlmostFastDash.Lights
                 case PropKind.Formula:
                 {
                     var panel = new StackPanel { Margin = new Thickness(0, 3, 0, 3) };
-                    panel.Children.Add(new TextBlock { Text = def.Label, Foreground = (Brush)FindResource("Brush.TextSecondary"), Margin = new Thickness(0, 0, 0, 4), ToolTip = def.Help });
+                    panel.Children.Add(new TextBlock { Text = def.Label, Foreground = (Brush)FindResource("Brush.TextSecondary"),
+                        Margin = new Thickness(0, 0, 0, 4), ToolTip = def.Help });
                     var box = new FormulaBox(this, LayoutRenderer.Strip(raw), CurrentScope, def.Help);
                     box.Changed += text => Apply(text.Trim().Length == 0 ? "" : "=" + text.Trim());
                     _formulas.Add(box);
@@ -137,14 +150,18 @@ namespace AlmostFastDash.Lights
                     return Row(def.Label, NumberEditor(raw, def.Min, def.Max, def.Step, Apply), def.Help);
                 case PropKind.Color:
                 {
-                    var field = new ColorField(this, raw, _colorContext, () => _dashboard.AccentColor, true, string.IsNullOrEmpty(def.Default));
+                    var field = new ColorField(this, raw, _colorContext, () => _dashboard.AccentColor, true,
+                        string.IsNullOrEmpty(def.Default));
                     field.Changed += v => { Apply(v); RefreshLayers(); };
                     return Row(def.Label, field, def.Help);
                 }
                 case PropKind.Bool:
                 {
-                    var toggle = new CheckBox { Style = (Style)FindResource("Switch"), IsChecked = Expr.Bool(raw), VerticalAlignment = VerticalAlignment.Center };
-                    toggle.Click += (s, e) => { layer.Set(def.Key, toggle.IsChecked == true ? "true" : "false"); Commit("Edit " + def.Label.ToLowerInvariant()); };
+                    var toggle = new CheckBox { Style = (Style)FindResource("Switch"), IsChecked = Expr.Bool(raw),
+                        VerticalAlignment = VerticalAlignment.Center };
+                    toggle.Click += (s,
+                        e) => { layer.Set(def.Key, toggle.IsChecked == true ? "true" : "false"); Commit("Edit " +
+                        def.Label.ToLowerInvariant()); };
                     return Row(def.Label, toggle, def.Help);
                 }
                 case PropKind.Choice:
@@ -169,7 +186,8 @@ namespace AlmostFastDash.Lights
 
         private FrameworkElement NumberEditor(string raw, double min, double max, double step, Action<string> apply)
         {
-            var box = new TextBox { Text = raw, Width = 70, FontFamily = (FontFamily)FindResource("Font.Mono"), FontSize = 12, HorizontalAlignment = HorizontalAlignment.Left };
+            var box = new TextBox { Text = raw, Width = 70, FontFamily = (FontFamily)FindResource("Font.Mono"), FontSize = 12,
+                HorizontalAlignment = HorizontalAlignment.Left };
             step = step > 0 ? step : 1;
             bool ranged = !double.IsNaN(min) && !double.IsNaN(max) && max > min;
             Slider slider = null;
@@ -191,7 +209,8 @@ namespace AlmostFastDash.Lights
             };
             if (!ranged) return box;
             double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out double initial);
-            slider = new Slider { Minimum = min, Maximum = max, Value = Math.Max(min, Math.Min(max, initial)), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 0, 0) };
+            slider = new Slider { Minimum = min, Maximum = max, Value = Math.Max(min, Math.Min(max, initial)),
+                VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 0, 0) };
             slider.ValueChanged += (s, e) =>
             {
                 if (syncing) return;

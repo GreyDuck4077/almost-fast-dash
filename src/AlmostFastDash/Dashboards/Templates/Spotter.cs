@@ -25,8 +25,10 @@ namespace AlmostFastDash.Dashboards
             b.Add("blindspot", "Car left", 4, 16, 20, 448, "side", "Left", "shape", "Zones", "glow", "18");
             b.Add("blindspot", "Car right", 830, 16, 20, 448, "side", "Right", "shape", "Zones", "glow", "18");
             foreach (bool right in new[] { false, true })
-                b.Add("bar", right ? "Revs right" : "Revs left", right ? 431 : 36, 14, 387, 34, "value", "=RevPct", "mode", "Segments", "segments", "16", "taper", "70",
-                    "radius", "2", "colorMode", "Shift colors", "warnAt", "0.6", "dangerAt", "0.85", "flash", "=ShiftFlash", "flashColor", "bad", "glow", "5", "flipX", right ? "true" : "false");
+                b.Add("bar", right ? "Revs right" : "Revs left", right ? 431 : 36, 14, 387, 34, "value", "=RevPct", "mode", "Segments",
+                    "segments", "16", "taper", "70",
+                    "radius", "2", "colorMode", "Shift colors", "warnAt", "0.6", "dangerAt", "0.85", "flash", "=ShiftFlash",
+                    "flashColor", "bad", "glow", "5", "flipX", right ? "true" : "false");
 
             b.Panel("Relative panel", 36, 62, 252, 290, "style", "Soft", "radius", "16");
             b.Label("Relative label", 52, 74, 200, "ON TRACK");
@@ -38,14 +40,19 @@ namespace AlmostFastDash.Dashboards
 
             b.Panel("Order panel", 566, 62, 252, 290, "style", "Soft", "radius", "16");
             b.Label("Order label", 582, 74, 200, "RACE ORDER");
-            b.Add("standings", "Race order", 572, 92, 240, 254, "rows", "5", "focus", "Around me", "column", "Interval", "showNumber", "false", "size", "15", "rowColor", "#70181510");
+            b.Add("standings", "Race order", 572, 92, 240, 254, "rows", "5", "focus", "Around me", "column", "Interval",
+                "showNumber", "false", "size", "15", "rowColor", "#70181510");
 
             const double y = 366, h = 100;
-            b.Tile("Position", 36, y, 150, h, "POSITION", PositionText, "Soft", "valueSize", "34", "unit", "=Starters > 0 ? \"/\" + Starters : \"\"", "unitColor", "muted");
+            b.Tile("Position", 36, y, 150, h, "POSITION", PositionText, "Soft", "valueSize", "34",
+                "unit", "=Starters > 0 ? \"/\" + Starters : \"\"", "unitColor", "muted");
             b.Tile("To go", 194, y, 150, h, "=SessionType", "=RemainingText", "Soft", "valueSize", "24");
-            b.Tile("Lap speed", 352, y, 150, h, "LAP SPEED", "=format(LastLapSpeed, \"0.0\")", "Soft", "valueSize", "30", "unit", "=SpeedUnit");
-            b.Tile("Refuel", 510, y, 150, h, FuelToAddLabel, FuelToAdd, "Soft", "valueSize", "28", "unit", FuelToAddUnit, "valueColor", FuelToAddTone);
-            b.Tile("Last lap", 668, y, 150, h, "LAST LAP", "=laptime(LastLap)", "Soft", "valueSize", "24", "valueColor", "=LastLapIsBest ? $purple : $text");
+            b.Tile("Lap speed", 352, y, 150, h, "LAP SPEED", "=format(LastLapSpeed, \"0.0\")", "Soft", "valueSize", "30", "unit",
+                "=SpeedUnit");
+            b.Tile("Refuel", 510, y, 150, h, FuelToAddLabel, FuelToAdd, "Soft", "valueSize", "28", "unit", FuelToAddUnit,
+                "valueColor", FuelToAddTone);
+            b.Tile("Last lap", 668, y, 150, h, "LAST LAP", "=laptime(LastLap)", "Soft", "valueSize", "24", "valueColor",
+                "=LastLapIsBest ? $purple : $text");
             b.Panel("Caution banner", 312, 322, 230, 36, "style", "Tinted", "tint", "warn", "radius", "18", "visible", "Caution");
             b.Text("Caution", 312, 322, 230, 36, "CAUTION", "size", "18", "tracking", "4", "color", "warn", "visible", "Caution");
             Notice(b, 312, 322, 230, 36);

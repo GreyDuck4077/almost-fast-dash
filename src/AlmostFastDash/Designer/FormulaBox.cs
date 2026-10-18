@@ -26,7 +26,8 @@ namespace AlmostFastDash.Designer
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             Text = new TextBox
             {
-                Text = formula ?? "", FontFamily = (FontFamily)owner.FindResource("Font.Mono"), FontSize = 12, TextWrapping = TextWrapping.Wrap,
+                Text = formula ?? "", FontFamily = (FontFamily)owner.FindResource("Font.Mono"), FontSize = 12,
+                    TextWrapping = TextWrapping.Wrap,
                 AcceptsReturn = false, MinHeight = 30, VerticalContentAlignment = VerticalAlignment.Center, ToolTip = placeholder
             };
             Text.TextChanged += (s, e) => { Validate(); Changed?.Invoke(Text.Text); };
@@ -34,7 +35,8 @@ namespace AlmostFastDash.Designer
             row.Children.Add(Text);
             var insert = new Button
             {
-                Style = (Style)owner.FindResource("Btn.Ghost"), Width = 30, Height = 30, Padding = new Thickness(0), Margin = new Thickness(4, 0, 0, 0),
+                Style = (Style)owner.FindResource("Btn.Ghost"), Width = 30, Height = 30, Padding = new Thickness(0),
+                    Margin = new Thickness(4, 0, 0, 0),
                 ToolTip = "Insert data, a function or a recipe",
                 Content = new TextBlock { Text = "", Style = (Style)owner.FindResource("T.Icon"), FontSize = 12 }
             };
@@ -42,7 +44,8 @@ namespace AlmostFastDash.Designer
             Grid.SetColumn(insert, 1);
             row.Children.Add(insert);
             Children.Add(row);
-            Result = new TextBlock { FontFamily = (FontFamily)owner.FindResource("Font.Mono"), FontSize = 12, Margin = new Thickness(2, 3, 0, 0), TextTrimming = TextTrimming.CharacterEllipsis };
+            Result = new TextBlock { FontFamily = (FontFamily)owner.FindResource("Font.Mono"), FontSize = 12,
+                Margin = new Thickness(2, 3, 0, 0), TextTrimming = TextTrimming.CharacterEllipsis };
             Children.Add(Result);
             Validate();
         }
@@ -57,7 +60,8 @@ namespace AlmostFastDash.Designer
         public static bool InsertIntoLast(string snippet, out string where)
         {
             where = "the formula";
-            if (_last == null || !_last.TryGetTarget(out FormulaBox box) || !box.IsLoaded || !box.IsVisible || PresentationSource.FromVisual(box) == null) return false;
+            if (_last == null || !_last.TryGetTarget(out FormulaBox box) || !box.IsLoaded || !box.IsVisible ||
+                PresentationSource.FromVisual(box) == null) return false;
             Window.GetWindow(box)?.Activate();
             box.InsertText(snippet, false);
             return true;
@@ -95,7 +99,8 @@ namespace AlmostFastDash.Designer
                 return;
             }
             object value = Expr.Evaluate(Text.Text, _scope());
-            string shown = value is System.Drawing.Color c ? SettingsStore.ToHex(c) + (c.A < 255 ? " @" + Math.Round(c.A / 2.55) + "%" : "") : Expr.Text(value);
+            string shown = value is System.Drawing.Color c
+                ? SettingsStore.ToHex(c) + (c.A < 255 ? " @" + Math.Round(c.A / 2.55) + "%" : "") : Expr.Text(value);
             Result.Text = "→ " + (shown.Length == 0 ? "(empty)" : shown);
             Result.Foreground = (Brush)_owner.FindResource("Brush.TextTertiary");
         }

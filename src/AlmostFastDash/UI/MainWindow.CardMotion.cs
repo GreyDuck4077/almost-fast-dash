@@ -51,7 +51,8 @@ namespace AlmostFastDash.UI
             var still = _cardStill as ImageBrush;
             picture.Background = new ImageBrush(_cardFrame)
             {
-                Stretch = still?.Stretch ?? Stretch.Uniform, AlignmentX = still?.AlignmentX ?? AlignmentX.Center, AlignmentY = still?.AlignmentY ?? AlignmentY.Center
+                Stretch = still?.Stretch ?? Stretch.Uniform, AlignmentX = still?.AlignmentX ?? AlignmentX.Center,
+                    AlignmentY = still?.AlignmentY ?? AlignmentY.Center
             };
             _cardTimer = new DispatcherTimer(DispatcherPriority.Render) { Interval = TimeSpan.FromMilliseconds(33) };
             _cardTimer.Tick += (s, e) => CardFrame();
@@ -68,8 +69,10 @@ namespace AlmostFastDash.UI
             using (System.Drawing.Bitmap frame = _cardRenderer.Render(snapshot, flash, previousGear, progress))
             {
                 var rect = new System.Drawing.Rectangle(0, 0, frame.Width, frame.Height);
-                System.Drawing.Imaging.BitmapData data = frame.LockBits(rect, System.Drawing.Imaging.ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-                try { _cardFrame.WritePixels(new Int32Rect(0, 0, frame.Width, frame.Height), data.Scan0, data.Stride * frame.Height, data.Stride); }
+                System.Drawing.Imaging.BitmapData data = frame.LockBits(rect, System.Drawing.Imaging.ImageLockMode.ReadOnly,
+                    System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+                try { _cardFrame.WritePixels(new Int32Rect(0, 0, frame.Width, frame.Height), data.Scan0, data.Stride * frame.Height,
+                    data.Stride); }
                 finally { frame.UnlockBits(data); }
             }
         }
@@ -87,22 +90,26 @@ namespace AlmostFastDash.UI
         private void AnimateEditorScreen(TelemetrySnapshot snapshot)
         {
             string state = PreviewStateName;
-            if ((state != PreviewRequest.AnimatedLap && state != PreviewRequest.LiveIRacing) || !IsActive || EditorPage.Visibility != Visibility.Visible || _dashboard == null) return;
+            if ((state != PreviewRequest.AnimatedLap && state != PreviewRequest.LiveIRacing) || !IsActive ||
+                EditorPage.Visibility != Visibility.Visible || _dashboard == null) return;
             try
             {
                 if (_editorRenderer == null || _editorRendered != _dashboard)
                 {
                     ForgetEditorScreen();
                     System.Drawing.Size size = _dashboard.ScreenSize();
-                    _editorRenderer = DashboardRendererFactory.Create(size.Width, size.Height, _dashboard, new UnitSystem(_settings.General));
+                    _editorRenderer = DashboardRendererFactory.Create(size.Width, size.Height, _dashboard,
+                        new UnitSystem(_settings.General));
                     _editorRendered = _dashboard;
                     _editorFrame = new WriteableBitmap(size.Width, size.Height, 96, 96, PixelFormats.Bgra32, null);
                 }
                 using (System.Drawing.Bitmap frame = _editorRenderer.Render(snapshot, snapshot.ShiftAlert, snapshot.Gear, 1f))
                 {
                     var rect = new System.Drawing.Rectangle(0, 0, frame.Width, frame.Height);
-                    System.Drawing.Imaging.BitmapData data = frame.LockBits(rect, System.Drawing.Imaging.ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-                    try { _editorFrame.WritePixels(new Int32Rect(0, 0, frame.Width, frame.Height), data.Scan0, data.Stride * frame.Height, data.Stride); }
+                    System.Drawing.Imaging.BitmapData data = frame.LockBits(rect, System.Drawing.Imaging.ImageLockMode.ReadOnly,
+                        System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+                    try { _editorFrame.WritePixels(new Int32Rect(0, 0, frame.Width, frame.Height), data.Scan0, data.Stride * frame.Height,
+                        data.Stride); }
                     finally { frame.UnlockBits(data); }
                 }
                 if (PreviewBrush.ImageSource != _editorFrame) PreviewBrush.ImageSource = _editorFrame;

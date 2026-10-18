@@ -28,7 +28,8 @@ namespace AlmostFastDash.CommandLine
             if (selfTestReport != null) return Checks.CheckRunner.Run(selfTestReport);
 #endif
             string soakPort = ParseOption(args, "--led-soak");
-            if (soakPort != null) return LedSoak.Run(soakPort, int.TryParse(ParseOption(args, soakPort), out int soakLeds) ? soakLeds : 16, args.Contains("--fast"));
+            if (soakPort != null) return LedSoak.Run(soakPort, int.TryParse(ParseOption(args, soakPort), out int soakLeds) ? soakLeds : 16,
+                args.Contains("--fast"));
             string lightReport = ParseOption(args, "--light-frames");
             if (lightReport != null) return LightFrames.Run(lightReport);
             string recording = ParseOption(args, "--replay-ibt");
@@ -46,7 +47,8 @@ namespace AlmostFastDash.CommandLine
             // A test pattern on the wheel screen through the dashboard's own sending code, with an optional report.
             if (args.Contains("--screen-test")) return ScreenTest.Run(ParseOption(args, "--screen-test"));
             string liveReport = ParseOption(args, "--live-check");
-            if (liveReport != null) return LiveCheck.Run(liveReport, int.TryParse(ParseOption(args, liveReport), out int liveSeconds) ? liveSeconds : 20);
+            if (liveReport != null) return LiveCheck.Run(liveReport,
+                int.TryParse(ParseOption(args, liveReport), out int liveSeconds) ? liveSeconds : 20);
             string uiScenario = ParseOption(args, "--ui-snapshot");
             if (uiScenario != null) return UiSnapshot.Run(uiScenario, ParseOption(args, uiScenario) ?? "ui.png");
             return null;

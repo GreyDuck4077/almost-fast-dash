@@ -142,7 +142,8 @@ namespace AlmostFastDash.Devices
                 var packet = new byte[2 + frame.Length * 3];
                 packet[0] = 2; // DRGB
                 packet[1] = timeout;
-                for (int i = 0; i < frame.Length; i++) { packet[2 + i * 3] = frame[i].R; packet[3 + i * 3] = frame[i].G; packet[4 + i * 3] = frame[i].B; }
+                for (int i = 0; i < frame.Length; i++) { packet[2 + i * 3] = frame[i].R; packet[3 + i * 3] = frame[i].G; packet[4 +
+                    i * 3] = frame[i].B; }
                 packets.Add(packet);
                 return packets;
             }
@@ -154,7 +155,8 @@ namespace AlmostFastDash.Devices
                 packet[1] = timeout;
                 packet[2] = (byte)(start >> 8);
                 packet[3] = (byte)(start & 0xFF);
-                for (int i = 0; i < count; i++) { Color c = frame[start + i]; packet[4 + i * 3] = c.R; packet[5 + i * 3] = c.G; packet[6 + i * 3] = c.B; }
+                for (int i = 0; i < count; i++) { Color c = frame[start + i]; packet[4 + i * 3] = c.R; packet[5 + i * 3] = c.G; packet[6 +
+                    i * 3] = c.B; }
                 packets.Add(packet);
             }
             return packets;
@@ -174,7 +176,8 @@ namespace AlmostFastDash.Devices
                     var info = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(reader.ReadToEnd());
                     string name = info.TryGetValue("name", out object n) ? n as string : null;
                     int count = 0;
-                    if (info.TryGetValue("leds", out object leds) && leds is Dictionary<string, object> l && l.TryGetValue("count", out object c))
+                    if (info.TryGetValue("leds", out object leds) && leds is Dictionary<string,
+                        object> l && l.TryGetValue("count", out object c))
                         count = Convert.ToInt32(c);
                     return Tuple.Create(string.IsNullOrWhiteSpace(name) ? "WLED" : name, count);
                 }

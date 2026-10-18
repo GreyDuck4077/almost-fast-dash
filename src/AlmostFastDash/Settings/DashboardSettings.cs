@@ -29,7 +29,8 @@ namespace AlmostFastDash.Settings
         public LightProfile Lights { get; set; }
 
         /// <summary>A new dashboard started from a template.</summary>
-        public static DashboardSettings CreateDesigned(DesignTemplate template, int width = ScreenSizes.DefaultWidth, int height = ScreenSizes.DefaultHeight)
+        public static DashboardSettings CreateDesigned(DesignTemplate template, int width = ScreenSizes.DefaultWidth,
+            int height = ScreenSizes.DefaultHeight)
         {
             DashboardSettings created = Create("dashboard-new", template.Name, template.Accent);
             created.Design = template.Create();
@@ -44,7 +45,8 @@ namespace AlmostFastDash.Settings
         /// <summary>The default road dashboard.</summary>
         public static DashboardSettings CreateRoad()
         {
-            DashboardSettings halo = Create(RoadId, DesignTemplates.Road.Name, DesignTemplates.Road.Accent, Disciplines.Road, Disciplines.DirtRoad);
+            DashboardSettings halo = Create(RoadId, DesignTemplates.Road.Name, DesignTemplates.Road.Accent, Disciplines.Road,
+                Disciplines.DirtRoad);
             halo.Design = DesignTemplates.Road.Create();
             halo.Lights = LightPresets.Refined();
             return halo;
@@ -53,7 +55,8 @@ namespace AlmostFastDash.Settings
         /// <summary>The default oval dashboard.</summary>
         public static DashboardSettings CreateOval()
         {
-            DashboardSettings oval = Create(OvalId, DesignTemplates.Oval.Name, DesignTemplates.Oval.Accent, Disciplines.Oval, Disciplines.DirtOval);
+            DashboardSettings oval = Create(OvalId, DesignTemplates.Oval.Name, DesignTemplates.Oval.Accent, Disciplines.Oval,
+                Disciplines.DirtOval);
             oval.Design = DesignTemplates.Oval.Create();
             oval.Lights = LightPresets.SpotterFocus();
             return oval;

@@ -22,10 +22,12 @@ namespace AlmostFastDash.Designer
             if (window == null || _active) return;
             _active = true;
 
-            var swatch = new Border { Width = 22, Height = 22, CornerRadius = new CornerRadius(5), BorderBrush = Brushes.White, BorderThickness = new Thickness(1) };
+            var swatch = new Border { Width = 22, Height = 22, CornerRadius = new CornerRadius(5), BorderBrush = Brushes.White,
+                BorderThickness = new Thickness(1) };
             var label = new TextBlock
             {
-                FontFamily = (FontFamily)window.FindResource("Font.Mono"), FontSize = 12, Margin = new Thickness(8, 0, 4, 0), VerticalAlignment = VerticalAlignment.Center,
+                FontFamily = (FontFamily)window.FindResource("Font.Mono"), FontSize = 12, Margin = new Thickness(8, 0, 4, 0),
+                    VerticalAlignment = VerticalAlignment.Center,
                 Foreground = (Brush)window.FindResource("Brush.Text"), Text = "Click to pick"
             };
             var row = new StackPanel { Orientation = Orientation.Horizontal };

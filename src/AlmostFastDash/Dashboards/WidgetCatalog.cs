@@ -66,7 +66,9 @@ namespace AlmostFastDash.Dashboards
         static WidgetCatalog()
         {
             // ------------------------------------------------------------ Basics
-            Define("panel", "Panel", "Basics", "", "A card behind other widgets: soft, glass, tinted or outlined, with optional glow and accent edge.", 220, 120, WidgetPainters.Panel)
+            Define("panel", "Panel", "Basics", "",
+                "A card behind other widgets: soft, glass, tinted or outlined, with optional glow and accent edge.", 220, 120,
+                WidgetPainters.Panel)
                 .Choice("style", "Style", "Liquid", "Look", "Liquid", "Soft", "Glass", "Solid", "Tinted", "Outline", "None")
                 .Choice("corners", "Corners", "Round", "Look", "Round", "Cut", "Cut diagonal")
                 .Number("radius", "Corner size", "10", "Look", 0, 60)
@@ -90,7 +92,8 @@ namespace AlmostFastDash.Dashboards
                 .Color("titleColor", "Title color", "muted", "Title")
                 .Number("titleSize", "Title size", "13", "Title", 6, 40);
 
-            Define("text", "Text", "Basics", "", "Any text, fixed or from a formula, with auto-fit, glow and shadow.", 160, 40, WidgetPainters.Text)
+            Define("text", "Text", "Basics", "", "Any text, fixed or from a formula, with auto-fit, glow and shadow.", 160, 40,
+                WidgetPainters.Text)
                 .Text("text", "Text", "TEXT", "Content")
                 .Choice("case", "Letter case", "As typed", "Content", "As typed", "UPPER")
                 .Font()
@@ -105,12 +108,14 @@ namespace AlmostFastDash.Dashboards
                 .Color("glowColor", "Glow color", "", "Effects", "Empty uses the text color.")
                 .Bool("shadow", "Drop shadow", "false", "Effects");
 
-            Define("image", "Image", "Basics", "", "A PNG or JPG embedded in the design, such as a team logo.", 120, 120, WidgetPainters.Image)
+            Define("image", "Image", "Basics", "", "A PNG or JPG embedded in the design, such as a team logo.", 120, 120,
+                WidgetPainters.Image)
                 .Image()
                 .Choice("fit", "Fit", "Contain", "Image", "Contain", "Cover", "Stretch");
 
             // ------------------------------------------------------------ Values
-            Define("metric", "Value", "Values", "", "A label with a live value and unit: the building block of most dashboards.", 160, 70, WidgetPainters.Metric)
+            Define("metric", "Value", "Values", "", "A label with a live value and unit: the building block of most dashboards.", 160,
+                70, WidgetPainters.Metric)
                 .Text("label", "Label", "SPEED", "Content")
                 .Text("value", "Value", "=format(Speed, \"0\")", "Content")
                 .Text("unit", "Unit", "", "Content")
@@ -127,7 +132,8 @@ namespace AlmostFastDash.Dashboards
                 .Color("unitColor", "Unit color", "muted", "Colors")
                 .Number("glow", "Value glow", "0", "Effects", 0, 30);
 
-            Define("gear", "Gear", "Values", "", "The big gear readout with shift flash, neighbors and a rolling change animation.", 180, 170, WidgetPainters.Gear)
+            Define("gear", "Gear", "Values", "", "The big gear readout with shift flash, neighbors and a rolling change animation.",
+                180, 170, WidgetPainters.Gear)
                 .Formula("value", "Gear", "=Gear", "Content")
                 .Font()
                 .Number("size", "Size", "150", "Type", 10, 400)
@@ -142,7 +148,8 @@ namespace AlmostFastDash.Dashboards
                 .Color("glowColor", "Glow color", "", "Effects", "Empty uses the gear color.");
 
             // ------------------------------------------------------------ Gauges
-            Define("bar", "Bar", "Gauges", "", "A bar for any value: fill, centered or segmented, shaped into any rev bar.", 220, 14, WidgetPainters.Bar)
+            Define("bar", "Bar", "Gauges", "", "A bar for any value: fill, centered or segmented, shaped into any rev bar.", 220, 14,
+                WidgetPainters.Bar)
                 .Formula("value", "Value", "=Throttle", "Value")
                 .Number("min", "Minimum", "0", "Value", double.NaN, double.NaN, 0.1)
                 .Number("max", "Maximum", "1", "Value", double.NaN, double.NaN, 0.1)
@@ -166,7 +173,9 @@ namespace AlmostFastDash.Dashboards
                 .Color("flashColor", "Flash color", "bad", "Flash")
                 .Number("glow", "Glow", "0", "Effects", 0, 30);
 
-            Define("arc", "Arc gauge", "Gauges", "", "A round or oval gauge: smooth or segmented, tapered, with a needle, ticks, numbers and shift colors.", 260, 260, WidgetPainters.Arc)
+            Define("arc", "Arc gauge", "Gauges", "",
+                "A round or oval gauge: smooth or segmented, tapered, with a needle, ticks, numbers and shift colors.", 260, 260,
+                WidgetPainters.Arc)
                 .Formula("value", "Value", "=ShiftPct", "Value")
                 .Number("min", "Minimum", "0", "Value", double.NaN, double.NaN, 0.1)
                 .Number("max", "Maximum", "1", "Value", double.NaN, double.NaN, 0.1)
@@ -206,7 +215,8 @@ namespace AlmostFastDash.Dashboards
                 .Color("flashColor", "Flash color", "bad", "Flash")
                 .Number("glow", "Glow", "9", "Effects", 0, 40);
 
-            Define("shiftlights", "Shift lights", "Gauges", "", "An on-screen LED strip that fills with revs and flashes at the shift point.", 360, 28, WidgetPainters.ShiftLights)
+            Define("shiftlights", "Shift lights", "Gauges", "",
+                "An on-screen LED strip that fills with revs and flashes at the shift point.", 360, 28, WidgetPainters.ShiftLights)
                 .Formula("value", "Value", "=ShiftPct", "Value")
                 .Number("count", "Lights", "10", "Look", 2, 40)
                 .Choice("shape", "Shape", "Dot", "Look", "Dot", "Pill", "Bar")
@@ -221,7 +231,8 @@ namespace AlmostFastDash.Dashboards
                 .Number("glow", "Glow", "10", "Effects", 0, 40);
 
             // ------------------------------------------------------------ Racing
-            Define("relative", "Relative", "Racing", "", "Cars around you on track with position, number, license and gap.", 268, 300, WidgetPainters.Relative)
+            Define("relative", "Relative", "Racing", "", "Cars around you on track with position, number, license and gap.", 268, 300,
+                WidgetPainters.Relative)
                 .Choice("rows", "Rows", "5", "Content", "3", "5")
                 .Bool("showPosition", "Position", "true", "Content")
                 .Bool("showNumber", "Car number", "true", "Content")
@@ -234,11 +245,13 @@ namespace AlmostFastDash.Dashboards
                 .Color("lappingColor", "Lapping you", "#FF7864", "Colors")
                 .Color("lappedColor", "Lapped", "info", "Colors");
 
-            Define("standings", "Leaderboard", "Racing", "", "The race order: the top of the field or the cars around you, overall or by class.", 300, 300, WidgetPainters.Standings)
+            Define("standings", "Leaderboard", "Racing", "",
+                "The race order: the top of the field or the cars around you, overall or by class.", 300, 300, WidgetPainters.Standings)
                 .Number("rows", "Rows", "8", "Content", 1, 30)
                 .Choice("focus", "Show", "Top and me", "Content", "Top of the field", "Around me", "Top and me")
                 .Bool("classOnly", "Only my class", "false", "Content")
-                .Choice("column", "Right column", "Gap to leader", "Content", "Gap to leader", "Interval", "Delta to me", "Last lap", "Best lap", "Laps")
+                .Choice("column", "Right column", "Gap to leader", "Content", "Gap to leader", "Interval", "Delta to me", "Last lap",
+                    "Best lap", "Laps")
                 .Bool("showPosition", "Position", "true", "Columns")
                 .Bool("showClass", "Class color", "true", "Columns")
                 .Bool("showNumber", "Car number", "true", "Columns")
@@ -255,7 +268,8 @@ namespace AlmostFastDash.Dashboards
                 .Number("radius", "Row corners", "6", "Look", 0, 20)
                 .Number("gap", "Space between rows", "3", "Look", 0, 20);
 
-            Define("tyres", "Tires", "Racing", "", "All four tires: tread temperatures, wear and pressure, updated by iRacing in the pits.", 260, 220, WidgetPainters.Tyres)
+            Define("tyres", "Tires", "Racing", "",
+                "All four tires: tread temperatures, wear and pressure, updated by iRacing in the pits.", 260, 220, WidgetPainters.Tyres)
                 .Bool("showTemps", "Temperatures", "true", "Content")
                 .Bool("showWear", "Wear", "true", "Content")
                 .Bool("showPressure", "Pressure", "true", "Content")
@@ -270,7 +284,8 @@ namespace AlmostFastDash.Dashboards
                 .Number("hotAbove", "Hot above", "=temp(105)", "Colors", 0, 250)
                 .Number("radius", "Corners", "10", "Look", 0, 40);
 
-            Define("blindspot", "Blind spot", "Racing", "", "Lights up while a car is alongside, brighter toward where it is.", 26, 220, WidgetPainters.BlindSpot)
+            Define("blindspot", "Blind spot", "Racing", "", "Lights up while a car is alongside, brighter toward where it is.", 26, 220,
+                WidgetPainters.BlindSpot)
                 .Choice("side", "Side", "Left", "Content", "Left", "Right")
                 .Choice("shape", "Shape", "Bar", "Look", "Bar", "Zones")
                 .Color("color", "Color", "bad", "Look")
@@ -278,7 +293,8 @@ namespace AlmostFastDash.Dashboards
                 .ShapeTools()
                 .Number("glow", "Glow", "14", "Effects", 0, 40);
 
-            Define("trackmap", "Track map", "Racing", "", "The track with every car on it. It traces itself on your first clean lap.", 300, 220, WidgetPainters.TrackMapWidget)
+            Define("trackmap", "Track map", "Racing", "", "The track with every car on it. It traces itself on your first clean lap.",
+                300, 220, WidgetPainters.TrackMapWidget)
                 .Number("lineWidth", "Track width", "7", "Look", 1, 30, 0.5)
                 .Color("trackColor", "Track", "track", "Look")
                 .Color("edgeColor", "Track edge", "border", "Look")
@@ -292,7 +308,9 @@ namespace AlmostFastDash.Dashboards
                 .Bool("numbers", "Car numbers", "false", "Cars")
                 .Font();
 
-            Define("radar", "Radar", "Racing", "", "The cars around you, seen from above: how far ahead and behind, which lane, and warnings as they close in.", 360, 480, RadarPainters.Radar)
+            Define("radar", "Radar", "Racing", "",
+                "The cars around you, seen from above: how far ahead and behind, which lane, and warnings as they close in.", 360, 480,
+                RadarPainters.Radar)
                 .Number("range", "Range ahead, car lengths", "3", "Content", 1, 16, 0.5)
                 .Number("tilt", "Camera tilt °", "70", "Look", 30, 90, 5)
                 .Bool("numbers", "Car numbers", "true", "Content")
@@ -317,7 +335,9 @@ namespace AlmostFastDash.Dashboards
                 .Color("ringColor", "Range rings", "#70D8B860", "Colors")
                 .Number("glow", "Glow on your car", "10", "Effects", 0, 40);
 
-            Define("traffic", "Traffic", "Racing", "", "Cars within a few seconds either way, in class colors, glowing when a faster class closes in.", 600, 40, RadarPainters.TrafficStrip)
+            Define("traffic", "Traffic", "Racing", "",
+                "Cars within a few seconds either way, in class colors, glowing when a faster class closes in.", 600, 40,
+                RadarPainters.TrafficStrip)
                 .Number("seconds", "Seconds each way", "8", "Content", 2, 30)
                 .Bool("numbers", "Car numbers", "true", "Content")
                 .Bool("warn", "Faster class warning", "true", "Content")
@@ -329,13 +349,15 @@ namespace AlmostFastDash.Dashboards
                 .Color("pitColor", "In the pits", "dim", "Colors")
                 .Color("trackColor", "Strip", "track", "Colors");
 
-            Define("flag", "Flag", "Racing", "", "Shows the current flag inside its own area. Use it when full-screen flags are off.", 260, 90, WidgetPainters.Flag)
+            Define("flag", "Flag", "Racing", "", "Shows the current flag inside its own area. Use it when full-screen flags are off.",
+                260, 90, WidgetPainters.Flag)
                 .Choice("style", "Style", "Fill", "Look", "Fill", "Badge")
                 .Bool("label", "Flag name", "true", "Look")
                 .Number("radius", "Corner radius", "10", "Look", 0, 60)
                 .Font();
 
-            Define("progress", "Session progress", "Racing", "", "Lap blocks in lap races (caution laps in yellow) or a time bar in timed sessions.", 838, 8, WidgetPainters.Progress)
+            Define("progress", "Session progress", "Racing", "",
+                "Lap blocks in lap races (caution laps in yellow) or a time bar in timed sessions.", 838, 8, WidgetPainters.Progress)
                 .Color("color", "Color", "accent", "Colors")
                 .Color("cautionColor", "Caution laps", "warn", "Colors")
                 .Color("track", "Track", "track", "Colors")
@@ -343,7 +365,8 @@ namespace AlmostFastDash.Dashboards
                 .ShapeTools();
 
             // ------------------------------------------------------------ Graphs
-            Define("trace", "Pedal trace", "Graphs", "", "Scrolling throttle and brake history, about six seconds long.", 300, 90, WidgetPainters.Trace)
+            Define("trace", "Pedal trace", "Graphs", "", "Scrolling throttle and brake history, about six seconds long.", 300, 90,
+                WidgetPainters.Trace)
                 .Color("throttleColor", "Throttle", "good", "Colors")
                 .Color("brakeColor", "Brake", "bad", "Colors")
                 .Number("lineWidth", "Line width", "2.5", "Look", 0.5, 10, 0.5)
@@ -351,7 +374,8 @@ namespace AlmostFastDash.Dashboards
                 .Bool("grid", "Grid lines", "true", "Look")
                 .Uses(traces: true);
 
-            Define("deltatrace", "Delta trace", "Graphs", "", "Scrolling history of your lap delta: green above the line when faster.", 300, 90, WidgetPainters.DeltaTrace)
+            Define("deltatrace", "Delta trace", "Graphs", "", "Scrolling history of your lap delta: green above the line when faster.",
+                300, 90, WidgetPainters.DeltaTrace)
                 .Number("range", "Range", "1", "Look", 0.1, 10, 0.1)
                 .Color("goodColor", "Faster", "good", "Colors")
                 .Color("badColor", "Slower", "bad", "Colors")
@@ -359,7 +383,8 @@ namespace AlmostFastDash.Dashboards
                 .Bool("fill", "Fill", "true", "Look")
                 .Uses(traces: true);
 
-            Define("laphistory", "Lap history", "Graphs", "", "Your recent laps, or this stint's laps as a falloff chart.", 260, 120, WidgetPainters.LapHistory)
+            Define("laphistory", "Lap history", "Graphs", "", "Your recent laps, or this stint's laps as a falloff chart.", 260, 120,
+                WidgetPainters.LapHistory)
                 .Choice("source", "Laps", "Recent laps", "Content", "Recent laps", "This stint")
                 .Number("laps", "How many", "5", "Content", 2, 40)
                 .Choice("style", "Style", "Rows", "Look", "Rows", "Columns")
@@ -376,7 +401,8 @@ namespace AlmostFastDash.Dashboards
                 .Color("track", "Column track", "#00000000", "Colors")
                 .Font();
 
-            Define("graph", "Graph", "Graphs", "", "A scrolling line of any value over the last few seconds.", 300, 110, WidgetPainters.Graph)
+            Define("graph", "Graph", "Graphs", "", "A scrolling line of any value over the last few seconds.", 300, 110,
+                WidgetPainters.Graph)
                 .Formula("value", "Value", "=Speed", "Value")
                 .Formula("value2", "Second value", "", "Value", "Optional: a second line, such as Brake beside Throttle.")
                 .Number("seconds", "Time span", "10", "Value", 1, 120)
@@ -394,8 +420,10 @@ namespace AlmostFastDash.Dashboards
                 .Font();
 
             // ------------------------------------------------------------ Decor
-            Define("shape", "Shape", "Decor", "\uF158", "Rectangles, ellipses, polygons, stars and lines, with solid, gradient or pattern fills.", 120, 80, WidgetPainters.Shape)
-                .Choice("shape", "Shape", "Rectangle", "Shape", "Rectangle", "Ellipse", "Polygon", "Star", "Triangle", "Line", "Diagonal down", "Diagonal up", "Brackets", "Chevron")
+            Define("shape", "Shape", "Decor", "\uF158",
+                "Rectangles, ellipses, polygons, stars and lines, with solid, gradient or pattern fills.", 120, 80, WidgetPainters.Shape)
+                .Choice("shape", "Shape", "Rectangle", "Shape", "Rectangle", "Ellipse", "Polygon", "Star", "Triangle", "Line",
+                    "Diagonal down", "Diagonal up", "Brackets", "Chevron")
                 .Number("sides", "Sides", "6", "Shape", 3, 24)
                 .Number("inner", "Inner size %", "50", "Shape", 5, 95)
                 .Number("radius", "Corner radius", "6", "Shape", 0, 80)
@@ -409,17 +437,20 @@ namespace AlmostFastDash.Dashboards
                 .FillAndLine("", "accent", "2")
                 .ShapeTools()
                 .Number("glow", "Glow", "0", "Effects", 0, 40);
-            Define("gradient", "Gradient", "Decor", "", "A soft color wash or light bloom to give a layout depth.", 300, 200, WidgetPainters.Gradient)
+            Define("gradient", "Gradient", "Decor", "", "A soft color wash or light bloom to give a layout depth.", 300, 200,
+                WidgetPainters.Gradient)
                 .Choice("style", "Style", "Radial", "Look", "Radial", "Vertical", "Horizontal")
                 .Color("color", "Color", "accent", "Look")
                 .Color("color2", "Fade to", "", "Look", "Empty fades to transparent.")
                 .Number("strength", "Strength", "25", "Look", 0, 100);
 
             // Settings that only matter in some setups stay out of the way until they do.
-            Func<string, bool> notSolid = v => v != "Solid", set = v => v.Trim().Length > 0, on = v => Expr.Bool(v), nonZero = v => Math.Abs(Expr.Num(v)) > 1e-9;
+            Func<string, bool> notSolid = v => v != "Solid", set = v => v.Trim().Length > 0, on = v => Expr.Bool(v),
+                nonZero = v => Math.Abs(Expr.Num(v)) > 1e-9;
             Rule("panel", "style", v => v == "Soft", "fill2");
             Rule("panel", "style", v => v == "Tinted", "tint");
-            Rule("panel", "style", v => v == "Liquid", "glassFrost", "glassDepth", "glassRefraction", "glassShine", "glassDispersion", "glassLight");
+            Rule("panel", "style", v => v == "Liquid", "glassFrost", "glassDepth", "glassRefraction", "glassShine",
+                "glassDispersion", "glassLight");
             Rule("panel", "style", v => v != "None", "fill", "border", "borderWidth");
             Rule("panel", "edge", v => v != "None", "edgeColor");
             Rule("panel", "glow", nonZero, "glowColor");
@@ -457,7 +488,8 @@ namespace AlmostFastDash.Dashboards
             Rule("laphistory", "style", v => v == "Rows", "times");
             Rule("laphistory", "style", v => v == "Columns", "range", "showDelta", "labelSize", "gap", "radius", "slowColor", "track");
             foreach (WidgetType shaped in All.Where(x => x.Prop("bend") != null)) Rule(shaped.Id, "bend", nonZero, "peak");
-            Func<string, bool> closedShape = v => v != "Line" && v != "Diagonal down" && v != "Diagonal up" && v != "Brackets" && v != "Chevron";
+            Func<string,
+                bool> closedShape = v => v != "Line" && v != "Diagonal down" && v != "Diagonal up" && v != "Brackets" && v != "Chevron";
             Rule("shape", "shape", closedShape, "fill", "fillStyle");
             Rule("shape", "shape", v => v == "Polygon" || v == "Star", "sides");
             Rule("shape", "shape", v => v == "Star", "inner");
@@ -474,48 +506,76 @@ namespace AlmostFastDash.Dashboards
             foreach (WidgetType type in All)
             {
                 // The shared Style tools (see LayerStyle), applied to whatever the widget draws.
-                type.Props.Add(new PropDef { Key = "fxFill", Label = "Recolor", Kind = PropKind.Choice, Default = "None", Group = "Style", Choices = LayerStyle.FillModes,
+                type.Props.Add(new PropDef { Key = "fxFill", Label = "Recolor", Kind = PropKind.Choice, Default = "None", Group = "Style",
+                    Choices = LayerStyle.FillModes,
                     Help = "Lays a color, a gradient, a pattern or an image over the widget's own pixels, keeping its shape." });
-                type.Props.Add(new PropDef { Key = "fxFillColor", Label = "Recolor with", Kind = PropKind.Color, Default = "accent", Group = "Style" });
-                type.Props.Add(new PropDef { Key = "fxFillColor2", Label = "Gradient to", Kind = PropKind.Color, Default = "bad", Group = "Style" });
-                type.Props.Add(new PropDef { Key = "fxFillAngle", Label = "Gradient angle", Kind = PropKind.Number, Default = "90", Group = "Style", Min = 0, Max = 360, Step = 5,
+                type.Props.Add(new PropDef { Key = "fxFillColor", Label = "Recolor with", Kind = PropKind.Color, Default = "accent",
+                    Group = "Style" });
+                type.Props.Add(new PropDef { Key = "fxFillColor2", Label = "Gradient to", Kind = PropKind.Color, Default = "bad",
+                    Group = "Style" });
+                type.Props.Add(new PropDef { Key = "fxFillAngle", Label = "Gradient angle", Kind = PropKind.Number, Default = "90",
+                    Group = "Style", Min = 0, Max = 360, Step = 5,
                     Help = "0 runs left to right, 90 top to bottom." });
-                type.Props.Add(new PropDef { Key = "fxPattern", Label = "Pattern", Kind = PropKind.Choice, Default = "Stripes", Group = "Style", Choices = Fills.Patterns });
-                type.Props.Add(new PropDef { Key = "fxPatternBack", Label = "Between the pattern", Kind = PropKind.Color, Default = "", Group = "Style",
+                type.Props.Add(new PropDef { Key = "fxPattern", Label = "Pattern", Kind = PropKind.Choice, Default = "Stripes",
+                    Group = "Style", Choices = Fills.Patterns });
+                type.Props.Add(new PropDef { Key = "fxPatternBack", Label = "Between the pattern", Kind = PropKind.Color, Default = "",
+                    Group = "Style",
                     Help = "Empty keeps the widget's own colors between the pattern." });
-                type.Props.Add(new PropDef { Key = "fxPatternScale", Label = "Pattern size %", Kind = PropKind.Number, Default = "100", Group = "Style", Min = 25, Max = 800, Step = 5 });
-                type.Props.Add(new PropDef { Key = "fxPatternAngle", Label = "Pattern angle", Kind = PropKind.Number, Default = "45", Group = "Style", Min = 0, Max = 360, Step = 5 });
+                type.Props.Add(new PropDef { Key = "fxPatternScale", Label = "Pattern size %", Kind = PropKind.Number, Default = "100",
+                    Group = "Style", Min = 25, Max = 800, Step = 5 });
+                type.Props.Add(new PropDef { Key = "fxPatternAngle", Label = "Pattern angle", Kind = PropKind.Number, Default = "45",
+                    Group = "Style", Min = 0, Max = 360, Step = 5 });
                 type.Props.Add(new PropDef { Key = "fxImage", Label = "Texture", Kind = PropKind.Image, Default = "", Group = "Style" });
-                type.Props.Add(new PropDef { Key = "fxFillAmount", Label = "Recolor strength %", Kind = PropKind.Number, Default = "100", Group = "Style", Min = 0, Max = 100 });
-                type.Props.Add(new PropDef { Key = "fxOutline", Label = "Outline", Kind = PropKind.Number, Default = "0", Group = "Style", Min = 0, Max = 20, Step = 0.5,
+                type.Props.Add(new PropDef { Key = "fxFillAmount", Label = "Recolor strength %", Kind = PropKind.Number, Default = "100",
+                    Group = "Style", Min = 0, Max = 100 });
+                type.Props.Add(new PropDef { Key = "fxOutline", Label = "Outline", Kind = PropKind.Number, Default = "0", Group = "Style",
+                    Min = 0, Max = 20, Step = 0.5,
                     Help = "A stroke around everything the widget draws: text, gauges, needles." });
-                type.Props.Add(new PropDef { Key = "fxOutlineColor", Label = "Outline color", Kind = PropKind.Color, Default = "background", Group = "Style" });
-                type.Props.Add(new PropDef { Key = "fxShadow", Label = "Drop shadow", Kind = PropKind.Number, Default = "0", Group = "Style", Min = 0, Max = 40,
+                type.Props.Add(new PropDef { Key = "fxOutlineColor", Label = "Outline color", Kind = PropKind.Color,
+                    Default = "background", Group = "Style" });
+                type.Props.Add(new PropDef { Key = "fxShadow", Label = "Drop shadow", Kind = PropKind.Number, Default = "0",
+                    Group = "Style", Min = 0, Max = 40,
                     Help = "How soft the shadow is; 0 for none." });
-                type.Props.Add(new PropDef { Key = "fxShadowColor", Label = "Shadow color", Kind = PropKind.Color, Default = "#B4000000", Group = "Style" });
-                type.Props.Add(new PropDef { Key = "fxShadowX", Label = "Shadow across", Kind = PropKind.Number, Default = "0", Group = "Style", Min = -40, Max = 40 });
-                type.Props.Add(new PropDef { Key = "fxShadowY", Label = "Shadow down", Kind = PropKind.Number, Default = "4", Group = "Style", Min = -40, Max = 40 });
-                type.Props.Add(new PropDef { Key = "fxGlow", Label = "Outer glow", Kind = PropKind.Number, Default = "0", Group = "Style", Min = 0, Max = 40,
+                type.Props.Add(new PropDef { Key = "fxShadowColor", Label = "Shadow color", Kind = PropKind.Color, Default = "#B4000000",
+                    Group = "Style" });
+                type.Props.Add(new PropDef { Key = "fxShadowX", Label = "Shadow across", Kind = PropKind.Number, Default = "0",
+                    Group = "Style", Min = -40, Max = 40 });
+                type.Props.Add(new PropDef { Key = "fxShadowY", Label = "Shadow down", Kind = PropKind.Number, Default = "4",
+                    Group = "Style", Min = -40, Max = 40 });
+                type.Props.Add(new PropDef { Key = "fxGlow", Label = "Outer glow", Kind = PropKind.Number, Default = "0", Group = "Style",
+                    Min = 0, Max = 40,
                     Help = "A soft halo around the whole widget. (A gauge's own Glow lights only its lit parts.)" });
-                type.Props.Add(new PropDef { Key = "fxGlowColor", Label = "Glow color", Kind = PropKind.Color, Default = "accent", Group = "Style" });
-                type.Props.Add(new PropDef { Key = "fxFade", Label = "Fade", Kind = PropKind.Choice, Default = "None", Group = "Style", Choices = LayerStyle.FadeModes,
+                type.Props.Add(new PropDef { Key = "fxGlowColor", Label = "Glow color", Kind = PropKind.Color, Default = "accent",
+                    Group = "Style" });
+                type.Props.Add(new PropDef { Key = "fxFade", Label = "Fade", Kind = PropKind.Choice, Default = "None", Group = "Style",
+                    Choices = LayerStyle.FadeModes,
                     Help = "Fades the widget out toward an edge, the sides, the edges or all around, like a gradient mask." });
-                type.Props.Add(new PropDef { Key = "fxFadeLength", Label = "Fade length %", Kind = PropKind.Number, Default = "35", Group = "Style", Min = 2, Max = 100 });
-                type.Props.Add(new PropDef { Key = "fxBlend", Label = "Blend", Kind = PropKind.Choice, Default = "Normal", Group = "Style", Choices = LayerStyle.BlendModes,
+                type.Props.Add(new PropDef { Key = "fxFadeLength", Label = "Fade length %", Kind = PropKind.Number, Default = "35",
+                    Group = "Style", Min = 2, Max = 100 });
+                type.Props.Add(new PropDef { Key = "fxBlend", Label = "Blend", Kind = PropKind.Choice, Default = "Normal", Group = "Style",
+                    Choices = LayerStyle.BlendModes,
                     Help = "How it mixes with what's beneath: Screen and Add brighten, for light and glows; Multiply darkens, for shade; Overlay adds contrast." });
-                type.Props.Add(new PropDef { Key = "clip", Label = "Clip to the layer below", Kind = PropKind.Bool, Default = "false", Group = "Visibility",
+                type.Props.Add(new PropDef { Key = "clip", Label = "Clip to the layer below", Kind = PropKind.Bool, Default = "false",
+                    Group = "Visibility",
                     Help = "Shows only where the layer below is drawn, like a clipping mask. Alt-click a layer to switch it." });
-                type.Props.Add(new PropDef { Key = "flipX", Label = "Flip horizontally", Kind = PropKind.Bool, Default = "false", Group = "Transform",
+                type.Props.Add(new PropDef { Key = "flipX", Label = "Flip horizontally", Kind = PropKind.Bool, Default = "false",
+                    Group = "Transform",
                     Help = "Mirrors the widget left to right; text stays readable." });
-                type.Props.Add(new PropDef { Key = "flipY", Label = "Flip vertically", Kind = PropKind.Bool, Default = "false", Group = "Transform", Help = "Mirrors the widget top to bottom; text stays readable." });
-                type.Props.Add(new PropDef { Key = "rotate", Label = "Rotate °", Kind = PropKind.Number, Default = "0", Group = "Transform", Min = -180, Max = 180,
+                type.Props.Add(new PropDef { Key = "flipY", Label = "Flip vertically", Kind = PropKind.Bool, Default = "false",
+                    Group = "Transform", Help = "Mirrors the widget top to bottom; text stays readable." });
+                type.Props.Add(new PropDef { Key = "rotate", Label = "Rotate °", Kind = PropKind.Number, Default = "0",
+                    Group = "Transform", Min = -180, Max = 180,
                     Help = "Turns the widget about its middle." });
-                type.Props.Add(new PropDef { Key = "visible", Label = "Show when", Kind = PropKind.Formula, Default = "", Group = "Visibility", Help = "A condition such as OnPitRoad or Fuel < 5. Empty means always." });
+                type.Props.Add(new PropDef { Key = "visible", Label = "Show when", Kind = PropKind.Formula, Default = "",
+                    Group = "Visibility", Help = "A condition such as OnPitRoad or Fuel < 5. Empty means always." });
                 type.Props.Add(new PropDef { Key = "tapName", Label = "Tap name", Kind = PropKind.Text, Default = "", Group = "Touch",
                     Help = "Makes the widget a tap zone on a touch screen. Each tap moves tap(\"name\") to the next view, so other widgets can show for each view with Show when, such as tap(\"fuel\") == 1." });
-                type.Props.Add(new PropDef { Key = "tapViews", Label = "Views", Kind = PropKind.Number, Default = "2", Group = "Touch", Min = 2, Max = 9 });
-                type.Props.Add(new PropDef { Key = "tapDots", Label = "Show view dots", Kind = PropKind.Bool, Default = "true", Group = "Touch" });
-                type.Props.Add(new PropDef { Key = "opacity", Label = "Opacity %", Kind = PropKind.Number, Default = "100", Group = "Visibility", Min = 0, Max = 100 });
+                type.Props.Add(new PropDef { Key = "tapViews", Label = "Views", Kind = PropKind.Number, Default = "2", Group = "Touch",
+                    Min = 2, Max = 9 });
+                type.Props.Add(new PropDef { Key = "tapDots", Label = "Show view dots", Kind = PropKind.Bool, Default = "true",
+                    Group = "Touch" });
+                type.Props.Add(new PropDef { Key = "opacity", Label = "Opacity %", Kind = PropKind.Number, Default = "100",
+                    Group = "Visibility", Min = 0, Max = 100 });
 
                 Rule(type.Id, "fxFill", v => v == "Color" || v == "Gradient" || v == "Pattern", "fxFillColor");
                 Rule(type.Id, "fxFill", v => v == "Pattern", "fxPattern", "fxPatternBack", "fxPatternScale", "fxPatternAngle");
@@ -569,14 +629,17 @@ namespace AlmostFastDash.Dashboards
         public static DashWidget Create(string typeId, double x, double y)
         {
             WidgetType type = Find(typeId) ?? All[0];
-            return new DashWidget { Type = type.Id, Name = type.Name, X = Math.Round(x), Y = Math.Round(y), W = type.DefaultW, H = type.DefaultH };
+            return new DashWidget { Type = type.Id, Name = type.Name, X = Math.Round(x), Y = Math.Round(y), W = type.DefaultW,
+                H = type.DefaultH };
         }
 
         // ------------------------------------------------------------------ fluent definition
 
-        private static WidgetType Define(string id, string name, string category, string icon, string description, double w, double h, Action<WidgetContext> draw)
+        private static WidgetType Define(string id, string name, string category, string icon, string description, double w, double h,
+            Action<WidgetContext> draw)
         {
-            var type = new WidgetType { Id = id, Name = name, Category = category, Icon = icon, Description = description, DefaultW = w, DefaultH = h, Draw = draw };
+            var type = new WidgetType { Id = id, Name = name, Category = category, Icon = icon, Description = description, DefaultW = w,
+                DefaultH = h, Draw = draw };
             All.Add(type);
             return type;
         }
@@ -589,8 +652,10 @@ namespace AlmostFastDash.Dashboards
         private static WidgetType Formula(this WidgetType t, string key, string label, string def, string group, string help = null) =>
             t.Add(new PropDef { Key = key, Label = label, Default = def, Group = group, Kind = PropKind.Formula, Help = help });
 
-        private static WidgetType Number(this WidgetType t, string key, string label, string def, string group, double min = double.NaN, double max = double.NaN, double step = 1) =>
-            t.Add(new PropDef { Key = key, Label = label, Default = def, Group = group, Kind = PropKind.Number, Min = min, Max = max, Step = step });
+        private static WidgetType Number(this WidgetType t, string key, string label, string def, string group, double min = double.NaN,
+            double max = double.NaN, double step = 1) =>
+            t.Add(new PropDef { Key = key, Label = label, Default = def, Group = group, Kind = PropKind.Number, Min = min, Max = max,
+            Step = step });
 
         private static WidgetType Color(this WidgetType t, string key, string label, string def, string group, string help = null) =>
             t.Add(new PropDef { Key = key, Label = label, Default = def, Group = group, Kind = PropKind.Color, Help = help });
@@ -602,12 +667,14 @@ namespace AlmostFastDash.Dashboards
             t.Add(new PropDef { Key = key, Label = label, Default = def, Group = group, Kind = PropKind.Choice, Choices = choices });
 
         private static WidgetType Font(this WidgetType t) =>
-            t.Add(new PropDef { Key = "font", Label = "Font", Default = "theme", Group = "Type", Kind = PropKind.Font, Help = "\"theme\" uses the design's font." });
+            t.Add(new PropDef { Key = "font", Label = "Font", Default = "theme", Group = "Type", Kind = PropKind.Font,
+            Help = "\"theme\" uses the design's font." });
 
         private static WidgetType Image(this WidgetType t) =>
             t.Add(new PropDef { Key = "image", Label = "Image", Default = "", Group = "Image", Kind = PropKind.Image });
 
-        /// <summary>The shared Shape tools: bend, peak, taper, bulge, slant, thickness and grow from (see <see cref="ShapeTool"/>).</summary>
+        /// <summary>The shared Shape tools: bend, peak, taper, bulge, slant, thickness and grow from (see <see
+        /// cref="ShapeTool"/>).</summary>
         private static WidgetType ShapeTools(this WidgetType t) => t
             .Number("bend", "Bend %", "0", "Shape", -100, 100)
             .Number("peak", "Peak position %", "50", "Shape", 0, 100)

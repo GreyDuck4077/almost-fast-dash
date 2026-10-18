@@ -99,7 +99,8 @@ namespace AlmostFastDash.Settings
                     DashWidget Fresh(string name) => model.Widgets.FirstOrDefault(w => w.Name == name);
                     foreach (DashWidget widget in screen.Widgets)
                     {
-                        if (!restyle.Contains(widget.Name) || Fresh(widget.Name) is null || Fresh(widget.Name).Type != widget.Type) continue;
+                        if (!restyle.Contains(widget.Name) || Fresh(widget.Name) is null ||
+                            Fresh(widget.Name).Type != widget.Type) continue;
                         DashWidget look = Fresh(widget.Name);
                         foreach (var prop in look.Props) widget.Props[prop.Key] = prop.Value;
                     }
@@ -114,8 +115,10 @@ namespace AlmostFastDash.Settings
                     screen.Widgets.RemoveAll(w => remove.Contains(w.Name) && w.Type == "text");
                 }
             }
-            Polish(DashboardSettings.RoadId, DesignTemplates.Road, new[] { "Rev sweep", "Gear", "Rule", "Pit speed ring" }, new[] { "Gear light", "Rev sweep" }, new string[0]);
-            Polish(DashboardSettings.OvalId, DesignTemplates.Oval, new[] { "Rev dial", "Pit speed ring" }, new[] { "Dial face", "Rev dial" }, new[] { "Rpm unit" });
+            Polish(DashboardSettings.RoadId, DesignTemplates.Road, new[] { "Rev sweep", "Gear", "Rule", "Pit speed ring" },
+                new[] { "Gear light", "Rev sweep" }, new string[0]);
+            Polish(DashboardSettings.OvalId, DesignTemplates.Oval, new[] { "Rev dial", "Pit speed ring" },
+                new[] { "Dial face", "Rev dial" }, new[] { "Rpm unit" });
         }
 
         /// <summary>
@@ -139,7 +142,8 @@ namespace AlmostFastDash.Settings
                         {
                             w.Set("corners", "Round");
                             // Short chips become pills; tiles and cards take one even radius.
-                            w.Set("radius", (w.H <= 32 ? Math.Round(w.H / 2) : w.H < 100 ? 16 : 18).ToString(System.Globalization.CultureInfo.InvariantCulture));
+                            w.Set("radius", (w.H <= 32 ? Math.Round(w.H / 2) : w.H < 100 ? 16 : 18)
+                                .ToString(System.Globalization.CultureInfo.InvariantCulture));
                         }
                         if (w.Type == "arc" && w.Name.StartsWith("Rev lights"))
                         {
@@ -147,13 +151,18 @@ namespace AlmostFastDash.Settings
                             w.Set("rimWidth", "1");
                         }
                         if (w.Type == "arc" && w.Name == "Pit speed")
-                            foreach (var p in new[] { "zones", "true", "rim", "border", "rimWidth", "1", "needle", "Marker", "needleColor", "#FFFFFF", "needleLength", "130", "needleWidth", "3" }
+                            foreach (var p in new[] { "zones", "true", "rim", "border", "rimWidth", "1", "needle", "Marker",
+                                "needleColor", "#FFFFFF", "needleLength", "130", "needleWidth", "3" }
                                 .Select((v, i) => new { v, i }).GroupBy(x => x.i / 2, x => x.v).Select(g => g.ToArray()))
                                 w.Set(p[0], p[1]);
                     }
-                    // The hairlines across the top stepped down with a diagonal kink to meet the cut corners: now one straight line each side.
-                    screen.Widgets.RemoveAll(w => w.Type == "shape" && (w.Name == "Hairline left" || w.Name == "Hairline right" || w.Name == "Hairline left angle" || w.Name == "Hairline right angle"));
-                    DashWidget left = screen.Widgets.FirstOrDefault(w => w.Name == "Hairline left base"), right = screen.Widgets.FirstOrDefault(w => w.Name == "Hairline right base");
+                    // The hairlines across the top stepped down with a diagonal kink to meet the cut corners: now one straight line each
+                    // side.
+                    screen.Widgets.RemoveAll(w => w.Type == "shape" &&
+                        (w.Name == "Hairline left" || w.Name == "Hairline right" || w.Name == "Hairline left angle" ||
+                        w.Name == "Hairline right angle"));
+                    DashWidget left = screen.Widgets.FirstOrDefault(w => w.Name == "Hairline left base"),
+                        right = screen.Widgets.FirstOrDefault(w => w.Name == "Hairline right base");
                     if (left != null) { left.W = 252; left.Set("stroke", "#1E2836"); }
                     if (right != null) { right.X = 584; right.W = 252; right.Set("stroke", "#1E2836"); }
                 }
@@ -170,7 +179,8 @@ namespace AlmostFastDash.Settings
             foreach (DashboardSettings dashboard in Dashboards)
             {
                 var widgets = dashboard.Design?.Screens?.FirstOrDefault()?.Widgets;
-                if (widgets == null || !new[] { "Rev ring", "Fuel ring", "Fuel pct", "Divider" }.All(n => widgets.Any(w => w.Name == n))) continue;
+                if (widgets == null ||
+                    !new[] { "Rev ring", "Fuel ring", "Fuel pct", "Divider" }.All(n => widgets.Any(w => w.Name == n))) continue;
                 DashLayout rebuilt = DesignTemplates.Find("neon").Create();
                 rebuilt.ScaleTo(dashboard.Design.Width, dashboard.Design.Height);
                 rebuilt.PageButton = dashboard.Design.PageButton;
@@ -214,7 +224,8 @@ namespace AlmostFastDash.Settings
             {
                 ["#8190A4"] = "#A9B6C8", ["#968C84"] = "#BDB3AA", ["#8AA396"] = "#B2C7BB", ["#8DA0BF"] = "#B6C5DD", ["#AA9CDA"] = "#C2B6EC"
             };
-            var captions = new HashSet<string> { "Ahead lengths caption", "Behind lengths caption", "Fuel laps caption", "Falloff caption", "Traffic label" };
+            var captions = new HashSet<string> { "Ahead lengths caption", "Behind lengths caption", "Fuel laps caption", "Falloff caption",
+                "Traffic label" };
             foreach (DashboardSettings dashboard in Dashboards)
             {
                 LayoutTheme theme = dashboard.Design?.Theme;
@@ -234,7 +245,8 @@ namespace AlmostFastDash.Settings
         /// narrowed to give it room. A dashboard still built on the first Oval layout (its radar and the ahead
         /// panel beside it) takes the new one at its own size, keeping its page buttons and flag choices.
         /// </summary>
-        private void WiderRadar() => Refresh("oval", widgets => widgets.Any(w => w.Type == "radar" && w.Name == "Radar") && widgets.Any(w => w.Name == "Ahead panel"));
+        private void WiderRadar() => Refresh("oval",
+            widgets => widgets.Any(w => w.Type == "radar" && w.Name == "Radar") && widgets.Any(w => w.Name == "Ahead panel"));
 
         /// <summary>
         /// Schema 19: Halo and Oval, both rebuilt on 13 October, take their templates again with text no smaller
@@ -291,7 +303,9 @@ namespace AlmostFastDash.Settings
         /// </summary>
         private void TiresSpelling()
         {
-            var names = new Dictionary<string, string> { ["Tyres panel"] = "Tires panel", ["Tyres label"] = "Tires label", ["Tyre box"] = "Tire box", ["Tyres"] = "Tires" };
+            var names = new Dictionary<string,
+                string> { ["Tyres panel"] = "Tires panel", ["Tyres label"] = "Tires label", ["Tyre box"] = "Tire box",
+                ["Tyres"] = "Tires" };
             foreach (DashWidget widget in Dashboards.Where(d => d.Design?.Screens != null).SelectMany(d => d.Design.AllWidgets()))
             {
                 if (widget.Type == "text" && widget.Get("text") == "TYRES · LAST STOP") widget.Set("text", "TIRES · LAST STOP");
@@ -367,13 +381,15 @@ namespace AlmostFastDash.Settings
             {
                 foreach (DashboardSettings d in Dashboards)
                     d.RaceTypes?.RemoveAll(type => type == Disciplines.Oval || type == Disciplines.DirtOval);
-                Ensure(DesignTemplates.Oval.Name, DashboardSettings.CreateOval).RaceTypes.AddRange(new[] { Disciplines.Oval, Disciplines.DirtOval });
+                Ensure(DesignTemplates.Oval.Name,
+                    DashboardSettings.CreateOval).RaceTypes.AddRange(new[] { Disciplines.Oval, Disciplines.DirtOval });
             }
 
             foreach (string type in orphanTypes.Where(type => !Dashboards.Any(d => d.RaceTypes != null && d.RaceTypes.Contains(type))))
             {
                 bool oval = type == Disciplines.Oval || type == Disciplines.DirtOval;
-                DashboardSettings target = oval ? Ensure(DesignTemplates.Oval.Name, DashboardSettings.CreateOval) : Ensure(DesignTemplates.Road.Name, DashboardSettings.CreateRoad);
+                DashboardSettings target = oval ? Ensure(DesignTemplates.Oval.Name, DashboardSettings.CreateOval)
+                    : Ensure(DesignTemplates.Road.Name, DashboardSettings.CreateRoad);
                 target.RaceTypes.Add(type);
             }
             if (Dashboards.Count == 0) return;
@@ -388,7 +404,8 @@ namespace AlmostFastDash.Settings
         {
             if (General.Devices.Count > 0) return;
             General.Devices.Add(KnownDevices.Create(KnownDevices.Dv5, General.LedPort, KnownDevices.Dv5.LedCount, true));
-            General.Devices.Add(KnownDevices.Create(KnownDevices.Lb10, General.BrowPort, Math.Max(1, General.BrowLedCount), General.BrowEnabled));
+            General.Devices.Add(KnownDevices.Create(KnownDevices.Lb10, General.BrowPort, Math.Max(1, General.BrowLedCount),
+                General.BrowEnabled));
             General.LedPort = null;
             General.BrowPort = null;
         }
@@ -400,12 +417,14 @@ namespace AlmostFastDash.Settings
                 if (dashboard.Lights == null) dashboard.Lights = LightPresets.FromClassic(dashboard);
         }
 
-        /// <summary>Schema 7: light layers named after one device ("Brow rev lights") take the generic name ("Light bar rev lights").</summary>
+        /// <summary>Schema 7: light layers named after one device ("Brow rev lights") take the generic name ("Light bar rev
+        /// lights").</summary>
         private void RenameBrowLayers()
         {
             foreach (DashboardSettings dashboard in Dashboards)
                 foreach (LightLayer layer in dashboard.Lights?.Layers ?? new List<LightLayer>())
-                    if (layer.Name != null && layer.Name.StartsWith("Brow ", StringComparison.Ordinal)) layer.Name = "Light bar " + layer.Name.Substring(5);
+                    if (layer.Name != null && layer.Name.StartsWith("Brow ", StringComparison.Ordinal)) layer.Name = "Light bar " +
+                        layer.Name.Substring(5);
         }
     }
 }

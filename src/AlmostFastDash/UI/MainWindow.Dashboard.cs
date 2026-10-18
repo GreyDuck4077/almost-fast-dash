@@ -91,7 +91,8 @@ namespace AlmostFastDash.UI
                 return;
             }
             var shared = _dashboard.RaceTypes
-                .Select(type => new { type, others = _settings.Dashboards.Where(d => d != _dashboard && d.RaceTypes.Contains(type)).Select(d => d.Name).ToList() })
+                .Select(type => new { type, others = _settings.Dashboards.Where(d => d != _dashboard && d.RaceTypes.Contains(type))
+                    .Select(d => d.Name).ToList() })
                 .Where(x => x.others.Count > 0).ToList();
             AssignmentHelp.Text = shared.Count == 0
                 ? "Used when a session starts on these track types."
@@ -169,13 +170,15 @@ namespace AlmostFastDash.UI
             bool isDefault = dashboard.Id == _settings.DefaultDashboardId;
             var makeDefault = new MenuItem
             {
-                Header = isDefault ? "The default dashboard" : "Set as default", Icon = GlyphIcon(isDefault ? "" : ""), IsEnabled = !isDefault,
+                Header = isDefault ? "The default dashboard" : "Set as default", Icon = GlyphIcon(isDefault ? "" : ""),
+                    IsEnabled = !isDefault,
                 ToolTip = "Shown unless another dashboard is set for the session's track type"
             };
             makeDefault.Click += (s, e) => MakeDefault(dashboard);
             var open = new MenuItem { Header = "Open", Icon = GlyphIcon("") };
             open.Click += (s, e) => ShowEditor(dashboard);
-            var design = new MenuItem { Header = dashboard.Design != null ? "Edit the screen design" : "Design the screen", Icon = GlyphIcon("") };
+            var design = new MenuItem { Header = dashboard.Design != null ? "Edit the screen design" : "Design the screen",
+                Icon = GlyphIcon("") };
             design.Click += (s, e) => OpenDesigner(dashboard);
             var duplicate = new MenuItem { Header = "Duplicate", Icon = GlyphIcon("") };
             duplicate.Click += (s, e) =>
@@ -201,7 +204,8 @@ namespace AlmostFastDash.UI
             reset.Click += (s, a) => { ResetButton.BringIntoView(); ArmConfirm(ResetButton, ResetLabel, "Click again to reset"); };
             var delete = new MenuItem { Header = "Delete", Icon = GlyphIcon(""), IsEnabled = _settings.Dashboards.Count > 1 };
             delete.Click += (s, a) => { DeleteButton.BringIntoView(); ArmConfirm(DeleteButton, DeleteLabel, "Click again to delete"); };
-            var export = new MenuItem { Header = "Export to a file (.afodash)…", Icon = GlyphIcon(""), IsEnabled = _dashboard.Design != null };
+            var export = new MenuItem { Header = "Export to a file (.afodash)…", Icon = GlyphIcon(""),
+                IsEnabled = _dashboard.Design != null };
             export.Click += (s, a) => ExportDashboard(_dashboard);
             menu.Items.Add(duplicate);
             menu.Items.Add(export);

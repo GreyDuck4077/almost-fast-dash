@@ -61,8 +61,10 @@ namespace AlmostFastDash.Output
             _title = title;
             // Over the game it waits to be shown, so it never flashes up over the desktop.
             _wanted = mode != Overlay;
-            DrawingRectangle place = mode == FullScreen ? display.Bounds : WindowPlacement.Resolve(WindowPlacement.Load(mode), mode, dashboard,
-                System.Windows.Forms.Screen.AllScreens.Select(s => s.Bounds).ToArray(), System.Windows.Forms.Screen.PrimaryScreen.WorkingArea);
+            DrawingRectangle place = mode == FullScreen ? display.Bounds
+                : WindowPlacement.Resolve(WindowPlacement.Load(mode), mode, dashboard,
+                System.Windows.Forms.Screen.AllScreens.Select(s => s.Bounds).ToArray(),
+                System.Windows.Forms.Screen.PrimaryScreen.WorkingArea);
             _place = place;
             _thread = new Thread(Run) { IsBackground = true, Name = "Dashboard window" };
             _thread.SetApartmentState(ApartmentState.STA);
@@ -109,7 +111,8 @@ namespace AlmostFastDash.Output
             }
             current?.Dispose();
             if (!wanted) return null;
-            Console.WriteLine("Showing the dashboard " + (mode == FullScreen ? "on " + display.Label : mode == Windowed ? "in a window" : "over the game"));
+            Console.WriteLine("Showing the dashboard " +
+                (mode == FullScreen ? "on " + display.Label : mode == Windowed ? "in a window" : "over the game"));
             return new MonitorOutput(mode, display, dashboard, dashboardName);
         }
 
@@ -187,7 +190,8 @@ namespace AlmostFastDash.Output
 
         private void Run()
         {
-            _image = new Image { Stretch = Stretch.Uniform, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+            _image = new Image { Stretch = Stretch.Uniform, HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center };
             RenderOptions.SetBitmapScalingMode(_image, BitmapScalingMode.HighQuality);
             var content = new Grid();
             content.Children.Add(_image);
@@ -307,9 +311,11 @@ namespace AlmostFastDash.Output
             {
                 var outer = new Rect32 { Left = place.Left, Top = place.Top, Right = place.Right, Bottom = place.Bottom };
                 AdjustWindowRectEx(ref outer, GetWindowLong(_handle, Style), false, GetWindowLong(_handle, ExStyle));
-                SetWindowPos(_handle, IntPtr.Zero, outer.Left, outer.Top, outer.Right - outer.Left, outer.Bottom - outer.Top, NoActivateMove | NoZOrder);
+                SetWindowPos(_handle, IntPtr.Zero, outer.Left, outer.Top, outer.Right - outer.Left, outer.Bottom - outer.Top,
+                    NoActivateMove | NoZOrder);
             }
-            else SetWindowPos(_handle, TopMost, place.X, place.Y, place.Width, place.Height, NoActivateMove | (_window.IsVisible ? ShowWindow : 0));
+            else SetWindowPos(_handle, TopMost, place.X, place.Y, place.Width, place.Height,
+                NoActivateMove | (_window.IsVisible ? ShowWindow : 0));
         }
 
         /// <summary>The extended styles over the game: never active, not in Alt+Tab, layered, and clicks through unless unlocked.</summary>
@@ -370,7 +376,8 @@ namespace AlmostFastDash.Output
             var r = (Rect32)Marshal.PtrToStructure(rectangle, typeof(Rect32));
             GetWindowRect(handle, out Rect32 outer);
             GetClientRect(handle, out Rect32 client);
-            int frameX = (outer.Right - outer.Left) - (client.Right - client.Left), frameY = (outer.Bottom - outer.Top) - (client.Bottom - client.Top);
+            int frameX = (outer.Right - outer.Left) - (client.Right - client.Left),
+                frameY = (outer.Bottom - outer.Top) - (client.Bottom - client.Top);
             bool byHeight = edge == SizeTop || edge == SizeBottom;
             if (byHeight)
             {
@@ -408,7 +415,8 @@ namespace AlmostFastDash.Output
             var accent = new SolidColorBrush(Color.FromRgb(45, 212, 191));
             var grid = new Grid { Visibility = Visibility.Collapsed };
             // Faint enough to see the dashboard through, there to grab even where the dashboard is see-through.
-            grid.Children.Add(new Border { Background = new SolidColorBrush(Color.FromArgb(70, 0, 0, 0)), BorderBrush = accent, BorderThickness = new Thickness(2) });
+            grid.Children.Add(new Border { Background = new SolidColorBrush(Color.FromArgb(70, 0, 0, 0)), BorderBrush = accent,
+                BorderThickness = new Thickness(2) });
             grid.Children.Add(new Border
             {
                 Background = new SolidColorBrush(Color.FromArgb(220, 16, 20, 26)),
@@ -420,7 +428,8 @@ namespace AlmostFastDash.Output
                 IsHitTestVisible = false,
                 Child = new TextBlock { Text = "Drag to move · drag the corner to resize", Foreground = Brushes.White, FontSize = 13 }
             });
-            var grip = new Thumb { Width = 26, Height = 26, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Bottom, Cursor = Cursors.SizeNWSE };
+            var grip = new Thumb { Width = 26, Height = 26, HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Bottom, Cursor = Cursors.SizeNWSE };
             var corner = new FrameworkElementFactory(typeof(System.Windows.Shapes.Path));
             corner.SetValue(System.Windows.Shapes.Path.DataProperty, Geometry.Parse("M 26,0 L 26,26 L 0,26 Z"));
             corner.SetValue(System.Windows.Shapes.Shape.FillProperty, accent);
@@ -438,7 +447,8 @@ namespace AlmostFastDash.Output
             GetWindowRect(_handle, out Rect32 r);
             int width = r.Right - r.Left, height = r.Bottom - r.Top;
             // Whichever way the corner moved further decides the size.
-            double grow = Math.Abs(dx * toPixels.M11) >= Math.Abs(dy * toPixels.M22 * _aspect) ? dx * toPixels.M11 : dy * toPixels.M22 * _aspect;
+            double grow = Math.Abs(dx * toPixels.M11) >= Math.Abs(dy * toPixels.M22 * _aspect) ? dx * toPixels.M11
+                : dy * toPixels.M22 * _aspect;
             int newWidth = Math.Max(WindowPlacement.MinimumWidth, (int)Math.Round(width + grow));
             int newHeight = (int)Math.Round(newWidth / _aspect);
             if (newWidth != width || newHeight != height)
@@ -537,9 +547,12 @@ namespace AlmostFastDash.Output
             _started.Dispose();
         }
 
-        private const int WindowProcIndex = -4, ExStyle = -20, Style = -16, NoActivate = 0x08000000, ToolWindow = 0x00000080, Layered = 0x00080000, ClickThrough = 0x00000020;
-        private const uint NoSize = 0x0001, NoMove = 0x0002, NoZOrder = 0x0004, NoActivateMove = 0x0010, ShowWindow = 0x0040, LayeredAlpha = 0x2;
-        private const int StyleChanging = 0x007C, MouseActivate = 0x0021, Sizing = 0x0214, ExitSizeMove = 0x0232, ClientArea = 1, NoActivateOnClick = 3;
+        private const int WindowProcIndex = -4, ExStyle = -20, Style = -16, NoActivate = 0x08000000, ToolWindow = 0x00000080,
+            Layered = 0x00080000, ClickThrough = 0x00000020;
+        private const uint NoSize = 0x0001, NoMove = 0x0002, NoZOrder = 0x0004, NoActivateMove = 0x0010, ShowWindow = 0x0040,
+            LayeredAlpha = 0x2;
+        private const int StyleChanging = 0x007C, MouseActivate = 0x0021, Sizing = 0x0214, ExitSizeMove = 0x0232, ClientArea = 1,
+            NoActivateOnClick = 3;
         private const int SizeLeft = 1, SizeRight = 2, SizeTop = 3, SizeTopLeft = 4, SizeTopRight = 5, SizeBottom = 6, SizeBottomLeft = 7;
         private const uint CloseCommand = 0xF060, ByCommand = 0x0, Greyed = 0x1;
         private static readonly IntPtr TopMost = new IntPtr(-1);

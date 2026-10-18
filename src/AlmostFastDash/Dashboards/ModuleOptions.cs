@@ -28,7 +28,8 @@ namespace AlmostFastDash.Dashboards
         public static string Clean(string name) => (name ?? "").Replace("\"", "'").Trim();
 
         public static List<string> Names(DashWidget widget) =>
-            widget?.Props == null ? new List<string>() : widget.Props.Keys.Where(k => k.StartsWith(Prefix)).Select(k => k.Substring(Prefix.Length)).ToList();
+            widget?.Props == null ? new List<string>() : widget.Props.Keys.Where(k => k.StartsWith(Prefix))
+            .Select(k => k.Substring(Prefix.Length)).ToList();
 
         /// <summary>The settings linked to an option, across a group.</summary>
         public static IEnumerable<(DashWidget Widget, PropDef Def)> Uses(IEnumerable<DashWidget> group, string name)

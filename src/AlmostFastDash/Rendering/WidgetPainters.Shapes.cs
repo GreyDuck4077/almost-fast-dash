@@ -36,9 +36,11 @@ namespace AlmostFastDash.Rendering
                     {
                         open = true;
                         float arm = Math.Min(b.Width / 3, Math.Max(10, radius * 2.5f));
-                        path.AddLines(new[] { new PointF(b.X + arm, b.Y), new PointF(b.X, b.Y), new PointF(b.X, b.Bottom), new PointF(b.X + arm, b.Bottom) });
+                        path.AddLines(new[] { new PointF(b.X + arm, b.Y), new PointF(b.X, b.Y), new PointF(b.X, b.Bottom),
+                            new PointF(b.X + arm, b.Bottom) });
                         path.StartFigure();
-                        path.AddLines(new[] { new PointF(b.Right - arm, b.Y), new PointF(b.Right, b.Y), new PointF(b.Right, b.Bottom), new PointF(b.Right - arm, b.Bottom) });
+                        path.AddLines(new[] { new PointF(b.Right - arm, b.Y), new PointF(b.Right, b.Y), new PointF(b.Right, b.Bottom),
+                            new PointF(b.Right - arm, b.Bottom) });
                         break;
                     }
                     case "Diagonal down":
@@ -54,7 +56,8 @@ namespace AlmostFastDash.Rendering
                         path.AddLines(new[] { new PointF(b.X, b.Y), new PointF(b.Right, b.Y + b.Height / 2), new PointF(b.X, b.Bottom) });
                         break;
                     case "Triangle":
-                        path.AddPolygon(new[] { new PointF(b.X + b.Width / 2, b.Y), new PointF(b.Right, b.Bottom), new PointF(b.X, b.Bottom) });
+                        path.AddPolygon(new[] { new PointF(b.X + b.Width / 2, b.Y), new PointF(b.Right, b.Bottom),
+                        new PointF(b.X, b.Bottom) });
                         break;
                     default:
                         using (GraphicsPath rounded = Paint.Rounded(b, radius)) path.AddPath(rounded, false);
@@ -91,13 +94,15 @@ namespace AlmostFastDash.Rendering
                 Color second = c.OptionalColor("fill2") ?? Color.FromArgb(0, fill.Value);
                 string kind = c.Choice("shape");
                 using (Brush brush = Fills.Brush(c.Choice("fillStyle"), fill.Value, second, (float)c.Num("fillAngle"), c.Choice("pattern"),
-                    (float)c.Num("patternScale"), (float)c.Num("patternAngle"), b, kind == "Ellipse" || kind == "Polygon" || kind == "Star"))
+                    (float)c.Num("patternScale"), (float)c.Num("patternAngle"), b,
+                    kind == "Ellipse" || kind == "Polygon" || kind == "Star"))
                     g.FillPath(brush, shaped);
             }
             if (sw > 0)
             {
                 Color? to = c.Choice("strokeStyle") == "Gradient" ? c.OptionalColor("stroke2") ?? stroke : (Color?)null;
-                using (Pen pen = Fills.LinePen(stroke, to, (float)c.Num("strokeAngle"), sw, c.Choice("dash"), c.Choice("cap"), c.Choice("join"), b))
+                using (Pen pen = Fills.LinePen(stroke, to, (float)c.Num("strokeAngle"), sw, c.Choice("dash"), c.Choice("cap"),
+                    c.Choice("join"), b))
                     g.DrawPath(pen, shaped);
             }
         }
@@ -124,7 +129,8 @@ namespace AlmostFastDash.Rendering
                         foreach (Bitmap old in GradientCache.Values) old.Dispose();
                         GradientCache.Clear();
                     }
-                    image = new Bitmap((int)Math.Ceiling(b.Width), (int)Math.Ceiling(b.Height), System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+                    image = new Bitmap((int)Math.Ceiling(b.Width), (int)Math.Ceiling(b.Height),
+                        System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
                     using (Graphics ig = Graphics.FromImage(image))
                     {
                         ig.SmoothingMode = SmoothingMode.AntiAlias;
@@ -132,16 +138,20 @@ namespace AlmostFastDash.Rendering
                         switch (style)
                         {
                             case "Vertical":
-                                using (var brush = new LinearGradientBrush(Paint.Grow(local, 0, 1), from, to, 90f)) ig.FillRectangle(brush, local);
+                                using (var brush = new LinearGradientBrush(Paint.Grow(local, 0, 1), from, to, 90f)) ig.FillRectangle(brush,
+                                local);
                                 break;
                             case "Horizontal":
-                                using (var brush = new LinearGradientBrush(Paint.Grow(local, 1, 0), from, to, 0f)) ig.FillRectangle(brush, local);
+                                using (var brush = new LinearGradientBrush(Paint.Grow(local, 1, 0), from, to, 0f)) ig.FillRectangle(brush,
+                                local);
                                 break;
                             default:
                                 using (var path = new GraphicsPath())
                                 {
                                     path.AddEllipse(local);
-                                    using (var brush = new PathGradientBrush(path) { CenterColor = from, SurroundColors = new[] { to } }) ig.FillPath(brush, path);
+                                    using (var brush = new PathGradientBrush(path) { CenterColor = from,
+                                        SurroundColors = new[] { to } }) ig.FillPath(brush,
+                                        path);
                                 }
                                 break;
                         }

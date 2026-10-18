@@ -34,7 +34,8 @@ namespace AlmostFastDash.Rendering
         /// <param name="skewDegrees">Slants the bar sideways like italic type.</param>
         /// <param name="thickness">0 to 1: the thickest point as a share of the box.</param>
         /// <param name="anchor">Which edge stays put when the thickness changes: Middle, Bottom edge or Top edge.</param>
-        public BarWarp(RectangleF box, bool vertical, double bend, double peak, double taper, double bulge, double skewDegrees, double thickness, string anchor)
+        public BarWarp(RectangleF box, bool vertical, double bend, double peak, double taper, double bulge, double skewDegrees,
+            double thickness, string anchor)
         {
             _box = box;
             _vertical = vertical;
@@ -48,7 +49,8 @@ namespace AlmostFastDash.Rendering
             _anchor = anchor == "Bottom edge" ? 0 : anchor == "Top edge" ? 1 : 0.5f;
             float share = (float)Clamp(thickness, 0.02, 1);
             Thickness = Math.Max(1, across * share);
-            IsStraight = Math.Abs(_bend) < 0.01f && Math.Abs(_taper) < 0.001f && Math.Abs(_bulge) < 0.001f && Math.Abs(_tanSkew) < 0.0001f && share >= 0.999f;
+            IsStraight = Math.Abs(_bend) < 0.01f && Math.Abs(_taper) < 0.001f && Math.Abs(_bulge) < 0.001f &&
+                Math.Abs(_tanSkew) < 0.0001f && share >= 0.999f;
             if (IsStraight) return;
 
             _profileMax = 0;
@@ -94,7 +96,8 @@ namespace AlmostFastDash.Rendering
 
         private static float Lerp(float a, float b, float t) => a + (b - a) * t;
 
-        /// <summary>A point of the warped bar before fitting; y grows downward as on screen. v is 0 on the bottom edge, 1 on the top.</summary>
+        /// <summary>A point of the warped bar before fitting; y grows downward as on screen. v is 0 on the bottom edge, 1 on the
+        /// top.</summary>
         private PointF Raw(float u, float v)
         {
             const float h = 0.002f;
@@ -277,7 +280,8 @@ namespace AlmostFastDash.Rendering
             return path;
         }
 
-        /// <summary>A half circle closing one end of the band: from the outer edge round to the inner at the end, the reverse at the start.</summary>
+        /// <summary>A half circle closing one end of the band: from the outer edge round to the inner at the end, the reverse at the
+        /// start.</summary>
         private void Cap(List<PointF> outline, float angle, int direction, bool end)
         {
             double a = angle * Math.PI / 180;

@@ -34,11 +34,13 @@ namespace AlmostFastDash.Devices
                 KnownDevices.Profile known = KnownDevices.Find(usbId, null);
                 if (known == null && IsAdalight(port))
                 {
-                    found.Add(new DeviceSettings { Kind = LedDeviceKinds.Adalight, Port = port, UsbId = usbId, DetectedName = "Adalight LED strip", Name = "Adalight LED strip" });
+                    found.Add(new DeviceSettings { Kind = LedDeviceKinds.Adalight, Port = port, UsbId = usbId,
+                        DetectedName = "Adalight LED strip", Name = "Adalight LED strip" });
                     continue;
                 }
                 string name = ArduinoName(port);
-                if (name != null) found.Add(new DeviceSettings { Kind = LedDeviceKinds.Arduino, Port = port, UsbId = usbId, DetectedName = name, Name = name });
+                if (name != null) found.Add(new DeviceSettings { Kind = LedDeviceKinds.Arduino, Port = port, UsbId = usbId,
+                    DetectedName = name, Name = name });
             }
             return found;
         }
@@ -52,7 +54,8 @@ namespace AlmostFastDash.Devices
                 using (RegistryKey map = Registry.LocalMachine.OpenSubKey(@"HARDWARE\DEVICEMAP\SERIALCOMM"))
                     if (map != null)
                         foreach (string device in map.GetValueNames())
-                            if (device.IndexOf("Bth", StringComparison.OrdinalIgnoreCase) >= 0 || device.IndexOf("Bluetooth", StringComparison.OrdinalIgnoreCase) >= 0)
+                            if (device.IndexOf("Bth", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                                device.IndexOf("Bluetooth", StringComparison.OrdinalIgnoreCase) >= 0)
                                 ports.RemoveAll(p => string.Equals(p, map.GetValue(device) as string, StringComparison.OrdinalIgnoreCase));
             }
             catch { }

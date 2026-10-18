@@ -72,7 +72,8 @@ namespace AlmostFastDash.CommandLine
             string Line(string name, List<double> errors)
             {
                 var sorted = errors.OrderBy(e => e).ToList();
-                return string.Format(CultureInfo.InvariantCulture, "{0}: off by {1:0.000} s on average, {2:0.000} s typically (median), {3:0.000} s at worst",
+                return string.Format(CultureInfo.InvariantCulture,
+                    "{0}: off by {1:0.000} s on average, {2:0.000} s typically (median), {3:0.000} s at worst",
                     name, errors.Average(), sorted[sorted.Count / 2], sorted[sorted.Count - 1]);
             }
             yield return estimateErrors.Count + " moments checked";
@@ -128,34 +129,47 @@ namespace AlmostFastDash.CommandLine
                 uint raw = (uint)telemetry.SessionFlags;
                 if (raw != lastRawFlags || snapshot.Flag != lastFlag)
                 {
-                    flags.Add(Clock(sessionTime) + "  iRacing flags 0x" + raw.ToString("X8") + " (" + FlagNames(raw) + ")  ->  dashboard flag " + snapshot.Flag);
+                    flags.Add(Clock(sessionTime) + "  iRacing flags 0x" + raw.ToString("X8") + " (" + FlagNames(raw) +
+                        ")  ->  dashboard flag " + snapshot.Flag);
                     lastRawFlags = raw;
                     lastFlag = snapshot.Flag;
                 }
                 if (snapshot.OutOfCar != lastOut)
                 {
-                    flags.Add(Clock(sessionTime) + (snapshot.OutOfCar ? "  out of the car or watching a replay: lights off" : "  back in the car"));
+                    flags.Add(Clock(sessionTime) +
+                        (snapshot.OutOfCar ? "  out of the car or watching a replay: lights off" : "  back in the car"));
                     lastOut = snapshot.OutOfCar;
                 }
 
                 if (snapshot.Notice != lastNotice)
                 {
-                    if (snapshot.Notice.Length > 0) race.Add(Clock(sessionTime) + "  notice: " + snapshot.Notice + " (" + snapshot.NoticeKind + ")");
+                    if (snapshot.Notice.Length > 0) race.Add(Clock(sessionTime) + "  notice: " + snapshot.Notice + " (" +
+                        snapshot.NoticeKind + ")");
                     lastNotice = snapshot.Notice;
                 }
                 if (snapshot.LapsCompleted != lastLaps)
                 {
                     lastLaps = snapshot.LapsCompleted;
-                    race.Add(Clock(sessionTime) + string.Format(CultureInfo.InvariantCulture, "  lap {0} done: last {1}, sectors {2} | best sectors {3} | session best {4}, P{5} of {6} on the leaderboard",
-                        snapshot.LapsCompleted, Fmt.LapTime(snapshot.LastLapSeconds), Times(snapshot.LastLapSectorTimes), Times(snapshot.BestSectorTimes),
-                        Fmt.LapTime(snapshot.SessionBestLapSeconds), snapshot.Standings.FirstOrDefault(r => r.IsPlayer)?.Position ?? 0, snapshot.Standings.Length) +
-                        string.Format(CultureInfo.InvariantCulture, "; stint {0} green laps, falloff {1}; fuel {2} L a lap over {3}, {4:0.0} laps to go, add {5} L",
-                            snapshot.StintLapSeconds.Length, snapshot.StintLapSeconds.Length >= 2 ? "+" + Falloff.Total(snapshot.StintLapSeconds).ToString("0.000", CultureInfo.InvariantCulture) : "--",
-                            snapshot.FuelPerLapAverage > 0 ? snapshot.FuelPerLapAverage.ToString("0.000", CultureInfo.InvariantCulture) : "--", snapshot.FuelLapsMeasured, snapshot.LapsToGo,
+                    race.Add(Clock(sessionTime) +
+                        string.Format(CultureInfo.InvariantCulture,
+                        "  lap {0} done: last {1}, sectors {2} | best sectors {3} | session best {4}, P{5} of {6} on the leaderboard",
+                        snapshot.LapsCompleted, Fmt.LapTime(snapshot.LastLapSeconds), Times(snapshot.LastLapSectorTimes),
+                        Times(snapshot.BestSectorTimes),
+                        Fmt.LapTime(snapshot.SessionBestLapSeconds), snapshot.Standings.FirstOrDefault(r => r.IsPlayer)?.Position ?? 0,
+                        snapshot.Standings.Length) +
+                        string.Format(CultureInfo.InvariantCulture,
+                        "; stint {0} green laps, falloff {1}; fuel {2} L a lap over {3}, {4:0.0} laps to go, add {5} L",
+                            snapshot.StintLapSeconds.Length,
+                            snapshot.StintLapSeconds.Length >= 2 ? "+" + Falloff.Total(snapshot.StintLapSeconds)
+                            .ToString("0.000", CultureInfo.InvariantCulture) : "--",
+                            snapshot.FuelPerLapAverage > 0 ? snapshot.FuelPerLapAverage.ToString("0.000", CultureInfo.InvariantCulture)
+                            : "--",
+                            snapshot.FuelLapsMeasured, snapshot.LapsToGo,
                             snapshot.FuelToFinish >= 0 ? snapshot.FuelToFinish.ToString("0.00", CultureInfo.InvariantCulture) : "--"));
                 }
                 final = snapshot;
-                if (telemetry["Lat"] is double lat && telemetry["Lon"] is double lon && lat != 0) gps.Add(new System.Drawing.PointF((float)lon, (float)lat));
+                if (telemetry["Lat"] is double lat && telemetry["Lon"] is double lon &&
+                    lat != 0) gps.Add(new System.Drawing.PointF((float)lon, (float)lat));
                 gaps.Observe(telemetry, sessionTime, snapshot);
 
                 LightFrame frame = renderer.Compose(snapshot.ForLights(), (int)(sessionTime * 1000));
@@ -163,7 +177,8 @@ namespace AlmostFastDash.CommandLine
             }
             spans.AddRange(activity.Flush());
 
-            var revs = new HashSet<string>(settings.Dashboards.Where(d => d.Lights != null).SelectMany(d => d.Lights.Layers).Where(l => l.Effect == "revs").Select(l => l.Name));
+            var revs = new HashSet<string>(settings.Dashboards.Where(d => d.Lights != null).SelectMany(d => d.Lights.Layers)
+                .Where(l => l.Effect == "revs").Select(l => l.Name));
             var report = new StringBuilder();
             report.AppendLine("Replay of " + Path.GetFileName(recording));
             report.AppendLine("Session time " + Clock(first) + " to " + Clock(last) + "; times below are session time (m:ss).");
@@ -175,20 +190,32 @@ namespace AlmostFastDash.CommandLine
             foreach (string line in race) report.AppendLine("  " + line);
             if (final != null)
             {
-                report.AppendLine(string.Format(CultureInfo.InvariantCulture, "  at the end: oil {0:0.0} C {1:0.00} bar, water {2:0.0} C, fuel pressure {3:0.00} bar, {4:0.0} V, DRS {5}, tank {6:0.0} L, {7} sectors",
-                    final.OilTempC, final.OilPressureBar, final.WaterTempC, final.FuelPressureBar, final.Voltage, final.DrsState, final.FuelCapacityLiters, final.SectorCount));
+                report.AppendLine(string.Format(CultureInfo.InvariantCulture,
+                    "  at the end: oil {0:0.0} C {1:0.00} bar, water {2:0.0} C, fuel pressure {3:0.00} bar, {4:0.0} V, DRS {5}, tank " +
+                        "{6:0.0} L, {7} sectors",
+                    final.OilTempC, final.OilPressureBar, final.WaterTempC, final.FuelPressureBar, final.Voltage, final.DrsState,
+                    final.FuelCapacityLiters, final.SectorCount));
                 foreach (TyreCorner t in final.Tyres)
-                    report.AppendLine(string.Format(CultureInfo.InvariantCulture, "  tire {0}: {1:0}/{2:0}/{3:0} C (outer/middle/inner), wear {4:0.00}, {5:0} kPa", t.Name, t.TempOuter, t.TempMiddle, t.TempInner, t.Wear, t.PressureKpa));
+                    report.AppendLine(string.Format(CultureInfo.InvariantCulture,
+                        "  tire {0}: {1:0}/{2:0}/{3:0} C (outer/middle/inner), wear {4:0.00}, {5:0} kPa", t.Name, t.TempOuter,
+                        t.TempMiddle, t.TempInner, t.Wear, t.PressureKpa));
                 foreach (StandingsEntry r in final.Standings.Take(6))
-                    report.AppendLine(string.Format(CultureInfo.InvariantCulture, "  P{0} #{1} {2} ({3}) best {4} last {5} gap {6}", r.Position, r.CarNumber, r.Name, r.ClassName, Fmt.LapTime(r.BestLap), Fmt.LapTime(r.LastLap), RaceFields.GapText(r)));
+                    report.AppendLine(string.Format(CultureInfo.InvariantCulture, "  P{0} #{1} {2} ({3}) best {4} last {5} gap {6}",
+                        r.Position, r.CarNumber, r.Name, r.ClassName, Fmt.LapTime(r.BestLap), Fmt.LapTime(r.LastLap),
+                        RaceFields.GapText(r)));
             }
             report.AppendLine("  track map: " + (final?.TrackMap != null ? "traced (" + final.TrackMap.Name + ")" : "not traced"));
             if (final != null)
-                report.AppendLine(string.Format(CultureInfo.InvariantCulture, "  at the end: {0} green laps this stint, falloff {1}, {2:+0.000;-0.000} s a lap; fuel {3:0.000} L a lap over {4} laps, {5:0.00} laps to go, fuel to add {6:0.00} L",
-                    final.StintLapSeconds.Length, final.StintLapSeconds.Length >= 2 ? Falloff.Total(final.StintLapSeconds).ToString("0.000", CultureInfo.InvariantCulture) + " s" : "--",
-                    Falloff.PerLap(final.StintLapSeconds), final.FuelPerLapAverage, final.FuelLapsMeasured, final.LapsToGo, final.FuelToFinish));
+                report.AppendLine(string.Format(CultureInfo.InvariantCulture,
+                    "  at the end: {0} green laps this stint, falloff {1}, {2:+0.000;-0.000} s a lap; fuel {3:0.000} L a lap over {4} " +
+                        "laps, {5:0.00} laps to go, fuel to add {6:0.00} L",
+                    final.StintLapSeconds.Length, final.StintLapSeconds.Length >= 2 ? Falloff.Total(final.StintLapSeconds)
+                    .ToString("0.000", CultureInfo.InvariantCulture) + " s" : "--",
+                    Falloff.PerLap(final.StintLapSeconds), final.FuelPerLapAverage, final.FuelLapsMeasured, final.LapsToGo,
+                    final.FuelToFinish));
             report.AppendLine();
-            report.AppendLine("GAP ACCURACY (the car just ahead on track, against when you actually reached its spot; green-flag running, gaps under 10 s)");
+            report.AppendLine("GAP ACCURACY (the car just ahead on track, against when you actually reached its spot; green-flag " +
+                "running, gaps under 10 s)");
             foreach (string line in gaps.Report()) report.AppendLine("  " + line);
             if (final?.TrackMap != null) SaveMapCheck(final.TrackMap, gps, Path.ChangeExtension(reportPath, ".map.png"));
             report.AppendLine();
@@ -206,7 +233,8 @@ namespace AlmostFastDash.CommandLine
             return 0;
         }
 
-        /// <summary>The traced map (left) beside the recording's GPS track (right), north up, to check the trace's shape and handedness.</summary>
+        /// <summary>The traced map (left) beside the recording's GPS track (right), north up, to check the trace's shape and
+        /// handedness.</summary>
         private static void SaveMapCheck(TrackMap map, List<System.Drawing.PointF> gps, string path)
         {
             using (var image = new System.Drawing.Bitmap(800, 400))
@@ -217,13 +245,18 @@ namespace AlmostFastDash.CommandLine
                 void Draw(IList<System.Drawing.PointF> points, float left, System.Drawing.Color color)
                 {
                     if (points.Count < 2) return;
-                    float minX = points.Min(p => p.X), maxX = points.Max(p => p.X), minY = points.Min(p => p.Y), maxY = points.Max(p => p.Y);
+                    float minX = points.Min(p => p.X), maxX = points.Max(p => p.X), minY = points.Min(p => p.Y),
+                        maxY = points.Max(p => p.Y);
                     float scale = Math.Min(360 / Math.Max(1e-6f, maxX - minX), 360 / Math.Max(1e-6f, maxY - minY));
-                    var screen = points.Select(p => new System.Drawing.PointF(left + 20 + (p.X - minX) * scale, 20 + (maxY - p.Y) * scale)).ToArray();
+                    var screen = points.Select(p => new System.Drawing.PointF(left + 20 + (p.X - minX) * scale, 20 + (maxY - p.Y) * scale))
+                        .ToArray();
                     using (var pen = new System.Drawing.Pen(color, 2)) g.DrawLines(pen, screen);
-                    using (var start = new System.Drawing.SolidBrush(System.Drawing.Color.Yellow)) g.FillEllipse(start, screen[0].X - 5, screen[0].Y - 5, 10, 10);
+                    using (var start = new System.Drawing.SolidBrush(System.Drawing.Color.Yellow)) g.FillEllipse(start, screen[0].X - 5,
+                        screen[0].Y - 5, 10, 10);
                 }
-                Draw(Enumerable.Range(0, TrackMap.Points + 1).Select(i => new System.Drawing.PointF(map.X[i % TrackMap.Points], map.Y[i % TrackMap.Points])).ToList(), 0, System.Drawing.Color.White);
+                Draw(Enumerable.Range(0, TrackMap.Points + 1)
+                    .Select(i => new System.Drawing.PointF(map.X[i % TrackMap.Points], map.Y[i % TrackMap.Points])).ToList(), 0,
+                    System.Drawing.Color.White);
                 // Longitude shrinks with latitude; scale it so the GPS shape isn't stretched.
                 if (gps.Count > 1)
                 {
@@ -234,15 +267,18 @@ namespace AlmostFastDash.CommandLine
             }
         }
 
-        private static string Times(double[] times) => times == null || times.Length == 0 ? "none" : string.Join(" ", times.Select(t => t > 0 ? t.ToString("0.000", CultureInfo.InvariantCulture) : "-"));
+        private static string Times(double[] times) => times == null || times.Length == 0 ? "none"
+            : string.Join(" ", times.Select(t => t > 0 ? t.ToString("0.000", CultureInfo.InvariantCulture) : "-"));
 
         private static string Clock(double seconds) =>
-            ((int)(seconds / 60)).ToString(CultureInfo.InvariantCulture) + ":" + (seconds % 60).ToString("00.0", CultureInfo.InvariantCulture);
+            ((int)(seconds / 60)).ToString(CultureInfo.InvariantCulture) + ":" + (seconds % 60)
+            .ToString("00.0", CultureInfo.InvariantCulture);
 
         internal static string FlagNames(uint raw)
         {
             string[] names = { "checkered", "white", "green", "yellow", "red", "blue", "debris", "crossed", "yellowWaving", "oneLapToGreen",
-                "greenHeld", "tenToGo", "fiveToGo", "randomWaving", "caution", "cautionWaving", "black", "disqualify", "servicible", "furled", "repair" };
+                "greenHeld", "tenToGo", "fiveToGo", "randomWaving", "caution", "cautionWaving", "black", "disqualify", "servicible",
+                "furled", "repair" };
             var on = new List<string>();
             for (int i = 0; i < names.Length; i++) if ((raw & (1u << i)) != 0) on.Add(names[i]);
             if ((raw & 0xF0000000) != 0) on.Add("start lights");

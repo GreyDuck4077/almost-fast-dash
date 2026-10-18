@@ -28,7 +28,8 @@ namespace AlmostFastDash.Designer
             int insertAt = originals.Max(w => _screen.Widgets.IndexOf(w)) + 1;
             var preview = new List<DashWidget>();
 
-            var summary = new TextBlock { Style = (Style)FindResource("T.Caption"), Margin = new Thickness(0, 14, 0, 0), TextWrapping = TextWrapping.Wrap };
+            var summary = new TextBlock { Style = (Style)FindResource("T.Caption"), Margin = new Thickness(0, 14, 0, 0),
+                TextWrapping = TextWrapping.Wrap };
 
             void Restore()
             {
@@ -49,7 +50,8 @@ namespace AlmostFastDash.Designer
                 int total = sets.Count + 1;
                 summary.Text = total + " in all: the original and " + sets.Count + (sets.Count == 1 ? " copy" : " copies") +
                     (spec.Number ? ", numbered " + originals[0].Slot.ToString("0.##", CultureInfo.InvariantCulture) + " to " +
-                        (sets.Count > 0 ? sets[sets.Count - 1][0].Slot : originals[0].Slot).ToString("0.##", CultureInfo.InvariantCulture) : "") + "." +
+                        (sets.Count > 0 ? sets[sets.Count - 1][0].Slot : originals[0].Slot)
+                        .ToString("0.##", CultureInfo.InvariantCulture) : "") + "." +
                     (total >= Repeater.MostCopies ? " That's the most at once." : "");
             }
 
@@ -57,12 +59,14 @@ namespace AlmostFastDash.Designer
             {
                 var box = new TextBox
                 {
-                    Text = value.ToString("0.##", CultureInfo.InvariantCulture), FontFamily = (FontFamily)FindResource("Font.Mono"), FontSize = 12, Width = 76,
+                    Text = value.ToString("0.##", CultureInfo.InvariantCulture), FontFamily = (FontFamily)FindResource("Font.Mono"),
+                        FontSize = 12, Width = 76,
                     HorizontalAlignment = HorizontalAlignment.Left, VerticalContentAlignment = VerticalAlignment.Center
                 };
                 box.TextChanged += (s, e) =>
                 {
-                    if (!double.TryParse(box.Text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double v) || v < min || v > max) return;
+                    if (!double.TryParse(box.Text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double v) || v < min ||
+                        v > max) return;
                     set(whole ? Math.Round(v) : v);
                     Show();
                 };
@@ -71,8 +75,10 @@ namespace AlmostFastDash.Designer
             }
             (Border Bar, RadioButton First, RadioButton Second) Choice(string first, string second, bool firstOn, string group)
             {
-                var a = new RadioButton { Style = (Style)FindResource("Segment"), MinWidth = 0, Content = first, GroupName = group, IsChecked = firstOn };
-                var b = new RadioButton { Style = (Style)FindResource("Segment"), MinWidth = 0, Content = second, GroupName = group, IsChecked = !firstOn };
+                var a = new RadioButton { Style = (Style)FindResource("Segment"), MinWidth = 0, Content = first, GroupName = group,
+                    IsChecked = firstOn };
+                var b = new RadioButton { Style = (Style)FindResource("Segment"), MinWidth = 0, Content = second, GroupName = group,
+                    IsChecked = !firstOn };
                 var grid = new UniformGrid { Columns = 2 };
                 grid.Children.Add(a);
                 grid.Children.Add(b);
@@ -80,56 +86,69 @@ namespace AlmostFastDash.Designer
             }
 
             var body = new StackPanel { Margin = new Thickness(20, 18, 20, 18) };
-            body.Children.Add(new TextBlock { Text = originals.Count == 1 ? "Repeat " + name : "Repeat " + originals.Count + " widgets", Style = (Style)FindResource("T.Title"), Margin = new Thickness(0, 0, 0, 12) });
+            body.Children.Add(new TextBlock { Text = originals.Count == 1 ? "Repeat " + name : "Repeat " + originals.Count + " widgets",
+                Style = (Style)FindResource("T.Title"), Margin = new Thickness(0, 0, 0, 12) });
             var mode = Choice("Rows and columns", "Around a circle", !spec.Circle, "RepeatMode");
             body.Children.Add(mode.Bar);
 
             var grid = new StackPanel();
-            grid.Children.Add(LabeledRow("Across", Number(spec.Across, 1, 1, 100, v => spec.Across = (int)v, true), "How many in each row, the original included."));
+            grid.Children.Add(LabeledRow("Across", Number(spec.Across, 1, 1, 100, v => spec.Across = (int)v, true),
+                "How many in each row, the original included."));
             grid.Children.Add(LabeledRow("Down", Number(spec.Down, 1, 1, 100, v => spec.Down = (int)v, true), "How many rows."));
-            grid.Children.Add(LabeledRow("Gap across", Number(spec.GapX, 1, -2000, 2000, v => spec.GapX = v), "Space between each one and the next, in pixels. Negative overlaps them."));
-            grid.Children.Add(LabeledRow("Gap down", Number(spec.GapY, 1, -2000, 2000, v => spec.GapY = v), "Space between rows, in pixels."));
+            grid.Children.Add(LabeledRow("Gap across", Number(spec.GapX, 1, -2000, 2000, v => spec.GapX = v),
+                "Space between each one and the next, in pixels. Negative overlaps them."));
+            grid.Children.Add(LabeledRow("Gap down", Number(spec.GapY, 1, -2000, 2000, v => spec.GapY = v),
+                "Space between rows, in pixels."));
             body.Children.Add(grid);
 
             var circle = new StackPanel();
-            circle.Children.Add(LabeledRow("How many", Number(spec.Count, 1, 2, Repeater.MostCopies, v => spec.Count = (int)v, true), "How many in all, the original included."));
+            circle.Children.Add(LabeledRow("How many", Number(spec.Count, 1, 2, Repeater.MostCopies, v => spec.Count = (int)v, true),
+                "How many in all, the original included."));
             TextBox sweep = Number(spec.Sweep, 15, -360, 360, v => spec.Sweep = v);
             var sweepRow = new StackPanel();
             sweepRow.Children.Add(sweep);
             var presets = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(-6, 2, 0, 0) };
             foreach (int preset in new[] { 360, 270, 180, 90 })
             {
-                var chip = new Button { Content = preset + "°", Style = (Style)FindResource("Btn.Ghost"), Height = 26, FontSize = 12, Padding = new Thickness(6, 0, 6, 0), Margin = new Thickness(0, 0, 2, 0) };
+                var chip = new Button { Content = preset + "°", Style = (Style)FindResource("Btn.Ghost"), Height = 26, FontSize = 12,
+                    Padding = new Thickness(6, 0, 6, 0), Margin = new Thickness(0, 0, 2, 0) };
                 chip.Click += (s, e) => sweep.Text = preset.ToString(CultureInfo.InvariantCulture);
                 presets.Children.Add(chip);
             }
             sweepRow.Children.Add(presets);
             circle.Children.Add(LabeledRow("Angle °", sweepRow, "360 is a full circle, 180 a half. Negative goes counterclockwise."));
-            circle.Children.Add(LabeledRow("Radius", Number(spec.Radius, 5, 1, 5000, v => spec.Radius = v), "From the middle of the circle to the middle of each one, in pixels."));
+            circle.Children.Add(LabeledRow("Radius", Number(spec.Radius, 5, 1, 5000, v => spec.Radius = v),
+                "From the middle of the circle to the middle of each one, in pixels."));
             circle.Children.Add(LabeledRow("Start at °", Number(spec.Start, 15, -360, 360, v => spec.Start = v),
                 "Where the original sits: -90 is the top, 0 the right, 90 the bottom, 180 the left. The original stays put."));
-            circle.Children.Add(new TextBlock { Text = "ROTATION", Style = (Style)FindResource("T.Overline"), Margin = new Thickness(2, 12, 0, 6) });
+            circle.Children.Add(new TextBlock { Text = "ROTATION", Style = (Style)FindResource("T.Overline"),
+                Margin = new Thickness(2, 12, 0, 6) });
             var turn = Choice("Follow the circle", "Keep upright", spec.Follow, "RepeatTurn");
             turn.First.ToolTip = "Each copy turns with the circle, like a dial's ticks.";
             turn.Second.ToolTip = "Each copy stays the way the original is, like a dial's numbers.";
             turn.First.Checked += (s, e) => { spec.Follow = true; Show(); };
             turn.Second.Checked += (s, e) => { spec.Follow = false; Show(); };
             circle.Children.Add(turn.Bar);
-            circle.Children.Add(LabeledRow("Extra turn °", Number(spec.TurnEach, 5, -360, 360, v => spec.TurnEach = v), "Turns each copy this much more than the one before, on top of the above."));
+            circle.Children.Add(LabeledRow("Extra turn °", Number(spec.TurnEach, 5, -360, 360, v => spec.TurnEach = v),
+                "Turns each copy this much more than the one before, on top of the above."));
             body.Children.Add(circle);
 
-            var numberSwitch = new CheckBox { Style = (Style)FindResource("Switch"), IsChecked = spec.Number, VerticalAlignment = VerticalAlignment.Center };
+            var numberSwitch = new CheckBox { Style = (Style)FindResource("Switch"), IsChecked = spec.Number,
+                VerticalAlignment = VerticalAlignment.Center };
             numberSwitch.Click += (s, e) => { spec.Number = numberSwitch.IsChecked == true; Show(); };
             var numberRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 14, 0, 0) };
             numberRow.Children.Add(numberSwitch);
-            numberRow.Children.Add(new TextBlock { Text = "Number them as Slot 1, 2, 3…", Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center });
+            numberRow.Children.Add(new TextBlock { Text = "Number them as Slot 1, 2, 3…", Margin = new Thickness(10, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center });
             body.Children.Add(numberRow);
             body.Children.Add(Caption("Each copy's formulas read its number as Slot, so =RevPct * 10 >= Slot lights a row one by one.", 6));
             body.Children.Add(summary);
 
-            var ok = new Button { Content = "Repeat", Style = (Style)FindResource("Btn.Primary"), IsDefault = true, MinWidth = 100, Margin = new Thickness(8, 0, 0, 0) };
+            var ok = new Button { Content = "Repeat", Style = (Style)FindResource("Btn.Primary"), IsDefault = true, MinWidth = 100,
+                Margin = new Thickness(8, 0, 0, 0) };
             var cancel = new Button { Content = "Cancel", IsCancel = true, MinWidth = 90 };
-            var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 16, 0, 0) };
+            var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,
+                Margin = new Thickness(0, 16, 0, 0) };
             buttons.Children.Add(cancel);
             buttons.Children.Add(ok);
             body.Children.Add(buttons);
@@ -148,7 +167,8 @@ namespace AlmostFastDash.Designer
 
             var dialog = new Window
             {
-                Title = "Repeat", Owner = this, Width = 372, SizeToContent = SizeToContent.Height, ResizeMode = ResizeMode.NoResize, ShowInTaskbar = false,
+                Title = "Repeat", Owner = this, Width = 372, SizeToContent = SizeToContent.Height, ResizeMode = ResizeMode.NoResize,
+                    ShowInTaskbar = false,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner, Background = (Brush)FindResource("Brush.Surface"),
                 Foreground = (Brush)FindResource("Brush.Text"), FontFamily = (FontFamily)FindResource("Font.Ui"), Content = body
             };
