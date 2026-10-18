@@ -25,6 +25,19 @@
   &nbsp;·&nbsp; <a href="docs/development.md">Development</a>
 </p>
 
+## Up front: this project was vibe coded
+
+I want to be absolutely transparent: this project started out for myself and
+myself only, and it was largely vibe coded, built mostly by directing an AI
+coding assistant (Claude) rather than written line by line by hand. I have spent
+considerable time using and testing it. I showed it to a few of my friends, they
+liked it too, and they suggested I share it.
+
+I know vibe coding has a certain negative connotation, and I'd rather say so
+plainly than have anyone find out later: this project was predominantly vibe
+coded. All of the code is here to read, and if something doesn't work for you,
+please [report it](https://github.com/Sota4077/almost-fast-dash/issues/new/choose).
+
 <p align="center">
   <img src="docs/images/hero.png" alt="The Roady dashboard on a wheel screen, with Roundy and Neon behind it">
 </p>
