@@ -11,7 +11,7 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Build the app
         run: dotnet build src/AlmostFastDash/AlmostFastDash.csproj -c Release
@@ -20,7 +20,7 @@ jobs:
         run: dotnet test tests/AlmostFastDash.Tests/AlmostFastDash.Tests.csproj -c Release --logger "console;verbosity=normal"
 
       - name: Keep the exe
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: AlmostFastDash
           path: src/AlmostFastDash/bin/Release/net48/AlmostFastDash.exe
