@@ -46,7 +46,7 @@ namespace AlmostFastOverlays
             body.Children.Add(new TextBlock { Text = "Start your screen", Style = (Style)FindResource("T.Title"), FontSize = 20, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 12, 0, 4) });
             body.Children.Add(new TextBlock
             {
-                Text = "Drag widgets, live data and ready-made blocks in from the Library, or draw with the tools on the left. Or start with one of these:",
+                Text = "Pick a block to start, or drag from the Library.",
                 Style = (Style)FindResource("T.Secondary"), TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center, Margin = new Thickness(0, 0, 0, 14)
             });
             var starters = new UniformGrid { Columns = 3 };

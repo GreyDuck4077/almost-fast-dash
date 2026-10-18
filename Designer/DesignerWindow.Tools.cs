@@ -107,15 +107,15 @@ namespace AlmostFastOverlays
         {
             switch (tool)
             {
-                case Tool.Rectangle: return "Rectangle: drag to draw one. Shift makes a square, Alt draws from the middle. Esc or V goes back to Move.";
-                case Tool.Ellipse: return "Ellipse: drag to draw one. Shift makes a circle, Alt draws from the middle. Esc or V goes back to Move.";
-                case Tool.Line: return "Line: drag from one end to the other. Shift keeps it level, upright or at 45°. Esc or V goes back to Move.";
-                case Tool.Polygon: return "Polygon: drag to draw one; Shift keeps it regular. Set its sides, or make it a star, in Properties.";
-                case Tool.Pen: return "Pen: click for a corner, drag for a curve. Click the first point to close; double-click, Enter or Esc to finish open.";
-                case Tool.Text: return "Text: click where it goes, or drag a box for it, then type its text in Properties.";
-                case Tool.Hand: return "Hand: drag to move around the canvas. Holding Space does the same with any tool.";
-                case Tool.Zoom: return "Zoom: click to zoom in there, Alt+click to zoom out. Ctrl+0 fits the canvas to the window.";
-                default: return "Drag from the Library, or draw with the tools on the left. Arrows nudge (Shift for 10), Ctrl+D duplicates, Alt stops snapping, Ctrl+/ lists every shortcut.";
+                case Tool.Rectangle: return "Rectangle: drag to draw. Shift for a square, Alt to draw from the middle.";
+                case Tool.Ellipse: return "Ellipse: drag to draw. Shift for a circle, Alt to draw from the middle.";
+                case Tool.Line: return "Line: drag from end to end. Shift for 45° steps.";
+                case Tool.Polygon: return "Polygon: drag to draw. Sides and star are in Properties.";
+                case Tool.Pen: return "Pen: click for corners, drag for curves. Click the first point to close, or press Enter to finish.";
+                case Tool.Text: return "Text: click or drag a box, then type in Properties.";
+                case Tool.Hand: return "Hand: drag to pan. Hold Space to pan with any tool.";
+                case Tool.Zoom: return "Zoom: click to zoom in, Alt+click to zoom out.";
+                default: return "Drag from the Library or draw with the tools. Ctrl+/ shows every shortcut.";
             }
         }
 
@@ -351,7 +351,7 @@ namespace AlmostFastOverlays
             AddWidgets(new[] { widget }, "Draw " + kind.ToLowerInvariant());
             SetTool(Tool.Move);
             if (kind == "Text") FocusPrimaryEditor();
-            else StatusText.Text = "Drew " + widget.Name.ToLowerInvariant() + ". Style it in Properties: fill, line color and width, corner radius, effects.";
+            else StatusText.Text = "Drew " + widget.Name.ToLowerInvariant() + ".";
         }
 
         /// <summary>

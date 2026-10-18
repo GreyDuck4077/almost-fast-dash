@@ -35,8 +35,8 @@ namespace AlmostFastOverlays
             LightsCardTitle.Text = "Lights";
             int layers = _dashboard.Lights?.Layers.Count ?? 0;
             LightsCardText.Text = devices == 0
-                ? layers + " light layers, ready for when you add an LED device on the Devices page."
-                : layers + " light layers drive " + (devices == 1 ? "your LED device" : devices + " LED devices") + " for this dashboard. Open the light designer to change them.";
+                ? layers + " light layers, ready for when you add an LED device."
+                : layers + " light layers drive " + (devices == 1 ? "your LED device" : devices + " LED devices") + ".";
             LightsButtonLabel.Text = "Open light designer";
         }
 
@@ -74,7 +74,7 @@ namespace AlmostFastOverlays
             _stripGlows.Clear();
             if (!devices.Any(d => d.Enabled))
             {
-                LedStripsHost.Children.Add(new TextBlock { Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap, Text = "No LED devices yet. Add them on the Devices page and their lights show here." });
+                LedStripsHost.Children.Add(new TextBlock { Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap, Text = "No LED devices yet. Add them on the Devices page." });
             }
             foreach (DeviceSettings device in devices)
             {
@@ -138,8 +138,8 @@ namespace AlmostFastOverlays
             }
             else ReleaseDevices();
             MirrorNote.Text = _dashboardRunning
-                ? "Shown through the running dashboard while iRacing isn't connected; live data takes over when it is."
-                : "Lights your devices with this preview while the dashboard is stopped.";
+                ? "Live data takes over once iRacing connects."
+                : "Lights your devices while the dashboard is stopped.";
         }
 
         /// <summary>Stops showing the preview on the devices, turning them off and freeing them for the dashboard or device setup.</summary>

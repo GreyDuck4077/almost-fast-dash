@@ -69,7 +69,7 @@ namespace AlmostFastOverlays
                 foreach (LayoutPiece piece in _device.Layout.Pieces())
                     root.Children.Add(new TextBlock { Text = piece.Name + " · " + piece.Slots.Length + " LEDs · " + _device.Layout.RoleOf(piece), Style = (Style)FindResource("T.Caption"), Margin = new Thickness(0, 0, 0, 3) });
             }
-            else root.Children.Add(new TextBlock { Text = "Where its LEDs are hasn't been set up yet, so its lights may run in the wrong order.", Style = (Style)FindResource("T.Secondary"), TextWrapping = TextWrapping.Wrap });
+            else root.Children.Add(new TextBlock { Text = "Its LED positions aren't set up yet, so its lights may run in the wrong order.", Style = (Style)FindResource("T.Secondary"), TextWrapping = TextWrapping.Wrap });
             var setUp = new Button { Content = _device.Mapped ? "Set up LEDs again" : "Set up its LEDs", HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 10, 0, 0), ToolTip = "Describe its shape and show the app where each LED is" };
             setUp.Click += (s, e) => Finish(Outcome.SetUpLeds);
             root.Children.Add(setUp);
@@ -82,7 +82,7 @@ namespace AlmostFastOverlays
             if (_device.Kind == LedDeviceKinds.Arduino)
                 root.Children.Add(new TextBlock
                 {
-                    Text = "Fast updates (several color changes per message) are used automatically when the board accepts them.",
+                    Text = "Fast updates are used automatically when the board supports them.",
                     Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 14, 0, 0)
                 });
 

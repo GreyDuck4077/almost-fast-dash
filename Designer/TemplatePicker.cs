@@ -92,7 +92,7 @@ namespace AlmostFastOverlays
             header.Children.Add(new TextBlock { Text = "Start a new design", Style = (Style)R("T.PageTitle") });
             header.Children.Add(new TextBlock
             {
-                Text = "Pick a starting point. Every template is built from the designer's own widgets and is scaled to the screen it's for.",
+                Text = "Pick a starting point. Every template is fully editable.",
                 Style = (Style)R("T.Secondary"), Margin = new Thickness(0, 6, 0, 0)
             });
 
@@ -118,8 +118,8 @@ namespace AlmostFastOverlays
             }
             else
             {
-                const string ask = "Choose the size to build for: your wheel screen's resolution, or any size for a window on your PC.";
-                note.Text = chooser.Size == null ? ask : "The size you used last time; choose another if you like.";
+                const string ask = "Your wheel screen's resolution, or any size for your PC.";
+                note.Text = chooser.Size == null ? ask : "The size you used last time.";
                 note.Foreground = (Brush)R(chooser.Size == null ? "Brush.Accent" : "Brush.TextSecondary");
                 sizeRow.Children.Add(chooser.Element);
                 sizeRow.Children.Add(note);

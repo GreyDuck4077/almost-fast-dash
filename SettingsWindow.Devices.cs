@@ -32,7 +32,7 @@ namespace AlmostFastOverlays
                 DevicesHost.Children.Add(new TextBlock
                 {
                     Style = (Style)FindResource("T.Secondary"), TextWrapping = TextWrapping.Wrap,
-                    Text = "No LED devices yet. Plug one in and click Add device. The app finds it, you describe its shape (LEDs around a screen, light bars, a strip), then show it where each LED is with a couple of clicks."
+                    Text = "No LED devices yet. Plug one in and click Add device."
                 });
                 return;
             }
@@ -56,7 +56,7 @@ namespace AlmostFastOverlays
             text.Children.Add(status);
             text.Children.Add(new TextBlock
             {
-                Text = device.Mapped ? device.Layout.Describe() : "LED positions not set up yet: open Settings and set up its LEDs",
+                Text = device.Mapped ? device.Layout.Describe() : "LED positions not set up yet. Open Settings to set them up.",
                 Style = (Style)FindResource("T.Caption"), Margin = new Thickness(0, 2, 0, 0), TextTrimming = TextTrimming.CharacterEllipsis,
                 Foreground = (Brush)FindResource(device.Mapped ? "Brush.TextTertiary" : "Brush.Warning")
             });
@@ -96,7 +96,7 @@ namespace AlmostFastOverlays
         {
             string performance = _dashboardRunning ? ScreenStats.Read() : null;
             ScreenPerformance.Text = performance != null ? char.ToUpper(performance[0]) + performance.Substring(1) + "."
-                : _dashboardRunning ? "Measuring… figures appear a few seconds after the screen starts drawing." : "Start the dashboard to measure how it keeps up.";
+                : _dashboardRunning ? "Measuring…" : "Start the dashboard to measure.";
             RefreshScreenStatus();
             if (_deviceStatus.Count == 0) return;
             // Live states only while something is driving the devices; otherwise just whether each is plugged in.
@@ -208,7 +208,7 @@ namespace AlmostFastOverlays
             _deviceBusy = true;
             ReleaseDevices();
             if (button != null) button.IsEnabled = false;
-            ShowDevicesStatus("Testing " + device.Name + ": each part lights in turn, the way it fills.");
+            ShowDevicesStatus("Testing " + device.Name + ": each part lights in turn.");
             DeviceSettings copy = SettingsStore.Clone(device);
             string error = await Task.Run(() =>
             {

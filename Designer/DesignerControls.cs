@@ -150,7 +150,7 @@ namespace AlmostFastOverlays
             var pick = new Button
             {
                 Content = "Pick from the screen", Style = (Style)_owner.FindResource("Btn.Ghost"), HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 0, 0, 6),
-                ToolTip = "The eyedropper: then click any color in this window, on the canvas or a picture in the Library. Esc stops."
+                ToolTip = "Eyedropper: click any color in this window. Esc cancels."
             };
             pick.Click += (s, e) => { popup.IsOpen = false; ScreenColorPicker.Pick(_owner, v => SetValue(v, true)); };
             body.Children.Add(pick);
@@ -337,7 +337,7 @@ namespace AlmostFastOverlays
             var reference = new Button
             {
                 Content = "Open the full formula reference (F1)", Style = (Style)owner.FindResource("Btn.Ghost"), HorizontalAlignment = HorizontalAlignment.Left,
-                Margin = new Thickness(10, 0, 10, 10), ToolTip = "Every field and function with examples, in a window to keep open while you build"
+                Margin = new Thickness(10, 0, 10, 10), ToolTip = "Every field and function, with examples (F1)"
             };
             DockPanel.SetDock(reference, Dock.Bottom);
             root.Children.Add(reference);

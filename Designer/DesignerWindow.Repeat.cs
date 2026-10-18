@@ -104,10 +104,10 @@ namespace AlmostFastOverlays
                 presets.Children.Add(chip);
             }
             sweepRow.Children.Add(presets);
-            circle.Children.Add(LabeledRow("Angle °", sweepRow, "How far around they go: 360 is a full circle, 180 a half. Negative goes counterclockwise."));
+            circle.Children.Add(LabeledRow("Angle °", sweepRow, "360 is a full circle, 180 a half. Negative goes counterclockwise."));
             circle.Children.Add(LabeledRow("Radius", Number(spec.Radius, 5, 1, 5000, v => spec.Radius = v), "From the middle of the circle to the middle of each one, in pixels."));
             circle.Children.Add(LabeledRow("Start at °", Number(spec.Start, 15, -360, 360, v => spec.Start = v),
-                "Where the original sits on the circle: -90 is the top, 0 the right, 90 the bottom and 180 the left. The original stays put; the circle forms around it."));
+                "Where the original sits: -90 is the top, 0 the right, 90 the bottom, 180 the left. The original stays put."));
             circle.Children.Add(new TextBlock { Text = "ROTATION", Style = (Style)FindResource("T.Overline"), Margin = new Thickness(2, 12, 0, 6) });
             var turn = Choice("Follow the circle", "Keep upright", spec.Follow, "RepeatTurn");
             turn.First.ToolTip = "Each copy turns with the circle, like a dial's ticks.";
@@ -124,8 +124,7 @@ namespace AlmostFastOverlays
             numberRow.Children.Add(numberSwitch);
             numberRow.Children.Add(new TextBlock { Text = "Number them as Slot 1, 2, 3…", Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center });
             body.Children.Add(numberRow);
-            body.Children.Add(Caption("Each gets its own group with the next number, which its formulas read as Slot. A row of lights with =RevPct * 10 >= Slot lights up one by one; " +
-                "driver rows with standing(Slot, \"Name\") list the field.", 6));
+            body.Children.Add(Caption("Each copy's formulas read its number as Slot, so =RevPct * 10 >= Slot lights a row one by one.", 6));
             body.Children.Add(summary);
 
             var ok = new Button { Content = "Repeat", Style = (Style)FindResource("Btn.Primary"), IsDefault = true, MinWidth = 100, Margin = new Thickness(8, 0, 0, 0) };

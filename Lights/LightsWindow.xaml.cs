@@ -177,7 +177,7 @@ namespace AlmostFastOverlays
                 DeviceStages.Children.Add(new TextBlock
                 {
                     Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap, HorizontalAlignment = HorizontalAlignment.Center,
-                    Text = "No LED devices are set up yet. Add them on the Devices page; until then the layers have nothing to light."
+                    Text = "No LED devices yet. Add them on the Devices page."
                 });
             for (int d = 0; d < Devices.Count; d++)
             {
@@ -215,7 +215,7 @@ namespace AlmostFastOverlays
                 Effect = glow, Tag = led, Cursor = Cursors.Help
             };
             dot.MouseEnter += (s, e) => ExplainLed(led);
-            dot.MouseLeave += (s, e) => HoverText.Text = "Hover an LED to see which layer lit it. The selected layer's LEDs are ringed.";
+            dot.MouseLeave += (s, e) => HoverText.Text = "Hover an LED to see which layer lit it.";
             return dot;
         }
 
@@ -502,7 +502,7 @@ namespace AlmostFastOverlays
             Commit("Add " + effect.Name);
             RefreshLayers();
             RefreshInspector();
-            StatusText.Text = "Added \"" + effect.Name + "\" above the selected layer. Drag it to change its priority.";
+            StatusText.Text = "Added \"" + effect.Name + "\" above the selected layer.";
         }
 
         private void Duplicate()
@@ -647,9 +647,9 @@ namespace AlmostFastOverlays
             if (_selected == null)
             {
                 Inspector.Children.Add(new TextBlock { Text = "Light layers", Style = (Style)FindResource("T.Title") });
-                Inspector.Children.Add(Caption("Each layer lights a group of LEDs with an effect, optionally only when a condition is true. Higher layers win where they overlap, so put warnings above everyday lights."));
+                Inspector.Children.Add(Caption("Each layer lights LEDs with an effect while its condition is true. Higher layers win, so put warnings on top."));
                 Inspector.Children.Add(Section("Good to know"));
-                Inspector.Children.Add(Caption("• Rev lights follow the car's own shift-light RPMs from iRacing, so they match the real car.\n• Replace makes a layer take over its whole target, with unlit LEDs going dark: right for flags and pit-lane lights.\n• Hover any LED on the stage to see which layer lit it.\n• Presets are a quick start; everything stays editable."));
+                Inspector.Children.Add(Caption("• Rev lights use the car's own shift points from iRacing.\n• Replace takes over a layer's whole target: right for flags and pit lights.\n• Hover any LED to see which layer lit it."));
                 return;
             }
 
@@ -695,7 +695,7 @@ namespace AlmostFastOverlays
             condition.Changed += text => { layer.Condition = text.Trim(); CommitSoon("Condition"); };
             _formulas.Add(condition);
             Inspector.Children.Add(condition);
-            Inspector.Children.Add(Caption("Empty means always. Examples: OnPitRoad, FuelLapsLeft < 2, AbsActive, FlagActive.", 4));
+            Inspector.Children.Add(Caption("Empty means always. Try OnPitRoad or AbsActive.", 4));
             var blend = new ComboBox { ItemsSource = LightLayer.Blends, SelectedItem = layer.Blend };
             blend.SelectionChanged += (s, e) => { layer.Blend = (string)blend.SelectedItem; Commit("Blend"); RefreshLayers(); };
             Inspector.Children.Add(Row("Blend", blend, "Over: only lit LEDs cover the layers below. Replace: the whole target is taken over and unlit LEDs go dark."));
@@ -922,7 +922,7 @@ namespace AlmostFastOverlays
                 SettingsStore.Save(_settings);
                 _savedJson = _committed;
                 _onSaved?.Invoke();
-                if (!quiet) StatusText.Text = "Saved. A running dashboard's lights switch over within a second.";
+                if (!quiet) StatusText.Text = "Saved.";
             }
             catch (Exception exception)
             {

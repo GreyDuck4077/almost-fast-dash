@@ -22,10 +22,10 @@ namespace AlmostFastOverlays
 
         public static readonly string[] Highlights =
         {
-            "A new screen designer, laid out like an image editor: tools on the left, Properties and Layers always in view, rulers and guides.",
-            "Draw and mask: a pen, polygons and stars, gradient and pattern fills, clipping masks, fades and blend modes.",
-            "Modules: keep anything you build, place it anywhere and share it as a file, with options that make it easy to adapt.",
-            "Repeat in rows or around a circle, an eyedropper, and every setting explains itself when you point at it.",
+            "A new screen designer, laid out like an image editor.",
+            "A pen, shapes, gradient and pattern fills, masks and blend modes.",
+            "Modules: save anything you build and share it as a file.",
+            "Repeat in rows or around a circle, and an eyedropper.",
             "Point at a dashboard below and it plays a lap."
         };
     }

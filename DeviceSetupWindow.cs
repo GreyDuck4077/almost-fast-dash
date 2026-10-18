@@ -225,7 +225,7 @@ namespace AlmostFastOverlays
         private void ShowFind()
         {
             _title.Text = "Find your device";
-            _subtitle.Text = "Plug it in, then look for it. The app asks each USB serial port whether it's an LED board; ports already set up are left alone. WLED controllers are found by their address.";
+            _subtitle.Text = "Plug it in, then look for it. WLED controllers are found by their address.";
             var body = new StackPanel();
             _foundList = new StackPanel();
             body.Children.Add(_foundList);
@@ -238,7 +238,7 @@ namespace AlmostFastOverlays
 
             body.Children.Add(new TextBlock { Text = "WLED ON YOUR NETWORK", Style = (Style)FindResource("T.Overline"), Margin = new Thickness(0, 26, 0, 8) });
             var wled = new StackPanel { Orientation = Orientation.Horizontal };
-            var address = new TextBox { Width = 240, ToolTip = "The controller's IP address, such as 192.168.1.40, or its name" };
+            var address = new TextBox { Width = 240, ToolTip = "The controller's IP address or name" };
             // What to type, until something's typed.
             var addressHint = new TextBlock
             {
@@ -330,7 +330,7 @@ namespace AlmostFastOverlays
             stack.Children.Add(new TextBlock { Text = "The dashboard is using your devices", Style = (Style)FindResource("T.Label") });
             stack.Children.Add(new TextBlock
             {
-                Text = "Setup needs them to itself for a moment. The dashboard pauses now and starts again when you're done.",
+                Text = "The dashboard pauses during setup and starts again when you're done.",
                 Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 12)
             });
             var stop = new Button { Content = "Pause the dashboard", Style = (Style)FindResource("Btn.Primary"), HorizontalAlignment = HorizontalAlignment.Left };
@@ -388,8 +388,8 @@ namespace AlmostFastOverlays
         {
             _title.Text = _existing == null ? "Name it" : "Name";
             _subtitle.Text = _existing == null
-                ? "Found " + _device.DetectedName + " on " + _device.Connection + ". Give it a name you'll recognize; it's how it appears everywhere in the app."
-                : _device.DetectedName + " on " + _device.Connection + ". The name appears everywhere in the app, including the light designer.";
+                ? "Found " + _device.DetectedName + " on " + _device.Connection + ". Give it a name you'll recognize."
+                : _device.DetectedName + " on " + _device.Connection + ".";
             var body = new StackPanel();
             body.Children.Add(new TextBlock { Text = "Name", Style = (Style)FindResource("T.Label"), Margin = new Thickness(0, 0, 0, 8) });
             _nameBox = new TextBox { Text = _device.Name, Width = 360, HorizontalAlignment = HorizontalAlignment.Left, MaxLength = 40 };
@@ -421,7 +421,7 @@ namespace AlmostFastOverlays
         private void ShowShape()
         {
             _title.Text = "What does it look like?";
-            _subtitle.Text = "Pick the kind of device and count the LEDs in each part. Next you'll show the app where each LED is, so count exactly: a board sent colors for LEDs it doesn't have can freeze until it's unplugged.";
+            _subtitle.Text = "Pick the kind of device and count the LEDs in each part exactly: a board sent colors for LEDs it doesn't have can freeze.";
             var body = new StackPanel();
             var choices = new UniformGrid { Columns = 3, Margin = new Thickness(0, 0, 0, 18) };
             choices.Children.Add(ShapeChoice(LedShapes.Screen, "Screen with LEDs", "LEDs down the sides of a wheel screen, across the top, or both."));
@@ -509,7 +509,7 @@ namespace AlmostFastOverlays
             _joined.Children.Add(joined);
             _joined.Children.Add(new TextBlock
             {
-                Text = "Joined bars work as one bar: a fill can run from both outer ends to the middle, and \"split down the middle\" gives a left and a right half. Separate bars each work on their own.",
+                Text = "Joined bars work as one long bar; separate bars each work on their own.",
                 Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap, MaxWidth = 640, HorizontalAlignment = HorizontalAlignment.Left
             });
         }
@@ -666,7 +666,7 @@ namespace AlmostFastOverlays
         private async void ShowMap()
         {
             _title.Text = "Where is each LED?";
-            _subtitle.Text = "One LED at a time lights on your device. Click where it is on the drawing. After two neighbors the app follows the chain on its own, so most devices take two clicks.";
+            _subtitle.Text = "Click where the lit LED is on the drawing. Most devices take two clicks.";
             _next.IsEnabled = false;
             _body.Content = new TextBlock { Text = "Connecting to " + _device.Name + "…", Style = (Style)FindResource("T.Secondary") };
             if (!await EnsurePreview(ShowMap)) return;
@@ -772,7 +772,7 @@ namespace AlmostFastOverlays
                 else if (_checked.Count < ChecksNeeded)
                 {
                     _mapPrompt.Text = "Now check it: click " + ChecksNeeded + " LEDs";
-                    _mapHint.Text = "Click any LED on the drawing and the same LED should light on your device. Pick ones in different places, such as each end and each side. " +
+                    _mapHint.Text = "Click LEDs in different places on the drawing; the same ones should light on your device. " +
                         _checked.Count + " of " + ChecksNeeded + " checked.";
                 }
                 else ShowVerifyQuestion();
@@ -786,14 +786,14 @@ namespace AlmostFastOverlays
                 _mapHint.Text = _mapper.ByHand ? "Placing every LED by hand: " + asking + " of " + _mapper.Total + " placed. Undo takes back the last one."
                     : _mapper.Pending
                     ? "The one after LED #" + asking + ". That shows the app which way the chain runs."
-                    : asking == 0 ? "It's the bright white LED. Placed LEDs glow faintly so you can keep your bearings."
+                    : asking == 0 ? "It's the bright white LED."
                     : "The chain jumped or reached the end of a part, so the app needs LED #" + (asking + 1) + " too.";
                 _next.IsEnabled = false;
                 var missing = new Button
                 {
                     Content = "LED #" + (asking + 1) + " didn't light up ›", Style = (Style)FindResource("Btn.Ghost"), Foreground = (Brush)FindResource("Brush.Accent"),
                     HorizontalAlignment = HorizontalAlignment.Left, Padding = new Thickness(0, 2, 0, 2),
-                    ToolTip = "Nothing lit on the device: the app checks whether the shape has more LEDs than the device, or whether it's showing anything at all"
+                    ToolTip = "Nothing lit on the device: the app works out why"
                 };
                 missing.Click += (s, e) => { _notLit = asking; RenderMap(); };
                 _verify.Children.Add(missing);
@@ -815,7 +815,7 @@ namespace AlmostFastOverlays
             else
             {
                 _mapPrompt.Text = "Your device may have " + led + (led == 1 ? " LED" : " LEDs");
-                _mapHint.Text = "The shape adds up to " + _layout.Total + ", but LED #" + (led + 1) + " didn't light, so it's past the end of the device. Go back and correct the counts; sending colors to LEDs a board doesn't have can make it freeze.";
+                _mapHint.Text = "The shape adds up to " + _layout.Total + ", but LED #" + (led + 1) + " didn't light, so it's past the end of the device. Go back and correct the counts.";
                 var back = new Button { Content = "Back to the shape", Style = (Style)FindResource("Btn.Primary"), Margin = new Thickness(0, 0, 8, 0) };
                 back.Click += (s, e) => { _notLit = -1; Show(Step.Shape); };
                 buttons.Children.Add(back);
@@ -844,7 +844,7 @@ namespace AlmostFastOverlays
         {
             _mapPrompt.Text = _doubted ? "Let's fix it" : "Did the right LED light up each time?";
             _mapHint.Text = _doubted
-                ? "Some LEDs don't follow the chain the app worked out, such as one side wired the other way around. Place every LED by hand instead: the app lights each in turn and you click where it is."
+                ? "Some LEDs don't follow the chain, such as one side wired the other way around. Place each LED by hand instead."
                 : "If each LED you clicked lit up in the same place on your device, the map is right.";
             var buttons = new StackPanel { Orientation = Orientation.Horizontal };
             if (!_doubted)
@@ -911,7 +911,7 @@ namespace AlmostFastOverlays
         {
             StopChase();
             _title.Text = _device.Name + " is ready";
-            _subtitle.Text = _layout.Describe() + ". Light layers aimed at a part's role use it, filling the way the part runs: sides bottom to top, rows and bars left to right." +
+            _subtitle.Text = _layout.Describe() + "." +
                 (_device.Kind == LedDeviceKinds.Arduino ? " Fast updates are used automatically when the board supports them." : "");
             var body = new StackPanel();
             foreach (LayoutPiece piece in _layout.Pieces())

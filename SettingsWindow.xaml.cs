@@ -318,7 +318,7 @@ namespace AlmostFastOverlays
 
             var designHeader = new StackPanel { Margin = new Thickness(0, 1, 0, 1) };
             designHeader.Children.Add(new TextBlock { Text = "New dashboard…", FontWeight = FontWeights.SemiBold });
-            designHeader.Children.Add(new TextBlock { Text = "Start from Roady, Roundy, another template or a blank canvas, sized for your screen", Style = (Style)FindResource("T.Caption"), MaxWidth = 260, TextWrapping = TextWrapping.Wrap });
+            designHeader.Children.Add(new TextBlock { Text = "Start from a template or a blank canvas", Style = (Style)FindResource("T.Caption"), MaxWidth = 260, TextWrapping = TextWrapping.Wrap });
             var designItem = new MenuItem { Header = designHeader, Icon = GlyphIcon("") };
             designItem.Click += (s, a) =>
             {
@@ -438,7 +438,7 @@ namespace AlmostFastOverlays
             int widgets = _dashboard.Design?.AllWidgets().Count() ?? 0, screens = _dashboard.Design?.Screens.Count ?? 1;
             DesignCardTitle.Text = "Screen design";
             DesignCardText.Text = widgets + " widgets on " + screens + (screens == 1 ? " screen" : " screens") +
-                ". Open the designer to move, restyle or add anything on the wheel screen.";
+                ".";
             DesignButtonLabel.Text = "Open designer";
             EditorDefaultBadge.Visibility = isDefault ? Visibility.Visible : Visibility.Collapsed;
             SetDefaultButton.Visibility = isDefault ? Visibility.Collapsed : Visibility.Visible;
@@ -457,7 +457,7 @@ namespace AlmostFastOverlays
 
             DeleteButton.IsEnabled = !last;
             DeleteButton.ToolTip = last ? "Your only dashboard can't be deleted." : null;
-            ManageHelp.Text = "Duplicate this dashboard to experiment, reset its lights and alerts, or remove it.";
+            ManageHelp.Text = "Duplicate, reset or delete this dashboard.";
             _loading = false;
             UpdateLightsCard();
             RefreshAccent();
@@ -481,7 +481,7 @@ namespace AlmostFastOverlays
             BlinkLengthValue.Text = length + " ms";
             HoldValue.Text = hold == 0 ? "Off" : (hold / 1000.0).ToString("0.##") + " s";
             double total = (count * length * 2 + hold) / 1000.0;
-            AlertSummary.Text = $"A green, yellow or white flag fills the screen for about {total:0.#} seconds, steady while the lights flash, then the dashboard returns. A caution or final lap keeps a frame around it.";
+            AlertSummary.Text = $"A green, yellow or white flag fills the screen for about {total:0.#} seconds. A caution or final lap keeps a frame around it.";
         }
 
         private void AssignmentChanged(object sender, RoutedEventArgs e)
@@ -500,14 +500,14 @@ namespace AlmostFastOverlays
         {
             if (!_settings.General.AutoSwitchByDiscipline)
             {
-                AssignmentHelp.Text = "Automatic switching is off in Device & app, so the default dashboard is always used.";
+                AssignmentHelp.Text = "Switching by track type is off in Settings, so the default is always used.";
                 return;
             }
             var shared = _dashboard.RaceTypes
                 .Select(type => new { type, others = _settings.Dashboards.Where(d => d != _dashboard && d.RaceTypes.Contains(type)).Select(d => d.Name).ToList() })
                 .Where(x => x.others.Count > 0).ToList();
             AssignmentHelp.Text = shared.Count == 0
-                ? "Switches to this dashboard when a session starts on these track types."
+                ? "Used when a session starts on these track types."
                 : $"{shared[0].type} is also assigned to {string.Join(", ", shared[0].others)}. The default dashboard wins, then the one listed first.";
         }
 
@@ -1064,7 +1064,7 @@ namespace AlmostFastOverlays
             {
                 SetStatus("Hidden", "Brush.TextTertiary");
                 ActiveText.Text = " · " + AtPoint(at);
-                StatusPill.ToolTip = "Running, and hidden while " + AtPoint(at) + ". Show when, at the top, chooses where it shows.";
+                StatusPill.ToolTip = "Running, hidden while " + AtPoint(at) + " (see Show when).";
             }
         }
 

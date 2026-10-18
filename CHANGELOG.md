@@ -5,6 +5,23 @@ English. Every version is on the
 [releases page](https://github.com/Sota4077/almost-fast-dash/releases) with
 its exe and checksum.
 
+## 3.72 · 2026-10-17
+
+Says less, everywhere.
+
+- **About 200 pieces of on-screen text were cut down,** almost half the words
+  in all: page and card captions, settings, tooltips, the designer's hints and
+  status bar, the light designer, device setup, and widget and template
+  descriptions. The full explanations live in the
+  [user guide](docs/guide.md).
+- **Tool tooltips name the tool and its key,** as design apps do:
+  "Rectangle (U)", "Pen (P)".
+- **The designer's empty-selection panel is shorter:** four quick tips, and
+  a button for the shortcut sheet in place of a paragraph of shortcuts.
+- **Wheel-button pickers fit on one line** (Assign, the button, Clear).
+- Fixed a message that still pointed to "Device & app", a page that no
+  longer exists, and a tip that ran two sentences together.
+
 ## 3.71 · 2026-10-17
 
 A polish pass over the whole app.

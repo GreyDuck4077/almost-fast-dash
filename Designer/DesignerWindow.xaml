@@ -156,25 +156,25 @@
                     <Border Width="1" Height="26" Background="{StaticResource Brush.Border}" Margin="12,0"/>
                     <TextBlock Text="Screen" Style="{StaticResource T.Caption}" VerticalAlignment="Center" Margin="0,0,8,0"/>
                     <ComboBox x:Name="ScreenCombo" Width="170" VerticalAlignment="Center" SelectionChanged="ScreenCombo_SelectionChanged"/>
-                    <Button Style="{StaticResource Tool}" ToolTip="Screen options: add, rename, show-when condition, delete" Click="ScreenMenu_Click" Margin="4,0,0,0">
+                    <Button Style="{StaticResource Tool}" ToolTip="Screen options" Click="ScreenMenu_Click" Margin="4,0,0,0">
                         <TextBlock Style="{StaticResource T.Icon}" Text="&#xE712;"/>
                     </Button>
                     <Border Width="1" Height="26" Background="{StaticResource Brush.Border}" Margin="12,0"/>
                     <TextBlock Text="Preview" Style="{StaticResource T.Caption}" VerticalAlignment="Center" Margin="0,0,8,0"/>
                     <ComboBox x:Name="PreviewCombo" Width="170" VerticalAlignment="Center" SelectionChanged="PreviewCombo_SelectionChanged"
-                              ToolTip="What the canvas shows: a moment in a race (racing, the shift point, the pit lane, a flag), the animated lap, or your live iRacing session"/>
+                              ToolTip="What the canvas shows: a race moment, the animated lap or your live session"/>
                 </StackPanel>
 
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,0"
-                                ToolTip="Changes save as you go, and a running dashboard picks them up within a second">
+                                ToolTip="Changes save as you go">
                         <TextBlock x:Name="SaveStateIcon" Style="{StaticResource T.Icon}" Text="&#xE73E;" FontSize="12" Foreground="{StaticResource Brush.Success}" Margin="0,0,6,0"/>
                         <TextBlock x:Name="SaveState" Style="{StaticResource T.Caption}" VerticalAlignment="Center"/>
                     </StackPanel>
                     <Button Style="{StaticResource Tool}" ToolTip="Keyboard shortcuts (Ctrl+/)" Click="Shortcuts_Click">
                         <TextBlock Style="{StaticResource T.Icon}" Text="&#xE765;"/>
                     </Button>
-                    <Button Style="{StaticResource Tool}" ToolTip="Formula reference: every field and function ƒx can use, with examples (F1)" Click="FormulaReference_Click">
+                    <Button Style="{StaticResource Tool}" ToolTip="Formula reference (F1)" Click="FormulaReference_Click">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Style="{StaticResource T.Icon}" Text="&#xE82D;" Margin="0,0,6,0"/>
                             <TextBlock Text="Formulas" VerticalAlignment="Center"/>
@@ -186,7 +186,7 @@
                             <TextBlock Text="Import" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
-                    <Button Style="{StaticResource Tool}" ToolTip="Export this design to share it (.afodash)" Click="Export_Click">
+                    <Button Style="{StaticResource Tool}" ToolTip="Export to share (.afodash)" Click="Export_Click">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Style="{StaticResource T.Icon}" Text="&#xEDE1;" Margin="0,0,6,0"/>
                             <TextBlock Text="Export" VerticalAlignment="Center"/>
@@ -204,41 +204,41 @@
                     <Path Style="{StaticResource RailIcon}" Data="M5,2.5 L5,16.5 L8.6,13.2 L11,18 L13.2,17 L10.9,12.2 L15.6,12.2 Z" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Control}}" StrokeThickness="0.8"/>
                 </RadioButton>
                 <RadioButton x:Name="ToolRectangle" Style="{StaticResource RailTool}" GroupName="Tools" Tag="Rectangle" Checked="Tool_Checked"
-                             ToolTip="Rectangle: drag to draw one; Shift for a square (U, Shift+U for the next shape)">
+                             ToolTip="Rectangle (U)">
                     <Path Style="{StaticResource RailIcon}" Data="M3.5,5.5 H16.5 V14.5 H3.5 Z"/>
                 </RadioButton>
                 <RadioButton x:Name="ToolEllipse" Style="{StaticResource RailTool}" GroupName="Tools" Tag="Ellipse" Checked="Tool_Checked"
-                             ToolTip="Ellipse: drag to draw one; Shift for a circle (Shift+U)">
+                             ToolTip="Ellipse (Shift+U)">
                     <Path Style="{StaticResource RailIcon}" Data="M10,4.5 A6.5,5.5 0 1 1 9.99,4.5 Z"/>
                 </RadioButton>
                 <RadioButton x:Name="ToolPolygon" Style="{StaticResource RailTool}" GroupName="Tools" Tag="Polygon" Checked="Tool_Checked"
-                             ToolTip="Polygon: drag to draw one, then set its sides or make it a star in Properties (Shift+U)">
+                             ToolTip="Polygon and star (Shift+U)">
                     <Path Style="{StaticResource RailIcon}" Data="M10,3 L16.1,6.5 L16.1,13.5 L10,17 L3.9,13.5 L3.9,6.5 Z"/>
                 </RadioButton>
                 <RadioButton x:Name="ToolLine" Style="{StaticResource RailTool}" GroupName="Tools" Tag="Line" Checked="Tool_Checked"
-                             ToolTip="Line: drag to draw one; Shift keeps it straight or at 45° (Shift+U)">
+                             ToolTip="Line (Shift+U)">
                     <Path Style="{StaticResource RailIcon}" Data="M4,16 L16,4"/>
                 </RadioButton>
                 <RadioButton x:Name="ToolPen" Style="{StaticResource RailTool}" GroupName="Tools" Tag="Pen" Checked="Tool_Checked"
-                             ToolTip="Pen: click for corners, drag for curves; click the first point to close (P)">
+                             ToolTip="Pen (P)">
                     <Path Style="{StaticResource RailIcon}" Data="M4,16.5 L5.6,11 L12.8,3.8 L16.2,7.2 L9,14.4 Z M5.6,11 L9,14.4 M4,16.5 L7.4,13.1"/>
                 </RadioButton>
                 <RadioButton x:Name="ToolText" Style="{StaticResource RailTool}" GroupName="Tools" Tag="Text" Checked="Tool_Checked"
-                             ToolTip="Text: click or drag where it goes, then type (T)">
+                             ToolTip="Text (T)">
                     <Path Style="{StaticResource RailIcon}" Data="M4.5,4.5 H15.5 M10,4.5 V16 M8,16 H12" StrokeThickness="1.8"/>
                 </RadioButton>
                 <Border Width="24" Height="1" Background="{StaticResource Brush.Border}" Margin="0,4,0,8"/>
                 <RadioButton x:Name="ToolHand" Style="{StaticResource RailTool}" GroupName="Tools" Tag="Hand" Checked="Tool_Checked"
-                             ToolTip="Hand: drag to move around the canvas (H, or hold Space)">
+                             ToolTip="Hand (H, or hold Space)">
                     <Path Style="{StaticResource RailIcon}" Data="M10,2.5 V17.5 M2.5,10 H17.5 M10,2.5 L8,4.5 M10,2.5 L12,4.5 M10,17.5 L8,15.5 M10,17.5 L12,15.5 M2.5,10 L4.5,8 M2.5,10 L4.5,12 M17.5,10 L15.5,8 M17.5,10 L15.5,12"/>
                 </RadioButton>
                 <RadioButton x:Name="ToolZoom" Style="{StaticResource RailTool}" GroupName="Tools" Tag="Zoom" Checked="Tool_Checked"
-                             ToolTip="Zoom: click to zoom in, Alt+click to zoom out (Z)">
+                             ToolTip="Zoom (Z)">
                     <Path Style="{StaticResource RailIcon}" Data="M8.5,3.5 A5,5 0 1 1 8.49,3.5 Z M12.3,12.3 L16.5,16.5 M6.5,8.5 H10.5 M8.5,6.5 V10.5"/>
                 </RadioButton>
                 <Border Width="24" Height="1" Background="{StaticResource Brush.Border}" Margin="0,4,0,8"/>
                 <ToggleButton x:Name="LibraryToggle" Style="{StaticResource RailToggle}" IsChecked="True" Click="LibraryToggle_Click"
-                              ToolTip="Library: every widget, live value and block, to drag onto the canvas">
+                              ToolTip="Library">
                     <Path Style="{StaticResource RailIcon}" Data="M3.5,3.5 H8.5 V8.5 H3.5 Z M11.5,3.5 H16.5 V8.5 H11.5 Z M3.5,11.5 H8.5 V16.5 H3.5 Z M11.5,11.5 H16.5 V16.5 H11.5 Z"/>
                 </ToggleButton>
             </StackPanel>
@@ -249,7 +249,7 @@
             <DockPanel>
                 <DockPanel DockPanel.Dock="Top" Margin="16,12,8,2" LastChildFill="False">
                     <TextBlock Text="LIBRARY" Style="{StaticResource T.Overline}" VerticalAlignment="Center"/>
-                    <Button DockPanel.Dock="Right" Style="{StaticResource Tool}" ToolTip="Hide the library (the grid button on the left brings it back)" Click="LibraryHide_Click">
+                    <Button DockPanel.Dock="Right" Style="{StaticResource Tool}" ToolTip="Hide the library" Click="LibraryHide_Click">
                         <TextBlock Style="{StaticResource T.Icon}" Text="&#xE76B;" FontSize="11"/>
                     </Button>
                 </DockPanel>
@@ -293,13 +293,13 @@
             <Border HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,14" Background="{StaticResource Brush.SurfaceRaised}"
                     BorderBrush="{StaticResource Brush.BorderStrong}" BorderThickness="1" CornerRadius="10" Padding="6,4">
                 <StackPanel Orientation="Horizontal">
-                    <ToggleButton x:Name="RulersToggle" Style="{StaticResource ToolToggle}" Content="Rulers" ToolTip="Rulers along the canvas; drag from them for guides that widgets snap to (Ctrl+R)" Click="RulersToggle_Click"/>
+                    <ToggleButton x:Name="RulersToggle" Style="{StaticResource ToolToggle}" Content="Rulers" ToolTip="Rulers and guides (Ctrl+R)" Click="RulersToggle_Click"/>
                     <ToggleButton x:Name="GridToggle" Style="{StaticResource ToolToggle}" Content="Grid" IsChecked="True" ToolTip="Show the layout grid" Click="ViewOption_Click"/>
-                    <ToggleButton x:Name="SnapToggle" Style="{StaticResource ToolToggle}" Content="Snap" IsChecked="True" ToolTip="Snap to the grid, the canvas and other widgets (hold Alt to bypass)" Click="ViewOption_Click"/>
+                    <ToggleButton x:Name="SnapToggle" Style="{StaticResource ToolToggle}" Content="Snap" IsChecked="True" ToolTip="Snap to the grid and other widgets (hold Alt to bypass)" Click="ViewOption_Click"/>
                     <ToggleButton x:Name="OutlineToggle" Style="{StaticResource ToolToggle}" Content="Outlines" ToolTip="Outline every widget" Click="ViewOption_Click"/>
                     <Border Width="1" Height="22" Background="{StaticResource Brush.Border}" Margin="4,0,8,0"/>
                     <Button Style="{StaticResource Tool}" ToolTip="Zoom out (Ctrl+wheel)" Click="ZoomOut_Click"><TextBlock Style="{StaticResource T.Icon}" Text="&#xE71F;"/></Button>
-                    <Button x:Name="ZoomLabel" Style="{StaticResource Tool}" MinWidth="58" ToolTip="Fit to window (Shift+1). Shift+2 zooms to the selection" Click="ZoomFit_Click" Content="100%"/>
+                    <Button x:Name="ZoomLabel" Style="{StaticResource Tool}" MinWidth="58" ToolTip="Fit to window (Shift+1)" Click="ZoomFit_Click" Content="100%"/>
                     <Button Style="{StaticResource Tool}" ToolTip="Zoom in (Ctrl+wheel)" Click="ZoomIn_Click"><TextBlock Style="{StaticResource T.Icon}" Text="&#xE8A3;"/></Button>
                 </StackPanel>
             </Border>
@@ -353,7 +353,7 @@
             <DockPanel Margin="14,0">
                 <TextBlock x:Name="CursorText" DockPanel.Dock="Right" Style="{StaticResource T.Caption}" VerticalAlignment="Center" FontFamily="{StaticResource Font.Mono}"/>
                 <TextBlock x:Name="StatusText" Style="{StaticResource T.Caption}" VerticalAlignment="Center"
-                           Text="Drag from the Library, or draw with the tools on the left. Arrows nudge (Shift for 10), Ctrl+D duplicates, Alt stops snapping, Ctrl+/ lists every shortcut."/>
+                           Text="Drag from the Library or draw with the tools. Ctrl+/ shows every shortcut."/>
             </DockPanel>
         </Border>
     </Grid>

@@ -39,7 +39,7 @@ namespace AlmostFastOverlays
                 Scale = () => _zoom, Span = () => SelectionSpan(vertical), Cursor = vertical ? Cursors.SizeWE : Cursors.SizeNS,
                 Background = (Brush)FindResource("Brush.Sidebar"), Line = (Brush)FindResource("Brush.TextTertiary"),
                 Text = (Brush)FindResource("Brush.TextSecondary"), Mark = (Brush)FindResource("Brush.Accent"),
-                ToolTip = "Drag onto the canvas for a guide; drag a guide back here to remove it. Right-click for more."
+                ToolTip = "Drag out a guide; drag it back to remove it"
             };
             _rulerTop = Make(false);
             _rulerTop.Height = RulerSize;
@@ -167,7 +167,7 @@ namespace AlmostFastOverlays
             }
             _guideAt = at;
             StatusText.Text = (_guideVertical ? "Guide at x " : "Guide at y ") + at.ToString("0.#", CultureInfo.InvariantCulture) +
-                ". Drop it on the canvas, or back on the ruler to remove it. Alt stops it snapping.";
+                ". Drop it back on the ruler to remove it.";
             UpdateOverlay();
         }
 
@@ -193,7 +193,7 @@ namespace AlmostFastOverlays
                 if (_guideIndex >= 0) guides[_guideIndex] = _guideAt;
                 else guides.Add(_guideAt);
                 Commit(_guideIndex >= 0 ? "Move guide" : "Add guide");
-                StatusText.Text = "Widgets snap to guides as they move. Drag one back onto its ruler to remove it.";
+                StatusText.Text = "Drag a guide back onto its ruler to remove it.";
             }
             _guideIndex = -1;
             _guideFrom = null;

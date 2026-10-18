@@ -154,7 +154,7 @@
                         <StackPanel>
                             <TextBlock Text="Dashboards" Style="{StaticResource T.PageTitle}"/>
                             <TextBlock Style="{StaticResource T.Secondary}" Margin="0,6,0,0" MaxWidth="640" HorizontalAlignment="Left"
-                                       Text="Choose what your dashboard shows, on your wheel screen or your PC. The default dashboard is used unless another one is assigned to the session's track type."/>
+                                       Text="The default runs unless another is set for the track type."/>
                         </StackPanel>
                         <Button x:Name="NewDashboardButton" AutomationProperties.Name="New dashboard" Grid.Column="1" VerticalAlignment="Top" Click="NewDashboard_Click">
                             <StackPanel Orientation="Horizontal">
@@ -170,7 +170,7 @@
                                 <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                 <StackPanel>
                                     <TextBlock Text="Welcome to Almost Fast Dash" Style="{StaticResource T.Title}"/>
-                                    <TextBlock Text="Three steps to your first race. Everything saves as you go." Style="{StaticResource T.Caption}" Margin="0,4,0,0"/>
+                                    <TextBlock Text="Three steps to your first race." Style="{StaticResource T.Caption}" Margin="0,4,0,0"/>
                                 </StackPanel>
                                 <Button Grid.Column="1" Style="{StaticResource Btn.Ghost}" Content="Got it" VerticalAlignment="Top" Click="WelcomeDismiss_Click"/>
                             </Grid>
@@ -202,7 +202,7 @@
                                     <StackPanel>
                                         <TextBlock Text="Start the dashboard" Style="{StaticResource T.Label}"/>
                                         <TextBlock Style="{StaticResource T.Caption}" TextWrapping="Wrap" Margin="0,4,0,0"
-                                                   Text="Press the start button at the top. It keeps running in the background, even with this window closed."/>
+                                                   Text="Press start at the top. It keeps running when this window is closed."/>
                                     </StackPanel>
                                 </DockPanel>
                             </UniformGrid>
@@ -263,11 +263,11 @@
                             <StackPanel Grid.Column="1" Margin="28,4,0,0">
                                 <TextBlock Text="LIVE PREVIEW" Style="{StaticResource T.Overline}"/>
                                 <TextBlock Style="{StaticResource T.Secondary}" Margin="0,8,0,20"
-                                           Text="Pick a moment in a race to see exactly how the screen and every light look in it: the shift point, a car alongside, the pit limiter, a flag. Animated lap plays through a lap; Live iRacing shows your session. Changes apply to a running dashboard within a second."/>
+                                           Text="See the screen and lights at any moment of a race."/>
                                 <CheckBox x:Name="MirrorLeds" Style="{StaticResource Switch}" Content="Show on my wheel" IsChecked="True" Margin="0,0,0,4"
-                                          ToolTip="Shows this preview on your wheel screen and LED devices when iRacing isn't running"/>
+                                          ToolTip="Show this preview on your wheel screen and LEDs"/>
                                 <TextBlock x:Name="MirrorNote" Style="{StaticResource T.Caption}" TextWrapping="Wrap" Margin="0,0,0,18"
-                                           Text="Lights your devices with this preview while the dashboard is stopped."/>
+                                           Text="Lights your devices while the dashboard is stopped."/>
                                 <TextBlock Text="Preview state" Style="{StaticResource T.Label}" Margin="0,0,0,8"/>
                                 <ComboBox x:Name="PreviewState" MinWidth="0" HorizontalAlignment="Stretch" SelectionChanged="PreviewState_SelectionChanged"/>
                             </StackPanel>
@@ -335,7 +335,7 @@
                                 <StackPanel VerticalAlignment="Top" Margin="0,4,24,0">
                                     <TextBlock Text="Use automatically for" Style="{StaticResource T.Label}"/>
                                     <TextBlock x:Name="AssignmentHelp" Style="{StaticResource T.Caption}" Margin="0,3,0,0"
-                                               Text="Switches to this dashboard when a session starts on these track types."/>
+                                               Text="Used when a session starts on these track types."/>
                                 </StackPanel>
                                 <WrapPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,0,-8">
                                     <ToggleButton x:Name="OvalChip" Style="{StaticResource Chip}" Content="Oval" Checked="AssignmentChanged" Unchecked="AssignmentChanged"/>
@@ -377,7 +377,7 @@
                     <Border Style="{StaticResource Card}">
                         <StackPanel>
                             <TextBlock Text="Flag alerts" Style="{StaticResource T.Title}"/>
-                            <TextBlock Text="How long a green, yellow or white flag fills the screen, and how the flag lights flash meanwhile." Style="{StaticResource T.Caption}" Margin="0,4,0,18"/>
+                            <TextBlock Text="How long a flag fills the screen, and how its lights flash." Style="{StaticResource T.Caption}" Margin="0,4,0,18"/>
 
                             <Grid Style="{StaticResource Row}">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
@@ -455,7 +455,7 @@
                 <StackPanel Margin="32,28,32,32" MaxWidth="1120">
                     <TextBlock Text="Devices" Style="{StaticResource T.PageTitle}"/>
                     <TextBlock Style="{StaticResource T.Secondary}" Margin="0,6,0,24"
-                               Text="Your wheel screen and every LED device. Set a device up once and every dashboard's lights use it."/>
+                               Text="Set each device up once and every dashboard uses it."/>
 
                     <!-- LED devices: everything with LEDs, each set up with the device wizard -->
                     <Border Style="{StaticResource Card}">
@@ -465,7 +465,7 @@
                                 <StackPanel Margin="0,0,24,0">
                                     <TextBlock Text="LED devices" Style="{StaticResource T.Title}"/>
                                     <TextBlock Style="{StaticResource T.Caption}" Margin="0,4,0,0" TextWrapping="Wrap" MaxWidth="600" HorizontalAlignment="Left"
-                                               Text="The LEDs on your wheel screen, light bars, Arduino boards, Adalight strips and WLED controllers. Add one, describe its shape and show the app where its LEDs are; every dashboard's lights then use it."/>
+                                               Text="Wheel LEDs, light bars, Arduino boards, Adalight strips and WLED."/>
                                 </StackPanel>
                                 <Button Grid.Column="1" Style="{StaticResource Btn.Primary}" VerticalAlignment="Top" Click="AddDevice_Click">
                                     <StackPanel Orientation="Horizontal">
@@ -483,7 +483,7 @@
                     <Border Style="{StaticResource Card}">
                         <StackPanel>
                             <TextBlock Text="Wheel screen" Style="{StaticResource T.Title}"/>
-                            <TextBlock Text="The screen on your wheel. It can be driven by only one program at a time, so close other dashboard software while this runs." Style="{StaticResource T.Caption}" Margin="0,4,0,18"/>
+                            <TextBlock Text="Only one program can drive it at a time, so close other dashboard software." Style="{StaticResource T.Caption}" Margin="0,4,0,18"/>
                             <Grid Style="{StaticResource Row}">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/></Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
@@ -512,7 +512,7 @@
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/></Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
                                     <TextBlock Text="Frame rate" Style="{StaticResource T.Label}"/>
-                                    <TextBlock Text="Frames a second while racing, at most. 30 uses less of your PC." Style="{StaticResource T.Caption}" Margin="0,3,0,0" TextWrapping="Wrap"/>
+                                    <TextBlock Text="30 uses less of your PC." Style="{StaticResource T.Caption}" Margin="0,3,0,0" TextWrapping="Wrap"/>
                                 </StackPanel>
                                 <Border Grid.Column="1" Style="{StaticResource Segmented}" HorizontalAlignment="Left" VerticalAlignment="Center">
                                     <StackPanel Orientation="Horizontal">
@@ -526,17 +526,17 @@
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/></Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
                                     <TextBlock Text="Performance" Style="{StaticResource T.Label}"/>
-                                    <TextBlock Text="Measured on the wheel while the dashboard runs." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                    <TextBlock Text="Measured while the dashboard runs." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
                                 </StackPanel>
                                 <TextBlock x:Name="ScreenPerformance" Grid.Column="1" Style="{StaticResource T.Secondary}" TextWrapping="Wrap" VerticalAlignment="Center"
-                                           Text="Start the dashboard to measure how it keeps up."/>
+                                           Text="Start the dashboard to measure."/>
                             </Grid>
                             <Border Style="{StaticResource Divider}"/>
                             <Grid Style="{StaticResource Row}">
                                 <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
                                     <TextBlock Text="Send only what changed" Style="{StaticResource T.Label}"/>
-                                    <TextBlock Text="Each frame sends just the parts of the screen that moved, so the screen keeps up at a much higher frame rate. Turn it off only if parts of the screen stop updating." Style="{StaticResource T.Caption}" Margin="0,3,0,0" TextWrapping="Wrap"/>
+                                    <TextBlock Text="Sends only what moved, for a much higher frame rate. Turn off only if parts stop updating." Style="{StaticResource T.Caption}" Margin="0,3,0,0" TextWrapping="Wrap"/>
                                 </StackPanel>
                                 <CheckBox x:Name="SendChangesToggle" Grid.Column="1" Style="{StaticResource Switch}" VerticalAlignment="Center" Checked="SendChanges_Click" Unchecked="SendChanges_Click"/>
                             </Grid>
@@ -548,14 +548,14 @@
                         <StackPanel>
                             <TextBlock Text="Dashboard on your PC" Style="{StaticResource T.Title}"/>
                             <TextBlock Style="{StaticResource T.Caption}" TextWrapping="Wrap" Margin="0,4,0,6"
-                                       Text="No wheel screen needed. Choose Window, Over the game or Full screen under Show on at the top of the window, and the dashboard shows on your PC instead of the wheel screen. It never takes the keyboard from the game."/>
+                                       Text="No wheel screen needed: pick Window, Over the game or Full screen under Show on, at the top."/>
 
                             <!-- In a window -->
                             <StackPanel x:Name="PcWindowRows" Visibility="Collapsed">
                                 <Border Style="{StaticResource Divider}"/>
                                 <TextBlock Text="In a window" Style="{StaticResource T.Label}" Margin="0,12,0,0"/>
                                 <TextBlock Style="{StaticResource T.Caption}" TextWrapping="Wrap" Margin="0,3,0,4"
-                                           Text="Move it and size it like any window, on any display: it keeps the dashboard's shape and remembers where it was. Clicks on it work like taps on a touch screen, and leave the game active."/>
+                                           Text="Move and size it on any display. Clicks work like taps and leave the game active."/>
                             </StackPanel>
 
                             <!-- Over the game -->
@@ -565,12 +565,12 @@
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/></Grid.ColumnDefinitions>
                                     <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
                                         <TextBlock Text="Place and size" Style="{StaticResource T.Label}"/>
-                                        <TextBlock Text="It sits on top of the game; clicks go through it to the game." Style="{StaticResource T.Caption}" Margin="0,3,0,0" TextWrapping="Wrap"/>
+                                        <TextBlock Text="Sits on top of the game; clicks pass through it." Style="{StaticResource T.Caption}" Margin="0,3,0,0" TextWrapping="Wrap"/>
                                     </StackPanel>
                                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                                         <Button x:Name="PlaceOverlayButton" Content="Move and resize" MinWidth="150" Click="PlaceOverlay_Click"/>
                                         <TextBlock x:Name="PlaceOverlayNote" Style="{StaticResource T.Caption}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="16,0,0,0" MaxWidth="420"
-                                                   Text="The dashboard shows a frame: drag it to move it, and its corner to resize it."/>
+                                                   Text="Drag it to move it, or its corner to resize it."/>
                                     </StackPanel>
                                 </Grid>
                                 <Border Style="{StaticResource Divider}"/>
@@ -590,12 +590,12 @@
                                     <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                     <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
                                         <TextBlock Text="Only while racing" Style="{StaticResource T.Label}"/>
-                                        <TextBlock Text="Hidden while iRacing isn't running, so it's never left over your desktop." Style="{StaticResource T.Caption}" Margin="0,3,0,0" TextWrapping="Wrap"/>
+                                        <TextBlock Text="Hidden while iRacing isn't running." Style="{StaticResource T.Caption}" Margin="0,3,0,0" TextWrapping="Wrap"/>
                                     </StackPanel>
                                     <CheckBox x:Name="OverlayRacingToggle" Grid.Column="1" Style="{StaticResource Switch}" VerticalAlignment="Center" Checked="OverlayRacing_Click" Unchecked="OverlayRacing_Click"/>
                                 </Grid>
                                 <TextBlock Style="{StaticResource T.Caption}" TextWrapping="Wrap" Margin="0,8,0,4"
-                                           Text="If it doesn't show over iRacing, run iRacing in a window or borderless window: a full-screen game can cover everything. For a dashboard with no box around it, choose None as its background in the designer."/>
+                                           Text="Not showing over iRacing? Run iRacing borderless or in a window. For no box around the dashboard, set its background to None in the designer."/>
                             </StackPanel>
 
                             <!-- Full screen on another display -->
@@ -605,7 +605,7 @@
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="260"/><ColumnDefinition/></Grid.ColumnDefinitions>
                                     <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
                                         <TextBlock Text="Display" Style="{StaticResource T.Label}"/>
-                                        <TextBlock Text="Any display but your main one, such as an HDMI dash screen." Style="{StaticResource T.Caption}" Margin="0,3,0,0" TextWrapping="Wrap"/>
+                                        <TextBlock Text="Any display but your main one." Style="{StaticResource T.Caption}" Margin="0,3,0,0" TextWrapping="Wrap"/>
                                     </StackPanel>
                                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                                         <ComboBox x:Name="MonitorPicker" Width="300" SelectionChanged="MonitorPicker_Changed"/>
@@ -623,7 +623,7 @@
                 <StackPanel Margin="32,28,32,32" MaxWidth="1120">
                     <TextBlock Text="Settings" Style="{StaticResource T.PageTitle}"/>
                     <TextBlock Style="{StaticResource T.Secondary}" Margin="0,6,0,24"
-                               Text="Units, startup and how Almost Fast Dash runs. These apply everywhere."/>
+                               Text="Units, startup and how the app runs."/>
 
                     <Border Style="{StaticResource Card}">
                         <StackPanel>
@@ -633,7 +633,7 @@
                                 <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
                                     <TextBlock Text="Speed" Style="{StaticResource T.Label}"/>
-                                    <TextBlock Text="Speedometers and every speed readout." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                    <TextBlock Text="Every speed readout." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
                                 </StackPanel>
                                 <Border Grid.Column="1" Style="{StaticResource Segmented}">
                                     <StackPanel Orientation="Horizontal">
@@ -647,7 +647,7 @@
                                 <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
                                     <TextBlock Text="Fuel" Style="{StaticResource T.Label}"/>
-                                    <TextBlock Text="Fuel in the tank, use per lap and fuel to add." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                    <TextBlock Text="Level, use per lap and fuel to add." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
                                 </StackPanel>
                                 <Border Grid.Column="1" Style="{StaticResource Segmented}">
                                     <StackPanel Orientation="Horizontal">
@@ -661,7 +661,7 @@
                                 <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
                                     <TextBlock Text="Fuel safety margin" Style="{StaticResource T.Label}"/>
-                                    <TextBlock Text="Extra laps of fuel counted into fuel to add." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                    <TextBlock Text="Extra laps counted into fuel to add." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
                                 </StackPanel>
                                 <Border Grid.Column="1" Style="{StaticResource Segmented}" VerticalAlignment="Center">
                                     <StackPanel Orientation="Horizontal">
@@ -677,7 +677,7 @@
                                 <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
                                     <TextBlock Text="Temperature" Style="{StaticResource T.Label}"/>
-                                    <TextBlock Text="Oil, water, track, air and tire temperatures." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                    <TextBlock Text="Oil, water, track, air and tires." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
                                 </StackPanel>
                                 <Border Grid.Column="1" Style="{StaticResource Segmented}">
                                     <StackPanel Orientation="Horizontal">
@@ -692,12 +692,12 @@
                     <Border Style="{StaticResource Card}">
                         <StackPanel>
                             <TextBlock Text="Behavior" Style="{StaticResource T.Title}"/>
-                            <TextBlock Text="How the app opens and when the dashboard runs." Style="{StaticResource T.Caption}" Margin="0,4,0,18"/>
+                            <TextBlock Text="How the app opens and runs." Style="{StaticResource T.Caption}" Margin="0,4,0,18"/>
                             <Grid Style="{StaticResource Row}">
                                 <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
                                     <TextBlock Text="Open on" Style="{StaticResource T.Label}"/>
-                                    <TextBlock Text="The page the app shows when it starts." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                    <TextBlock Text="The page shown at startup." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
                                 </StackPanel>
                                 <Border Grid.Column="1" Style="{StaticResource Segmented}">
                                     <StackPanel Orientation="Horizontal">
@@ -712,7 +712,7 @@
                                 <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
                                     <TextBlock Text="Minimize to the system tray" Style="{StaticResource T.Label}"/>
-                                    <TextBlock Text="Minimizing tucks the window into the notification area instead of the taskbar. The dashboard keeps running either way." Style="{StaticResource T.Caption}" Margin="0,3,0,0" TextWrapping="Wrap"/>
+                                    <TextBlock Text="The dashboard keeps running either way." Style="{StaticResource T.Caption}" Margin="0,3,0,0" TextWrapping="Wrap"/>
                                 </StackPanel>
                                 <CheckBox x:Name="TrayToggle" Grid.Column="1" Style="{StaticResource Switch}" VerticalAlignment="Center" Checked="Tray_Click" Unchecked="Tray_Click"/>
                             </Grid>
@@ -721,7 +721,7 @@
                                 <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
                                     <TextBlock Text="Switch dashboards by track type" Style="{StaticResource T.Label}"/>
-                                    <TextBlock Text="Use each dashboard's track-type assignments. When off, the default dashboard is always shown." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                    <TextBlock Text="When off, the default dashboard is always used." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
                                 </StackPanel>
                                 <CheckBox x:Name="AutoSwitchToggle" Grid.Column="1" Style="{StaticResource Switch}" VerticalAlignment="Center" Checked="AutoSwitch_Click" Unchecked="AutoSwitch_Click"/>
                             </Grid>
@@ -730,7 +730,7 @@
                                 <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
                                     <TextBlock Text="Start with Windows" Style="{StaticResource T.Label}"/>
-                                    <TextBlock Text="Run the dashboard quietly in the background when you sign in." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                    <TextBlock Text="Runs the dashboard in the background when you sign in." Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
                                 </StackPanel>
                                 <CheckBox x:Name="StartupToggle" Grid.Column="1" Style="{StaticResource Switch}" VerticalAlignment="Center" Checked="Startup_Click" Unchecked="Startup_Click"/>
                             </Grid>
@@ -739,7 +739,7 @@
                                 <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
                                     <TextBlock Text="Diagnostic logs" Style="{StaticResource T.Label}"/>
-                                    <TextBlock Text="Keep small logs of blind-spot calls and of which light layers lit which LEDs, to look into an odd light after a race. No names or account details are recorded." TextWrapping="Wrap" Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                    <TextBlock Text="Small logs of blind-spot calls and LED layers, for looking into odd lights. No names or account details." TextWrapping="Wrap" Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
                                 </StackPanel>
                                 <Button Grid.Column="1" Style="{StaticResource Btn.Ghost}" Content="Open logs" Margin="0,0,12,0" VerticalAlignment="Center" Click="OpenLogs_Click"/>
                                 <CheckBox x:Name="DiagnosticsToggle" Grid.Column="2" Style="{StaticResource Switch}" VerticalAlignment="Center" Checked="Diagnostics_Click" Unchecked="Diagnostics_Click"/>
@@ -749,7 +749,7 @@
                                 <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
                                     <TextBlock Text="Check for new versions" Style="{StaticResource T.Label}"/>
-                                    <TextBlock Text="When the app opens, ask GitHub whether a newer release is out and show a link to it. Only the request for the latest version is sent." TextWrapping="Wrap" Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
+                                    <TextBlock Text="Asks GitHub for the latest release when the app opens. Nothing else is sent." TextWrapping="Wrap" Style="{StaticResource T.Caption}" Margin="0,3,0,0"/>
                                 </StackPanel>
                                 <CheckBox x:Name="UpdatesToggle" Grid.Column="1" Style="{StaticResource Switch}" VerticalAlignment="Center" Checked="Updates_Click" Unchecked="Updates_Click"/>
                             </Grid>

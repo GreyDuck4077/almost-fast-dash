@@ -44,7 +44,7 @@ namespace AlmostFastOverlays
             ThemeHost.Children.Add(header);
             ThemeHost.Children.Add(new TextBlock
             {
-                Text = "The colors layers call good, warn and bad: the low, middle and high of rev lights and meters, the shift flash and blind-spot warnings. Layers given a color of their own keep it.",
+                Text = "The good, warn and bad colors of rev lights, meters, the shift flash and blind-spot warnings. Layers with their own colors keep them.",
                 Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 12, 0, 0)
             });
             if (!_themesOpen) return;

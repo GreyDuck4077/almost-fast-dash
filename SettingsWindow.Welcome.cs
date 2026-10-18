@@ -23,13 +23,13 @@ namespace AlmostFastOverlays
                 : pc == MonitorOutput.Windowed ? "In a window on your PC."
                 : pc == MonitorOutput.Overlay ? "Over the game on your PC."
                 : pc == MonitorOutput.FullScreen ? "Full screen on another display."
-                : "Plug in a wheel screen by USB (VoCore-family M-PRO screens), or show the dashboard on your PC: no wheel screen needed.";
+                : "Plug in a wheel screen, or show the dashboard on your PC.";
             WelcomePcButton.Visibility = placed ? Visibility.Collapsed : Visibility.Visible;
             int devices = _settings.General.Devices.Count;
             MarkStep(WelcomeLedBadge, WelcomeLedMark, "2", devices > 0);
             WelcomeLedText.Text = devices > 0
-                ? devices + (devices == 1 ? " device" : " devices") + " set up. Add more any time on the Devices page."
-                : "Optional: the LEDs around a screen, light bars and strips. The app finds them for you.";
+                ? devices + (devices == 1 ? " device" : " devices") + " set up."
+                : "Optional: wheel LEDs, light bars and strips.";
         }
 
         /// <summary>No wheel screen: show it in a window on the PC (Show on, at the top, changes it any time).</summary>

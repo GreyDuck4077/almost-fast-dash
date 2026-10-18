@@ -54,7 +54,7 @@ namespace AlmostFastOverlays
             var import = new Button
             {
                 Style = (Style)FindResource("Btn.Ghost"), Content = "Import…", Height = 26, Padding = new Thickness(8, 0, 8, 0), Margin = new Thickness(0, 8, 0, 4),
-                VerticalAlignment = VerticalAlignment.Bottom, ToolTip = "Add modules people have shared (.afomodule files). You can also drop them on the screen."
+                VerticalAlignment = VerticalAlignment.Bottom, ToolTip = "Import shared modules (.afomodule), or drop them on the screen."
             };
             import.Click += (s, e) => ImportModules();
             Grid.SetColumn(import, 1);
@@ -64,7 +64,7 @@ namespace AlmostFastOverlays
             {
                 host.Children.Add(new TextBlock
                 {
-                    Text = "Select widgets and choose Save as module (Ctrl+M) to keep them here, ready to reuse and share.",
+                    Text = "Select widgets and press Ctrl+M to save them here as a module.",
                     Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(2, 0, 4, 6)
                 });
                 return;
@@ -99,7 +99,7 @@ namespace AlmostFastOverlays
                 Margin = new Thickness(2), Padding = new Thickness(5, 5, 5, 6), CornerRadius = new CornerRadius(8), Cursor = Cursors.Hand,
                 Background = (Brush)FindResource("Brush.Surface"), BorderBrush = (Brush)FindResource("Brush.Border"), BorderThickness = new Thickness(1), Child = stack,
                 ToolTip = module.Name + (module.Description.Length > 0 ? "\n" + module.Description : "") + (by.Length > 0 ? "\n" + by : "") +
-                    "\n\nClick to add, or drag onto the screen. Right-click to export, edit or delete."
+                    "\n\nClick or drag to add. Right-click for more."
             };
             HookTile(card, () => PlaceModule(module, null, false), () => new DataObject("afo-module", module));
             var menu = new ContextMenu();
@@ -164,7 +164,7 @@ namespace AlmostFastOverlays
             DashWidget panel = askPanel && at.HasValue ? PanelAt(at.Value) : null;
             if (panel != null && !widgets.Any(w => w.Type == "panel")) AskPanelDrop(panel, widgets, label);
             else AddWidgets(widgets, label);
-            StatusText.Text = "Added " + module.Name + "." + (widgets.Count > 1 ? " Its colors are listed in Properties, to restyle it in one go." : "");
+            StatusText.Text = "Added " + module.Name + "." + (widgets.Count > 1 ? " Restyle its colors in Properties." : "");
         }
 
         // ------------------------------------------------------------------ saving one
@@ -220,7 +220,7 @@ namespace AlmostFastOverlays
             System.Drawing.SizeF size = module.Size();
             picture.Children.Add(Caption(module.Widgets.Count + (module.Widgets.Count == 1 ? " widget" : " widgets") + ", " + Math.Round(size.Width) + " × " + Math.Round(size.Height) +
                 (module.Images.Count > 0 ? ", " + module.Images.Count + (module.Images.Count == 1 ? " image" : " images") : "") + ".", 8));
-            picture.Children.Add(Caption("A module is widgets and formulas only, nothing that can run on a PC, so it's safe to share.", 8));
+            picture.Children.Add(Caption("Modules hold only widgets and formulas, so they're safe to share.", 8));
             body.Children.Add(picture);
 
             var fields = new StackPanel();
@@ -346,7 +346,7 @@ namespace AlmostFastOverlays
             {
                 ModulePicture(module);
                 DesignModule.Write(dialog.FileName, module);
-                StatusText.Text = "Exported \"" + module.Name + "\". Anyone with Almost Fast Dash can import the file into their Library.";
+                StatusText.Text = "Exported \"" + module.Name + "\". Anyone can import it into their Library.";
             }
             catch (Exception exception)
             {
@@ -416,7 +416,7 @@ namespace AlmostFastOverlays
             }
             if (order.Count == 0) return;
             Inspector.Children.Add(SectionTitle("Colors"));
-            Inspector.Children.Add(Caption("Every color these use. Change one and it changes everywhere it's used.", 0));
+            Inspector.Children.Add(Caption("Change a color here and it changes everywhere it's used.", 0));
             foreach (string color in order.OrderByDescending(c => uses[c].Count).Take(16))
             {
                 var targets = uses[color];
@@ -475,7 +475,7 @@ namespace AlmostFastOverlays
             row.Children.Add(box);
             row.Children.Add(new TextBlock { Text = "%", Margin = new Thickness(6, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center, Foreground = (Brush)FindResource("Brush.TextSecondary") });
             row.Children.Add(apply);
-            Grid labeled = LabeledRow("Scale", row, "Resizes everything selected about its middle, text, lines and glows included.");
+            Grid labeled = LabeledRow("Scale", row, "Resizes the selection about its middle, text and lines included.");
             return labeled;
         }
     }

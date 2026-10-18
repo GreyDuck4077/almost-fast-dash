@@ -44,12 +44,12 @@ namespace AlmostFastOverlays
             string text, tone;
             if (!ScreenPresent())
             {
-                text = "Not found. Check it's plugged in by USB. VoCore-family M-PRO screens are supported.";
+                text = "Not found. Check it's plugged in. VoCore-family M-PRO screens are supported.";
                 tone = "Brush.Warning";
             }
             else if (_settings.General.EffectivePcOutput() != "Off")
             {
-                text = "Plugged in · " + ScreenSize + " · not in use: the dashboard shows on your PC (Show on, at the top)";
+                text = "Plugged in · " + ScreenSize + " · idle while the dashboard shows on your PC";
                 tone = "Brush.TextTertiary";
             }
             else if (_dashboardRunning)
@@ -57,7 +57,7 @@ namespace AlmostFastOverlays
                 // The running dashboard keeps screen.link while it's connected to the screen.
                 bool linked = File.Exists(ScreenSender.LinkPath);
                 text = linked ? "Connected · " + ScreenSize + " · showing the dashboard"
-                    : "Connecting… If this stays, close other dashboard software that may be using the screen.";
+                    : "Connecting… If this stays, close other dashboard software.";
                 tone = linked ? "Brush.Success" : "Brush.Warning";
             }
             else
@@ -184,7 +184,7 @@ namespace AlmostFastOverlays
             if (ShowWheel.IsEnabled != wheel) ShowWheel.IsEnabled = wheel;
             if (ShowFullScreen.IsEnabled != display) ShowFullScreen.IsEnabled = display;
             ShowWheel.ToolTip = wheel ? "The screen on your wheel" : "No wheel screen plugged in";
-            ShowFullScreen.ToolTip = display ? "Full screen on another display, such as an HDMI dash screen" : "Plug in a second display to use this";
+            ShowFullScreen.ToolTip = display ? "Full screen on another display" : "Plug in a second display to use this";
         }
 
         private void OverlayRacing_Click(object sender, RoutedEventArgs e)
@@ -208,7 +208,7 @@ namespace AlmostFastOverlays
             }
             if (!IsDashboardRunning())
             {
-                const string start = "Start the dashboard first: it's the running dashboard that shows over the game.";
+                const string start = "Start the dashboard first.";
                 PlaceOverlayNote.Text = start;
                 ShowSaved(start);
                 return;
@@ -224,7 +224,7 @@ namespace AlmostFastOverlays
             _placing.Tick += (s, a) => Ask();
             _placing.Start();
             PlaceOverlayButton.Content = "Done";
-            PlaceOverlayNote.Text = "Drag the dashboard to move it, and its corner to resize it. Click Done when it's where you want it.";
+            PlaceOverlayNote.Text = "Drag it to move it, or its corner to resize it, then click Done.";
             MoveOverlayIcon.Text = "\uE73E";
             MoveOverlayIcon.Foreground = (Brush)FindResource("Brush.Accent");
             MoveOverlayButton.ToolTip = "Done: lock it where it is";
@@ -238,7 +238,7 @@ namespace AlmostFastOverlays
             OverlayUnlock.Clear();
             PreviewRequest.Clear();
             PlaceOverlayButton.Content = "Move and resize";
-            PlaceOverlayNote.Text = "The dashboard shows a frame: drag it to move it, and its corner to resize it.";
+            PlaceOverlayNote.Text = "Drag it to move it, or its corner to resize it.";
             MoveOverlayIcon.Text = "\uE7C2";
             MoveOverlayIcon.ClearValue(TextBlock.ForegroundProperty);
             MoveOverlayButton.ToolTip = "Move and resize it over the game";

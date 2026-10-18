@@ -55,7 +55,7 @@ namespace AlmostFastOverlays
             _penPulling = true;
             _penHover = p;
             Overlay.CaptureMouse();
-            StatusText.Text = "Pen: click for a corner, drag for a curve. Click the first point to close; double-click, Enter or Esc to finish open; Backspace takes the last point back.";
+            StatusText.Text = "Pen: click for corners, drag for curves. Click the first point to close, Enter to finish, Backspace to undo a point.";
             UpdateOverlay();
             return true;
         }
@@ -114,7 +114,7 @@ namespace AlmostFastOverlays
             _penNodes.Clear();
             AddWidgets(new[] { path }, "Draw path");
             SetTool(Tool.Move);
-            StatusText.Text = "Drew " + path.Name.ToLowerInvariant() + (closed ? " (closed)" : "") + ". Double-click it to edit its points; style it in Properties.";
+            StatusText.Text = "Drew " + path.Name.ToLowerInvariant() + (closed ? " (closed)" : "") + ". Double-click it to edit its points.";
         }
 
         private bool PenKey(Key key)
@@ -208,7 +208,7 @@ namespace AlmostFastOverlays
             _editPath = widget;
             Select(widget);
             LoadEditNodes();
-            StatusText.Text = "Editing points: drag points and handles. Alt-click a point to switch corner and curve; Delete removes the one picked; Esc or Enter when done.";
+            StatusText.Text = "Editing points: drag points and handles. Alt-click switches corner and curve, Delete removes a point, Enter when done.";
             UpdateOverlay();
         }
 

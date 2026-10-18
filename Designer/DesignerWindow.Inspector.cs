@@ -66,7 +66,7 @@ namespace AlmostFastOverlays
         private void BuildScreenInspector()
         {
             Inspector.Children.Add(Heading("Screen: " + _screen.Name));
-            Inspector.Children.Add(Caption("Nothing selected. Click a widget or its layer, drag across several, drag one in from the Library, or draw one with the tools on the left."));
+            Inspector.Children.Add(Caption("Nothing selected. Click a widget, or drag one in from the Library."));
 
             Inspector.Children.Add(SectionTitle("Screen"));
             var name = new TextBox { Text = _screen.Name, MaxLength = 40 };
@@ -78,9 +78,7 @@ namespace AlmostFastOverlays
             condition.Changed += text => { _screen.Condition = text.Trim(); ScreenEdited(); };
             _liveFormulas.Add(condition);
             Inspector.Children.Add(condition);
-            Inspector.Children.Add(Caption(
-                "Leave empty for your main screen. A screen with a condition takes over whenever its condition is true, " +
-                "for example OnPitRoad for a pit-lane page, or Caution for a caution page. With several, the first true one wins.", 6));
+            Inspector.Children.Add(Caption("Empty for your main screen. With a condition, this screen takes over while it's true.", 6));
 
             Inspector.Children.Add(SectionTitle("Display resolution"));
             var current = new System.Drawing.Size(_layout.Width, _layout.Height);
@@ -92,14 +90,14 @@ namespace AlmostFastOverlays
             Inspector.Children.Add(resolution);
             System.Drawing.Size? wheel = ScreenSizes.Detect();
             Inspector.Children.Add(Caption(wheel == null
-                ? "The dashboard is built for a screen this size. Change it to match your display; everything on it is scaled to fit."
+                ? "Change it to match your display; everything scales to fit."
                 : wheel.Value == current
                     ? "Matches your wheel screen."
-                    : "Your wheel screen is " + wheel.Value.Width + " × " + wheel.Value.Height + ". This dashboard is fitted to it without stretching; change the resolution to fill it exactly.", 6));
+                    : "Your wheel screen is " + wheel.Value.Width + " × " + wheel.Value.Height + ". This dashboard fits it without stretching.", 6));
             resize.Click += (s, e) =>
             {
                 System.Drawing.Size? chosen = ScreenSizePicker.Ask(this, "Display resolution",
-                    "Every screen of this dashboard is scaled to the new size: positions and sizes follow the width and height, and text keeps its proportions. Undo puts it back.",
+                    "Every screen of this dashboard is scaled to the new size. Undo puts it back.",
                     wheel ?? current, "Resize");
                 if (chosen == null || chosen.Value == current) return;
                 _layout.ScaleTo(chosen.Value.Width, chosen.Value.Height);
@@ -109,30 +107,43 @@ namespace AlmostFastOverlays
 
             Inspector.Children.Add(SectionTitle("Pages"));
             int pages = _layout.Screens.Count(s => string.IsNullOrWhiteSpace(s.Condition));
-            Inspector.Children.Add(Caption("Screens without a Show-when condition are pages (this design has " + pages + "). Pick a button on your wheel to step through them while driving; " +
-                "the Page field tells widgets which page is showing."));
+            Inspector.Children.Add(Caption("Screens without a Show-when condition are pages (" + pages + " here). Pick wheel buttons to step through them."));
             Inspector.Children.Add(LabeledRow("Next page", ButtonPicker(() => _layout.PageButton, v => _layout.PageButton = v)));
             Inspector.Children.Add(LabeledRow("Previous page", ButtonPicker(() => _layout.PageBackButton, v => _layout.PageBackButton = v)));
 
             Inspector.Children.Add(SectionTitle("Quick start"));
-            Inspector.Children.Add(Tip("", "Ready-made blocks", "Cards, clusters and strips in the Library are the fastest way to a polished layout."));
-            Inspector.Children.Add(Tip("", "Theme first", "Pick a preset under Theme. Widgets that use theme colors ($accent, $panel...) restyle together."));
-            Inspector.Children.Add(Tip("", "Make it live", "Click ƒx next to any property to drive it with a formula, such as a color that turns red when fuel is low."));
-            Inspector.Children.Add(Tip("", "Show when", "Every widget has a Show when condition, so one screen can change with the session."));
-            Inspector.Children.Add(Tip("", "Test it", "Use Preview › Animated lap, Live iRacing or a flag state, Saved changes reach a running dashboard on the wheel within a second."));
+            Inspector.Children.Add(Tip("", "Ready-made blocks", "Cards and clusters in the Library are the fastest start."));
+            Inspector.Children.Add(Tip("", "Theme first", "Pick a preset under Theme to restyle everything that uses its colors."));
+            Inspector.Children.Add(Tip("", "Make it live", "Click ƒx beside any property to drive it with live data."));
+            Inspector.Children.Add(Tip("", "Test it", "Preview the animated lap, a flag or your live session."));
 
             Inspector.Children.Add(SectionTitle("Shortcuts"));
-            Inspector.Children.Add(Caption("Arrows nudge 1 px, Shift+arrows 10 px · Ctrl+D duplicate (a group copies as the next Slot) · Ctrl+C / Ctrl+V copy and paste · Ctrl+Shift+C / Ctrl+Shift+V copy and paste style · Ctrl+G group, Ctrl+Shift+G ungroup · Del delete · [ and ] change order · Ctrl+Z / Ctrl+Y undo and redo · Ctrl+wheel zoom · the round handle above a widget turns it · several selected widgets resize together · Shift while resizing keeps proportions · Alt turns off snapping. Changes save as you go."));
+            var sheet = new Button
+            {
+                Content = "Show every shortcut (Ctrl+/)", Style = (Style)FindResource("Btn.Ghost"), Foreground = (Brush)FindResource("Brush.Accent"),
+                HorizontalAlignment = HorizontalAlignment.Left, Padding = new Thickness(0, 2, 0, 2)
+            };
+            sheet.Click += (s, e) => ShowShortcuts();
+            Inspector.Children.Add(sheet);
         }
 
         /// <summary>Shows the assigned wheel button and assigns a new one by pressing it.</summary>
         private FrameworkElement ButtonPicker(Func<string> get, Action<string> set)
         {
-            var panel = new StackPanel();
-            var label = new TextBlock { Text = WheelButtons.Describe(get()), TextWrapping = TextWrapping.Wrap, Foreground = (Brush)FindResource("Brush.TextSecondary"), Margin = new Thickness(0, 0, 0, 6) };
-            var row = new StackPanel { Orientation = Orientation.Horizontal };
-            var assign = new Button { Content = "Assign…", Margin = new Thickness(0, 0, 6, 0) };
-            var clear = new Button { Content = "Clear", Style = (Style)FindResource("Btn.Ghost"), IsEnabled = !string.IsNullOrEmpty(get()) };
+            // One line: Assign, the button it's set to, and Clear once there's something to clear.
+            var row = new DockPanel();
+            var label = new TextBlock
+            {
+                Text = WheelButtons.Describe(get()), TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center,
+                Foreground = (Brush)FindResource("Brush.TextSecondary")
+            };
+            label.ToolTip = label.Text;
+            var assign = new Button { Content = "Assign…", Margin = new Thickness(0, 0, 10, 0) };
+            var clear = new Button
+            {
+                Content = "Clear", Style = (Style)FindResource("Btn.Ghost"), Margin = new Thickness(6, 0, 0, 0),
+                Visibility = string.IsNullOrEmpty(get()) ? Visibility.Collapsed : Visibility.Visible
+            };
             System.Windows.Threading.DispatcherTimer listen = null;
             assign.Click += (s, e) =>
             {
@@ -154,17 +165,26 @@ namespace AlmostFastOverlays
                     if (pressed == null) { StatusText.Text = "No button was pressed. Is the wheel plugged in?"; return; }
                     set(pressed);
                     label.Text = WheelButtons.Describe(pressed);
-                    clear.IsEnabled = true;
+                    label.ToolTip = label.Text;
+                    clear.Visibility = Visibility.Visible;
                     Commit("Page button");
                 };
                 listen.Start();
             };
-            clear.Click += (s, e) => { set(""); label.Text = WheelButtons.Describe(""); clear.IsEnabled = false; Commit("Page button"); };
+            clear.Click += (s, e) =>
+            {
+                set("");
+                label.Text = WheelButtons.Describe("");
+                label.ToolTip = label.Text;
+                clear.Visibility = Visibility.Collapsed;
+                Commit("Page button");
+            };
+            DockPanel.SetDock(assign, Dock.Left);
+            DockPanel.SetDock(clear, Dock.Right);
             row.Children.Add(assign);
             row.Children.Add(clear);
-            panel.Children.Add(label);
-            panel.Children.Add(row);
-            return panel;
+            row.Children.Add(label);
+            return row;
         }
 
         private Grid Tip(string glyph, string title, string text)
@@ -198,9 +218,9 @@ namespace AlmostFastOverlays
                 : condition.Contains("Flag") ? "Yellow flag" : null;
             Grid tip = sample
                 ? Tip("", "A sample", (ghost.Type == "flag" ? "No flag is out in this preview" : "No car is alongside in this preview") +
-                    ", so it's drawn faintly to place and style. On the screen it " + (ghost.Type == "flag" ? "shows the flag that's out." : "lights while a car is alongside."))
+                    ", so it's drawn faintly. On the screen it " + (ghost.Type == "flag" ? "shows the flag that's out." : "lights while a car is alongside."))
                 : Tip("", "Hidden right now", "It shows when " + (condition.Length > 80 ? condition.Substring(0, 78) + "…" : condition) +
-                    ". It's drawn faintly here to place and style; Show when is under Visibility.");
+                    ". It's drawn faintly here; Show when is under Visibility.");
             if (moment != null)
             {
                 var see = new Button { Content = "Preview " + moment.ToLowerInvariant() + " ›", Style = (Style)FindResource("Btn.Ghost"), HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(-8, 2, 0, 0) };
@@ -260,8 +280,8 @@ namespace AlmostFastOverlays
                 };
                 AttachWheel(slot, 1, v => slot.Text = v.ToString("0.##", CultureInfo.InvariantCulture));
                 Inspector.Children.Add(LabeledRow("Slot", slot));
-                Inspector.Children.Add(Caption("Formulas in this group read this number as Slot, for example standing(Slot, \"Name\") for a driver card. " +
-                    "Ctrl+D copies the group just below with the next Slot: build P1 once, then copy it for P2, P3 and on. Double-click a widget to edit it alone.", 6));
+                Inspector.Children.Add(Caption("Formulas in the group read this as Slot. " +
+                    "Ctrl+D copies the group with the next Slot: build P1, then copy it for P2, P3 and on.", 6));
                 var groupActions = new WrapPanel { Margin = new Thickness(0, 8, 0, 0) };
                 groupActions.Children.Add(ActionButton("", "Copy as next Slot", () => DuplicateSelection()));
                 groupActions.Children.Add(ActionButton("", "Ungroup", Ungroup));
@@ -793,7 +813,7 @@ namespace AlmostFastOverlays
                 buttons.Children.Add(clear);
             }
             panel.Children.Add(buttons);
-            panel.Children.Add(Caption("Stored inside the design, so exported files include it. Large photos are scaled to fit the screen.", 6));
+            panel.Children.Add(Caption("Stored in the design, so exports include it.", 6));
             return panel;
         }
 

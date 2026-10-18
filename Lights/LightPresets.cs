@@ -15,7 +15,7 @@ namespace AlmostFastOverlays
     {
         public static readonly List<LightPreset> All = new List<LightPreset>
         {
-            new LightPreset { Id = "refined", Name = "Refined", Description = "Car-accurate rev lights on the shift lights and light bar, blind spot on the sides, a pit-limiter scanner, low-fuel and ABS cues, flags on top.", Create = d => Refined() },
+            new LightPreset { Id = "refined", Name = "Refined", Description = "Rev lights, blind spot on the sides, pit limiter, low fuel, ABS and flags.", Create = d => Refined() },
             new LightPreset { Id = "spotter", Name = "Spotter focus", Description = "For ovals: the bar and both sides call cars alongside; revs stay on the shift row.", Create = d => SpotterFocus() },
             new LightPreset { Id = "endurance", Name = "Endurance", Description = "Revs on the shift row, fuel level across the bar, lap delta on the sides.", Create = d => Endurance() },
             new LightPreset { Id = "minimal", Name = "Minimal", Description = "Just rev lights and flags. Nothing else lights up.", Create = d => Minimal() },

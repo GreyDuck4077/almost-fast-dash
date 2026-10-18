@@ -292,7 +292,7 @@ namespace AlmostFastOverlays
             LayerCount.Text = count == 0 ? "" : count + (count == 1 ? " layer" : " layers");
             if (count == 0)
             {
-                LayersList.Children.Add(new TextBlock { Text = "This screen is empty. Drag something in from the Library, or draw with the tools on the left.", Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(8, 8, 8, 0) });
+                LayersList.Children.Add(new TextBlock { Text = "This screen is empty. Drag in from the Library or draw with the tools.", Style = (Style)FindResource("T.Caption"), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(8, 8, 8, 0) });
                 return;
             }
             for (int i = _screen.Widgets.Count - 1; i >= 0; i--) LayersList.Children.Add(LayerRow(_screen.Widgets[i]));
@@ -585,7 +585,7 @@ namespace AlmostFastOverlays
             ThemeEditor.Children.Add(new TextBlock
             {
                 Style = (Style)FindResource("T.Caption"), Margin = new Thickness(0, 6, 0, 0),
-                Text = "On: a new flag fills the screen for a few seconds, then hands it back. Red and checkered stay until they end. Off: show flags with a Flag widget, or react with FlagActive in a formula."
+                Text = "A new flag fills the screen for a few seconds; red and checkered stay until they end. Off: use a Flag widget instead."
             });
             var waving = new CheckBox { Style = (Style)FindResource("Switch"), Content = "Wave in a soft breeze", IsChecked = _layout.WavingFlags, Margin = new Thickness(0, 10, 0, 0) };
             waving.Click += (s, e) => { _layout.WavingFlags = waving.IsChecked == true; Commit("Flags"); RequestRender(); };
@@ -596,7 +596,7 @@ namespace AlmostFastOverlays
             ThemeEditor.Children.Add(new TextBlock
             {
                 Style = (Style)FindResource("T.Caption"), Margin = new Thickness(0, 6, 0, 0),
-                Text = "A glow in the flag's color runs around the edge, with a tab at the top: during a caution, on the final lap, and while a black, repair or blue flag is out."
+                Text = "During a caution, the final lap or a black, repair or blue flag, a glow in its color runs around the edge."
             });
         }
 

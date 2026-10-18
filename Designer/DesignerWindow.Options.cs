@@ -64,7 +64,7 @@ namespace AlmostFastOverlays
                     : "Linked to " + string.Join(", ", uses.Select(u => (string.IsNullOrWhiteSpace(u.Widget.Name) ? u.Widget.Type : u.Widget.Name) + " › " + u.Def.Label).Distinct().Take(6)) + (uses.Count > 6 ? "…" : "") + ".";
                 Inspector.Children.Add(LabeledRow(option, line, linked));
             }
-            Inspector.Children.Add(Caption("Right-click a setting's name to make another option, or to link it to one of these.", 2));
+            Inspector.Children.Add(Caption("Right-click a setting's name to add or link an option.", 2));
         }
 
         /// <summary>The menu on a setting's name: make it an option of its group, link it to one, or unlink it.</summary>
@@ -103,8 +103,8 @@ namespace AlmostFastOverlays
         private void MakeOption(DashWidget widget, PropDef def)
         {
             string suggested = Regex.Replace(def.Label ?? def.Key, @"[^\p{L}\p{N} ]", "").Trim();
-            string name = ModuleOptions.Clean(Prompt("Make an option", "Name it. It's set in one place with the whole group selected, and every setting linked to it follows. " +
-                "Saved as a module, it's what people change when they use it.", suggested.Length == 0 ? "Option" : suggested));
+            string name = ModuleOptions.Clean(Prompt("Make an option", "Name it. It's set once for the whole group, " +
+                "and it's what people change when they use the module.", suggested.Length == 0 ? "Option" : suggested));
             if (name.Length == 0) return;
             if (string.IsNullOrEmpty(widget.Group))
             {
@@ -115,7 +115,7 @@ namespace AlmostFastOverlays
             List<DashWidget> group = GroupMembers(widget);
             if (widget.Get(ModuleOptions.Prefix + name) == null) ModuleOptions.Set(group, name, widget.Get(def.Key, def.Default) ?? "");
             LinkOption(widget, def, name);
-            StatusText.Text = "\"" + name + "\" is now an option of " + widget.GroupName + ". Select the group to set it; right-click other settings' names to link them to it too.";
+            StatusText.Text = "\"" + name + "\" is now an option of " + widget.GroupName + ". Select the group to set it.";
         }
 
         private void LinkOption(DashWidget widget, PropDef def, string name)

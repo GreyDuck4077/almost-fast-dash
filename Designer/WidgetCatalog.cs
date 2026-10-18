@@ -142,7 +142,7 @@ namespace AlmostFastOverlays
                 .Color("glowColor", "Glow color", "", "Effects", "Empty uses the gear color.");
 
             // ------------------------------------------------------------ Gauges
-            Define("bar", "Bar", "Gauges", "", "A bar for any value: fill, centered (for delta) or segmented. Bend, taper, bulge and slant it into any rev-bar shape.", 220, 14, WidgetPainters.Bar)
+            Define("bar", "Bar", "Gauges", "", "A bar for any value: fill, centered or segmented, shaped into any rev bar.", 220, 14, WidgetPainters.Bar)
                 .Formula("value", "Value", "=Throttle", "Value")
                 .Number("min", "Minimum", "0", "Value", double.NaN, double.NaN, 0.1)
                 .Number("max", "Maximum", "1", "Value", double.NaN, double.NaN, 0.1)
@@ -234,7 +234,7 @@ namespace AlmostFastOverlays
                 .Color("lappingColor", "Lapping you", "#FF7864", "Colors")
                 .Color("lappedColor", "Lapped", "info", "Colors");
 
-            Define("standings", "Leaderboard", "Racing", "", "The race order: any number of rows, the top of the field or the cars around you, overall or your class.", 300, 300, WidgetPainters.Standings)
+            Define("standings", "Leaderboard", "Racing", "", "The race order: the top of the field or the cars around you, overall or by class.", 300, 300, WidgetPainters.Standings)
                 .Number("rows", "Rows", "8", "Content", 1, 30)
                 .Choice("focus", "Show", "Top and me", "Content", "Top of the field", "Around me", "Top and me")
                 .Bool("classOnly", "Only my class", "false", "Content")
@@ -255,7 +255,7 @@ namespace AlmostFastOverlays
                 .Number("radius", "Row corners", "6", "Look", 0, 20)
                 .Number("gap", "Space between rows", "3", "Look", 0, 20);
 
-            Define("tyres", "Tires", "Racing", "", "All four tires: temperature across each tread, wear and pressure. iRacing updates these in the pits.", 260, 220, WidgetPainters.Tyres)
+            Define("tyres", "Tires", "Racing", "", "All four tires: tread temperatures, wear and pressure, updated by iRacing in the pits.", 260, 220, WidgetPainters.Tyres)
                 .Bool("showTemps", "Temperatures", "true", "Content")
                 .Bool("showWear", "Wear", "true", "Content")
                 .Bool("showPressure", "Pressure", "true", "Content")
@@ -278,7 +278,7 @@ namespace AlmostFastOverlays
                 .ShapeTools()
                 .Number("glow", "Glow", "14", "Effects", 0, 40);
 
-            Define("trackmap", "Track map", "Racing", "", "The track with every car on it. The map traces itself from your first clean lap at a track and is kept for next time.", 300, 220, WidgetPainters.TrackMapWidget)
+            Define("trackmap", "Track map", "Racing", "", "The track with every car on it. It traces itself on your first clean lap.", 300, 220, WidgetPainters.TrackMapWidget)
                 .Number("lineWidth", "Track width", "7", "Look", 1, 30, 0.5)
                 .Color("trackColor", "Track", "track", "Look")
                 .Color("edgeColor", "Track edge", "border", "Look")
@@ -292,7 +292,7 @@ namespace AlmostFastOverlays
                 .Bool("numbers", "Car numbers", "false", "Cars")
                 .Font();
 
-            Define("radar", "Radar", "Racing", "", "Your car and the cars around you, seen from above and a little behind: exactly how far ahead and behind they are, which lane when alongside or two-wide, and sensor waves that turn amber, then red, as the car in line gets close.", 360, 480, RadarPainters.Radar)
+            Define("radar", "Radar", "Racing", "", "The cars around you, seen from above: how far ahead and behind, which lane, and warnings as they close in.", 360, 480, RadarPainters.Radar)
                 .Number("range", "Range ahead, car lengths", "3", "Content", 1, 16, 0.5)
                 .Number("tilt", "Camera tilt °", "70", "Look", 30, 90, 5)
                 .Bool("numbers", "Car numbers", "true", "Content")
@@ -317,7 +317,7 @@ namespace AlmostFastOverlays
                 .Color("ringColor", "Range rings", "#70D8B860", "Colors")
                 .Number("glow", "Glow on your car", "10", "Effects", 0, 40);
 
-            Define("traffic", "Traffic", "Racing", "", "The cars within a few seconds either way on a strip, in class colors, glowing when a faster class is closing from behind.", 600, 40, RadarPainters.TrafficStrip)
+            Define("traffic", "Traffic", "Racing", "", "Cars within a few seconds either way, in class colors, glowing when a faster class closes in.", 600, 40, RadarPainters.TrafficStrip)
                 .Number("seconds", "Seconds each way", "8", "Content", 2, 30)
                 .Bool("numbers", "Car numbers", "true", "Content")
                 .Bool("warn", "Faster class warning", "true", "Content")
@@ -359,7 +359,7 @@ namespace AlmostFastOverlays
                 .Bool("fill", "Fill", "true", "Look")
                 .Uses(traces: true);
 
-            Define("laphistory", "Lap history", "Graphs", "", "Your recent laps, or this stint's green-flag laps as a lap-falloff chart: each column rises with how much slower the lap was than the best.", 260, 120, WidgetPainters.LapHistory)
+            Define("laphistory", "Lap history", "Graphs", "", "Your recent laps, or this stint's laps as a falloff chart.", 260, 120, WidgetPainters.LapHistory)
                 .Choice("source", "Laps", "Recent laps", "Content", "Recent laps", "This stint")
                 .Number("laps", "How many", "5", "Content", 2, 40)
                 .Choice("style", "Style", "Rows", "Look", "Rows", "Columns")
@@ -376,7 +376,7 @@ namespace AlmostFastOverlays
                 .Color("track", "Column track", "#00000000", "Colors")
                 .Font();
 
-            Define("graph", "Graph", "Graphs", "", "A scrolling line of any value (or two) over the last few seconds: speed, revs, fuel, delta, pedals.", 300, 110, WidgetPainters.Graph)
+            Define("graph", "Graph", "Graphs", "", "A scrolling line of any value over the last few seconds.", 300, 110, WidgetPainters.Graph)
                 .Formula("value", "Value", "=Speed", "Value")
                 .Formula("value2", "Second value", "", "Value", "Optional: a second line, such as Brake beside Throttle.")
                 .Number("seconds", "Time span", "10", "Value", 1, 120)
@@ -394,7 +394,7 @@ namespace AlmostFastOverlays
                 .Font();
 
             // ------------------------------------------------------------ Decor
-            Define("shape", "Shape", "Decor", "\uF158", "Rectangles, ellipses, polygons, stars, lines, brackets and chevrons, filled with a color, a gradient or a pattern.", 120, 80, WidgetPainters.Shape)
+            Define("shape", "Shape", "Decor", "\uF158", "Rectangles, ellipses, polygons, stars and lines, with solid, gradient or pattern fills.", 120, 80, WidgetPainters.Shape)
                 .Choice("shape", "Shape", "Rectangle", "Shape", "Rectangle", "Ellipse", "Polygon", "Star", "Triangle", "Line", "Diagonal down", "Diagonal up", "Brackets", "Chevron")
                 .Number("sides", "Sides", "6", "Shape", 3, 24)
                 .Number("inner", "Inner size %", "50", "Shape", 5, 95)
@@ -403,7 +403,7 @@ namespace AlmostFastOverlays
                 .ShapeTools()
                 .Number("glow", "Glow", "0", "Effects", 0, 40);
 
-            Define("path", "Path", "Decor", "\uE70F", "A shape of your own, drawn point by point with the Pen: corners and curves, open or closed.", 160, 100, WidgetPainters.PathShape)
+            Define("path", "Path", "Decor", "\uE70F", "A shape of your own, drawn with the Pen.", 160, 100, WidgetPainters.PathShape)
                 .Text("points", "Points", "0,1 0.5,0 1,1", "Shape").Hide()
                 .Bool("closed", "Closed", "true", "Shape")
                 .FillAndLine("", "accent", "2")
@@ -504,9 +504,9 @@ namespace AlmostFastOverlays
                 type.Props.Add(new PropDef { Key = "fxBlend", Label = "Blend", Kind = PropKind.Choice, Default = "Normal", Group = "Style", Choices = LayerStyle.BlendModes,
                     Help = "How it mixes with what's beneath: Screen and Add brighten, for light and glows; Multiply darkens, for shade; Overlay adds contrast." });
                 type.Props.Add(new PropDef { Key = "clip", Label = "Clip to the layer below", Kind = PropKind.Bool, Default = "false", Group = "Visibility",
-                    Help = "Shows only where the layer below is drawn, like a clipping mask: a pattern inside an outline, a texture inside text. Several layers in a row can clip to the same one. Alt-click a layer to switch it." });
+                    Help = "Shows only where the layer below is drawn, like a clipping mask. Alt-click a layer to switch it." });
                 type.Props.Add(new PropDef { Key = "flipX", Label = "Flip horizontally", Kind = PropKind.Bool, Default = "false", Group = "Transform",
-                    Help = "Mirrors the widget left to right; text stays readable. A flipped copy beside the original makes a pair that meets in the middle." });
+                    Help = "Mirrors the widget left to right; text stays readable." });
                 type.Props.Add(new PropDef { Key = "flipY", Label = "Flip vertically", Kind = PropKind.Bool, Default = "false", Group = "Transform", Help = "Mirrors the widget top to bottom; text stays readable." });
                 type.Props.Add(new PropDef { Key = "rotate", Label = "Rotate °", Kind = PropKind.Number, Default = "0", Group = "Transform", Min = -180, Max = 180,
                     Help = "Turns the widget about its middle." });

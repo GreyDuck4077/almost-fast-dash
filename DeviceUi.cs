@@ -19,8 +19,8 @@ namespace AlmostFastOverlays
             void Describe()
             {
                 help.Text = device.MaxMilliamps > 0
-                    ? "Keeps the LEDs to about " + device.MaxMilliamps + " mA, dimming bright frames (a whole bar lit white, say) so a USB port isn't overloaded. An overloaded port can drop the device and leave its LEDs stuck on."
-                    : "No limit: every LED can light at full brightness. Only choose this when the device really has power of its own: if it keeps disconnecting, switch back.";
+                    ? "Keeps the LEDs to about " + device.MaxMilliamps + " mA by dimming bright frames, so the USB port isn't overloaded and the device stays connected."
+                    : "Full brightness. Only for devices with their own power; if it keeps disconnecting, switch back.";
             }
             power.SelectionChanged += (s, e) => { device.MaxMilliamps = power.SelectedIndex == 0 ? LedPower.DefaultMilliamps : 0; Describe(); };
             Describe();

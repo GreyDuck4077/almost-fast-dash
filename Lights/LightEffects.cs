@@ -90,14 +90,14 @@ namespace AlmostFastOverlays
                 .Fill()
                 .Colors("good", "warn", "bad", 0.5, 0.8);
 
-            Define("center", "Center meter", "Grows one way for positive and the other for negative, such as lap delta. On a mirrored target the left half shows negative.", CenterMeter)
+            Define("center", "Center meter", "Grows one way for positive and the other for negative, such as lap delta.", CenterMeter)
                 .Formula("value", "Value", "=Delta", "Value")
                 .Number("range", "Full scale", "1", "Value", 0.01, 1000, 0.1)
                 .Color("positive", "Positive color", "good", "Colors")
                 .Color("negative", "Negative color", "bad", "Colors")
                 .Bool("smooth", "Smooth leading LED", "true", "Fill");
 
-            Define("solid", "Solid", "One steady color. Pair with Show when for state lights such as the pit limiter.", c =>
+            Define("solid", "Solid", "One steady color, such as for the pit limiter.", c =>
                 {
                     var result = c.Empty();
                     Color color = c.Color("color");
@@ -144,7 +144,7 @@ namespace AlmostFastOverlays
             Define("flag", "Flag colors", "Shows the current flag in its own colors and patterns; dark when there is no flag.", FlagColors)
                 .Bool("pattern", "Animated patterns", "true", "Look");
 
-            Define("spotter", "Blind spot", "Lights where a car is alongside: towards the front when it is ahead, the back when it is behind.", Spotter)
+            Define("spotter", "Blind spot", "Lights where a car is alongside, toward the front or back.", Spotter)
                 .Choice("side", "Side", "Auto", "Spotter", "Auto", "Left", "Right")
                 .Choice("style", "Style", "Position", "Spotter", "Position", "Halves", "Whole strip")
                 .Color("color", "Color", "bad", "Color");
@@ -164,7 +164,7 @@ namespace AlmostFastOverlays
                 .Color("mid", "Middle color", "info", "Colors")
                 .Color("high", "End color", "purple", "Colors");
 
-            Define("blank", "Blank", "Turns the target off. Use with Replace and a Show when to black out LEDs, for example in the pits.", c =>
+            Define("blank", "Blank", "Turns the target off. Use with Replace to black out LEDs, such as in the pits.", c =>
                 {
                     var result = c.Empty();
                     for (int i = 0; i < result.Length; i++) result[i] = System.Drawing.Color.Black;

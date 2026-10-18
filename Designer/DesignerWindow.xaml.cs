@@ -1123,7 +1123,7 @@ namespace AlmostFastOverlays
             foreach (DashWidget w in _selection) { w.Group = id; w.GroupName = "Group " + number; w.Slot = 0; }
             Commit("Group");
             SelectionChanged();
-            StatusText.Text = "Grouped " + _selection.Count + " widgets. Set the group's Slot to number it, and use Slot in its formulas.";
+            StatusText.Text = "Grouped " + _selection.Count + " widgets.";
         }
 
         private void Ungroup()
@@ -1472,7 +1472,7 @@ namespace AlmostFastOverlays
                 _savedJson = _committed;
                 _savedAccent = _dashboard.AccentColor;
                 _onSaved?.Invoke();
-                if (!quiet) StatusText.Text = "Saved. A running dashboard picks this up within a second.";
+                if (!quiet) StatusText.Text = "Saved.";
             }
             catch (Exception exception)
             {
@@ -1600,7 +1600,7 @@ namespace AlmostFastOverlays
             SelectionChanged();
             RequestRender();
             StatusText.Text = string.IsNullOrEmpty(condition)
-                ? "Added a screen. Give it a show-when condition in the inspector, or it only shows if no other screen matches."
+                ? "Added a screen. Without a Show when condition, it's a page."
                 : "Added a screen that shows while " + condition + ".";
         }
 

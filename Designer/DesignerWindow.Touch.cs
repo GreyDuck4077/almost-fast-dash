@@ -127,7 +127,7 @@ namespace AlmostFastOverlays
                 foreach (DashWidget w in widgets) TouchViews.Only(w, "tap(\"" + tapName + "\") == " + (views - 1));
                 _designTaps[tapName] = views - 1;
                 status = "Added as view " + views + " of " + (string.IsNullOrWhiteSpace(panel.Name) ? "the panel" : panel.Name) +
-                    ". On a touch screen a tap switches views; here, the Next button at the top of the inspector does.";
+                    ". A tap switches views; here, use Next in Properties.";
             }
             else if (!string.IsNullOrEmpty(tapName))
             {
@@ -136,7 +136,7 @@ namespace AlmostFastOverlays
                 foreach (DashWidget w in widgets) TouchViews.Only(w, "tap(\"" + tapName + "\") == " + showing);
                 status = "Added to view " + (showing + 1) + ".";
             }
-            else status = "Added to " + (string.IsNullOrWhiteSpace(panel.Name) ? "the panel" : panel.Name) + "; they move together. Drop another on it to make a second view.";
+            else status = "Added to " + (string.IsNullOrWhiteSpace(panel.Name) ? "the panel" : panel.Name) + "; they move together. Drop another to add a second view.";
             AddWidgets(widgets, label, keepGroups: true);
             StatusText.Text = status;
         }
