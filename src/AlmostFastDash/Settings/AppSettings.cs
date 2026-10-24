@@ -6,19 +6,20 @@ namespace AlmostFastDash.Settings
 {
     internal sealed partial class AppSettings
     {
-        internal const int CurrentSchema = 20;
+        internal const int CurrentSchema = 21;
 
         public int SchemaVersion { get; set; }
         public string DefaultDashboardId { get; set; } = DashboardSettings.RoadId;
         public GeneralSettings General { get; set; } = new GeneralSettings();
         public List<DashboardSettings> Dashboards { get; set; } = new List<DashboardSettings>();
 
-        /// <summary>A new install's settings: the built-in dashboards, units for the PC's region and the welcome card.</summary>
+        /// <summary>A new install's settings: the built-in dashboards, units for the PC's region and the welcome card and the thank-you note.</summary>
         public static AppSettings CreateDefault()
         {
             var settings = new AppSettings();
             settings.General.UseRegionUnits(System.Globalization.RegionInfo.CurrentRegion);
             settings.General.ShowWelcome = true;
+            settings.General.ShowThanks = true;
             settings.General.SeenVersion = WhatsNew.Version;
             settings.EnsureBuiltInDashboards();
             return settings;

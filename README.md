@@ -23,6 +23,7 @@
   &nbsp;·&nbsp; <a href="#dashboards">Dashboards</a>
   &nbsp;·&nbsp; <a href="docs/guide.md">User guide</a>
   &nbsp;·&nbsp; <a href="docs/development.md">Development</a>
+  &nbsp;·&nbsp; <a href="https://discord.gg/3xs8Ky5u6Q">Discord</a>
 </p>
 
 ## Up front: this project was vibe coded
@@ -36,10 +37,11 @@ liked it too, and they suggested I share it.
 I know vibe coding has a certain negative connotation, and I'd rather say so
 plainly than have anyone find out later: this project was predominantly vibe
 coded. All of the code is here to read, and if something doesn't work for you,
-please [report it](https://github.com/Sota4077/almost-fast-dash/issues/new/choose).
+please [report it](https://github.com/Sota4077/almost-fast-dash/issues/new/choose)
+or ask on [Discord](https://discord.gg/3xs8Ky5u6Q).
 
 <p align="center">
-  <img src="docs/images/hero.png" alt="The Roady dashboard on a wheel screen, with Roundy and Neon behind it">
+  <img src="docs/images/hero.png" alt="The Roady dashboard on a wheel screen, with Rowdy and Neon behind it">
 </p>
 
 ## Highlights
@@ -84,19 +86,20 @@ touch screen tap a panel to change what it shows.
       shift points, plus delta, pedals, brake bias and fuel.
     </td>
     <td width="50%" valign="top">
-      <img src="docs/images/dash-roundy.png" alt="Roundy dashboard"><br>
-      <strong>Roundy</strong> &nbsp;·&nbsp; ovals<br>
+      <img src="docs/images/dash-rowdy.png" alt="Rowdy dashboard"><br>
+      <strong>Rowdy</strong> &nbsp;·&nbsp; ovals<br>
       Curved blind-spot arcs, speed and gear in a rev ring, the cars around you
-      and a lap-falloff chart of your stint.
+      and a lap-falloff chart of your stint. Named in tribute to Kyle "Rowdy"
+      Busch.
     </td>
   </tr>
   <tr>
     <td width="50%" valign="top">
-      <img src="docs/images/dash-oval.png" alt="Oval dashboard with the radar"><br>
-      <strong>Oval</strong> &nbsp;·&nbsp; pack racing<br>
+      <img src="docs/images/dash-intimidator.png" alt="Intimidator dashboard with the radar"><br>
+      <strong>Intimidator</strong> &nbsp;·&nbsp; pack racing<br>
       A live radar of the cars around you, seen from just above and behind your
       car, with the gaps ahead and behind in car lengths and how fast they're
-      closing.
+      closing. Named in tribute to Dale Earnhardt, the Intimidator.
     </td>
     <td width="50%" valign="top">
       <img src="docs/images/dash-halo.png" alt="Halo dashboard"><br>
@@ -122,6 +125,21 @@ touch screen tap a panel to change what it shows.
 
 Dashboards are designed for the wheel screen you have plugged in, or for any
 resolution from 64×64 to 3840×3840. Templates scale to fit.
+
+### Forever Rowdy
+
+Rowdy has an easter egg. With the dashboard running and Rowdy on screen, tap
+the speed in the middle of the dial **eight times in a row**, each tap within
+about a second and a half of the last. A black 8 waves across the screen for
+eight seconds, then Rowdy comes back.
+
+- **On a touch wheel screen:** tap the speed.
+- **On your PC:** show the dashboard in a window or full screen and click the
+  speed. Over the game it can't be clicked, since clicks go through to iRacing.
+
+<p align="center">
+  <img src="docs/images/rowdy-tribute.png" width="560" alt="A black flag with a slanted white-outlined 8 and FOREVER ROWDY underneath, waving">
+</p>
 
 ### Flags
 

@@ -75,6 +75,7 @@ namespace AlmostFastDash.UI
             AboutVersion.Text = $"Almost Fast Dash {version.Major}.{version.Minor}";
             SettingsPathText.Text = SettingsStore.FilePath;
             Loaded += (s, e) => CheckForUpdate();
+            Loaded += (s, e) => ShowThanksOnce();
             Closing += (s,
                 e) => { FlushSave(); _ledTimer.Stop(); _statusTimer.Stop(); _mirror.Dispose(); PreviewRequest.Clear(); StopLivePreview(); };
         }

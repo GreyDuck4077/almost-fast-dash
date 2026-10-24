@@ -189,6 +189,67 @@ namespace AlmostFastDash.Designer
             }
         }
 
+        /// <summary>Checks: Rowdy and Intimidator, Rowdy's eight-tap easter egg, and the thank-you note on a first start.</summary>
+        private void CheckTributesAndThanks()
+        {
+            DashboardSettings rowdy = DashboardSettings.CreateOval();
+            DashWidget speed = rowdy.Design.AllWidgets().FirstOrDefault(w => w.Get("tribute", "") == TributeEight.Mark);
+            Check("Rowdy and Intimidator are the oval templates' names, and Rowdy's speed is where to tap",
+                rowdy.Name == "Rowdy" && DesignTemplates.Find("oval").Name == "Intimidator" && speed != null && speed.Name == "Speed");
+            if (speed == null) return;
+            float x = (float)(speed.X + speed.W / 2), y = (float)(speed.Y + speed.H / 2);
+            using (var renderer = new LayoutRenderer(854, 480, rowdy, _units))
+            {
+                renderer.FlagClock = 0;
+                for (int i = 0; i < 7; i++) { renderer.FlagClock = i * 300; renderer.Tap(x, y); }
+                bool notYet = !renderer.TributeShowing(renderer.FlagClock.Value);
+                // Too slow: a pause longer than the gap starts the count again.
+                renderer.FlagClock = 6 * 300 + TributeEight.TapGap + 1;
+                renderer.Tap(x, y);
+                bool slow = !renderer.TributeShowing(renderer.FlagClock.Value);
+                for (int i = 1; i < TributeEight.Taps; i++) { renderer.FlagClock += 300; renderer.Tap(x, y); }
+                int start = renderer.FlagClock.Value;
+                bool waving = renderer.TributeShowing(start + 7900), done = !renderer.TributeShowing(start + 8001);
+                renderer.FlagClock = start + 3000;
+                int bright = 0, dark = 0;
+                using (var frame = renderer.Render(IRacingTelemetrySource.CreatePreviewSnapshot(), false, 4, 1))
+                    for (int py = 0; py < 480; py += 8)
+                        for (int px = 0; px < 854; px += 8)
+                        {
+                            System.Drawing.Color c = frame.GetPixel(px, py);
+                            if (c.R > 200 && c.G > 200 && c.B > 200) bright++;
+                            if (c.R < 60 && c.G < 60 && c.B < 60) dark++;
+                        }
+                Check("Rowdy: eight quick taps on the speed wave the 8 for eight seconds; seven, or a pause, don't",
+                    notYet && slow && waving && done && dark > 4000 && bright > 60, "dark " + dark + ", white " + bright);
+            }
+            // Elsewhere on the screen, taps don't count, and break a run.
+            using (var renderer = new LayoutRenderer(854, 480, rowdy, _units))
+            {
+                for (int i = 0; i < 8; i++) { renderer.FlagClock = i * 200; renderer.Tap(i == 4 ? 5 : x, i == 4 ? 5 : y); }
+                Check("Rowdy: a tap somewhere else starts the count again", !renderer.TributeShowing(renderer.FlagClock.Value));
+            }
+
+            // Schema 21: the saved Roundy and Oval take the new names and Rowdy learns the taps; names of the user's own stay.
+            var saved = new AppSettings { SchemaVersion = 20 };
+            DashboardSettings oldRowdy = DashboardSettings.CreateOval(), oldOval = DashboardSettings.CreateDesigned(DesignTemplates.Find("oval")),
+                mine = DashboardSettings.CreateDesigned(DesignTemplates.Find("oval"));
+            oldRowdy.Name = "Roundy";
+            foreach (DashWidget w in oldRowdy.Design.AllWidgets()) w.Props.Remove("tribute");
+            oldOval.Id = "dashboard-oval";
+            oldOval.Name = "Oval";
+            mine.Id = "dashboard-9";
+            mine.Name = "Oval";
+            saved.Dashboards.AddRange(new[] { oldRowdy, oldOval, mine });
+            saved.EnsureBuiltInDashboards();
+            Check("settings from 3.74: Roundy becomes Rowdy with its taps, Oval becomes Intimidator, a copy keeps its name",
+                oldRowdy.Name == "Rowdy" && oldOval.Name == "Intimidator" && mine.Name == "Oval" &&
+                oldRowdy.Design.AllWidgets().Any(w => w.Name == "Speed" && w.Get("tribute", "") == TributeEight.Mark),
+                oldRowdy.Name + ", " + oldOval.Name + ", " + mine.Name);
+
+            Check("only a new install shows the thank-you note", AppSettings.CreateDefault().General.ShowThanks && !new GeneralSettings().ShowThanks);
+        }
+
         /// <summary>
         /// Checks: which side the radar draws cars on in pack racing, played through it with known lanes (RadarScenarios).
         /// Where nothing iRacing sends can tell, the result is only reported.

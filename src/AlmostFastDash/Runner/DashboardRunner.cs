@@ -303,7 +303,8 @@ namespace AlmostFastDash.Runner
                         // ran a little long is made up on the next frame instead of slowing every frame down.
                         double frameTime = 1000.0 / (runtime.Settings.General.FrameRate == 30 ? 30 : 60);
                         double period = gearProgress < 1 ? Math.Min(frameTime, 25)
-                            : snapshot.Flag != RacingFlag.None || snapshot.Connected ? frameTime : IdleRefreshMilliseconds;
+                            : snapshot.Flag != RacingFlag.None || snapshot.Connected || runtime.Renderer.TributeShowing(Environment.TickCount)
+                                ? frameTime : IdleRefreshMilliseconds;
                         if (!waiting)
                         {
                             long now = System.Diagnostics.Stopwatch.GetTimestamp(),

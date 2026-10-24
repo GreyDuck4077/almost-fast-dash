@@ -83,6 +83,10 @@ namespace AlmostFastDash.Settings
         /// </summary>
         public bool ShowWelcome { get; set; }
 
+        /// <summary>The thank-you note over the window on the very first start. Only a new install turns it on; it goes off
+        /// for good when it's closed.</summary>
+        public bool ShowThanks { get; set; }
+
         /// <summary>
         /// The version whose "What's new" card was last seen (major.minor). After an update the Dashboards page shows
         /// the card once; a new install starts at its own version, so it sees the welcome card instead.

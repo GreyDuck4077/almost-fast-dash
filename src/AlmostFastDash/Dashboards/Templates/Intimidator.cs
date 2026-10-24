@@ -2,17 +2,17 @@ namespace AlmostFastDash.Dashboards
 {
     internal static partial class DesignTemplates
     {
-        // ------------------------------------------------------------------ Oval
+        // ------------------------------------------------------------------ Intimidator
 
         /// <summary>
-        /// Pack racing, after the top views of modern driver-assist screens: a live radar fills the middle, with
+        /// Pack racing, named in tribute to Dale Earnhardt, the Intimidator (its id is still "oval", its first name). After the top views of modern driver-assist screens: a live radar fills the middle, with
         /// every car near you drawn where it is and sensor waves that run up to the car in line ahead and behind.
         /// The gaps to those two cars are on the left, above and below your speed, in car lengths and how fast
         /// they're closing. Laps to go and position, the last lap and lap speed, and fuel are on the right (lap
         /// and fuel have a second view on a tap). A wheel button pages to a zoomed-out radar with the cars
         /// around you and the race order.
         /// </summary>
-        private static DashLayout OvalRadar()
+        private static DashLayout Intimidator()
         {
             var b = new Builder(t =>
             {

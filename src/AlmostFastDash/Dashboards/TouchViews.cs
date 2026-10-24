@@ -50,7 +50,7 @@ namespace AlmostFastDash.Dashboards
             });
         }
 
-        public static void Roundy(DashLayout layout)
+        public static void Rowdy(DashLayout layout)
         {
             DashScreen race = layout.Screens.FirstOrDefault(s => s.Name == "Race");
             if (race == null || Done(race)) return;

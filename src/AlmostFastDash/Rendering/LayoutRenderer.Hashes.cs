@@ -14,6 +14,8 @@ namespace AlmostFastDash.Rendering
                 FlagView flags = Flags(scope.T, now);
                 int flagHash = FlagHash(flags, scope.T, now);
                 if (flags.Full) return flagHash;
+                // While Rowdy's tribute waves, every frame of the cloth is new.
+                if (TributeShowing(now)) return 8 * 31 + WavingFlag.Frame(now);
                 DashScreen screen = ActiveScreen(scope);
                 int hash = screen.Id.GetHashCode();
                 hash = hash * 31 + gearAnimationFrame;

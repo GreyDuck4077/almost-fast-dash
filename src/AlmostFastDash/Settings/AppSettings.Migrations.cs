@@ -37,6 +37,7 @@ namespace AlmostFastDash.Settings
                 if (SchemaVersion > 0 && SchemaVersion < 18) WiderRadar();
                 if (SchemaVersion > 0 && SchemaVersion < 19) { RefreshHaloAndOval(); LargerText(); }
                 if (SchemaVersion > 0 && SchemaVersion < 20) TiresSpelling();
+                if (SchemaVersion > 0 && SchemaVersion < 21) Tributes();
                 SchemaVersion = CurrentSchema;
             }
             foreach (DeviceSettings device in General.Devices) device.Normalize();
@@ -315,6 +316,24 @@ namespace AlmostFastDash.Settings
             }
         }
 
+        /// <summary>
+        /// Schema 21: Roundy becomes Rowdy, for Kyle Busch, and Oval becomes Intimidator, for Dale Earnhardt; a name of the
+        /// user's own stays. Rowdy's speed readout learns its easter egg: tap it eight times (TributeEight).
+        /// </summary>
+        private void Tributes()
+        {
+            foreach (DashboardSettings dashboard in Dashboards)
+            {
+                bool rowdy = dashboard.Name == "Roundy";
+                if (rowdy) dashboard.Name = DesignTemplates.Find("roundy").Name;
+                if (dashboard.Id == "dashboard-oval" && dashboard.Name == "Oval") dashboard.Name = DesignTemplates.Find("oval").Name;
+                if (!(rowdy || dashboard.Id == DashboardSettings.OvalId) || dashboard.Design?.Screens == null) continue;
+                foreach (DashWidget speed in dashboard.Design.AllWidgets().Where(w => w.Type == "text" && w.Name == "Speed" &&
+                    (w.Get("text") ?? "").Contains("Speed")))
+                    speed.Set("tribute", TributeEight.Mark);
+            }
+        }
+
         /// <summary>The fuel-to-add value as designs showed it before schema 13: a bare "+0.3".</summary>
         internal const string OldFuelToAdd = "=FuelToFinish < 0 ? \"--.-\" : FuelToFinish <= 0.05 ? \"NONE\" : \"+\" + fuel(FuelToFinish)";
 
@@ -342,7 +361,7 @@ namespace AlmostFastDash.Settings
             DashLayout roady = Dashboards.FirstOrDefault(d => d.Id == DashboardSettings.RoadId)?.Design;
             DashLayout roundy = Dashboards.FirstOrDefault(d => d.Id == DashboardSettings.OvalId)?.Design;
             if (roady?.Screens != null) TouchViews.Roady(roady);
-            if (roundy?.Screens != null) TouchViews.Roundy(roundy);
+            if (roundy?.Screens != null) TouchViews.Rowdy(roundy);
         }
 
         /// <summary>Schema 11: Roady's panels became Liquid glass, as Roundy's are. Nothing else in it changes.</summary>

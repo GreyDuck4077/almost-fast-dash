@@ -10,7 +10,7 @@ namespace AlmostFastDash.UI
     internal static class WhatsNew
     {
         /// <summary>The version the highlights were last written for. The card shows to anyone who hasn't seen it.</summary>
-        public const string HighlightsVersion = "3.72";
+        public const string HighlightsVersion = "3.75";
 
         /// <summary>Whether someone who last saw <paramref name="seen"/> (major.minor, or empty) has new highlights to see.</summary>
         public static bool IsNewTo(string seen) =>
@@ -30,11 +30,10 @@ namespace AlmostFastDash.UI
 
         public static readonly string[] Highlights =
         {
-            "A new screen designer, laid out like an image editor.",
-            "A pen, shapes, gradient and pattern fills, masks and blend modes.",
-            "Modules: save anything you build and share it as a file.",
-            "Repeat in rows or around a circle, and an eyedropper.",
-            "Point at a dashboard below and it plays a lap."
+            "Roundy is now Rowdy, in tribute to Kyle Busch, and Oval is now Intimidator, in tribute to Dale Earnhardt.",
+            "Questions or problems? Ask on Discord: the link is at the bottom of the sidebar.",
+            "The radar keeps the cars behind you on the right sides more often.",
+            "A screen designer laid out like an image editor, with modules you can save and share."
         };
     }
 }

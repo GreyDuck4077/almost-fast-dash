@@ -1,6 +1,7 @@
 <Window x:Class="AlmostFastDash.UI.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:AlmostFastDash.UI"
         Title="Almost Fast Dash" Width="1280" Height="840" MinWidth="1100" MinHeight="700"
         WindowStartupLocation="CenterScreen" Background="{StaticResource Brush.Bg}"
         FontFamily="{StaticResource Font.Ui}" FontSize="13" Foreground="{StaticResource Brush.Text}"
@@ -47,6 +48,15 @@
 
                 <StackPanel DockPanel.Dock="Bottom">
                     <Border Style="{StaticResource Divider}" Margin="4,0,4,12"/>
+                    <!-- A quiet way to reach the developer with a question or a problem -->
+                    <Button Style="{StaticResource Btn.Ghost}" HorizontalAlignment="Left" Margin="2,0,0,6" Padding="10,5"
+                            Tag="{x:Static local:Links.Discord}" Click="AboutLink_Click" ToolTip="Questions or problems: ask on Discord"
+                            AutomationProperties.Name="Ask on Discord">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource T.Icon}" Text="&#xE8BD;" FontSize="13" Margin="0,0,9,0" Foreground="{StaticResource Brush.TextSecondary}"/>
+                            <TextBlock Text="Questions? Ask on Discord" Style="{StaticResource T.Caption}" Foreground="{StaticResource Brush.TextSecondary}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
                     <TextBlock x:Name="UpdateText" Style="{StaticResource T.Caption}" Margin="12,0,12,6" Visibility="Collapsed" TextWrapping="Wrap">
                         <Hyperlink x:Name="UpdateLink" Click="UpdateLink_Click" Foreground="{StaticResource Brush.Accent}"><Run x:Name="UpdateRun"/></Hyperlink>
                     </TextBlock>
@@ -772,6 +782,7 @@
                                 <Button Style="{StaticResource Btn.Ghost}" Content="User guide" Tag="https://github.com/Sota4077/almost-fast-dash/blob/main/docs/guide.md" Click="AboutLink_Click"/>
                                 <Button Style="{StaticResource Btn.Ghost}" Content="What's new" Tag="https://github.com/Sota4077/almost-fast-dash/blob/main/CHANGELOG.md" Click="AboutLink_Click"/>
                                 <Button Style="{StaticResource Btn.Ghost}" Content="Report a problem" Tag="https://github.com/Sota4077/almost-fast-dash/issues/new/choose" Click="AboutLink_Click"/>
+                                <Button Style="{StaticResource Btn.Ghost}" Content="Discord" Tag="{x:Static local:Links.Discord}" Click="AboutLink_Click"/>
                                 <Button Style="{StaticResource Btn.Ghost}" Content="Credits and license" Tag="https://github.com/Sota4077/almost-fast-dash/blob/main/CREDITS.md" Click="AboutLink_Click"/>
                             </WrapPanel>
                             <Grid Style="{StaticResource Row}" Margin="0,4,0,0">
@@ -785,6 +796,29 @@
                     </Border>
                 </StackPanel>
             </ScrollViewer>
+        </Grid>
+
+        <!-- ================= First start: a thank-you over the whole window, once (GeneralSettings.ShowThanks) ================= -->
+        <Grid x:Name="ThanksOverlay" Grid.ColumnSpan="2" Visibility="Collapsed" Background="#B8000000"
+              MouseLeftButtonDown="ThanksBackdrop_MouseLeftButtonDown">
+            <Border Style="{StaticResource Card}" Width="470" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="30,28" Background="#1B212B"
+                    MouseLeftButtonDown="ThanksCard_MouseLeftButtonDown">
+                <StackPanel>
+                    <Image Source="pack://application:,,,/AlmostFastDash;component/Assets/AppIcon.png" Width="52" Height="52"
+                           HorizontalAlignment="Left" RenderOptions.BitmapScalingMode="HighQuality"/>
+                    <TextBlock Style="{StaticResource T.Body}" FontSize="15" TextWrapping="Wrap" LineHeight="23" Margin="0,18,0,0">
+                        Thank you for checking out Almost Fast Dash. If you have any problems you can reach out on the
+                        <Hyperlink Click="DiscordLink_Click" Foreground="{StaticResource Brush.Accent}">Discord</Hyperlink>
+                        and I will do my best to help.
+                    </TextBlock>
+                    <TextBlock Text="~Adam" FontSize="16" FontStyle="Italic" HorizontalAlignment="Right" Margin="0,14,4,0"
+                               Foreground="{StaticResource Brush.TextSecondary}"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,24,0,0">
+                        <Button Style="{StaticResource Btn.Ghost}" Content="Open Discord" Click="DiscordLink_Click" Margin="0,0,8,0"/>
+                        <Button x:Name="ThanksClose" Style="{StaticResource Btn.Primary}" Content="Got it" MinWidth="96" Click="ThanksClose_Click"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
         </Grid>
     </Grid>
 </Window>

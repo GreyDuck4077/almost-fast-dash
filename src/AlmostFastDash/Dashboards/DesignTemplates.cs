@@ -24,11 +24,11 @@ namespace AlmostFastDash.Dashboards
         {
             new DesignTemplate { Id = "roady", Name = "Roady", Accent = "#FF5A1F", Create = Readable(Roady),
                 Description = "The road flagship: a sweep of revs over a huge gear, with delta, pedals, bias and fuel." },
-            new DesignTemplate { Id = "roundy", Name = "Roundy", Accent = "#3D9BFF", OvalLights = true, Create = Readable(Roundy),
+            new DesignTemplate { Id = "roundy", Name = "Rowdy", Accent = "#3D9BFF", OvalLights = true, Create = Readable(Rowdy),
                 Description = "The oval flagship: blind-spot arcs, a rev ring, the cars around you and your lap falloff." },
             new DesignTemplate { Id = "halo", Name = "Halo", Accent = "#30D158", Create = Readable(HaloRing),
                 Description = "Endurance and multiclass: a rev ring over a live delta, your stint and fuel, and traffic in class colors." },
-            new DesignTemplate { Id = "oval", Name = "Oval", Accent = "#FFB020", OvalLights = true, Create = Readable(OvalRadar),
+            new DesignTemplate { Id = "oval", Name = "Intimidator", Accent = "#FFB020", OvalLights = true, Create = Readable(Intimidator),
                 Description = "Pack racing: a live radar, gaps in car lengths and how fast they're closing, laps to go and fuel." },
             new DesignTemplate { Id = "apex", Name = "Apex", Accent = "#2F8CFF", Create = Readable(Apex),
                 Description = "Road and GT: an arched LED rev bar, speed inside a rev ring, the track map and a live graph either side." },

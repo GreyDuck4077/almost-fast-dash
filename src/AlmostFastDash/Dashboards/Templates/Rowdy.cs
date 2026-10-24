@@ -2,15 +2,15 @@ namespace AlmostFastDash.Dashboards
 {
     internal static partial class DesignTemplates
     {
-        // ------------------------------------------------------------------ Roundy
+        // ------------------------------------------------------------------ Rowdy
 
         /// <summary>
-        /// The oval flagship, after the round clusters of the Mini and Bentley. Curved blind-spot arcs hug the
+        /// The oval flagship, named in tribute to Kyle "Rowdy" Busch (its id is still "roundy", its first name). After the round clusters of the Mini and Bentley. Curved blind-spot arcs hug the
         /// edges. A numbered rev dial holds the gear, the speed and the lap speed, flanked by curved fuel and
         /// delta gauges. Position and the cars either side are on the left, and lap falloff over the stint is
         /// on the right. One glass strip carries laps to go, the last lap, fuel to the end and the leader.
         /// </summary>
-        private static DashLayout Roundy()
+        private static DashLayout Rowdy()
         {
             var b = new Builder(t =>
             {
@@ -47,7 +47,9 @@ namespace AlmostFastDash.Dashboards
             b.Add("shape", "Gear ring", 402, 86, 50, 50, "shape", "Ellipse", "fill", "#401E6FD0", "stroke", "accent", "strokeWidth", "2",
                 "glow", "8");
             b.Add("gear", "Gear", 402, 86, 50, 50, "size", "28", "neighbors", "false");
-            b.Text("Speed", 317, 136, 220, 86, "=format(Speed, \"0\")", "size", "90", "fxShadow", "10", "fxShadowY", "4");
+            b.Text("Speed", 317, 136, 220, 86, "=format(Speed, \"0\")", "size", "90", "fxShadow", "10", "fxShadowY", "4",
+                // Tap it eight times: Rowdy's easter egg (TributeEight).
+                "tribute", TributeEight.Mark);
             b.Text("Speed unit", 317, 220, 220, 16, "=SpeedUnit", "size", "12", "tracking", "4", "weight", "Regular", "color", "muted");
             b.Text("Lap speed", 317, 244, 220, 18, "=LastLapSpeed > 0 ? \"LAP \" + format(LastLapSpeed, \"0.0\") : \"\"", "size", "14",
                 "tracking", "2", "color", "info");
@@ -145,7 +147,7 @@ namespace AlmostFastDash.Dashboards
                 "tracking", "1.5", "weight", "Regular", "align", "Left", "color", "muted");
 
             PitLane(b, "Liquid");
-            TouchViews.Roundy(b.Layout);
+            TouchViews.Rowdy(b.Layout);
             return b.Layout;
         }
     }

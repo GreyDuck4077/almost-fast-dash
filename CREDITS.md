@@ -116,6 +116,11 @@ of their respective owners. They are named only to say what this app works with
 or was inspired by. Almost Fast Dash is an independent project, not affiliated
 with or endorsed by any of them.
 
+The Rowdy and Intimidator dashboards are named in tribute to Kyle Busch and Dale
+Earnhardt. Almost Fast Dash isn't affiliated with or endorsed by them, their
+teams or NASCAR, and the number 8 drawn in the app is this project's own
+artwork, not a team or driver logo.
+
 ## How it was made
 
 Much of the code was written with Claude (Anthropic), an AI coding assistant,

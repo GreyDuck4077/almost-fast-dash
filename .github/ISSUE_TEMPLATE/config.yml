@@ -6,3 +6,6 @@ contact_links:
   - name: User guide
     url: https://github.com/Sota4077/almost-fast-dash/blob/main/docs/guide.md
     about: Setting up devices, the designer, light profiles and troubleshooting.
+  - name: A question, or not sure it's a bug?
+    url: https://discord.gg/3xs8Ky5u6Q
+    about: Ask on the Almost Fast Dash Discord.

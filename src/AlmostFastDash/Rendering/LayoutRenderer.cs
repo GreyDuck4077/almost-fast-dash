@@ -86,6 +86,7 @@ namespace AlmostFastDash.Rendering
         {
             EvalScope scope = Scope(t ?? TelemetrySnapshot.Disconnected, false);
             DashScreen screen = _shown ?? ActiveScreen(scope);
+            if (TributeTap(screen, x, y)) return true;
             for (int i = screen.Widgets.Count - 1; i >= 0; i--)
             {
                 DashWidget widget = screen.Widgets[i];
@@ -100,6 +101,38 @@ namespace AlmostFastDash.Rendering
                 return true;
             }
             return false;
+        }
+
+        // Rowdy's easter egg (TributeEight): taps in a row on the widget marked for it, then eight seconds of the flag.
+        private readonly List<int> _tributeTaps = new List<int>();
+        private int _tributeUntil;
+        private bool _tributeOn;
+
+        /// <summary>Whether the tribute is waving at this moment (TickCount time, which wraps, so compared by difference).</summary>
+        internal bool TributeShowing(int now)
+        {
+            if (_tributeOn && unchecked(_tributeUntil - now) <= 0) _tributeOn = false;
+            return _tributeOn;
+        }
+
+        /// <summary>Counts a tap toward the tribute; returns true when it's the one that starts it.</summary>
+        private bool TributeTap(DashScreen screen, double x, double y)
+        {
+            int now = FlagClock ?? Environment.TickCount;
+            DashWidget marked = screen.Widgets.LastOrDefault(w => !w.Hidden && w.Get("tribute", "") == TributeEight.Mark &&
+                w.Bounds.Contains((float)x, (float)y));
+            if (marked == null)
+            {
+                _tributeTaps.Clear();
+                return false;
+            }
+            if (_tributeTaps.Count > 0 && unchecked(now - _tributeTaps[_tributeTaps.Count - 1]) > TributeEight.TapGap) _tributeTaps.Clear();
+            _tributeTaps.Add(now);
+            if (_tributeTaps.Count < TributeEight.Taps) return false;
+            _tributeTaps.Clear();
+            _tributeUntil = unchecked(now + TributeEight.Milliseconds);
+            _tributeOn = true;
+            return true;
         }
 
         internal static int TapViews(DashWidget widget) => Math.Max(2, Math.Min(9, (int)Math.Round(Expr.Num(widget.Get("tapViews", "2")))));
@@ -143,6 +176,16 @@ namespace AlmostFastDash.Rendering
                 ForgetFrame();
                 Bitmap cover = SharedOutput ? Output() : new Bitmap(_width, _height, PixelFormat.Format32bppArgb);
                 DrawFlag(cover, flags.Takeover, t, now);
+                return cover;
+            }
+            if (TributeShowing(now))
+            {
+                // Rowdy's easter egg covers the screen the same way, always waving.
+                _outputHoldsFrame = false;
+                ForgetFrame();
+                Bitmap cover = SharedOutput ? Output() : new Bitmap(_width, _height, PixelFormat.Format32bppArgb);
+                (_waving ?? (_waving = new WavingFlag(_width, _height, _flags))).Draw(cover, TributeEight.Picture(_width, _height),
+                    "tribute-8", now);
                 return cover;
             }
             Bitmap bitmap = RenderDashboard(t, shiftFlashOn, previousGear, gearTransitionProgress, forceScreen);

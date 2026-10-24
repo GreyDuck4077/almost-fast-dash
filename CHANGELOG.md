@@ -5,6 +5,19 @@ English. Every version is on the
 [releases page](https://github.com/Sota4077/almost-fast-dash/releases) with
 its exe and checksum.
 
+## 3.75 · 2026-10-23
+
+- **Rowdy and Intimidator.** Roundy is now Rowdy, in tribute to Kyle Busch, and
+  Oval is now Intimidator, in tribute to Dale Earnhardt. Saved dashboards take
+  the new names, unless you've renamed them yourself.
+- **Forever Rowdy:** tap the speed in Rowdy's dial eight times in a row and a
+  black 8 waves across the screen for eight seconds. Tap it on a touch wheel
+  screen, or click it with the dashboard in a window or full screen on your PC.
+- **Questions? Ask on Discord.** A quiet link at the bottom of the sidebar, and
+  one in About, goes to the Almost Fast Dash Discord, for questions and
+  problems.
+- **A thank-you note** greets a new install on its first start, once.
+
 ## 3.74 · 2026-10-18
 
 The radar puts cars behind you on the right side more often.

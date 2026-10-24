@@ -40,9 +40,14 @@ namespace AlmostFastDash.Rendering
         /// <summary>Changes about 30 times a second, so the runtime knows to draw a new frame.</summary>
         public static int Frame(int tickCount) => tickCount / 33;
 
-        public void Draw(Bitmap target, RacingFlag flag, TelemetrySnapshot telemetry, int tickCount)
+        public void Draw(Bitmap target, RacingFlag flag, TelemetrySnapshot telemetry, int tickCount) =>
+            Wave(target, Source(flag, telemetry), tickCount);
+
+        /// <summary>Waves any flat picture of the screen's size the same way (Rowdy's tribute); key names it for the cache.</summary>
+        public void Draw(Bitmap target, Bitmap flat, string key, int tickCount) => Wave(target, Source(flat, key), tickCount);
+
+        private void Wave(Bitmap target, int[] source, int tickCount)
         {
-            int[] source = Source(flag, telemetry);
             int w = _width, h = _height;
             int[] output = _output ?? (_output = new int[w * h]);
             double seconds = tickCount / 1000.0;
@@ -130,7 +135,12 @@ namespace AlmostFastDash.Rendering
         {
             string key = FlagPainter.Key(flag, telemetry);
             if (_source != null && key == _sourceKey) return _source;
-            Bitmap flat = _painter.Picture(flag, telemetry);
+            return Source(_painter.Picture(flag, telemetry), key);
+        }
+
+        private int[] Source(Bitmap flat, string key)
+        {
+            if (_source != null && key == _sourceKey) return _source;
             BitmapData data = flat.LockBits(new Rectangle(0, 0, _width, _height), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
             if (_source == null) _source = new int[_width * _height];
             try { Marshal.Copy(data.Scan0, _source, 0, _source.Length); }

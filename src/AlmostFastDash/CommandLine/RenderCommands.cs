@@ -110,6 +110,22 @@ namespace AlmostFastDash.CommandLine
                 last.WhiteFlagActive = true;
                 Save(dashboard, last, 1000, dashboard.Name + " - Final lap frame");
             }
+            // Rowdy's easter egg: eight taps on its speed, three seconds in.
+            DashboardSettings rowdy = settings.Dashboards.FirstOrDefault(d => d.Id == DashboardSettings.OvalId) ?? DashboardSettings.CreateOval();
+            DashWidget speed = rowdy.Design.AllWidgets().FirstOrDefault(w => w.Get("tribute", "") == TributeEight.Mark);
+            if (speed != null)
+                using (var renderer = new LayoutRenderer(rowdy.ScreenSize().Width, rowdy.ScreenSize().Height, rowdy, units))
+                {
+                    for (int i = 0; i < TributeEight.Taps; i++)
+                    {
+                        renderer.FlagClock = i * 200;
+                        renderer.Tap(speed.X + speed.W / 2, speed.Y + speed.H / 2);
+                    }
+                    renderer.FlagClock = 3000;
+                    TelemetrySnapshot racing = IRacingTelemetrySource.CreatePreviewSnapshot();
+                    using (var frame = renderer.Render(racing, false, racing.Gear, 1))
+                        frame.Save(Path.Combine(directory, "Rowdy - Forever Rowdy.png"), System.Drawing.Imaging.ImageFormat.Png);
+                }
             return 0;
         }
 
